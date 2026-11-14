@@ -11644,7 +11644,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261114.0630" : "0";
+      var VERSION = true ? "20261114.1032" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -93303,6 +93303,7 @@ ${fallos.join("\r\n")}\r
             descripcion: p.descripcion || "",
             unidad: p.unidad || "",
             disciplina: p.disciplina || null,
+            docCliente: p.docCliente || null,
             precioVenta: venta,
             precioPagado: Number(p.precioSub) || 0,
             cantidadPagada: Number(p.cantidadSub) || 0,
@@ -93639,12 +93640,793 @@ ${fallos.join("\r\n")}\r
             total: d.totales && d.totales.desfase || 0
           };
         }
-        exportar({ calcular, registros, avisos, porQueSube, mapa, mesCorto, eur, num, MINIMO, MINIMO_AVISO });
+        const CAUSAS = [
+          { clave: "horas", etiqueta: "Horas no repercutidas al cliente" },
+          { clave: "metros", etiqueta: "Metros pagados por encima de lo certificado al cliente" },
+          { clave: "sinCobrar", etiqueta: "Partidas pagadas y sin certificar al cliente" },
+          { clave: "precio", etiqueta: "Precio del industrial por encima del de venta" }
+        ];
+        function repartoPartida(desfase, cobrado, sobrePrecio) {
+          const o = { metros: 0, sinCobrar: 0, precio: 0 };
+          if (!(desfase > MINIMO)) return o;
+          if (cobrado < MINIMO) {
+            o.sinCobrar = r2(desfase);
+            return o;
+          }
+          o.precio = r2(Math.min(desfase, Math.max(0, sobrePrecio)));
+          o.metros = r2(desfase - o.precio);
+          return o;
+        }
+        function repartoPorMes(p) {
+          const venta = p.precioVenta;
+          const precio = new Map(p.industriales.map((i) => [i.emisor, i.precio]));
+          const acum = /* @__PURE__ */ new Map();
+          const out = /* @__PURE__ */ new Map();
+          for (const x of p.meses) {
+            for (const i of x.industriales) acum.set(i.emisor, (acum.get(i.emisor) || 0) + i.cantidad);
+            let sobre = 0;
+            for (const [e, q] of acum) {
+              const pr = precio.get(e) ?? p.precioPagado;
+              if (pr > venta + 5e-3) sobre += (pr - venta) * q;
+            }
+            out.set(x.mes, repartoPartida(x.desfaseOrigen, x.cobradoOrigen, sobre));
+          }
+          return out;
+        }
+        const SUFIJOS = /\b(s\s?l\s?u?|s\s?a\s?u?|slu|sl|sa|sau|sociedad|limitada|anonima|cb|scp|sll)\b/g;
+        const quitarAcentos = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        function nombreIndustrial(s) {
+          return quitarAcentos(s).toLowerCase().replace(/\(.*?\)/g, " ").replace(/[^a-z0-9]+/g, " ").replace(SUFIJOS, " ").replace(/\s+/g, "");
+        }
+        function mismoIndustrial(a, b) {
+          const x = nombreIndustrial(a);
+          const y = nombreIndustrial(b);
+          if (x.length < 4 || y.length < 4 || GENERICOS.has(x) || GENERICOS.has(y)) return x === y && x.length > 0;
+          return x === y || x.includes(y) || y.includes(x);
+        }
+        const GENERICOS = /* @__PURE__ */ new Set(["clima", "instalaciones", "ventilaciones", "ventilacion", "conductos", "aire", "electricidad", "montajes", "servicios", "obras", "industrial", "industriales"]);
+        const numerosDe = (s) => new Set((quitarAcentos(s).match(/\d{3,}(?:-\d{1,2}(?!\d))?/g) || []).filter((n) => !/^20\d\d$/.test(n)));
+        function mesAnterior(m) {
+          const x = /^(\d{4})-(\d{2})/.exec(String(m || ""));
+          if (!x) return null;
+          const a = Number(x[1]);
+          const mm = Number(x[2]);
+          return mm === 1 ? `${a - 1}-12` : `${a}-${String(mm - 1).padStart(2, "0")}`;
+        }
+        function justificarHoras(documentos = [], justificantes = []) {
+          const grupos = /* @__PURE__ */ new Map();
+          for (const o of documentos || []) {
+            const k = `${nombreIndustrial(o.emisor)}|${o.periodo || ""}`;
+            const g = grupos.get(k) || { emisor: o.emisor, periodo: o.periodo || null, horas: 0, importe: 0, porRevisar: false, documentos: [], justificantes: [] };
+            g.horas = r2(g.horas + (Number(o.horas) || 0));
+            g.importe = r2(g.importe + (Number(o.importe) || 0));
+            if (o.porRevisar) g.porRevisar = true;
+            g.documentos.push(o);
+            grupos.set(k, g);
+          }
+          const filas = [...grupos.values()];
+          const usados = /* @__PURE__ */ new Set();
+          const suyosDe = new Map(filas.map((g) => [g, (justificantes || []).filter((j) => mismoIndustrial(j.emisor, g.emisor))]));
+          for (const g of filas) {
+            const nums = /* @__PURE__ */ new Set();
+            for (const o of g.documentos) for (const n of numerosDe(o.fichero)) nums.add(n);
+            const porRef = suyosDe.get(g).filter((j) => [...numerosDe(`${j.referencia || ""} ${j.titulo || ""}`)].some((n) => nums.has(n)));
+            g.justificantes = porRef.map((j) => ({ ...j, casa: "referencia" }));
+            for (const j of porRef) usados.add(j.id);
+          }
+          for (const g of filas) {
+            if (g.justificantes.length) continue;
+            const libres = suyosDe.get(g).filter((j) => !usados.has(j.id));
+            const delMes = libres.filter((j) => j.mes === g.periodo);
+            const ant = mesAnterior(g.periodo);
+            const delAnterior = ant ? libres.filter((j) => j.mes === ant) : [];
+            g.justificantes = delMes.length ? delMes.map((j) => ({ ...j, casa: "mes" })) : delAnterior.map((j) => ({ ...j, casa: "mesAnterior" }));
+          }
+          for (const g of filas) g.justificantes.sort((a, b) => String(a.fecha || "").localeCompare(String(b.fecha || "")));
+          for (const g of filas) g.horasJustificadas = r2(g.justificantes.reduce((s, j) => s + (Number(j.horas) || 0), 0));
+          return filas.sort((a, b) => ordenMes(a.periodo, b.periodo) || b.importe - a.importe);
+        }
+        function porCausa(d, { partesHoras = [], porCasar = [], noCuentan = [], disputas = [], objetivo = null, justificantes = [] } = {}) {
+          const t = d && d.totales || { desfase: 0, horas: { desfase: 0 }, partidas: { desfase: 0 } };
+          const causas = new Map(CAUSAS.map((c) => [c.clave, { ...c, importe: 0, partidas: [], documentos: [] }]));
+          const repartos = /* @__PURE__ */ new Map();
+          for (const p of d && d.partidas || []) {
+            repartos.set(p.clave, repartoPorMes(p));
+            const r = repartoPartida(p.desfase, p.cobrado, p.porPrecio);
+            for (const k of ["metros", "sinCobrar", "precio"]) {
+              if (!(r[k] > 0)) continue;
+              const c = causas.get(k);
+              c.importe = r2(c.importe + r[k]);
+              c.partidas.push({
+                clave: p.clave,
+                codigo: p.codigo,
+                descripcion: p.descripcion,
+                ambito: p.ambito,
+                unidad: p.unidad,
+                disciplina: p.disciplina || "otras",
+                importe: r[k],
+                cantidadPagada: p.cantidadPagada,
+                cantidadCobrada: p.cantidadCobrada,
+                exceso: r2(Math.max(0, p.cantidadPagada - p.cantidadCobrada)),
+                precioPagado: p.precioPagado,
+                precioVenta: p.precioVenta,
+                docCliente: p.docCliente,
+                /* Las pruebas (JC 14-nov): lo certificado al cliente frente a lo pagado a cada industrial y la diferencia. */
+                pagado: p.pagado,
+                cobrado: p.cobrado,
+                difCantidad: r2(p.cantidadPagada - p.cantidadCobrada),
+                difImporte: r2(p.pagado - p.cobrado),
+                industriales: p.industriales.map((i) => ({ emisor: i.emisor, cantidad: i.cantidad, precio: i.precio, importe: i.importe, documentos: i.documentos }))
+              });
+            }
+          }
+          const ch = causas.get("horas");
+          ch.importe = r2(t.horas.desfase || 0);
+          const porDoc = /* @__PURE__ */ new Map();
+          for (const h of partesHoras || []) {
+            if (!(Number(h.importe) || Number(h.horas))) continue;
+            const k = h.docId || `${h.emisor}|${h.periodo}|${h.fichero || ""}`;
+            const x = porDoc.get(k) || { docId: h.docId || null, fichero: h.fichero || null, emisor: h.emisor || "\u2014", periodo: h.periodo || null, horas: 0, importe: 0, porRevisar: false };
+            x.horas = r2(x.horas + (Number(h.horas) || 0));
+            x.importe = r2(x.importe + (Number(h.importe) || 0));
+            if (h.seguro === false || h.dudoso) x.porRevisar = true;
+            porDoc.set(k, x);
+          }
+          ch.documentos = [...porDoc.values()].sort((a, b) => ordenMes(a.periodo, b.periodo) || b.importe - a.importe);
+          ch.porIndustrialMes = justificarHoras(ch.documentos, justificantes);
+          ch.sinJustificar = ch.porIndustrialMes.filter((g) => !g.justificantes.length).length;
+          for (const k of ["metros", "sinCobrar", "precio"]) {
+            const c = causas.get(k);
+            c.partidas.sort((a, b) => b.importe - a.importe);
+            const docs = /* @__PURE__ */ new Map();
+            for (const p of c.partidas) for (const i of p.industriales) for (const o of i.documentos || []) {
+              const kd = o.docId || o.fichero;
+              if (!kd) continue;
+              const x = docs.get(kd) || { docId: o.docId || null, fichero: o.fichero || null, emisor: i.emisor, periodo: o.periodo || null, partidas: 0 };
+              x.partidas += 1;
+              docs.set(kd, x);
+            }
+            c.documentos = [...docs.values()].sort((a, b) => b.partidas - a.partidas);
+          }
+          let antes = { horas: 0, metros: 0, sinCobrar: 0, precio: 0 };
+          const meses = (d && d.meses || []).map((m) => {
+            const o = { horas: r2(m.desfaseHoras || 0), metros: 0, sinCobrar: 0, precio: 0 };
+            for (const p of d && d.partidas || []) {
+              const rm = repartos.get(p.clave);
+              let ult = null;
+              for (const x of p.meses) {
+                if (ordenMes(x.mes, m.mes) <= 0) ult = rm.get(x.mes);
+              }
+              if (ult) {
+                o.metros += ult.metros;
+                o.sinCobrar += ult.sinCobrar;
+                o.precio += ult.precio;
+              }
+            }
+            for (const k of ["metros", "sinCobrar", "precio"]) o[k] = r2(o[k]);
+            const sube = {};
+            for (const k of Object.keys(o)) sube[k] = r2(o[k] - antes[k]);
+            antes = o;
+            return { mes: m.mes, nombre: mesCorto(m.mes), origen: o, sube, total: r2(o.horas + o.metros + o.sinCobrar + o.precio), pagado: m.pagado, cobrado: m.cobrado };
+          });
+          const nueva = () => ({ importe: 0, metros: 0, sinCobrar: 0, precio: 0, partidas: /* @__PURE__ */ new Set() });
+          const porDisciplina = { conductos: nueva(), tuberias: nueva() };
+          for (const k of ["metros", "sinCobrar", "precio"]) for (const p of causas.get(k).partidas) {
+            const x = porDisciplina[p.disciplina] || (porDisciplina[p.disciplina] = nueva());
+            x.importe = r2(x.importe + p.importe);
+            x[k] = r2(x[k] + p.importe);
+            x.partidas.add(p.clave);
+          }
+          for (const x of Object.values(porDisciplina)) x.partidas = x.partidas.size;
+          const repetidos = (noCuentan || []).filter((x) => /repite|sustitu|duplicad|revisad/i.test(x.motivo || ""));
+          const noCert = (noCuentan || []).filter((x) => !repetidos.includes(x));
+          const doc = (x) => ({ docId: x.docId || null, fichero: x.fichero || null, emisor: x.emisor || "\u2014", periodo: x.periodo || null, importe: r2(x.importe), motivo: x.motivo || "" });
+          const reclamado = r2((disputas || []).reduce((s, x) => s + (Number(x.reclamado) || 0), 0));
+          const reconocido = r2((disputas || []).reduce((s, x) => s + (Number(x.reconocido) || 0), 0));
+          const fuera = [
+            {
+              clave: "porCasar",
+              etiqueta: "Partidas de industriales sin pareja en lo certificado al cliente (por casar)",
+              importe: r2((porCasar || []).reduce((s, x) => s + (Number(x.importe) || 0), 0)),
+              documentos: [...new Map((porCasar || []).filter((x) => x.docId || x.fichero).map((x) => [x.docId || x.fichero, { docId: x.docId || null, fichero: x.fichero || null, emisor: x.emisor || "\u2014", periodo: x.periodo || null }])).values()]
+            },
+            {
+              clave: "claim",
+              etiqueta: "Reclamaciones de industriales en disputa (claim)",
+              importe: reclamado,
+              reconocido,
+              documentos: (disputas || []).map((x) => ({ docId: x.docId || null, fichero: x.fichero || null, emisor: x.emisor || "\u2014", periodo: x.periodo || null, importe: r2(x.reclamado), reconocido: x.reconocido == null ? null : r2(x.reconocido), motivo: x.motivo || "" }))
+            },
+            { clave: "duplicados", etiqueta: "Documentos repetidos o sustituidos por otra versi\xF3n (no suman dos veces)", importe: r2(repetidos.reduce((s, x) => s + (Number(x.importe) || 0), 0)), documentos: repetidos.map(doc) },
+            { clave: "noCertificacion", etiqueta: "Presupuestos y pedidos que no son certificaci\xF3n", importe: r2(noCert.reduce((s, x) => s + (Number(x.importe) || 0), 0)), documentos: noCert.map(doc) }
+          ].filter((x) => x.importe > MINIMO || x.documentos.length);
+          const lista = CAUSAS.map((c) => causas.get(c.clave));
+          const total = r2(lista.reduce((s, c) => s + c.importe, 0));
+          const res = { total, causas: lista, meses, porDisciplina, fuera, objetivo: null };
+          const n = objetivo == null || objetivo === "" ? null : Number(objetivo);
+          if (Number.isFinite(n) && n > 0) {
+            const piezas = lista.filter((c) => c.importe > MINIMO).map((c) => ({ clave: c.clave, etiqueta: c.etiqueta, importe: c.importe }));
+            const extras = [null];
+            if (reconocido > MINIMO) extras.push({ clave: "claimReconocido", etiqueta: "Lo reconocido del claim de los industriales", importe: reconocido });
+            if (reclamado > MINIMO) extras.push({ clave: "claimReclamado", etiqueta: "Todo lo reclamado en el claim de los industriales", importe: reclamado });
+            let mejor = null;
+            for (let mask = 1; mask < 1 << piezas.length; mask += 1) {
+              const base = piezas.filter((_, i) => mask & 1 << i);
+              for (const e of extras) {
+                const ps = e ? [...base, e] : base;
+                const importe = r2(ps.reduce((s, x) => s + x.importe, 0));
+                const dist = Math.abs(n - importe);
+                if (!mejor || dist < mejor.dist - 5e-3) mejor = { piezas: ps, importe, dist };
+              }
+            }
+            const mes = meses.filter((m) => m.total > MINIMO).sort((a, b) => Math.abs(n - a.total) - Math.abs(n - b.total))[0] || null;
+            res.objetivo = {
+              cifra: n,
+              total,
+              falta: r2(n - total),
+              cuadra: Math.abs(n - total) < 5e-3,
+              mejor: mejor ? { piezas: mejor.piezas.map((x) => ({ clave: x.clave, etiqueta: x.etiqueta, importe: x.importe })), importe: mejor.importe, falta: r2(n - mejor.importe) } : null,
+              mes: mes ? { mes: mes.mes, nombre: mes.nombre, total: mes.total, falta: r2(n - mes.total) } : null
+            };
+          }
+          return res;
+        }
+        exportar({ calcular, registros, avisos, porQueSube, mapa, porCausa, justificarHoras, mismoIndustrial, nombreIndustrial, CAUSAS, mesCorto, eur, num, MINIMO, MINIMO_AVISO });
       })(typeof module !== "undefined" && module.exports ? (api) => {
         module.exports = api;
       } : (api) => {
         window.DESFASE = api;
       });
+    }
+  });
+
+  // shared/presupuesto/horasIndustriales.js
+  var require_horasIndustriales = __commonJS({
+    "shared/presupuesto/horasIndustriales.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const ORIGEN = "parteHoras";
+        const CAPITULO = "HORAS DE INDUSTRIALES";
+        const TARIFA_VENTA = 36.5;
+        function tarifasDe(condiciones) {
+          let c = condiciones;
+          if (typeof c === "string") {
+            try {
+              c = JSON.parse(c);
+            } catch {
+              c = {};
+            }
+          }
+          c = c && typeof c === "object" ? c : {};
+          const pos = (v) => {
+            const n = Number(String(v ?? "").replace(",", "."));
+            return Number.isFinite(n) && n > 0 ? n : null;
+          };
+          const operario = pos(c.precioHoraOperario) || TARIFA_VENTA;
+          return { operario, oficial: pos(c.precioHoraOficial) || operario };
+        }
+        const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+        const sinAc = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+        const slug = (s) => sinAc(s).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+        const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+        function etiquetaMes(mes) {
+          const m = /^(\d{4})-(\d{2})/.exec(String(mes || ""));
+          return m ? `${MESES[Number(m[2]) - 1] || m[2]} ${m[1]}` : String(mes || "");
+        }
+        const claveDe = (p) => `${slug(p.subcontrata)}:${String(p.mes || "").slice(0, 7)}:${slug(p.referencia || p.archivo || "")}`;
+        const refDe = (l) => {
+          if (!l || l.origen !== ORIGEN || !l.origenRef) return null;
+          if (typeof l.origenRef === "object") return l.origenRef;
+          try {
+            return JSON.parse(l.origenRef);
+          } catch {
+            return null;
+          }
+        };
+        function capituloDe(arbol) {
+          let cap = arbol.find((n) => n.tipo === "capitulo" && n.resumen === CAPITULO);
+          if (!cap) {
+            const num = arbol.filter((n) => n.tipo === "capitulo").length + 1;
+            cap = { tipo: "capitulo", codigo: String(num).padStart(2, "0"), resumen: CAPITULO, origen: "app", hijos: [] };
+            arbol.push(cap);
+          }
+          cap.hijos = cap.hijos || [];
+          return cap;
+        }
+        function partidaDe(cap, subcontrata, categoria, tarifa) {
+          const resumen = `HORAS \xB7 ${String(subcontrata).toUpperCase()}${categoria === "oficial" ? " (OFICIAL)" : ""}`;
+          let par = cap.hijos.find((n) => n.tipo === "partida" && n.resumen === resumen);
+          if (!par) {
+            par = {
+              tipo: "partida",
+              codigo: `${cap.codigo}.${String(cap.hijos.length + 1).padStart(2, "0")}`,
+              resumen,
+              unidad: "h",
+              precio: tarifa,
+              origen: "app",
+              medicionObra: []
+            };
+            cap.hijos.push(par);
+          }
+          par.medicionObra = par.medicionObra || [];
+          return par;
+        }
+        function cargarHoras(arbol, partes, tarifas) {
+          const T2 = { operario: TARIFA_VENTA, oficial: TARIFA_VENTA, ...tarifas || {} };
+          const cap = capituloDe(arbol);
+          const res = { creadas: 0, actualizadas: 0, horas: 0 };
+          for (const p of partes || []) {
+            const horas = Number(p.horas);
+            if (!p.subcontrata || !(horas > 0)) continue;
+            const categoria = p.categoria === "oficial" ? "oficial" : "operario";
+            const tarifa = T2[categoria];
+            const par = partidaDe(cap, p.subcontrata, categoria, tarifa);
+            par.precio = tarifa;
+            const clave = claveDe(p);
+            const ref = {
+              clave,
+              subcontrata: p.subcontrata,
+              mes: String(p.mes || "").slice(0, 7),
+              archivo: p.archivo || null,
+              uri: p.uri || null,
+              webUrl: p.webUrl || null,
+              referencia: p.referencia || null,
+              categoria,
+              tarifa,
+              horas: r2(horas),
+              venta: r2(horas * tarifa),
+              costeReal: p.costeReal === null || p.costeReal === void 0 ? null : r2(p.costeReal)
+            };
+            const linea = {
+              comentario: `${etiquetaMes(p.mes)}${p.descripcion ? " \xB7 " + p.descripcion : ""}`.slice(0, 120),
+              uds: r2(horas),
+              largo: null,
+              ancho: null,
+              alto: null,
+              signo: 1,
+              origen: ORIGEN,
+              origenRef: ref
+            };
+            const i = par.medicionObra.findIndex((l) => (refDe(l) || {}).clave === clave);
+            if (i >= 0) {
+              par.medicionObra[i] = { ...par.medicionObra[i], ...linea };
+              res.actualizadas += 1;
+            } else {
+              par.medicionObra.push(linea);
+              res.creadas += 1;
+            }
+            res.horas = r2(res.horas + horas);
+          }
+          for (const par of cap.hijos) {
+            par.medicionObra.sort((a, b) => String((refDe(a) || {}).mes || "").localeCompare(String((refDe(b) || {}).mes || "")));
+            par.cantidadObra = r2(par.medicionObra.reduce((s, l) => s + (Number(l.uds) || 0) * (l.signo === -1 ? -1 : 1), 0));
+          }
+          return res;
+        }
+        function lineasConJustificante(arbol) {
+          const sal = [];
+          const rec = (ns) => (ns || []).forEach((n) => {
+            for (const l of n.medicionObra || []) {
+              const r = refDe(l);
+              if (r && (r.uri || r.archivo)) sal.push({ partida: n.resumen, ...r });
+            }
+            rec(n.hijos);
+          });
+          rec(arbol);
+          return sal;
+        }
+        function hashCorto(s) {
+          let h = 2166136261;
+          for (const c of String(s || "")) {
+            h ^= c.codePointAt(0);
+            h = Math.imul(h, 16777619) >>> 0;
+          }
+          return h.toString(36);
+        }
+        const rutaDe = (l) => String(l && (l.uri || l.archivo) || "");
+        const idPrueba = (l) => `medObraHoras:${slug(l && l.partida)}:${String(l && l.mes || "").slice(0, 7)}:${hashCorto(rutaDe(l))}`;
+        function tipoJustificante(l) {
+          const n = String(l && (l.archivo || l.uri) || "").toLowerCase();
+          if (/\.pdf$/.test(n)) return "pdf";
+          if (/\.(xlsx|xlsm|xls|csv)$/.test(n)) return "excel";
+          return "otro";
+        }
+        function pruebaDeLinea(l) {
+          const eur = (n) => `${(Number(n) || 0).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} \u20AC`;
+          const mes = String(l.mes || "").slice(0, 7);
+          return {
+            idExterno: idPrueba(l),
+            tipo: "documento",
+            fecha: /^\d{4}-\d{2}$/.test(mes) ? `${mes}-01` : null,
+            de: l.subcontrata || null,
+            asunto: `Horas de industrial \xB7 ${l.subcontrata || ""} \xB7 ${etiquetaMes(mes)}${l.referencia ? ` \xB7 ${l.referencia}` : ""}`.slice(0, 200),
+            enlace: l.webUrl || l.uri || null,
+            ruta: l.archivo || null,
+            nombreOriginal: l.archivo || null,
+            extracto: [
+              `Med Obra del presupuesto de obra \xB7 ${l.partida || ""}`,
+              `${String(l.horas ?? "").replace(".", ",")} h \xD7 ${String(l.tarifa ?? "").replace(".", ",")} \u20AC/h = venta ${eur(l.venta)}`,
+              l.costeReal === null || l.costeReal === void 0 ? "Coste real: sin apuntar" : `Coste real (lo que cobra el industrial): ${eur(l.costeReal)}`
+            ].join("\n")
+          };
+        }
+        const API = { ORIGEN, CAPITULO, TARIFA_VENTA, tarifasDe, etiquetaMes, claveDe, refDe, cargarHoras, lineasConJustificante, hashCorto, idPrueba, tipoJustificante, pruebaDeLinea };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.HORAS_INDUSTRIALES = API;
+      })();
+    }
+  });
+
+  // shared/reclamaciones/partesHorasSub.js
+  var require_partesHorasSub = __commonJS({
+    "shared/reclamaciones/partesHorasSub.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const TARIFA_VENTA = 36.5;
+        const ENLACE = "parteHorasSub";
+        const FECHA_DESDE = "2025-09-01";
+        const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+        const sinAc = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+        const slug = (s) => sinAc(s).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+        function horasPersona(p = {}) {
+          const tot = Number(p.horasTotales);
+          if (Number.isFinite(tot) && tot > 0) return r2(tot);
+          const n = Number(p.trabajadores);
+          const h = Number(p.horasPorTrabajador);
+          if (n > 0 && h > 0) return r2(n * h);
+          return 0;
+        }
+        function valorar(p = {}, tarifa = TARIFA_VENTA) {
+          const horas = horasPersona(p);
+          const venta = r2(horas * tarifa);
+          const c = p.costeReal === void 0 || p.costeReal === null || p.costeReal === "" ? null : Number(p.costeReal);
+          const coste = Number.isFinite(c) ? r2(c) : null;
+          return { horas, tarifa, venta, coste, margen: coste === null ? null : r2(venta - coste) };
+        }
+        const MESES = { enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6, julio: 7, agosto: 8, septiembre: 9, setiembre: 9, octubre: 10, noviembre: 11, diciembre: 12 };
+        const p2 = (n) => String(n).padStart(2, "0");
+        function fechaDe(p = {}) {
+          for (const t of [p.fecha, p.fechas, p.mes]) {
+            const x = String(t || "");
+            let m = x.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (m) return m[0];
+            const todas = [...x.matchAll(/(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/g)];
+            if (todas.length) {
+              const u = todas[todas.length - 1];
+              return `${u[3]}-${p2(u[2])}-${p2(u[1])}`;
+            }
+            const dm = [...sinAc(x).matchAll(/(\d{1,2})\s+de\s+([a-z]+)(?:\s+de\s+(\d{4}))?/g)];
+            if (dm.length) {
+              const u = dm[dm.length - 1];
+              const y = u[3] || (x.match(/(20\d{2})/) || [])[1];
+              if (MESES[u[2]] && y) return `${y}-${p2(MESES[u[2]])}-${p2(u[1])}`;
+            }
+            const my = sinAc(x).match(/\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\s+(?:de\s+)?(20\d{2})/);
+            if (my) {
+              const mm = MESES[my[1]];
+              return `${my[2]}-${p2(mm)}-${p2(new Date(Date.UTC(Number(my[2]), mm, 0)).getUTCDate())}`;
+            }
+            if (t === p.mes) {
+              m = x.match(/^(20\d{2})-(\d{2})/);
+              if (m) return `${m[1]}-${m[2]}-28`;
+              m = x.match(/^(\d{2})-(\d{2})(?:_|$)/);
+              if (m) return `20${m[1]}-${m[2]}-28`;
+            }
+          }
+          return null;
+        }
+        function normalizar(p = {}) {
+          const hpt = p.horasPorTrabajador;
+          let tot = Number(p.horasTotales);
+          let n = Number(p.trabajadores);
+          if (hpt && typeof hpt === "object") {
+            const v = Object.values(hpt).map(Number).filter((x) => Number.isFinite(x));
+            if (!(tot > 0)) tot = v.reduce((a, b) => a + b, 0);
+            if (!(n > 0)) n = v.length;
+          }
+          const out = { ...p, fecha: fechaDe(p) };
+          if (tot > 0) out.horasTotales = r2(tot);
+          if (n > 0) out.trabajadores = n;
+          if (hpt && typeof hpt === "object") out.horasPorTrabajador = void 0;
+          const c = p.costeReal ?? p.importe;
+          if (c !== void 0 && c !== null && c !== "") out.costeReal = Number(c);
+          return out;
+        }
+        function idExterno(p = {}) {
+          const ref = p.referencia || p.archivo || p.fecha || "";
+          return `parteHoras:${slug(p.subcontrata)}:${String(p.fecha || "").slice(0, 10)}:${slug(ref)}`;
+        }
+        function enPeriodo(p = {}, hasta = require_fecha().hoyLocal()) {
+          const f = String(p.fecha || "").slice(0, 10);
+          return /^\d{4}-\d{2}-\d{2}$/.test(f) && f >= FECHA_DESDE && f <= hasta;
+        }
+        const dias = (a, b) => Math.abs((Date.parse(`${String(a).slice(0, 10)}T00:00:00Z`) - Date.parse(`${String(b).slice(0, 10)}T00:00:00Z`)) / 864e5);
+        const palabras = (s) => new Set(sinAc(s).split(/[^a-z0-9]+/).filter((w) => w.length >= 4));
+        function candidatos(p = {}, hechos = [], max = 3) {
+          const pp = palabras([p.descripcion, p.zona].filter(Boolean).join(" "));
+          const sub = sinAc(p.subcontrata);
+          const res = [];
+          for (const h of hechos) {
+            if (!h || h.estado === "descartado" || h.enlaceTipo === ENLACE || h.naturaleza === "plazoLimak") continue;
+            let punt = 0;
+            const por = [];
+            const f = h.fecha || h.fechaFin;
+            if (f && p.fecha) {
+              const d = dias(f, p.fecha);
+              if (d <= 7) {
+                punt += 3 - Math.floor(d / 3);
+                por.push(d === 0 ? "mismo d\xEDa" : `${d} d\xEDas de diferencia`);
+              }
+            }
+            const hp = palabras([h.titulo, h.descripcion, h.zona].filter(Boolean).join(" "));
+            const comunes = [...pp].filter((w) => hp.has(w));
+            if (comunes.length) {
+              punt += Math.min(4, comunes.length);
+              por.push(`palabras: ${comunes.slice(0, 4).join(", ")}`);
+            }
+            if (sub && sinAc([h.subcontrata, h.titulo, h.descripcion].join(" ")).includes(sub.split(" ")[0])) {
+              punt += 2;
+              por.push("misma subcontrata");
+            }
+            if (h.metodo === "horas_x_tarifa") punt += 0.5;
+            if (punt >= 3) res.push({ hechoId: h.id, idExterno: h.idExterno || null, titulo: h.titulo || "", punt: r2(punt), por: por.join(" \xB7 "), valoraHoras: yaValoraHoras(h) });
+          }
+          return res.sort((a, b) => b.punt - a.punt).slice(0, max);
+        }
+        function yaValoraHoras(h = {}) {
+          if (h.metodo === "horas_x_tarifa" && Number(h.importe ?? h.importeCalc ?? 1) !== 0) return true;
+          if (Number(h.horasPersona) > 0) return true;
+          return false;
+        }
+        function ganador(cands = []) {
+          if (!cands.length) return null;
+          const [a, b] = cands;
+          return a.punt >= 5 && (!b || a.punt - b.punt >= 2) ? a : null;
+        }
+        function escalar(horas, n, coste, pct) {
+          const f = pct >= 100 || !(pct > 0) ? 1 : pct / 100;
+          const h = r2(horas * f);
+          return { horas: h, hPorTrab: n > 0 ? r2(h / n) : h, coste: coste === null || coste === void 0 ? null : r2(coste * f), pct: f === 1 ? null : pct };
+        }
+        function hechoDe(p = {}, { apartadoId = null, padre = null, tarifa = TARIFA_VENTA, revision = [], candidatos: cands = [] } = {}) {
+          const v = valorar(p, tarifa);
+          const n = Number(p.trabajadores) > 0 ? Number(p.trabajadores) : 1;
+          const esc = escalar(v.horas, n, v.coste, Number(p.porcentajeClaim));
+          const hPorTrab = esc.hPorTrab;
+          const quien = p.subcontrata || "Subcontrata";
+          const titulo = `Parte de horas de ${quien}${p.fecha ? ` (${String(p.fecha).slice(0, 10)})` : ""}: ${esc.horas} h${p.descripcion ? ` \u2014 ${String(p.descripcion).slice(0, 90)}` : ""}`;
+          const doc = padre && padre.valoraHoras;
+          const nota = [
+            `Parte de horas de ${quien}`,
+            p.referencia ? `ref. ${p.referencia}` : null,
+            p.archivo ? `archivo ${p.archivo}` : null,
+            p.mes ? `carpeta ${p.mes}` : null,
+            esc.pct ? `El parte trae ${v.horas} h-persona; solo el ${esc.pct} % de sus horas va al claim` : null,
+            `${n} trabajador(es) \xD7 ${hPorTrab} h = ${esc.horas} h-persona`,
+            `Venta: ${esc.horas} h \xD7 ${tarifa} \u20AC/h = ${r2(esc.horas * tarifa)} \u20AC`,
+            esc.coste === null ? "Coste real: sin apuntar (falta el importe del parte)" : `Coste real (lo que nos cobra): ${esc.coste} \u20AC`,
+            padre ? doc ? "Documenta al hecho padre (que ya valora esas horas): no suma venta." : "Cuelga de su hecho y suma sus horas." : "Sin hecho asignado: revisar a cu\xE1l pertenece.",
+            !padre && cands.length ? `Hechos posibles: ${cands.map((c) => `\xAB${String(c.titulo).slice(0, 70)}\xBB (${c.punt} pts: ${c.por})`).join(" | ")}` : null,
+            revision.length ? `A REVISAR: ${revision.join("; ")}` : null
+          ].filter(Boolean).join(". ");
+          return {
+            idExterno: idExterno(p),
+            fecha: String(p.fecha || "").slice(0, 10) || null,
+            titulo,
+            descripcion: [p.descripcion, p.zona ? `Zona: ${p.zona}` : null].filter(Boolean).join(". ") || null,
+            apartadoId,
+            metodo: "horas_x_tarifa",
+            a: n,
+            b: hPorTrab,
+            c: 1,
+            p: tarifa,
+            horasPersona: esc.horas,
+            costeReal: esc.coste,
+            porcentajeClaim: esc.pct,
+            horasOrigen: esc.pct ? v.horas : null,
+            costeOrigen: esc.pct ? v.coste : null,
+            subcontrata: p.subcontrata || null,
+            zona: p.zona || null,
+            enlaceTipo: ENLACE,
+            enlaceId: idExterno(p),
+            origenHecho: "parteHorasSubcontrata",
+            certeza: "documentado",
+            notaImportacion: nota,
+            hechoPadreId: padre ? padre.hechoId : null,
+            hijoSuma: padre ? doc ? 0 : 1 : null,
+            hijoNota: padre ? `Horas de ${quien}` : null,
+            hijoSentido: padre ? "favor" : null
+          };
+        }
+        function avisosRevision(p = {}, lote = [], tarifa = TARIFA_VENTA) {
+          const v = valorar(p, tarifa);
+          const out = [];
+          if (v.coste === null) out.push("sin coste: falta el importe que cobra la subcontrata");
+          else if (v.horas > 0 && v.coste / v.horas > tarifa) out.push(`coste ${r2(v.coste / v.horas)} \u20AC/h por encima de la venta (${tarifa} \u20AC/h)`);
+          const raiz = sinAc(p.subcontrata).split(" ")[0];
+          const gemelos = lote.filter((o) => o !== p && idExterno(o) !== idExterno(p) && sinAc(o.subcontrata).split(" ")[0] === raiz && String(o.fecha).slice(0, 10) === String(p.fecha).slice(0, 10) && horasPersona(o) === v.horas && v.horas > 0);
+          if (gemelos.length) out.push(`posible duplicado: ${gemelos.length} parte(s) de ${p.subcontrata} con la misma fecha y las mismas ${v.horas} h`);
+          if (p.aviso) out.push(String(p.aviso));
+          return out;
+        }
+        function resumen(partes = [], tarifa = TARIFA_VENTA) {
+          const por = /* @__PURE__ */ new Map();
+          const tot = { n: 0, horas: 0, venta: 0, coste: 0, sinCoste: 0 };
+          for (const p of partes) {
+            const v = valorar(p, tarifa);
+            const k = p.subcontrata || "\u2014";
+            const f = por.get(k) || { subcontrata: k, n: 0, horas: 0, venta: 0, coste: 0, sinCoste: 0 };
+            f.n += 1;
+            f.horas = r2(f.horas + v.horas);
+            f.venta = r2(f.venta + v.venta);
+            if (v.coste === null) f.sinCoste += 1;
+            else f.coste = r2(f.coste + v.coste);
+            por.set(k, f);
+            tot.n += 1;
+            tot.horas = r2(tot.horas + v.horas);
+            tot.venta = r2(tot.venta + v.venta);
+            if (v.coste === null) tot.sinCoste += 1;
+            else tot.coste = r2(tot.coste + v.coste);
+          }
+          return { porSubcontrata: [...por.values()].sort((a, b) => b.venta - a.venta), total: tot, margen: r2(tot.venta - tot.coste) };
+        }
+        const API = { normalizar, fechaDe, TARIFA_VENTA, ENLACE, FECHA_DESDE, horasPersona, valorar, idExterno, enPeriodo, candidatos, ganador, yaValoraHoras, hechoDe, resumen, avisosRevision, escalar };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.RECLAMACIONES_PARTES_HORAS_SUB = API;
+      })();
+    }
+  });
+
+  // electron/data/horasIndustriales.js
+  var require_horasIndustriales2 = __commonJS({
+    "electron/data/horasIndustriales.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var HI = require_horasIndustriales();
+      var { armarArbol, sincronizarLineas } = require_presupuestos();
+      function presupuestoDeObra(db, obraId) {
+        return db.prepare("SELECT id, fase, nombre FROM presupuestos WHERE (obraIdVinculada = ? OR obraId = ?) AND fase = 'obra' ORDER BY creadoEn LIMIT 1").get(obraId, obraId) || null;
+      }
+      function tarifasDeEstudios(db, obraId) {
+        const f = db.prepare("SELECT condicionesOferta FROM presupuestos WHERE (obraIdVinculada = ? OR obraId = ?) AND fase = 'estudio' AND condicionesOferta IS NOT NULL ORDER BY creadoEn LIMIT 1").get(obraId, obraId);
+        return HI.tarifasDe(f && f.condicionesOferta);
+      }
+      function parteALinea(p) {
+        const fecha = String(p.fecha || "").slice(0, 10);
+        return {
+          subcontrata: p.subcontrata,
+          mes: fecha.slice(0, 7),
+          horas: require_partesHorasSub().horasPersona(p),
+          costeReal: p.costeReal,
+          categoria: p.categoria,
+          archivo: p.archivo,
+          uri: p.uri,
+          webUrl: p.webUrl || null,
+          referencia: p.referencia,
+          descripcion: p.descripcion
+        };
+      }
+      function cargarPartesEnPresupuestoObra(db, sesion, obraId, partes, opciones = {}) {
+        const pres = presupuestoDeObra(db, obraId);
+        if (!pres) return { ok: false, error: "La obra no tiene presupuesto en fase \xABobra\xBB: las horas de industriales solo van ah\xED; Estudios no se toca." };
+        const arbol = armarArbol(db, pres.id);
+        const res = HI.cargarHoras(arbol, (partes || []).map(parteALinea), tarifasDeEstudios(db, obraId));
+        if (opciones.aplicar) sincronizarLineas(db, pres.id, arbol, sesion);
+        return { ok: true, presupuestoId: pres.id, ...res };
+      }
+      var { puede } = require_roles();
+      var no = (error) => ({ ok: false, error });
+      function lineasDePresupuesto(repo, ses, presupuestoId) {
+        const pres = presupuestoId ? repo.leer("presupuestos", ses, presupuestoId) : null;
+        if (!pres) return { error: "No se encuentra el presupuesto." };
+        if (pres.fase !== "obra") return { error: "Las horas de industriales solo est\xE1n en el presupuesto de obra." };
+        const lineas = HI.lineasConJustificante(armarArbol(repo.db, pres.id)).map((l) => ({ ...l, idExterno: HI.idPrueba(l), tipoArchivo: HI.tipoJustificante(l) }));
+        return { pres, obraId: pres.obraIdVinculada || pres.obraId, lineas };
+      }
+      function pruebaDe(repo, ses, recId, l) {
+        const porId = repo.listar("reclamacionPruebas", ses, { condicion: "reclamacionId = ? AND idExterno = ?", params: [recId, l.idExterno] })[0];
+        if (porId) return porId;
+        const enlaces = [l.webUrl, l.uri].filter(Boolean);
+        if (!enlaces.length) return null;
+        return repo.listar("reclamacionPruebas", ses, { condicion: `reclamacionId = ? AND enlace IN (${enlaces.map(() => "?").join(",")})`, params: [recId, ...enlaces] })[0] || null;
+      }
+      function estadoEnClaims(repo, ses, presupuestoId) {
+        const { obraId, lineas, error } = lineasDePresupuesto(repo, ses, presupuestoId);
+        if (error) return no(error);
+        const ve = puede(ses.rol, "reclamaciones", "ver");
+        const claims = ve && obraId ? repo.listar("reclamaciones", ses, { condicion: "obraId = ?", params: [obraId], orden: "numero" }) : [];
+        const filas = lineas.map((l) => {
+          const en = [];
+          for (const r of claims) {
+            const p = pruebaDe(repo, ses, r.id, l);
+            if (!p) continue;
+            const hechos = repo.listar("reclamacionHechoPruebas", ses, { condicion: "pruebaId = ?", params: [p.id] }).length;
+            en.push({ recId: r.id, codigo: r.codigo || null, pruebaId: p.id, hechos });
+          }
+          return {
+            clave: l.clave,
+            partida: l.partida,
+            subcontrata: l.subcontrata,
+            mes: l.mes,
+            archivo: l.archivo,
+            tipoArchivo: l.tipoArchivo,
+            horas: l.horas,
+            venta: l.venta,
+            costeReal: l.costeReal,
+            idExterno: l.idExterno,
+            enClaims: en
+          };
+        });
+        return {
+          ok: true,
+          obraId,
+          lineas: filas,
+          claims: claims.map((r) => ({ id: r.id, codigo: r.codigo, titulo: r.titulo })),
+          puedeLlevar: puede(ses.rol, "reclamaciones", "editar") && claims.length > 0
+        };
+      }
+      function hechosParaElegir(repo, ses, recId) {
+        if (!puede(ses.rol, "reclamaciones", "ver")) return no("No ves las reclamaciones.");
+        const r = recId ? repo.leer("reclamaciones", ses, recId) : null;
+        if (!r) return no("No se encuentra la reclamaci\xF3n.");
+        const hs = repo.listar("reclamacionHechos", ses, { condicion: "reclamacionId = ?", params: [recId], orden: "numero, fecha" }).filter((h) => h.estado !== "descartado").map((h) => ({ id: h.id, numero: h.numero || null, titulo: h.titulo || "", estado: h.estado, subcontrata: h.subcontrata || null }));
+        return { ok: true, hechos: hs };
+      }
+      function llevarAlClaim(repo, ses, entrada = {}) {
+        if (!puede(ses.rol, "reclamaciones", "editar")) return no("Llevar pruebas al claim lo hace quien edita las reclamaciones.");
+        const { obraId, lineas, error } = lineasDePresupuesto(repo, ses, entrada.presupuestoId);
+        if (error) return no(error);
+        const l = lineas.find((x) => x.clave === entrada.clave);
+        if (!l) return no("Esa l\xEDnea no tiene justificante en el presupuesto de obra.");
+        const r = entrada.recId ? repo.leer("reclamaciones", ses, entrada.recId) : null;
+        if (!r) return no("No se encuentra la reclamaci\xF3n.");
+        if (r.obraId !== obraId) return no("La reclamaci\xF3n es de otra obra.");
+        let h = null;
+        if (entrada.hechoId) {
+          h = repo.leer("reclamacionHechos", ses, entrada.hechoId);
+          if (!h || h.reclamacionId !== r.id) return no("Ese hecho no es de esta reclamaci\xF3n.");
+        }
+        let p = pruebaDe(repo, ses, r.id, l);
+        let creada = false;
+        if (!p) {
+          const id = repo.crear("reclamacionPruebas", ses, { obraId: r.obraId, reclamacionId: r.id, ...HI.pruebaDeLinea(l), creadoPor: ses.personaId }, { verbo: "editar" });
+          p = { id };
+          creada = true;
+        }
+        let ligada = false;
+        if (h && !repo.listar("reclamacionHechoPruebas", ses, { condicion: "hechoId = ? AND pruebaId = ?", params: [h.id, p.id] }).length) {
+          repo.crear("reclamacionHechoPruebas", ses, { obraId: r.obraId, hechoId: h.id, pruebaId: p.id, concepto: `Med Obra \xB7 ${HI.etiquetaMes(l.mes)}` }, { verbo: "editar" });
+          ligada = true;
+        }
+        return { ok: true, pruebaId: p.id, creada, ligada };
+      }
+      function origenArchivo(uri) {
+        const u = String(uri || "");
+        const sp = /^file:\/\/\/(b![^/]+)\/([A-Z0-9]{20,})$/i.exec(u);
+        if (sp) return { sharepoint: { driveId: sp[1], itemId: sp[2] } };
+        if (/^file:\/\/\//i.test(u)) {
+          try {
+            return { local: decodeURIComponent(u.replace(/^file:\/\//i, "")) };
+          } catch {
+            return {};
+          }
+        }
+        if (u.startsWith("/")) return { local: u };
+        return {};
+      }
+      module.exports = {
+        tarifasDeEstudios,
+        presupuestoDeObra,
+        parteALinea,
+        cargarPartesEnPresupuestoObra,
+        lineasDePresupuesto,
+        estadoEnClaims,
+        hechosParaElegir,
+        llevarAlClaim,
+        origenArchivo
+      };
     }
   });
 
@@ -94335,7 +95117,129 @@ ${fallos.join("\r\n")}\r
         notas.push(hp ? `Partes de horas firmados en la obra: ${D.num(hp)} h.` : "No hay ning\xFAn parte de horas firmado por el cliente en la obra.");
         return { lista, notas };
       }
-      function calcular(repo, sesion, obraId) {
+      function horasDelExtracto(texto) {
+        const ms = [...String(texto || "").matchAll(/(\d[\d.,]*)\s*h\s*[×x]\s*(\d[\d.,]*)\s*€\s*\/\s*h/g)];
+        if (!ms.length) return { horas: null, tarifa: null };
+        const m = ms[ms.length - 1];
+        const es = (t) => {
+          const x = String(t).replace(/[.,]$/, "");
+          const n = Number(x.includes(",") ? x.replace(/\./g, "").replace(",", ".") : /^\d{1,3}(\.\d{3})+$/.test(x) ? x.replace(/\./g, "") : x);
+          return Number.isFinite(n) ? n : null;
+        };
+        return { horas: es(m[1]), tarifa: es(m[2]) };
+      }
+      var tipoDe = (n) => /\.pdf$/i.test(n || "") ? "pdf" : /\.(png|jpe?g|heic|webp|gif)$/i.test(n || "") ? "imagen" : /\.(xlsx|xlsm|xls|csv)$/i.test(n || "") ? "excel" : "otro";
+      function justificantesHoras(repo, sesion, obraId) {
+        const out = [];
+        const vistos2 = /* @__PURE__ */ new Set();
+        if (puede(sesion.rol, "reclamaciones", "ver")) {
+          let filas = [];
+          try {
+            filas = repo.db.prepare(`SELECT p.id, p.idExterno, p.de, p.fecha, p.asunto, p.extracto, p.enlace, p.archivo, p.nombreOriginal, r.codigo
+          FROM reclamacionPruebas p JOIN reclamaciones r ON r.id = p.reclamacionId
+          WHERE r.obraId = ? AND (p.idExterno LIKE 'parteHoras:%' OR p.idExterno LIKE 'medObraHoras:%') ORDER BY p.fecha`).all(obraId);
+          } catch {
+            filas = [];
+          }
+          for (const p of filas) {
+            if (vistos2.has(p.idExterno)) continue;
+            vistos2.add(p.idExterno);
+            const h = horasDelExtracto(p.extracto);
+            const partes = String(p.asunto || "").split(" \xB7 ");
+            out.push({
+              id: `prueba:${p.id}`,
+              fuente: "claim",
+              claim: p.codigo || null,
+              emisor: p.de || partes[1] || "\u2014",
+              fecha: p.fecha || null,
+              mes: String(p.fecha || "").slice(0, 7),
+              titulo: p.asunto || "",
+              referencia: partes.length > 2 ? partes.slice(2).join(" \xB7 ") : "",
+              horas: h.horas,
+              tarifa: h.tarifa,
+              importe: h.horas != null && h.tarifa != null ? r2(h.horas * h.tarifa) : null,
+              extracto: p.extracto || "",
+              fichero: p.nombreOriginal || p.archivo || null,
+              tipoArchivo: tipoDe(p.nombreOriginal || p.archivo || p.enlace),
+              abrir: { pruebaId: p.id }
+            });
+          }
+        }
+        try {
+          const HIdat = require_horasIndustriales2();
+          const pres = HIdat.presupuestoDeObra(repo.db, obraId);
+          const r = pres ? HIdat.lineasDePresupuesto(repo, sesion, pres.id) : null;
+          for (const l of r && !r.error && r.lineas || []) {
+            if (vistos2.has(l.idExterno)) continue;
+            vistos2.add(l.idExterno);
+            out.push({
+              id: `medObra:${l.clave}`,
+              fuente: "medObra",
+              claim: null,
+              emisor: l.subcontrata || "\u2014",
+              fecha: l.mes ? `${String(l.mes).slice(0, 7)}-01` : null,
+              mes: String(l.mes || "").slice(0, 7),
+              titulo: `Med Obra \xB7 ${l.partida || ""}`,
+              referencia: l.referencia || "",
+              horas: l.horas ?? null,
+              tarifa: l.tarifa ?? null,
+              importe: l.venta ?? null,
+              extracto: [l.descripcion, l.referencia].filter(Boolean).join("\n"),
+              fichero: l.archivo || null,
+              tipoArchivo: tipoDe(l.archivo || l.uri),
+              abrir: { presupuestoId: pres.id, clave: l.clave }
+            });
+          }
+        } catch {
+        }
+        return out;
+      }
+      function carpetaCorreo(db, obraId) {
+        if (process.env.VIDAIRE_DOCS_CORREO) return process.env.VIDAIRE_DOCS_CORREO;
+        const o = db.prepare("SELECT codigo FROM obras WHERE id = ?").get(obraId) || {};
+        const cod = String(o.codigo || "").replace(/^OBR-/i, "").replace(/[^A-Za-z0-9_-]/g, "");
+        return cod ? require_path().join(require_os().homedir(), "Proyectos", "Datos_Fabricantes", `${cod}_correo`) : null;
+      }
+      function documento(repo, sesion, obraId, docId, { conTexto = true } = {}) {
+        if (!veDinero(sesion)) return { ok: false, error: SIN_PERMISO };
+        const fs = require_fs();
+        const path = require_path();
+        const d = repo.db.prepare("SELECT id, emisor, periodo, tipo, sentido, fichero, asunto, importe FROM docsCorreo WHERE id = ? AND obraId = ?").get(docId, obraId);
+        if (!d) return { ok: false, error: "No se encuentra el documento en esta obra." };
+        const base = carpetaCorreo(repo.db, obraId);
+        const ruta = base && d.fichero ? path.resolve(base, d.fichero) : null;
+        const dentro = ruta && ruta.startsWith(path.resolve(base) + path.sep);
+        const hay = Boolean(dentro && fs.existsSync(ruta));
+        let texto = null;
+        let cortado = false;
+        if (hay && conTexto) {
+          try {
+            texto = fs.readFileSync(ruta, "utf8");
+            if (texto.length > 2e5) {
+              texto = texto.slice(0, 2e5);
+              cortado = true;
+            }
+          } catch {
+            texto = null;
+          }
+        }
+        return {
+          ok: true,
+          id: d.id,
+          emisor: d.emisor,
+          periodo: d.periodo,
+          tipo: d.tipo,
+          sentido: d.sentido,
+          fichero: d.fichero,
+          asunto: d.asunto,
+          importe: d.importe,
+          hayFichero: hay,
+          ruta: hay ? ruta : null,
+          texto,
+          cortado
+        };
+      }
+      function calcular(repo, sesion, obraId, { objetivo = null } = {}) {
         const g = require_gapDisciplina2().cuadro(repo, sesion, obraId, {});
         if (!g.ok) return g;
         const c = require_certMesAMes2().cuadro(repo, sesion, obraId, {});
@@ -94344,11 +95248,12 @@ ${fallos.join("\r\n")}\r
         const hd = c.ok && c.horasDoc && c.horasDoc.totales;
         if (hd && hd.mesesPorRevisar) h.notas.push(`De las horas pagadas, ${D.num(hd.porRevisarHoras)} h (${D.eur(hd.porRevisarImporte)}) est\xE1n por revisar en su documento: m\xEDralas en \xABHoras por documento\xBB.`);
         const d = D.calcular({ medicion: g.medicion, partesHoras, horasCliente: h.lista, notasHoras: h.notas });
-        return { ok: true, obra: g.obra, documentos: g.documentos, leidos: g.leidos, medicion: g.medicion, avisosLectura: g.avisos || [], ...d };
+        const causas = D.porCausa(d, { partesHoras, porCasar: g.medicion && g.medicion.porCasar || [], noCuentan: c.ok ? c.noCuentan || [] : [], disputas: c.ok ? c.disputas || [] : [], objetivo, justificantes: justificantesHoras(repo, sesion, obraId) });
+        return { ok: true, obra: g.obra, documentos: g.documentos, leidos: g.leidos, medicion: g.medicion, avisosLectura: g.avisos || [], ...d, causas };
       }
-      function cuadro(repo, sesion, obraId) {
+      function cuadro(repo, sesion, obraId, opciones = {}) {
         if (!veDinero(sesion)) return { ok: false, error: SIN_PERMISO };
-        const d = calcular(repo, sesion, obraId);
+        const d = calcular(repo, sesion, obraId, opciones || {});
         if (!d.ok) return d;
         const g = repo.db.prepare("SELECT calculadoEn, motivo FROM desfaseCalculos WHERE obraId = ?").get(obraId) || null;
         return { ...d, guardado: g, avisos: avisos(repo, sesion, obraId).avisos };
@@ -94452,7 +95357,7 @@ ${fallos.join("\r\n")}\r
     ON CONFLICT(personaId, clave) DO UPDATE SET hasta = excluded.hasta`).run(sesion.personaId, CLAVE_VISTO(obraId), hasta);
         return { ok: true, hasta };
       }
-      module.exports = { cuadro, recalcular, alCambiar, alRecibir, procesar, avisos, vistos, horasCliente, lecturaCliente, veDinero };
+      module.exports = { documento, carpetaCorreo, justificantesHoras, horasDelExtracto, cuadro, recalcular, alCambiar, alRecibir, procesar, avisos, vistos, horasCliente, lecturaCliente, veDinero };
     }
   });
 
@@ -106451,6 +107356,43 @@ ${reglas}`;
             hipotesis: "Por cada elemento (difusor, reja, compuerta, VAV, unidad interior\u2026) contado a mano en un plano de planta: localizarlo y marcarlo ~0,3 min y apuntarlo en la medici\xF3n de su partida por planta, cuadrando con la tabla de selecci\xF3n ~0,2 min = 0,5 min. Lo hace el jefe de producci\xF3n (60 %) con el jefe de obra (40 %), que revisa la diferencia con proyecto. Revisar la vista con los s\xEDmbolos sigue siendo del jefe de obra."
           },
           /*
+           * EL ESTUDIO DEL DESFASE CLIENTE / INDUSTRIAL POR CAUSA (JC, 14-nov-2026:
+           * «el estudio del hueco por causa lo hace la app; que las horas que le
+           * costaría a una persona cuenten en Lo que ahorra»). Certificaciones › Mes a
+           * mes › Por causa. A mano: casar cada partida pagada con la certificada al
+           * cliente, revisar las horas de cada industrial y enlazar los justificantes.
+           * Tres supuestos de minutos, visibles en pantalla y editables. Se cuentan en
+           * el mes en que la app hizo el estudio (desfaseCalculos.calculadoEn). Lo hace
+           * el jefe de producción (60 %, lleva los industriales) con el jefe de obra (40 %).
+           */
+          {
+            id: "desfasePartidas",
+            unaVez: true,
+            que: "Estudio del desfase cliente/industrial: partidas casadas una a una",
+            unidad: "partidas casadas",
+            minutos: 6,
+            reparto: { jefeProduccion: 0.6, jefeObra: 0.4 },
+            hipotesis: "Por cada partida pagada a los industriales: buscarla en la certificaci\xF3n del cliente, comparar metros y precio de venta y apuntar la diferencia y su causa: ~6 min por partida casada. Lo hace el jefe de producci\xF3n (60 %) con el jefe de obra (40 %)."
+          },
+          {
+            id: "desfaseHoras",
+            unaVez: true,
+            que: "Estudio del desfase cliente/industrial: horas de cada industrial y mes revisadas",
+            unidad: "industriales-mes de horas",
+            minutos: 20,
+            reparto: { jefeProduccion: 0.6, jefeObra: 0.4 },
+            hipotesis: "Por cada industrial y mes con horas de administraci\xF3n: abrir sus partes, sumar las horas, compararlas con las que reconoce el cliente y apuntar lo no repercutido: ~20 min por industrial y mes. Lo hace el jefe de producci\xF3n (60 %) con el jefe de obra (40 %)."
+          },
+          {
+            id: "desfaseJustificantes",
+            unaVez: true,
+            que: "Estudio del desfase cliente/industrial: justificantes localizados y enlazados",
+            unidad: "justificantes",
+            minutos: 4,
+            reparto: { jefeProduccion: 0.6, jefeObra: 0.4 },
+            hipotesis: "Por cada certificaci\xF3n (del industrial o del cliente) que justifica una l\xEDnea: localizar el documento, comprobar que es la versi\xF3n buena y enlazarlo a su causa: ~4 min por justificante. Lo hace el jefe de producci\xF3n (60 %) con el jefe de obra (40 %)."
+          },
+          /*
            * LA RECLAMACIÓN AL CLIENTE (JC, 5-nov-2026: «hay que contar el tiempo que
            * me voy a ahorrar usando la app con todo esto del claim»). Una vez POR
            * RECLAMACIÓN (no al mes): se cuenta lo de todas las reclamaciones visibles
@@ -107353,6 +108295,117 @@ ${reglas}`;
             conAlgo: lineas.filter((l) => l.cuenta > 0).length
           };
         }
+        const MESES_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+        const nombreMesAhorro = (m) => {
+          const [a, mm] = String(m || "").split("-");
+          return MESES_ES[Number(mm) - 1] ? `${MESES_ES[Number(mm) - 1]} ${a}` : String(m || "");
+        };
+        const ROLES_REALES = ["jefeObra", "jefeProduccion", "encargadoObra"];
+        function repartoDeLinea(l) {
+          if (l && l.reparto) {
+            const t = Object.values(l.reparto).reduce((a, p) => a + (p > 0 ? p : 0), 0) || 1;
+            return Object.fromEntries(Object.entries(l.reparto).filter(([, p]) => p > 0).map(([r, p]) => [r, p / t]));
+          }
+          return l && l.quien === "encargado" ? { encargadoObra: 1 } : { jefeObra: 1 };
+        }
+        function porRolDeLinea(lc, aj) {
+          const rep = repartoDeLinea(lc);
+          const pesos = Object.entries(rep).map(([r, p]) => [r, p, p * precioHoraRol(r, aj)]);
+          const tp = pesos.reduce((a, [, , w]) => a + w, 0) || 1;
+          const o = {};
+          for (const [r, p, w] of pesos) o[r] = { horas: lc.horas * p, euros: lc.euros * (w / tp) };
+          return o;
+        }
+        function sumaRoles(dest, orig) {
+          for (const [r, v] of Object.entries(orig)) {
+            if (!dest[r]) dest[r] = { horas: 0, euros: 0 };
+            dest[r].horas += v.horas;
+            dest[r].euros += v.euros;
+          }
+          return dest;
+        }
+        function ahorroRealMesAMes(idRol, real, ajustes) {
+          if (!esAdmin(idRol)) return null;
+          const aj = limpiarAjustes(ajustes);
+          const r = real && typeof real === "object" ? real : {};
+          const lin = r.lineas || {};
+          const meses = Array.isArray(r.meses) ? r.meses : [];
+          const total = { horas: 0, euros: 0, horasClaim: 0, eurosClaim: 0, roles: {} };
+          const acum = {};
+          const filasMes = meses.map((mes) => {
+            const conteos = {};
+            for (const [id, x] of Object.entries(lin)) conteos[id] = x.porMes && x.porMes[mes] || 0;
+            const a = ahorroObra(idRol, conteos, aj, 1, 1);
+            const roles = {};
+            let hc = 0;
+            let ec = 0;
+            const lineas2 = a.lineas.filter((l) => l.cuenta > 0).map((l) => {
+              const pr = porRolDeLinea(l, aj);
+              sumaRoles(roles, pr);
+              if (l.porClaim) {
+                hc += l.horas;
+                ec += l.euros;
+              }
+              const t = acum[l.id] || (acum[l.id] = { horas: 0, euros: 0, cuenta: 0, roles: {} });
+              t.horas += l.horas;
+              t.euros += l.euros;
+              t.cuenta += l.cuenta;
+              sumaRoles(t.roles, pr);
+              return { id: l.id, que: l.que, unidad: l.unidad, cuenta: l.cuenta, minutos: l.minutos, horas: l.horas, euros: l.euros, quien: l.quien, porClaim: Boolean(l.porClaim) };
+            });
+            total.horas += a.horas;
+            total.euros += a.euros;
+            total.horasClaim += hc;
+            total.eurosClaim += ec;
+            sumaRoles(total.roles, roles);
+            return { mes, nombre: nombreMesAhorro(mes), horas: a.horas, euros: a.euros, horasClaim: hc, eurosClaim: ec, roles, lineas: lineas2 };
+          });
+          total.horasSinClaim = total.horas - total.horasClaim;
+          total.eurosSinClaim = total.euros - total.eurosClaim;
+          const base = ahorroObra(idRol, {}, aj, 1, 1).lineas;
+          const lineas = base.map((l) => {
+            const x = lin[l.id] || {};
+            const t = acum[l.id] || { horas: 0, euros: 0, cuenta: 0, roles: {} };
+            return {
+              id: l.id,
+              que: l.que,
+              unidad: l.unidad,
+              minutos: l.minutos,
+              cambiado: l.cambiado,
+              quien: l.quien,
+              precio: l.precio,
+              porClaim: Boolean(l.porClaim),
+              confirmar: Boolean(l.confirmar),
+              cuenta: t.cuenta,
+              horas: t.horas,
+              euros: t.euros,
+              roles: t.roles,
+              historial: Number(x.historial) || 0,
+              motivoHistorial: x.motivoHistorial || null,
+              fuente: x.fuente || null,
+              sinFecha: Boolean(x.sinFecha),
+              porMes: x.porMes || {}
+            };
+          }).filter((l) => l.cuenta > 0 || l.historial > 0);
+          const historial = lineas.filter((l) => l.historial > 0).map((l) => ({
+            id: l.id,
+            que: l.que,
+            unidad: l.unidad,
+            n: l.historial,
+            motivo: l.motivoHistorial,
+            horasNoContadas: l.historial * l.minutos / 60
+          }));
+          return {
+            meses: filasMes,
+            total,
+            lineas,
+            historial,
+            desde: r.desde || null,
+            hasta: r.hasta || null,
+            alta: r.alta || null,
+            precios: Object.fromEntries(ROLES_REALES.map((rol) => [rol, precioHoraRol(rol, aj)]))
+          };
+        }
         function mesesEntre(desde, hasta) {
           const d = Date.parse(String(desde || "").slice(0, 10));
           const h = Date.parse(String(hasta || "").slice(0, 10));
@@ -107426,6 +108479,10 @@ ${reglas}`;
           GRUPOS_COMPETENCIA,
           lineasObra,
           ahorroObra,
+          ahorroRealMesAMes,
+          repartoDeLinea,
+          nombreMesAhorro,
+          ROLES_REALES,
           precioReparto,
           semanasDeObra,
           limpiarAjustes,
@@ -149283,7 +150340,23 @@ Estado: ${ESTADO}`);
         c.legalizacionesTerritorio = repo && sesion ? tramitesTerritorio(repo, sesion, obra, hoy) : 0;
         c.pedidosCruzados = repo && sesion ? require_pedidosProyecto2().contar(repo, sesion, obra.id) : 0;
         c.medComprobada = repo && sesion ? require_medComprobada2().contar(repo, sesion, obra.id) : 0;
+        Object.assign(c, contarDesfase(db, id));
         Object.assign(c, contarClaim(db, id));
+        return c;
+      }
+      function contarDesfase(db, obraId) {
+        const c = { desfasePartidas: 0, desfaseHoras: 0, desfaseJustificantes: 0 };
+        const n = (sql) => {
+          try {
+            return db.prepare(sql).get(obraId).n || 0;
+          } catch {
+            return 0;
+          }
+        };
+        if (!n("SELECT COUNT(*) AS n FROM desfaseCalculos WHERE obraId = ?")) return c;
+        c.desfasePartidas = n("SELECT COUNT(DISTINCT clave) AS n FROM desfases WHERE obraId = ? AND tipo = 'partida'");
+        c.desfaseHoras = n("SELECT COUNT(DISTINCT emisor || '|' || mes) AS n FROM desfases WHERE obraId = ? AND tipo = 'horas'");
+        c.desfaseJustificantes = n("SELECT COUNT(*) AS n FROM docsCorreo WHERE obraId = ? AND tipo = 'certificacion'");
         return c;
       }
       var CLAIM_CEROS = {
@@ -149386,6 +150459,201 @@ Estado: ${ESTADO}`);
           return 0;
         }
       }
+      var ALTA = "@ALTA@";
+      var FUENTES = {
+        equipos: { tabla: "equiposObra", texto: "Equipos \u203A una fila por equipo, en el mes en que se dio de alta (creadoEn)" },
+        modelos: { tabla: "modelosEquipo", texto: "Equipos \u203A Modelos, en el mes en que se cre\xF3 el modelo (creadoEn)" },
+        documentos: { tabla: "equiposObra", fecha: "modificadoEn", texto: "Documentos enlazados a cada equipo, en el mes de la \xFAltima modificaci\xF3n del equipo (aproximado: la base no guarda la fecha de cada enlace)" },
+        fichasPM: { tabla: "fichasPM", texto: "Commissioning \u203A Fichas PM, en el mes en que se gener\xF3 cada ficha (creadoEn)" },
+        datosProyecto: { tabla: "fichasPM", fecha: "modificadoEn", texto: "Datos de proyecto en las fichas PM, en el mes de la \xFAltima modificaci\xF3n de la ficha (aproximado)" },
+        hojasBalanceo: { tabla: "hojasBalanceo", extra: ` AND datos LIKE '%"circuitos"%'`, texto: "Commissioning \u203A Balanceo, hojas con circuitos (creadoEn)" },
+        bocasPlano: { tabla: "planosDifusores", fecha: "modificadoEn", peso: "COALESCE(SUM(json_array_length(CASE WHEN json_valid(puntos) THEN puntos ELSE '[]' END)), 0)", texto: "Planos de difusores, bocas situadas, en el mes de la \xFAltima modificaci\xF3n del plano" },
+        puntosControl: { tabla: "equiposObra", texto: "Puntos de control: salen de los equipos, en el mes del alta de cada equipo (aproximado)" },
+        partidas: {
+          sql: (o) => o.presupuestoId ? ["SELECT substr(creadoEn,1,7) AS mes, 0 AS hist, COUNT(*) AS n FROM lineas WHERE presupuestoId = ? AND tipo = 'partida' GROUP BY 1", o.presupuestoId] : null,
+          texto: "Presupuesto de la obra, partidas (creadoEn)"
+        },
+        preciosContrato: {
+          sql: (o) => o.proyectoId ? ["SELECT substr(creadoEn,1,7) AS mes, 0 AS hist, COUNT(*) AS n FROM preciosPartida WHERE proyectoId = ? GROUP BY 1", o.proyectoId] : null,
+          texto: "Precios de contrato por partida (creadoEn)"
+        },
+        certificaciones: {
+          tabla: "certificaciones",
+          hist: `COALESCE(periodo, '9999') < substr('${ALTA}',1,7)`,
+          texto: "Certificaciones a cliente (creadoEn); las de un periodo anterior al alta son historial",
+          motivo: "certificaciones de meses anteriores al alta, cargadas despu\xE9s"
+        },
+        certIndustriales: {
+          tabla: "certIndustriales",
+          hist: `COALESCE(periodo, '9999') < substr('${ALTA}',1,7)`,
+          texto: "Certificaciones de industriales (creadoEn); las de un periodo anterior al alta son historial",
+          motivo: "certificaciones de industriales de meses anteriores al alta, cargadas despu\xE9s"
+        },
+        pedidos: {
+          tabla: "pedidosCompra",
+          hist: `COALESCE(fechaSolicitud, '9999') < '${ALTA}'`,
+          texto: "Compras \u203A Pedidos (creadoEn); los pedidos solicitados antes del alta son historial",
+          motivo: "pedidos solicitados antes del alta (cargados del Excel de compras)"
+        },
+        albaranes: { tabla: "albaranes", hist: `COALESCE(fecha, '9999') < '${ALTA}'`, texto: "Albaranes (creadoEn); los de fecha anterior al alta son historial", motivo: "albaranes de antes del alta" },
+        facturas: { tabla: "facturasProveedor", hist: `COALESCE(fecha, '9999') < '${ALTA}'`, texto: "Facturas de proveedor (creadoEn); las de antes del alta son historial", motivo: "facturas de antes del alta" },
+        ncr: {
+          tabla: "ncr",
+          hist: `importacionId IS NOT NULL OR COALESCE(fechaDeteccion, '9999') < '${ALTA}'`,
+          texto: "Calidad \u203A NCR (creadoEn); las importadas del libro de NCR o detectadas antes del alta son historial",
+          motivo: "NCR importadas del libro de NCR (detectadas antes del alta)"
+        },
+        partesIncidencia: { tabla: "partesIncidencia", hist: `COALESCE(fecha, '9999') < '${ALTA}'`, texto: "Partes de incidencia (creadoEn)", motivo: "partes de antes del alta" },
+        pruebasEstanqueidad: { tabla: "pruebasEstanqueidad", hist: `COALESCE(fecha, '9999') < '${ALTA}'`, texto: "Pruebas de estanqueidad (creadoEn)", motivo: "pruebas de antes del alta" },
+        ppi: { tabla: "ppiRevisiones", texto: "Revisiones de PPI (creadoEn)" },
+        tareasGantt: { tabla: "ganttElementos", extra: " AND tipo = 'actividad'", texto: "Planificaci\xF3n \u203A Gantt, actividades (creadoEn)" },
+        tareasObra: { tabla: "tareasObra", texto: "Tareas encargadas (creadoEn)" },
+        actas: { tabla: "actasObra", hist: `COALESCE(fecha, '9999') < '${ALTA}'`, texto: "Actas de obra (creadoEn); las de reuniones anteriores al alta son historial", motivo: "actas de reuniones anteriores al alta" },
+        avance: { tabla: "avanceMarcas", hist: `COALESCE(fecha, '9999') < '${ALTA}'`, texto: "Marcas de avance en plano (creadoEn)", motivo: "marcas de antes del alta" },
+        ordenesMant: { tabla: "ordenesMant", extra: " AND estado = 'cerrada'", texto: "Mantenimiento \u203A \xF3rdenes cerradas (creadoEn)" },
+        fichajes: { tabla: "fichajes", hist: `COALESCE(fecha, '9999') < '${ALTA}'`, texto: "Fichajes (creadoEn)", motivo: "fichajes de antes del alta" },
+        pedidosCruzados: { tabla: "propuestasPedido", texto: "Pedidos \u203A Pedido \u2194 proyecto, l\xEDneas cruzadas (creadoEn de la propuesta)" },
+        medComprobada: { tabla: "medComprobadaPlanos", texto: "Medici\xF3n comprobada en planos (creadoEn)" },
+        claimCorreos: { tabla: "reclamacionPruebas", extra: " AND tipo = 'correo'", texto: "Reclamaciones \u203A pruebas tipo correo (creadoEn)" },
+        claimFotos: { tabla: "reclamacionPruebas", extra: " AND tipo = 'foto'", texto: "Reclamaciones \u203A pruebas tipo foto (creadoEn)" },
+        claimDocumentos: { tabla: "reclamacionPruebas", extra: " AND tipo NOT IN ('correo','foto')", texto: "Reclamaciones \u203A pruebas documento o acta (creadoEn)" },
+        claimHechos: { tabla: "reclamacionHechos", texto: "Reclamaciones \u203A hechos (creadoEn)" },
+        claimImportes: { tabla: "reclamacionHechos", texto: "Reclamaciones \u203A hechos cuantificados (creadoEn del hecho)" },
+        claimPagos: { tabla: "reclamacionHechos", texto: "Reclamaciones \u203A hechos de pagos e IPC (creadoEn del hecho)" },
+        claimCategorias: { tabla: "reclamacionHechos", texto: "Reclamaciones \u203A hechos clasificados (creadoEn del hecho)" },
+        claimPlazos: { tabla: "reclamacionHechos", texto: "Reclamaciones \u203A hechos con plazo (creadoEn del hecho)" },
+        claimEnlaces: { tabla: "reclamacionHechoPruebas", texto: "Reclamaciones \u203A enlaces hecho-prueba (creadoEn)" },
+        claimAnexos: { tabla: "reclamacionHechoPruebas", texto: "Reclamaciones \u203A pruebas anexadas (creadoEn del enlace)" },
+        claimClausulas: { tabla: "reclamacionHechoClausulas", texto: "Reclamaciones \u203A cl\xE1usulas citadas (creadoEn)" },
+        claimApartados: { tabla: "reclamacionApartados", texto: "Reclamaciones \u203A apartados (creadoEn)" },
+        claimExpediente: { tabla: "reclamaciones", texto: "Reclamaciones \u203A una por expediente (creadoEn)" },
+        claimRobos: { tabla: "inventarioTeorico", texto: "Reclamaciones \u203A conciliaci\xF3n de material (creadoEn)" },
+        claimEquiposUso: { tabla: "reclamaciones", texto: "Equipos en uso para el claim, en el mes de la reclamaci\xF3n (aproximado)" }
+      };
+      var mesDe = (f) => /^\d{4}-\d{2}/.test(String(f || "")) ? String(f).slice(0, 7) : null;
+      function mesesLista(desde, hasta) {
+        const out = [];
+        if (!desde || !hasta || desde > hasta) return out;
+        let [a, m] = desde.split("-").map(Number);
+        for (let i = 0; i < 600; i += 1) {
+          const k = `${a}-${String(m).padStart(2, "0")}`;
+          out.push(k);
+          if (k >= hasta) break;
+          m += 1;
+          if (m > 12) {
+            m = 1;
+            a += 1;
+          }
+        }
+        return out;
+      }
+      function filasFuente(db, f, obra, alta) {
+        let q = null;
+        if (f.sql) q = f.sql(obra);
+        else if (f.tabla) {
+          const hist = f.hist ? `CASE WHEN ${f.hist.split(ALTA).join(alta)} THEN 1 ELSE 0 END` : "0";
+          q = [`SELECT substr(${f.fecha || "creadoEn"},1,7) AS mes, ${hist} AS hist, ${f.peso || "COUNT(*)"} AS n FROM ${f.tabla} WHERE obraId = ?${f.extra || ""} GROUP BY 1, 2`, obra.id];
+        }
+        if (!q) return [];
+        try {
+          return db.prepare(q[0]).all(...q.slice(1)).map((r) => ({ mes: mesDe(r.mes), hist: Number(r.hist) === 1, n: Number(r.n) || 0 }));
+        } catch {
+          return [];
+        }
+      }
+      function repartir(n, pesos) {
+        const ks = Object.keys(pesos).filter((k) => pesos[k] > 0);
+        const t = ks.reduce((a, k) => a + pesos[k], 0);
+        const o = {};
+        if (!n || !t) return o;
+        const base = ks.map((k) => {
+          const x = n * pesos[k] / t;
+          return { k, e: Math.floor(x), r: x - Math.floor(x) };
+        });
+        let falta = n - base.reduce((a, b) => a + b.e, 0);
+        base.slice().sort((a, b) => b.r - a.r || (a.k < b.k ? -1 : 1)).forEach((b) => {
+          if (falta > 0) {
+            b.e += 1;
+            falta -= 1;
+          }
+        });
+        for (const b of base) if (b.e) o[b.k] = b.e;
+        return o;
+      }
+      function fechasReales(db, obra, conteos, alta, hoy) {
+        const altaOk = /^\d{4}-\d{2}-\d{2}$/.test(String(alta || "")) ? alta : String(hoy).slice(0, 10);
+        const hasta = mesDe(hoy);
+        const lineas = {};
+        let primero = mesDe(altaOk);
+        const cuenta = (id) => Number(conteos[id]) > 0 ? Math.floor(conteos[id]) : 0;
+        for (const l of Object.keys(conteos || {}).map((id) => ({ id }))) {
+          const total = cuenta(l.id);
+          if (!total) continue;
+          const f = FUENTES[l.id];
+          let pesos = {};
+          let histW = 0;
+          let sinFecha = false;
+          let fuente = f ? f.texto : null;
+          if (l.id === "informes") {
+            const d0 = Date.parse(altaOk);
+            const h = Date.parse(String(hoy).slice(0, 10));
+            for (let t = d0; t <= h; t += 864e5) if (new Date(t).getUTCDay() === 1) {
+              const k = new Date(t).toISOString().slice(0, 7);
+              pesos[k] = (pesos[k] || 0) + 1;
+            }
+            fuente = "Informe semanal: un lunes = un informe, desde el alta de la obra (no se guarda cada informe sacado)";
+          } else if (/^desfase/.test(l.id)) {
+            let k = null;
+            try {
+              k = mesDe((db.prepare("SELECT calculadoEn FROM desfaseCalculos WHERE obraId = ?").get(obra.id) || {}).calculadoEn);
+            } catch {
+              k = null;
+            }
+            if (k) pesos[k] = 1;
+            else sinFecha = true;
+            fuente = "Certificaciones \u203A Mes a mes \u203A Por causa: lo que la app cas\xF3, revis\xF3 y enlaz\xF3 al calcular el desfase, en el mes de ese c\xE1lculo (desfaseCalculos)";
+          } else if (l.id === "archivosLeidos") {
+            let ult = {};
+            try {
+              ult = leerJson((db.prepare("SELECT ultimoEnlace FROM configCommissioning WHERE obraId = ?").get(obra.id) || {}).ultimoEnlace, {}) || {};
+            } catch {
+              ult = {};
+            }
+            const k = mesDe(ult.cuando);
+            if (k) pesos[k] = 1;
+            else sinFecha = true;
+            fuente = "Commissioning \u203A \xFAltima pasada por el SharePoint (archivos le\xEDdos), en el mes de esa pasada";
+          } else if (f) {
+            for (const r of filasFuente(db, f, obra, altaOk)) {
+              if (r.hist) {
+                histW += r.n;
+                continue;
+              }
+              const k = r.mes || hasta;
+              if (!r.mes) sinFecha = true;
+              pesos[k] = (pesos[k] || 0) + r.n;
+            }
+          } else {
+            sinFecha = true;
+            fuente = l.id === "certificadosInstalador" ? "Legalizaciones \u203A certificados de instalador que aplican (sin fecha en la base: van al mes en curso)" : l.id === "legalizacionesTerritorio" ? "Legalizaciones \u203A tr\xE1mites del territorio (sin fecha en la base: van al mes en curso)" : "Sin fecha en la base: va al mes en curso";
+          }
+          for (const k of Object.keys(pesos)) if (k > hasta) {
+            pesos[hasta] = (pesos[hasta] || 0) + pesos[k];
+            delete pesos[k];
+          }
+          const vivoW = Object.values(pesos).reduce((a, b) => a + b, 0);
+          const historial = histW ? Math.min(total, Math.round(total * histW / (histW + vivoW))) : 0;
+          const contadas = total - historial;
+          if (contadas > 0 && !vivoW) {
+            pesos = { [hasta]: 1 };
+            sinFecha = true;
+          }
+          const porMes = repartir(contadas, pesos);
+          for (const k of Object.keys(porMes)) if (k < primero) primero = k;
+          lineas[l.id] = { total, historial, porMes, fuente, sinFecha, motivoHistorial: historial ? f && f.motivo || "cargado de antes del alta" : null };
+        }
+        return { alta: altaOk, desde: primero, hasta, meses: mesesLista(primero, hasta), lineas };
+      }
       function leerAjustes(repo, sesion) {
         if (!esAdmin(sesion)) return NO;
         const f = repo.db.prepare("SELECT valores, modificadoEn FROM ajustesAhorro WHERE id = ?").get(FILA);
@@ -149415,7 +150683,10 @@ Estado: ${ESTADO}`);
         const r = Q.ahorroObra(sesion.rol, conteos, ajustes, meses, mesesObra);
         const pl = Q.plantillaDeObra(obra, ajustes);
         const conPlantilla = r ? { ...Q.ahorroConPlantilla(sesion.rol, ajustes, pl.plantilla, { horas: r.horasUnaVez, euros: r.eurosUnaVez }, r.mesesObra), origen: pl.origen } : null;
-        return { ok: true, obra: { id: obra.id, codigo: obra.codigo, nombre: obra.nombre }, conteos, desde, mesesObraDeFechas: mesesObraFechas >= 1, ...r, conPlantilla };
+        const alta = String(obra.creadoEn || obra.fechaInicio || "").slice(0, 10);
+        const fr = fechasReales(repo.db, obra, conteos, alta, hoy || require_fecha().hoyLocal());
+        const real = Q.ahorroRealMesAMes(sesion.rol, fr, ajustes);
+        return { ok: true, obra: { id: obra.id, codigo: obra.codigo, nombre: obra.nombre }, conteos, desde, mesesObraDeFechas: mesesObraFechas >= 1, ...r, conPlantilla, real, realFechas: fr };
       }
       function plantilla(repo, sesion) {
         if (!esAdmin(sesion)) return NO;
@@ -149425,7 +150696,7 @@ Estado: ${ESTADO}`);
         }
         return { ok: true, plantilla: p };
       }
-      module.exports = { contar, contarClaim, leerAjustes, guardarAjustes, ahorroDeObra, plantilla };
+      module.exports = { contar, contarClaim, contarDesfase, fechasReales, FUENTES, leerAjustes, guardarAjustes, ahorroDeObra, plantilla };
     }
   });
 
@@ -172505,227 +173776,6 @@ ${t.motivo}` : ""}${t.respuesta[0] ? `
     }
   });
 
-  // shared/reclamaciones/partesHorasSub.js
-  var require_partesHorasSub = __commonJS({
-    "shared/reclamaciones/partesHorasSub.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const TARIFA_VENTA = 36.5;
-        const ENLACE = "parteHorasSub";
-        const FECHA_DESDE = "2025-09-01";
-        const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
-        const sinAc = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-        const slug = (s) => sinAc(s).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
-        function horasPersona(p = {}) {
-          const tot = Number(p.horasTotales);
-          if (Number.isFinite(tot) && tot > 0) return r2(tot);
-          const n = Number(p.trabajadores);
-          const h = Number(p.horasPorTrabajador);
-          if (n > 0 && h > 0) return r2(n * h);
-          return 0;
-        }
-        function valorar(p = {}, tarifa = TARIFA_VENTA) {
-          const horas = horasPersona(p);
-          const venta = r2(horas * tarifa);
-          const c = p.costeReal === void 0 || p.costeReal === null || p.costeReal === "" ? null : Number(p.costeReal);
-          const coste = Number.isFinite(c) ? r2(c) : null;
-          return { horas, tarifa, venta, coste, margen: coste === null ? null : r2(venta - coste) };
-        }
-        const MESES = { enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6, julio: 7, agosto: 8, septiembre: 9, setiembre: 9, octubre: 10, noviembre: 11, diciembre: 12 };
-        const p2 = (n) => String(n).padStart(2, "0");
-        function fechaDe(p = {}) {
-          for (const t of [p.fecha, p.fechas, p.mes]) {
-            const x = String(t || "");
-            let m = x.match(/(\d{4})-(\d{2})-(\d{2})/);
-            if (m) return m[0];
-            const todas = [...x.matchAll(/(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/g)];
-            if (todas.length) {
-              const u = todas[todas.length - 1];
-              return `${u[3]}-${p2(u[2])}-${p2(u[1])}`;
-            }
-            const dm = [...sinAc(x).matchAll(/(\d{1,2})\s+de\s+([a-z]+)(?:\s+de\s+(\d{4}))?/g)];
-            if (dm.length) {
-              const u = dm[dm.length - 1];
-              const y = u[3] || (x.match(/(20\d{2})/) || [])[1];
-              if (MESES[u[2]] && y) return `${y}-${p2(MESES[u[2]])}-${p2(u[1])}`;
-            }
-            const my = sinAc(x).match(/\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\s+(?:de\s+)?(20\d{2})/);
-            if (my) {
-              const mm = MESES[my[1]];
-              return `${my[2]}-${p2(mm)}-${p2(new Date(Date.UTC(Number(my[2]), mm, 0)).getUTCDate())}`;
-            }
-            if (t === p.mes) {
-              m = x.match(/^(20\d{2})-(\d{2})/);
-              if (m) return `${m[1]}-${m[2]}-28`;
-              m = x.match(/^(\d{2})-(\d{2})(?:_|$)/);
-              if (m) return `20${m[1]}-${m[2]}-28`;
-            }
-          }
-          return null;
-        }
-        function normalizar(p = {}) {
-          const hpt = p.horasPorTrabajador;
-          let tot = Number(p.horasTotales);
-          let n = Number(p.trabajadores);
-          if (hpt && typeof hpt === "object") {
-            const v = Object.values(hpt).map(Number).filter((x) => Number.isFinite(x));
-            if (!(tot > 0)) tot = v.reduce((a, b) => a + b, 0);
-            if (!(n > 0)) n = v.length;
-          }
-          const out = { ...p, fecha: fechaDe(p) };
-          if (tot > 0) out.horasTotales = r2(tot);
-          if (n > 0) out.trabajadores = n;
-          if (hpt && typeof hpt === "object") out.horasPorTrabajador = void 0;
-          const c = p.costeReal ?? p.importe;
-          if (c !== void 0 && c !== null && c !== "") out.costeReal = Number(c);
-          return out;
-        }
-        function idExterno(p = {}) {
-          const ref = p.referencia || p.archivo || p.fecha || "";
-          return `parteHoras:${slug(p.subcontrata)}:${String(p.fecha || "").slice(0, 10)}:${slug(ref)}`;
-        }
-        function enPeriodo(p = {}, hasta = require_fecha().hoyLocal()) {
-          const f = String(p.fecha || "").slice(0, 10);
-          return /^\d{4}-\d{2}-\d{2}$/.test(f) && f >= FECHA_DESDE && f <= hasta;
-        }
-        const dias = (a, b) => Math.abs((Date.parse(`${String(a).slice(0, 10)}T00:00:00Z`) - Date.parse(`${String(b).slice(0, 10)}T00:00:00Z`)) / 864e5);
-        const palabras = (s) => new Set(sinAc(s).split(/[^a-z0-9]+/).filter((w) => w.length >= 4));
-        function candidatos(p = {}, hechos = [], max = 3) {
-          const pp = palabras([p.descripcion, p.zona].filter(Boolean).join(" "));
-          const sub = sinAc(p.subcontrata);
-          const res = [];
-          for (const h of hechos) {
-            if (!h || h.estado === "descartado" || h.enlaceTipo === ENLACE || h.naturaleza === "plazoLimak") continue;
-            let punt = 0;
-            const por = [];
-            const f = h.fecha || h.fechaFin;
-            if (f && p.fecha) {
-              const d = dias(f, p.fecha);
-              if (d <= 7) {
-                punt += 3 - Math.floor(d / 3);
-                por.push(d === 0 ? "mismo d\xEDa" : `${d} d\xEDas de diferencia`);
-              }
-            }
-            const hp = palabras([h.titulo, h.descripcion, h.zona].filter(Boolean).join(" "));
-            const comunes = [...pp].filter((w) => hp.has(w));
-            if (comunes.length) {
-              punt += Math.min(4, comunes.length);
-              por.push(`palabras: ${comunes.slice(0, 4).join(", ")}`);
-            }
-            if (sub && sinAc([h.subcontrata, h.titulo, h.descripcion].join(" ")).includes(sub.split(" ")[0])) {
-              punt += 2;
-              por.push("misma subcontrata");
-            }
-            if (h.metodo === "horas_x_tarifa") punt += 0.5;
-            if (punt >= 3) res.push({ hechoId: h.id, idExterno: h.idExterno || null, titulo: h.titulo || "", punt: r2(punt), por: por.join(" \xB7 "), valoraHoras: yaValoraHoras(h) });
-          }
-          return res.sort((a, b) => b.punt - a.punt).slice(0, max);
-        }
-        function yaValoraHoras(h = {}) {
-          if (h.metodo === "horas_x_tarifa" && Number(h.importe ?? h.importeCalc ?? 1) !== 0) return true;
-          if (Number(h.horasPersona) > 0) return true;
-          return false;
-        }
-        function ganador(cands = []) {
-          if (!cands.length) return null;
-          const [a, b] = cands;
-          return a.punt >= 5 && (!b || a.punt - b.punt >= 2) ? a : null;
-        }
-        function escalar(horas, n, coste, pct) {
-          const f = pct >= 100 || !(pct > 0) ? 1 : pct / 100;
-          const h = r2(horas * f);
-          return { horas: h, hPorTrab: n > 0 ? r2(h / n) : h, coste: coste === null || coste === void 0 ? null : r2(coste * f), pct: f === 1 ? null : pct };
-        }
-        function hechoDe(p = {}, { apartadoId = null, padre = null, tarifa = TARIFA_VENTA, revision = [], candidatos: cands = [] } = {}) {
-          const v = valorar(p, tarifa);
-          const n = Number(p.trabajadores) > 0 ? Number(p.trabajadores) : 1;
-          const esc = escalar(v.horas, n, v.coste, Number(p.porcentajeClaim));
-          const hPorTrab = esc.hPorTrab;
-          const quien = p.subcontrata || "Subcontrata";
-          const titulo = `Parte de horas de ${quien}${p.fecha ? ` (${String(p.fecha).slice(0, 10)})` : ""}: ${esc.horas} h${p.descripcion ? ` \u2014 ${String(p.descripcion).slice(0, 90)}` : ""}`;
-          const doc = padre && padre.valoraHoras;
-          const nota = [
-            `Parte de horas de ${quien}`,
-            p.referencia ? `ref. ${p.referencia}` : null,
-            p.archivo ? `archivo ${p.archivo}` : null,
-            p.mes ? `carpeta ${p.mes}` : null,
-            esc.pct ? `El parte trae ${v.horas} h-persona; solo el ${esc.pct} % de sus horas va al claim` : null,
-            `${n} trabajador(es) \xD7 ${hPorTrab} h = ${esc.horas} h-persona`,
-            `Venta: ${esc.horas} h \xD7 ${tarifa} \u20AC/h = ${r2(esc.horas * tarifa)} \u20AC`,
-            esc.coste === null ? "Coste real: sin apuntar (falta el importe del parte)" : `Coste real (lo que nos cobra): ${esc.coste} \u20AC`,
-            padre ? doc ? "Documenta al hecho padre (que ya valora esas horas): no suma venta." : "Cuelga de su hecho y suma sus horas." : "Sin hecho asignado: revisar a cu\xE1l pertenece.",
-            !padre && cands.length ? `Hechos posibles: ${cands.map((c) => `\xAB${String(c.titulo).slice(0, 70)}\xBB (${c.punt} pts: ${c.por})`).join(" | ")}` : null,
-            revision.length ? `A REVISAR: ${revision.join("; ")}` : null
-          ].filter(Boolean).join(". ");
-          return {
-            idExterno: idExterno(p),
-            fecha: String(p.fecha || "").slice(0, 10) || null,
-            titulo,
-            descripcion: [p.descripcion, p.zona ? `Zona: ${p.zona}` : null].filter(Boolean).join(". ") || null,
-            apartadoId,
-            metodo: "horas_x_tarifa",
-            a: n,
-            b: hPorTrab,
-            c: 1,
-            p: tarifa,
-            horasPersona: esc.horas,
-            costeReal: esc.coste,
-            porcentajeClaim: esc.pct,
-            horasOrigen: esc.pct ? v.horas : null,
-            costeOrigen: esc.pct ? v.coste : null,
-            subcontrata: p.subcontrata || null,
-            zona: p.zona || null,
-            enlaceTipo: ENLACE,
-            enlaceId: idExterno(p),
-            origenHecho: "parteHorasSubcontrata",
-            certeza: "documentado",
-            notaImportacion: nota,
-            hechoPadreId: padre ? padre.hechoId : null,
-            hijoSuma: padre ? doc ? 0 : 1 : null,
-            hijoNota: padre ? `Horas de ${quien}` : null,
-            hijoSentido: padre ? "favor" : null
-          };
-        }
-        function avisosRevision(p = {}, lote = [], tarifa = TARIFA_VENTA) {
-          const v = valorar(p, tarifa);
-          const out = [];
-          if (v.coste === null) out.push("sin coste: falta el importe que cobra la subcontrata");
-          else if (v.horas > 0 && v.coste / v.horas > tarifa) out.push(`coste ${r2(v.coste / v.horas)} \u20AC/h por encima de la venta (${tarifa} \u20AC/h)`);
-          const raiz = sinAc(p.subcontrata).split(" ")[0];
-          const gemelos = lote.filter((o) => o !== p && idExterno(o) !== idExterno(p) && sinAc(o.subcontrata).split(" ")[0] === raiz && String(o.fecha).slice(0, 10) === String(p.fecha).slice(0, 10) && horasPersona(o) === v.horas && v.horas > 0);
-          if (gemelos.length) out.push(`posible duplicado: ${gemelos.length} parte(s) de ${p.subcontrata} con la misma fecha y las mismas ${v.horas} h`);
-          if (p.aviso) out.push(String(p.aviso));
-          return out;
-        }
-        function resumen(partes = [], tarifa = TARIFA_VENTA) {
-          const por = /* @__PURE__ */ new Map();
-          const tot = { n: 0, horas: 0, venta: 0, coste: 0, sinCoste: 0 };
-          for (const p of partes) {
-            const v = valorar(p, tarifa);
-            const k = p.subcontrata || "\u2014";
-            const f = por.get(k) || { subcontrata: k, n: 0, horas: 0, venta: 0, coste: 0, sinCoste: 0 };
-            f.n += 1;
-            f.horas = r2(f.horas + v.horas);
-            f.venta = r2(f.venta + v.venta);
-            if (v.coste === null) f.sinCoste += 1;
-            else f.coste = r2(f.coste + v.coste);
-            por.set(k, f);
-            tot.n += 1;
-            tot.horas = r2(tot.horas + v.horas);
-            tot.venta = r2(tot.venta + v.venta);
-            if (v.coste === null) tot.sinCoste += 1;
-            else tot.coste = r2(tot.coste + v.coste);
-          }
-          return { porSubcontrata: [...por.values()].sort((a, b) => b.venta - a.venta), total: tot, margen: r2(tot.venta - tot.coste) };
-        }
-        const API = { normalizar, fechaDe, TARIFA_VENTA, ENLACE, FECHA_DESDE, horasPersona, valorar, idExterno, enPeriodo, candidatos, ganador, yaValoraHoras, hechoDe, resumen, avisosRevision, escalar };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.RECLAMACIONES_PARTES_HORAS_SUB = API;
-      })();
-    }
-  });
-
   // shared/documentos/comoAbrir.js
   var require_comoAbrir = __commonJS({
     "shared/documentos/comoAbrir.js"(exports, module) {
@@ -185171,335 +186221,6 @@ Despu\xE9s: **${cambio.mostrar}**`, acciones: [boton({ que: "editar", campo: cam
     }
   });
 
-  // shared/presupuesto/horasIndustriales.js
-  var require_horasIndustriales = __commonJS({
-    "shared/presupuesto/horasIndustriales.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const ORIGEN = "parteHoras";
-        const CAPITULO = "HORAS DE INDUSTRIALES";
-        const TARIFA_VENTA = 36.5;
-        function tarifasDe(condiciones) {
-          let c = condiciones;
-          if (typeof c === "string") {
-            try {
-              c = JSON.parse(c);
-            } catch {
-              c = {};
-            }
-          }
-          c = c && typeof c === "object" ? c : {};
-          const pos = (v) => {
-            const n = Number(String(v ?? "").replace(",", "."));
-            return Number.isFinite(n) && n > 0 ? n : null;
-          };
-          const operario = pos(c.precioHoraOperario) || TARIFA_VENTA;
-          return { operario, oficial: pos(c.precioHoraOficial) || operario };
-        }
-        const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
-        const sinAc = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-        const slug = (s) => sinAc(s).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
-        const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-        function etiquetaMes(mes) {
-          const m = /^(\d{4})-(\d{2})/.exec(String(mes || ""));
-          return m ? `${MESES[Number(m[2]) - 1] || m[2]} ${m[1]}` : String(mes || "");
-        }
-        const claveDe = (p) => `${slug(p.subcontrata)}:${String(p.mes || "").slice(0, 7)}:${slug(p.referencia || p.archivo || "")}`;
-        const refDe = (l) => {
-          if (!l || l.origen !== ORIGEN || !l.origenRef) return null;
-          if (typeof l.origenRef === "object") return l.origenRef;
-          try {
-            return JSON.parse(l.origenRef);
-          } catch {
-            return null;
-          }
-        };
-        function capituloDe(arbol) {
-          let cap = arbol.find((n) => n.tipo === "capitulo" && n.resumen === CAPITULO);
-          if (!cap) {
-            const num = arbol.filter((n) => n.tipo === "capitulo").length + 1;
-            cap = { tipo: "capitulo", codigo: String(num).padStart(2, "0"), resumen: CAPITULO, origen: "app", hijos: [] };
-            arbol.push(cap);
-          }
-          cap.hijos = cap.hijos || [];
-          return cap;
-        }
-        function partidaDe(cap, subcontrata, categoria, tarifa) {
-          const resumen = `HORAS \xB7 ${String(subcontrata).toUpperCase()}${categoria === "oficial" ? " (OFICIAL)" : ""}`;
-          let par = cap.hijos.find((n) => n.tipo === "partida" && n.resumen === resumen);
-          if (!par) {
-            par = {
-              tipo: "partida",
-              codigo: `${cap.codigo}.${String(cap.hijos.length + 1).padStart(2, "0")}`,
-              resumen,
-              unidad: "h",
-              precio: tarifa,
-              origen: "app",
-              medicionObra: []
-            };
-            cap.hijos.push(par);
-          }
-          par.medicionObra = par.medicionObra || [];
-          return par;
-        }
-        function cargarHoras(arbol, partes, tarifas) {
-          const T2 = { operario: TARIFA_VENTA, oficial: TARIFA_VENTA, ...tarifas || {} };
-          const cap = capituloDe(arbol);
-          const res = { creadas: 0, actualizadas: 0, horas: 0 };
-          for (const p of partes || []) {
-            const horas = Number(p.horas);
-            if (!p.subcontrata || !(horas > 0)) continue;
-            const categoria = p.categoria === "oficial" ? "oficial" : "operario";
-            const tarifa = T2[categoria];
-            const par = partidaDe(cap, p.subcontrata, categoria, tarifa);
-            par.precio = tarifa;
-            const clave = claveDe(p);
-            const ref = {
-              clave,
-              subcontrata: p.subcontrata,
-              mes: String(p.mes || "").slice(0, 7),
-              archivo: p.archivo || null,
-              uri: p.uri || null,
-              webUrl: p.webUrl || null,
-              referencia: p.referencia || null,
-              categoria,
-              tarifa,
-              horas: r2(horas),
-              venta: r2(horas * tarifa),
-              costeReal: p.costeReal === null || p.costeReal === void 0 ? null : r2(p.costeReal)
-            };
-            const linea = {
-              comentario: `${etiquetaMes(p.mes)}${p.descripcion ? " \xB7 " + p.descripcion : ""}`.slice(0, 120),
-              uds: r2(horas),
-              largo: null,
-              ancho: null,
-              alto: null,
-              signo: 1,
-              origen: ORIGEN,
-              origenRef: ref
-            };
-            const i = par.medicionObra.findIndex((l) => (refDe(l) || {}).clave === clave);
-            if (i >= 0) {
-              par.medicionObra[i] = { ...par.medicionObra[i], ...linea };
-              res.actualizadas += 1;
-            } else {
-              par.medicionObra.push(linea);
-              res.creadas += 1;
-            }
-            res.horas = r2(res.horas + horas);
-          }
-          for (const par of cap.hijos) {
-            par.medicionObra.sort((a, b) => String((refDe(a) || {}).mes || "").localeCompare(String((refDe(b) || {}).mes || "")));
-            par.cantidadObra = r2(par.medicionObra.reduce((s, l) => s + (Number(l.uds) || 0) * (l.signo === -1 ? -1 : 1), 0));
-          }
-          return res;
-        }
-        function lineasConJustificante(arbol) {
-          const sal = [];
-          const rec = (ns) => (ns || []).forEach((n) => {
-            for (const l of n.medicionObra || []) {
-              const r = refDe(l);
-              if (r && (r.uri || r.archivo)) sal.push({ partida: n.resumen, ...r });
-            }
-            rec(n.hijos);
-          });
-          rec(arbol);
-          return sal;
-        }
-        function hashCorto(s) {
-          let h = 2166136261;
-          for (const c of String(s || "")) {
-            h ^= c.codePointAt(0);
-            h = Math.imul(h, 16777619) >>> 0;
-          }
-          return h.toString(36);
-        }
-        const rutaDe = (l) => String(l && (l.uri || l.archivo) || "");
-        const idPrueba = (l) => `medObraHoras:${slug(l && l.partida)}:${String(l && l.mes || "").slice(0, 7)}:${hashCorto(rutaDe(l))}`;
-        function tipoJustificante(l) {
-          const n = String(l && (l.archivo || l.uri) || "").toLowerCase();
-          if (/\.pdf$/.test(n)) return "pdf";
-          if (/\.(xlsx|xlsm|xls|csv)$/.test(n)) return "excel";
-          return "otro";
-        }
-        function pruebaDeLinea(l) {
-          const eur = (n) => `${(Number(n) || 0).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} \u20AC`;
-          const mes = String(l.mes || "").slice(0, 7);
-          return {
-            idExterno: idPrueba(l),
-            tipo: "documento",
-            fecha: /^\d{4}-\d{2}$/.test(mes) ? `${mes}-01` : null,
-            de: l.subcontrata || null,
-            asunto: `Horas de industrial \xB7 ${l.subcontrata || ""} \xB7 ${etiquetaMes(mes)}${l.referencia ? ` \xB7 ${l.referencia}` : ""}`.slice(0, 200),
-            enlace: l.webUrl || l.uri || null,
-            ruta: l.archivo || null,
-            nombreOriginal: l.archivo || null,
-            extracto: [
-              `Med Obra del presupuesto de obra \xB7 ${l.partida || ""}`,
-              `${String(l.horas ?? "").replace(".", ",")} h \xD7 ${String(l.tarifa ?? "").replace(".", ",")} \u20AC/h = venta ${eur(l.venta)}`,
-              l.costeReal === null || l.costeReal === void 0 ? "Coste real: sin apuntar" : `Coste real (lo que cobra el industrial): ${eur(l.costeReal)}`
-            ].join("\n")
-          };
-        }
-        const API = { ORIGEN, CAPITULO, TARIFA_VENTA, tarifasDe, etiquetaMes, claveDe, refDe, cargarHoras, lineasConJustificante, hashCorto, idPrueba, tipoJustificante, pruebaDeLinea };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.HORAS_INDUSTRIALES = API;
-      })();
-    }
-  });
-
-  // electron/data/horasIndustriales.js
-  var require_horasIndustriales2 = __commonJS({
-    "electron/data/horasIndustriales.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var HI = require_horasIndustriales();
-      var { armarArbol, sincronizarLineas } = require_presupuestos();
-      function presupuestoDeObra(db, obraId) {
-        return db.prepare("SELECT id, fase, nombre FROM presupuestos WHERE (obraIdVinculada = ? OR obraId = ?) AND fase = 'obra' ORDER BY creadoEn LIMIT 1").get(obraId, obraId) || null;
-      }
-      function tarifasDeEstudios(db, obraId) {
-        const f = db.prepare("SELECT condicionesOferta FROM presupuestos WHERE (obraIdVinculada = ? OR obraId = ?) AND fase = 'estudio' AND condicionesOferta IS NOT NULL ORDER BY creadoEn LIMIT 1").get(obraId, obraId);
-        return HI.tarifasDe(f && f.condicionesOferta);
-      }
-      function parteALinea(p) {
-        const fecha = String(p.fecha || "").slice(0, 10);
-        return {
-          subcontrata: p.subcontrata,
-          mes: fecha.slice(0, 7),
-          horas: require_partesHorasSub().horasPersona(p),
-          costeReal: p.costeReal,
-          categoria: p.categoria,
-          archivo: p.archivo,
-          uri: p.uri,
-          webUrl: p.webUrl || null,
-          referencia: p.referencia,
-          descripcion: p.descripcion
-        };
-      }
-      function cargarPartesEnPresupuestoObra(db, sesion, obraId, partes, opciones = {}) {
-        const pres = presupuestoDeObra(db, obraId);
-        if (!pres) return { ok: false, error: "La obra no tiene presupuesto en fase \xABobra\xBB: las horas de industriales solo van ah\xED; Estudios no se toca." };
-        const arbol = armarArbol(db, pres.id);
-        const res = HI.cargarHoras(arbol, (partes || []).map(parteALinea), tarifasDeEstudios(db, obraId));
-        if (opciones.aplicar) sincronizarLineas(db, pres.id, arbol, sesion);
-        return { ok: true, presupuestoId: pres.id, ...res };
-      }
-      var { puede } = require_roles();
-      var no = (error) => ({ ok: false, error });
-      function lineasDePresupuesto(repo, ses, presupuestoId) {
-        const pres = presupuestoId ? repo.leer("presupuestos", ses, presupuestoId) : null;
-        if (!pres) return { error: "No se encuentra el presupuesto." };
-        if (pres.fase !== "obra") return { error: "Las horas de industriales solo est\xE1n en el presupuesto de obra." };
-        const lineas = HI.lineasConJustificante(armarArbol(repo.db, pres.id)).map((l) => ({ ...l, idExterno: HI.idPrueba(l), tipoArchivo: HI.tipoJustificante(l) }));
-        return { pres, obraId: pres.obraIdVinculada || pres.obraId, lineas };
-      }
-      function pruebaDe(repo, ses, recId, l) {
-        const porId = repo.listar("reclamacionPruebas", ses, { condicion: "reclamacionId = ? AND idExterno = ?", params: [recId, l.idExterno] })[0];
-        if (porId) return porId;
-        const enlaces = [l.webUrl, l.uri].filter(Boolean);
-        if (!enlaces.length) return null;
-        return repo.listar("reclamacionPruebas", ses, { condicion: `reclamacionId = ? AND enlace IN (${enlaces.map(() => "?").join(",")})`, params: [recId, ...enlaces] })[0] || null;
-      }
-      function estadoEnClaims(repo, ses, presupuestoId) {
-        const { obraId, lineas, error } = lineasDePresupuesto(repo, ses, presupuestoId);
-        if (error) return no(error);
-        const ve = puede(ses.rol, "reclamaciones", "ver");
-        const claims = ve && obraId ? repo.listar("reclamaciones", ses, { condicion: "obraId = ?", params: [obraId], orden: "numero" }) : [];
-        const filas = lineas.map((l) => {
-          const en = [];
-          for (const r of claims) {
-            const p = pruebaDe(repo, ses, r.id, l);
-            if (!p) continue;
-            const hechos = repo.listar("reclamacionHechoPruebas", ses, { condicion: "pruebaId = ?", params: [p.id] }).length;
-            en.push({ recId: r.id, codigo: r.codigo || null, pruebaId: p.id, hechos });
-          }
-          return {
-            clave: l.clave,
-            partida: l.partida,
-            subcontrata: l.subcontrata,
-            mes: l.mes,
-            archivo: l.archivo,
-            tipoArchivo: l.tipoArchivo,
-            horas: l.horas,
-            venta: l.venta,
-            costeReal: l.costeReal,
-            idExterno: l.idExterno,
-            enClaims: en
-          };
-        });
-        return {
-          ok: true,
-          obraId,
-          lineas: filas,
-          claims: claims.map((r) => ({ id: r.id, codigo: r.codigo, titulo: r.titulo })),
-          puedeLlevar: puede(ses.rol, "reclamaciones", "editar") && claims.length > 0
-        };
-      }
-      function hechosParaElegir(repo, ses, recId) {
-        if (!puede(ses.rol, "reclamaciones", "ver")) return no("No ves las reclamaciones.");
-        const r = recId ? repo.leer("reclamaciones", ses, recId) : null;
-        if (!r) return no("No se encuentra la reclamaci\xF3n.");
-        const hs = repo.listar("reclamacionHechos", ses, { condicion: "reclamacionId = ?", params: [recId], orden: "numero, fecha" }).filter((h) => h.estado !== "descartado").map((h) => ({ id: h.id, numero: h.numero || null, titulo: h.titulo || "", estado: h.estado, subcontrata: h.subcontrata || null }));
-        return { ok: true, hechos: hs };
-      }
-      function llevarAlClaim(repo, ses, entrada = {}) {
-        if (!puede(ses.rol, "reclamaciones", "editar")) return no("Llevar pruebas al claim lo hace quien edita las reclamaciones.");
-        const { obraId, lineas, error } = lineasDePresupuesto(repo, ses, entrada.presupuestoId);
-        if (error) return no(error);
-        const l = lineas.find((x) => x.clave === entrada.clave);
-        if (!l) return no("Esa l\xEDnea no tiene justificante en el presupuesto de obra.");
-        const r = entrada.recId ? repo.leer("reclamaciones", ses, entrada.recId) : null;
-        if (!r) return no("No se encuentra la reclamaci\xF3n.");
-        if (r.obraId !== obraId) return no("La reclamaci\xF3n es de otra obra.");
-        let h = null;
-        if (entrada.hechoId) {
-          h = repo.leer("reclamacionHechos", ses, entrada.hechoId);
-          if (!h || h.reclamacionId !== r.id) return no("Ese hecho no es de esta reclamaci\xF3n.");
-        }
-        let p = pruebaDe(repo, ses, r.id, l);
-        let creada = false;
-        if (!p) {
-          const id = repo.crear("reclamacionPruebas", ses, { obraId: r.obraId, reclamacionId: r.id, ...HI.pruebaDeLinea(l), creadoPor: ses.personaId }, { verbo: "editar" });
-          p = { id };
-          creada = true;
-        }
-        let ligada = false;
-        if (h && !repo.listar("reclamacionHechoPruebas", ses, { condicion: "hechoId = ? AND pruebaId = ?", params: [h.id, p.id] }).length) {
-          repo.crear("reclamacionHechoPruebas", ses, { obraId: r.obraId, hechoId: h.id, pruebaId: p.id, concepto: `Med Obra \xB7 ${HI.etiquetaMes(l.mes)}` }, { verbo: "editar" });
-          ligada = true;
-        }
-        return { ok: true, pruebaId: p.id, creada, ligada };
-      }
-      function origenArchivo(uri) {
-        const u = String(uri || "");
-        const sp = /^file:\/\/\/(b![^/]+)\/([A-Z0-9]{20,})$/i.exec(u);
-        if (sp) return { sharepoint: { driveId: sp[1], itemId: sp[2] } };
-        if (/^file:\/\/\//i.test(u)) {
-          try {
-            return { local: decodeURIComponent(u.replace(/^file:\/\//i, "")) };
-          } catch {
-            return {};
-          }
-        }
-        if (u.startsWith("/")) return { local: u };
-        return {};
-      }
-      module.exports = {
-        tarifasDeEstudios,
-        presupuestoDeObra,
-        parteALinea,
-        cargarPartesEnPresupuestoObra,
-        lineasDePresupuesto,
-        estadoEnClaims,
-        hechosParaElegir,
-        llevarAlClaim,
-        origenArchivo
-      };
-    }
-  });
-
   // shared/reclamaciones/propuestaHecho.js
   var require_propuestaHecho = __commonJS({
     "shared/reclamaciones/propuestaHecho.js"(exports, module) {
@@ -188414,6 +189135,12 @@ ${LEYENDA}`;
         const deDisciplina = /\b(conductos?|tuberias?|disciplinas?)\b/.test(q);
         const dePartidas = /\b(partida a partida|por partidas?|metros de mas|mas metros|por casar|medicion por partida)\b/.test(q);
         const deDesfase = /\bdesfase\b/.test(q) || /^\W*(y )?por que (sube|baja|crece|aumenta|salta)( tanto)?( (en|el|este|ese) [a-z0-9 ]{3,24})?\W*$/.test(q) || /\bpagad\w*\b/.test(q) && /\bcobrad\w*\b/.test(q) || /\bhoras\b/.test(q) && /\b(no (nos )?(ha )?reconoc\w*|sin reconocer|no reconocidas)\b/.test(q);
+        const dePruebas = /\b(pruebas?|justificacion(es)?|justificantes?|justifica\w*|partes? de horas)\b/.test(q);
+        if (dePruebas && (/\b(horas|metros|partidas?|desfase|hueco|certific\w*)\b/.test(q) || deIndustriales)) {
+          const cod = /\b([a-z]{2,5}\d{2,4}[a-z]?)\b/.exec(q);
+          return { que: "pruebas", deHoras: /\b(horas|justificacion(es)?|justificantes?|justifica\w*|partes? de horas)\b/.test(q) && !/\b(metros|partidas?)\b/.test(q), dePartidas: /\b(metros|partidas?)\b/.test(q) || Boolean(cod), codigo: cod ? cod[1].toUpperCase() : null, q };
+        }
+        if ((deDesfase || /\bhueco\b/.test(q)) && /\bcausas?\b/.test(q) && !deDisciplina) return { que: "causas", objetivo: cifraDe(q) };
         if (deDesfase && !deDisciplina && !/\bgap\b/.test(q)) {
           return {
             que: "desfase",
@@ -188529,6 +189256,102 @@ ${LEYENDA}`;
         if (t.porCasar) l.push(`Fuera de la cuenta: ${num(t.porCasar)} partidas de industriales por casar (${eur(t.porCasarImporte)}).`);
         return { respuesta: l.join("\n").trim(), acciones: [accion] };
       }
+      function responderCausas(repo, yo, obraId, e) {
+        const DF = require_desfase2();
+        const d = DF.cuadro(repo, yo, obraId, { objetivo: e.objetivo ?? null });
+        if (!d.ok) return { respuesta: d.error };
+        const accion = { tipo: "ir", destino: "certificaciones", mesAMes: { vista: "desfase", medVista: "causas" }, texto: "Abrir Certificaciones \u203A Mes a mes \u203A Desfase \u203A Por causa" };
+        const C = d.causas;
+        const t = d.totales;
+        const l = [];
+        if (!C || !t.partidas.n && !t.horas.pagado) return { respuesta: "En esta obra a\xFAn no hay certificaciones de industriales le\xEDdas. En cuanto entre una, la app calcula el desfase y lo reparte por causa sola.", acciones: [accion] };
+        const o = C.objetivo;
+        if (o) {
+          if (o.cuadra) l.push(`Los **${eur(o.cifra)}** cuadran al c\xE9ntimo con el desfase pagado / cobrado de la obra.`);
+          else l.push(`Los **${eur(o.cifra)}** no salen al c\xE9ntimo de los documentos. Lo que sale es un desfase pagado / cobrado de **${eur(C.total)}** (${o.falta < 0 ? `${eur(-o.falta)} m\xE1s` : `${eur(o.falta)} menos`} que la cifra dicha).`);
+          if (!o.cuadra && o.mejor) l.push(`- Lo que m\xE1s se acerca: ${o.mejor.piezas.map((x) => `${x.etiqueta.toLowerCase()} (${eur(x.importe)})`).join(" + ")} = **${eur(o.mejor.importe)}**, ${Math.abs(o.mejor.falta) < 5e-3 ? "cuadra" : `a ${eur(Math.abs(o.mejor.falta))} ${o.mejor.falta > 0 ? "por debajo" : "por encima"}`}.`);
+          if (!o.cuadra && o.mes) l.push(`- El mes en que el desfase a origen estuvo m\xE1s cerca: **${o.mes.nombre}**, con ${eur(o.mes.total)}.`);
+          l.push("");
+        } else l.push(`En esta obra se ha pagado a los industriales **${eur(C.total)}** m\xE1s de lo que se ha cobrado al cliente.`, "");
+        l.push("**Por causa:**");
+        for (const c of C.causas) {
+          if (c.clave === "horas") {
+            l.push(`- ${c.etiqueta}: **${eur(c.importe)}**${t.horas.horas ? ` (${num(t.horas.horas)} h pasadas, ${num(t.horas.horasCobradas)} h reconocidas)` : ""}.`);
+            const porInd = /* @__PURE__ */ new Map();
+            for (const x of c.documentos) porInd.set(x.emisor, (porInd.get(x.emisor) || 0) + x.importe);
+            for (const x of c.documentos.slice().sort((a, b) => b.importe - a.importe).slice(0, 6)) l.push(`  - ${x.emisor} \xB7 ${MM.nombreMes(x.periodo)}: ${x.horas ? `${num(x.horas)} h, ` : ""}${eur(x.importe)}${x.fichero ? ` (${nombreDoc(x.fichero)})` : ""}${x.porRevisar ? ", por revisar" : ""}`);
+            if (c.documentos.length > 6) l.push(`  - y ${num(c.documentos.length - 6)} documentos m\xE1s.`);
+            for (const n of t.horas.notas) l.push(`  \xB7 ${n}`);
+          } else if (c.importe > 0) {
+            l.push(`- ${c.etiqueta}: **${eur(c.importe)}** en ${num(c.partidas.length)} ${c.partidas.length === 1 ? "partida" : "partidas"}.`);
+            for (const p of c.partidas.slice(0, 4)) l.push(`  - ${p.codigo || ""} ${String(p.descripcion).slice(0, 50)}: ${eur(p.importe)}; pagados ${num(p.cantidadPagada)} ${p.unidad || ""} a ${eur(p.precioPagado)} (${p.industriales.map((i) => `${i.emisor} ${num(i.cantidad)}`).join(", ")}), certificados al cliente ${num(p.cantidadCobrada)} a ${eur(p.precioVenta)}${p.docCliente && p.docCliente.fichero ? ` (${nombreDoc(p.docCliente.fichero)})` : ""}.`);
+          } else l.push(`- ${c.etiqueta}: 0,00 \u20AC.`);
+        }
+        const ms = C.meses.filter((m) => m.mes !== "anterior");
+        if (ms.length) {
+          l.push("", "**Mes a mes, a origen** (horas \xB7 metros \xB7 sin certificar \xB7 precio = total):");
+          for (const m of ms) l.push(`- ${m.nombre}: ${eur(m.origen.horas)} \xB7 ${eur(m.origen.metros)} \xB7 ${eur(m.origen.sinCobrar)} \xB7 ${eur(m.origen.precio)} = **${eur(m.total)}**`);
+        }
+        const dc = C.porDisciplina;
+        l.push("", `**Conductos y tuber\xEDas:** conductos ${eur(dc.conductos.importe)} (${eur(dc.conductos.metros)} de metros de m\xE1s y ${eur(dc.conductos.sinCobrar)} sin certificar, en ${num(dc.conductos.partidas)} partidas); tuber\xEDas ${eur(dc.tuberias.importe)}${dc.otras && dc.otras.importe ? `; el resto, ${eur(dc.otras.importe)}` : ""}.`);
+        if (C.fuera.length) {
+          l.push("", "**No suman** (se dicen, pero no entran en la cuenta):");
+          for (const f of C.fuera) l.push(`- ${f.etiqueta}: ${eur(f.importe)}${f.clave === "claim" && f.reconocido != null ? ` reclamados, ${eur(f.reconocido)} reconocidos` : ""}${f.clave !== "porCasar" && f.documentos.length ? ` (${f.documentos.slice(0, 4).map((x) => `${x.emisor} ${MM.nombreMes(x.periodo)}`).join(", ")})` : ""}.`);
+        }
+        return { respuesta: l.join("\n").trim(), acciones: [accion] };
+      }
+      function responderPruebas(repo, yo, obraId, e) {
+        const DF = require_desfase2();
+        const D = require_desfase();
+        const d = DF.cuadro(repo, yo, obraId, {});
+        if (!d.ok) return { respuesta: d.error };
+        const accion = { tipo: "ir", destino: "certificaciones", mesAMes: { vista: "desfase", medVista: "causas" }, texto: "Abrir Certificaciones \u203A Mes a mes \u203A Desfase \u203A Por causa" };
+        const C = d.causas;
+        const l = [];
+        if (!C) return { respuesta: "En esta obra a\xFAn no hay certificaciones de industriales le\xEDdas.", acciones: [accion] };
+        const COMUNES = /^(horas|pruebas?|industriales?|subcontratas?|metros|partidas?|justificacion(es)?|justificantes?|partes?|cliente|certificad\w*|desfase|hueco|personal|obra|nuestros?|tenemos|todas?|todos|cada|mes(es)?)$/;
+        const palabras = String(e.q || "").trim().split(/\s+/).filter((w) => w.length >= 4 && !COMUNES.test(w));
+        const delIndustrial = (emisor) => palabras.some((w) => D.mismoIndustrial(w, emisor));
+        const horas = C.causas.find((c) => c.clave === "horas");
+        const grupos = horas && horas.porIndustrialMes || [];
+        const filtrados = grupos.some((g) => delIndustrial(g.emisor)) ? grupos.filter((g) => delIndustrial(g.emisor)) : grupos;
+        const partidas = [];
+        for (const c of C.causas) if (c.clave !== "horas") {
+          for (const p of c.partidas) if (!partidas.some((x) => x.clave === p.clave)) partidas.push(p);
+        }
+        let pts = e.codigo ? partidas.filter((p) => String(p.codigo || "").toUpperCase() === e.codigo) : partidas;
+        if (!e.codigo && partidas.some((p) => p.industriales.some((i) => delIndustrial(i.emisor)))) pts = partidas.filter((p) => p.industriales.some((i) => delIndustrial(i.emisor)));
+        const verHoras = !e.dePartidas || e.deHoras;
+        const verPartidas = e.dePartidas || !e.deHoras;
+        if (verHoras) {
+          const con = filtrados.filter((g) => g.justificantes.length).length;
+          l.push(`**Horas no repercutidas, por industrial y mes:** ${num(con)} de ${num(filtrados.length)} tienen parte de horas del industrial que lo justifique.`);
+          for (const g of filtrados) {
+            const docs = g.documentos.map((x) => nombreDoc(x.fichero)).join(", ");
+            if (!g.justificantes.length) {
+              l.push(`- ${g.emisor} \xB7 ${MM.nombreMes(g.periodo)}: ${num(g.horas)} h, ${eur(g.importe)} (${docs}) \u2014 **sin justificaci\xF3n del industrial**.`);
+              continue;
+            }
+            const casa = { referencia: "por la referencia", mes: "del mismo mes", mesAnterior: "del mes anterior" };
+            l.push(`- ${g.emisor} \xB7 ${MM.nombreMes(g.periodo)}: ${num(g.horas)} h, ${eur(g.importe)} (${docs}); ${g.horasJustificadas ? `los partes justifican **${num(g.horasJustificadas)} h**` : "hay parte, pero sin horas legibles"}:`);
+            for (const j of g.justificantes.slice(0, 4)) l.push(`  - ${j.titulo || j.fichero || "parte"} (${String(j.fecha || "").slice(0, 10)}, ${casa[j.casa] || ""}): ${j.horas != null ? `${num(j.horas)} h` : "horas no legibles"}${j.claim ? ` \xB7 prueba del claim ${j.claim}` : ""}`);
+            if (g.justificantes.length > 4) l.push(`  - y ${num(g.justificantes.length - 4)} partes m\xE1s.`);
+          }
+          l.push("");
+        }
+        if (verPartidas) {
+          l.push(`**Partida a partida, certificado al cliente frente a pagado a los industriales${pts.length > 6 ? " (las 6 de m\xE1s desfase)" : ""}:**`);
+          if (!pts.length) l.push("- Ninguna partida con metros de m\xE1s o sin certificar" + (e.codigo ? ` con el c\xF3digo ${e.codigo}` : "") + ".");
+          for (const p of pts.slice(0, 6)) {
+            l.push(`- ${p.codigo || ""} ${String(p.descripcion).slice(0, 60)}${p.ambito ? ` (${p.ambito})` : ""}:`);
+            l.push(`  - Cliente: ${num(p.cantidadCobrada)} ${p.unidad || ""} \xD7 ${eur(p.precioVenta)} = ${eur(p.cobrado)}${p.docCliente && p.docCliente.fichero ? ` (${nombreDoc(p.docCliente.fichero)})` : " (sin hoja del cliente)"}`);
+            for (const i of p.industriales) l.push(`  - ${i.emisor}: ${num(i.cantidad)} ${p.unidad || ""} \xD7 ${eur(i.precio)} = ${eur(i.importe)}${(i.documentos || []).length ? ` (${i.documentos.map((x) => nombreDoc(x.fichero)).join(", ")})` : ""}`);
+            l.push(`  - **Diferencia: ${num(p.difCantidad)} ${p.unidad || ""}, ${eur(p.difImporte)}**`);
+          }
+        }
+        l.push("", "Cada documento y cada parte se abre desde la pantalla, al desplegar la causa.");
+        return { respuesta: l.join("\n").trim(), acciones: [accion] };
+      }
       function responder(repo, yo, { pregunta, obraId }, opciones = {}) {
         const e = entender(pregunta);
         if (!e) return null;
@@ -188539,6 +189362,8 @@ ${LEYENDA}`;
         if (!id) return fila(pregunta, { respuesta: "Elige primero la obra arriba a la izquierda (o dime de cu\xE1l) y lo miro en sus certificaciones." });
         if (e.que === "desfase") return fila(pregunta, { herramienta: "desfase", ...responderDesfase(repo, yo, id, e) });
         if (e.que === "gap") return fila(pregunta, { herramienta: "gapDisciplina", ...responderGap(repo, yo, id, e) });
+        if (e.que === "causas") return fila(pregunta, { herramienta: "desfase", ...responderCausas(repo, yo, id, e) });
+        if (e.que === "pruebas") return fila(pregunta, { herramienta: "desfase", ...responderPruebas(repo, yo, id, e) });
         const c = CM.cuadro(repo, yo, id, { objetivo: e.objetivo ?? null });
         if (!c.ok) return fila(pregunta, { respuesta: c.error });
         if (!c.partes.length && !c.disputas.length) return fila(pregunta, { respuesta: "En esta obra a\xFAn no ha llegado por correo ninguna certificaci\xF3n de los industriales. Cuando se cargue el correo de la obra, la app las parte sola en contrato, horas, BIM y extras.", acciones: [accionAbrir] });
@@ -188549,9 +189374,10 @@ ${LEYENDA}`;
           `- Por contrastar con el SharePoint de la obra (a\xFAn sin leer): ${c.porContrastar.join("; ")}.`
         ];
         if (e.que === "hueco") {
+          const r = responderCausas(repo, yo, id, e);
           const h = c.hueco;
           const lecturas = [h.candidata, ...h.alternativas];
-          const l2 = [];
+          const l2 = [r.respuesta, "", "**Las otras lecturas del hueco** (certificaciones mes a mes, sin partidas):"];
           if (h.objetivo == null) l2.push("No me has dicho qu\xE9 cifra quieres comprobar; estas son las lecturas del hueco que salen de los documentos:");
           else if (h.seReproduce) l2.push(`Los **${eur(h.objetivo)}** se reproducen al c\xE9ntimo con la lectura \xAB${lecturas.find((a) => Math.abs(a.sinExplicar) < 5e-3).etiqueta}\xBB.`);
           else {
@@ -188576,7 +189402,7 @@ ${LEYENDA}`;
           }
           if (h.candidata.nota) l2.push("", h.candidata.nota);
           l2.push(...avisos());
-          return fila(pregunta, { respuesta: l2.join("\n"), acciones: [accionAbrir] });
+          return fila(pregunta, { herramienta: "desfase", respuesta: l2.join("\n"), acciones: [...r.acciones || [], accionAbrir].slice(0, 1) });
         }
         if (e.que === "horas") {
           const ind = c.industriales.find((i) => new RegExp(`\\b${MM.claveEmisor({ emisor: i.emisor }).replace(/[^a-z0-9]/g, "")}`).test(e.q.replace(/[^a-z0-9 ]/g, "")));
@@ -188649,7 +189475,84 @@ ${LEYENDA}`;
         l.push(...avisos());
         return fila(pregunta, { respuesta: l.join("\n"), acciones: [accionAbrir] });
       }
-      module.exports = { entender, responder, responderGap, responderDesfase, cifraDe, periodoDe };
+      module.exports = { entender, responder, responderGap, responderDesfase, responderCausas, cifraDe, periodoDe };
+    }
+  });
+
+  // electron/data/iarvisAhorro.js
+  var require_iarvisAhorro = __commonJS({
+    "electron/data/iarvisAhorro.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var { randomUUID: uuid } = require_crypto();
+      var AO = require_ahorroObra();
+      var fila = (pregunta, extra) => ({ id: uuid(), pregunta, estado: "respondida", local: true, creado: (/* @__PURE__ */ new Date()).toISOString(), acciones: [], herramienta: "ahorroReal", ...extra });
+      var llano = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      var eur = (x) => `${Math.round(Number(x) || 0).toLocaleString("es-ES", { useGrouping: "always" })} \u20AC`;
+      var hor = (x) => `${(Math.round((Number(x) || 0) * 10) / 10).toLocaleString("es-ES", { maximumFractionDigits: 1, useGrouping: "always" })} h`;
+      var accion = { tipo: "ir", destino: "queHaceLaApp", texto: "Abrir Lo que ahorra \u203A En esta obra" };
+      function entender(pregunta) {
+        const q = llano(pregunta);
+        if (!/ahorr/.test(q)) return null;
+        if (/\b(compra|compras|precio|precios|proveedor|oferta|ofertas|pedido|pedidos|licencia|licencias|energia|consumo)\b/.test(q)) return null;
+        return { mesAMes: /mes a mes|por mes|cada mes|meses/.test(q), porRol: /rol|jefe|encargado/.test(q) };
+      }
+      function obraNombrada(repo, yo, pregunta, obraId) {
+        const q = ` ${llano(pregunta).replace(/[^a-z0-9]+/g, " ")} `;
+        let obras = [];
+        try {
+          obras = repo.listar("obras", yo, {}) || [];
+        } catch {
+          obras = [];
+        }
+        for (const o of obras) {
+          const p = llano(o.nombre).replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean);
+          for (let i = 0; i + 1 < p.length; i += 1) if (q.includes(` ${p[i]} ${p[i + 1]} `)) return o.id;
+        }
+        try {
+          return require_iarvisPlanos().obraDe(repo, yo, pregunta, obraId);
+        } catch {
+          return obraId || null;
+        }
+      }
+      function responder(repo, yo, { pregunta, obraId }, opciones = {}) {
+        const e = entender(pregunta);
+        if (!e) return null;
+        if (!yo || yo.rol !== "administrador") return null;
+        const id = obraNombrada(repo, yo, pregunta, obraId);
+        if (!id) return fila(pregunta, { respuesta: "Dime de qu\xE9 obra (o el\xEDgela arriba a la izquierda) y te digo lo que ha ahorrado la app en ella." });
+        const r = AO.ahorroDeObra(repo, yo, id, opciones.hoy);
+        if (!r.ok) return fila(pregunta, { respuesta: r.error });
+        const R = r.real;
+        if (!R || !R.total.horas) return fila(pregunta, { respuesta: `En ${r.obra.nombre} la app a\xFAn no ha hecho nada que cuente.`, acciones: [accion] });
+        const t = R.total;
+        const alta = R.alta ? R.alta.split("-").reverse().join("/") : "";
+        const rol = (k) => t.roles[k] ? t.roles[k] : { horas: 0, euros: 0 };
+        const l = [];
+        l.push(`En **${r.obra.nombre}**, desde que entr\xF3 en la app (${alta}), la app ha ahorrado **${hor(t.horas)}**, que son **${eur(t.euros)}**.`);
+        l.push("", "Mes a mes:");
+        for (const m of R.meses) l.push(`- ${m.nombre}: ${hor(m.horas)} \xB7 ${eur(m.euros)}`);
+        l.push("", "Por rol:");
+        for (const [k, txt] of [["jefeObra", "Jefe de obra"], ["jefeProduccion", "Jefe de producci\xF3n"], ["encargadoObra", "Encargado"]]) {
+          if (rol(k).horas > 0) l.push(`- ${txt}: ${hor(rol(k).horas)} \xB7 ${eur(rol(k).euros)}`);
+        }
+        const top = [...R.lineas].filter((x) => x.cuenta > 0).sort((a, b) => b.euros - a.euros).slice(0, 5);
+        l.push("", "Lo que m\xE1s pesa:");
+        for (const x of top) l.push(`- ${x.que}: ${x.cuenta.toLocaleString("es-ES", { useGrouping: "always" })} ${x.unidad} \xD7 ${String(x.minutos).replace(".", ",")} min = ${hor(x.horas)} (${eur(x.euros)})`);
+        const ed = R.lineas.filter((x) => /^desfase/.test(x.id) && x.cuenta > 0);
+        if (ed.length) {
+          const h = ed.reduce((q, x) => q + x.horas, 0);
+          const e2 = ed.reduce((q, x) => q + x.euros, 0);
+          l.push("", `Estudio del desfase cliente/industrial por causa (Certificaciones \u203A Mes a mes \u203A Por causa), hecho por la app: **${hor(h)}** (${eur(e2)}). Supuesto: ${ed.map((x) => `${x.cuenta} ${x.unidad} \xD7 ${String(x.minutos).replace(".", ",")} min`).join(" \xB7 ")}.`);
+        }
+        l.push("", `Sin el claim (sus minutos est\xE1n a confirmar): **${eur(t.eurosSinClaim)}** (${hor(t.horasSinClaim)}).`);
+        if (R.historial.length) {
+          l.push(`No cuenta lo cargado de antes del alta: ${R.historial.map((x) => `${x.n} ${x.unidad}, ${x.motivo}`).join("; ")}.`);
+        }
+        l.push("Cada cosa cuenta en el mes en que la hizo la app, por los minutos a mano de \xABLo que ahorra\xBB y el \u20AC/h de quien lo habr\xEDa hecho (brutos + 33 % de Seguridad Social entre 1.736 h). Sin licencias.");
+        return fila(pregunta, { respuesta: l.join("\n"), acciones: [accion] });
+      }
+      module.exports = { responder, entender, obraNombrada };
     }
   });
 
@@ -211234,6 +212137,15 @@ Lo otro, las cuentas de la empresa, solo lo ve Direcci\xF3n.` };
           if (cm) return cm;
         }
         if (repo) {
+          let ah = null;
+          try {
+            ah = require_iarvisAhorro().responder(repo, yo, { pregunta, obraId });
+          } catch {
+            ah = null;
+          }
+          if (ah) return ah;
+        }
+        if (repo) {
           let dc = null;
           try {
             dc = require_iarvisDescompuestos().responder(repo, yo, { pregunta, obraId });
@@ -212638,6 +213550,22 @@ En el claim, esta l\xEDnea suma su venta: ${eur(venta)}. El plazo (coste indirec
           ["ini.buenosDias", "Buenos d\xEDas", "Good morning", "Bon dia", "Bom dia", "Guten Morgen", "Bonjour"],
           ["ini.buenasTardes", "Buenas tardes", "Good afternoon", "Bona tarda", "Boa tarde", "Guten Tag", "Bon apr\xE8s-midi"],
           ["ini.buenasNoches", "Buenas noches", "Good evening", "Bona nit", "Boa noite", "Guten Abend", "Bonsoir"],
+          ["ia.bienvenida", "P\xEDdeme lo que necesites de la obra: lo busco en la app y te lo doy. Tambi\xE9n te explico c\xF3mo se hace cualquier cosa.", "Ask me for whatever you need about the site: I look it up in the app and hand it to you. I can also explain how to do anything.", "Demana\u2019m el que necessitis de l\u2019obra: ho cerco a l\u2019aplicaci\xF3 i t\u2019ho dono. Tamb\xE9 t\u2019explico com es fa qualsevol cosa.", "Pe\xE7a-me o que precisar da obra: procuro na aplica\xE7\xE3o e dou-lho. Tamb\xE9m lhe explico como se faz qualquer coisa.", "Frag mich nach allem, was du zur Baustelle brauchst: Ich suche es in der App und gebe es dir. Ich erkl\xE4re dir auch, wie alles geht.", "Demande-moi ce dont tu as besoin sur le chantier : je le cherche dans l\u2019application et je te le donne. Je t\u2019explique aussi comment faire n\u2019importe quoi."],
+          ["ia.sug.commissioning", "Planificaci\xF3n de commissioning de {mes}", "Commissioning schedule for {mes}", "Planificaci\xF3 del commissioning de {mes}", "Planeamento do commissioning de {mes}", "Commissioning-Planung f\xFCr {mes}", "Planification du commissioning de {mes}"],
+          ["ia.sug.semana", "\xBFQu\xE9 hay planificado esta semana?", "What is scheduled this week?", "Qu\xE8 hi ha planificat aquesta setmana?", "O que est\xE1 planeado esta semana?", "Was ist diese Woche geplant?", "Qu\u2019est-ce qui est pr\xE9vu cette semaine ?"],
+          ["ia.sug.utas", "Planificaci\xF3n de las UTAs del mes que viene", "Schedule for next month\u2019s AHUs", "Planificaci\xF3 de les UTA del mes que ve", "Planeamento das UTA do m\xEAs que vem", "Planung der RLT-Ger\xE4te f\xFCr n\xE4chsten Monat", "Planification des CTA du mois prochain"],
+          ["ia.sug.certifico", "\xBFC\xF3mo certifico una partida?", "How do I certify a line item?", "Com certifico una partida?", "Como certifico uma partida?", "Wie zertifiziere ich eine Position?", "Comment certifier un poste ?"],
+          ["ia.sug.planosFalla", "\xBFQu\xE9 falla en mis planos?", "What is wrong in my drawings?", "Qu\xE8 falla als meus pl\xE0nols?", "O que falha nos meus planos?", "Was ist an meinen Pl\xE4nen falsch?", "Qu\u2019est-ce qui cloche dans mes plans ?"],
+          ["ia.sug.planosMandar", "\xBFQu\xE9 tengo que volver a mandar?", "What do I need to send again?", "Qu\xE8 haig de tornar a enviar?", "O que tenho de voltar a enviar?", "Was muss ich erneut senden?", "Que dois-je renvoyer ?"],
+          ["ia.sug.subirIfc", "\xBFC\xF3mo subo un IFC o un plano de AutoCAD?", "How do I upload an IFC or an AutoCAD drawing?", "Com pujo un IFC o un pl\xE0nol d\u2019AutoCAD?", "Como carrego um IFC ou um plano do AutoCAD?", "Wie lade ich ein IFC oder einen AutoCAD-Plan hoch?", "Comment t\xE9l\xE9verser un IFC ou un plan AutoCAD ?"],
+          ["ia.sug.elegirObra", "\xBFC\xF3mo elijo la obra en la que trabajo?", "How do I choose the site I work on?", "Com trio l\u2019obra on treballo?", "Como escolho a obra em que trabalho?", "Wie w\xE4hle ich die Baustelle, auf der ich arbeite?", "Comment choisir le chantier sur lequel je travaille ?"],
+          ["ia.sug.puesto", "\xBFQu\xE9 puedo hacer con mi puesto?", "What can I do with my role?", "Qu\xE8 puc fer amb el meu lloc?", "O que posso fazer com o meu cargo?", "Was kann ich mit meiner Rolle tun?", "Que puis-je faire avec mon poste ?"],
+          ["ia.sug.subirDoc", "\xBFC\xF3mo subo un documento?", "How do I upload a document?", "Com pujo un document?", "Como carrego um documento?", "Wie lade ich ein Dokument hoch?", "Comment t\xE9l\xE9verser un document ?"],
+          ["ia.pregunta", "Pregunta a Iarvis\u2026", "Ask Iarvis\u2026", "Pregunta a l\u2019Iarvis\u2026", "Pergunte ao Iarvis\u2026", "Frag Iarvis \u2026", "Demande \xE0 Iarvis\u2026"],
+          ["ia.dictar", "Escribe o pulsa el micr\xF3fono del teclado para dictar", "Type, or tap the keyboard microphone to dictate", "Escriu o prem el micr\xF2fon del teclat per dictar", "Escreva ou toque no microfone do teclado para ditar", "Tippe oder tippe auf das Mikrofon der Tastatur zum Diktieren", "\xC9cris ou appuie sur le micro du clavier pour dicter"],
+          ["ia.aviso", "Usa la app por ti \xB7 solo lo que tu puesto ve", "Uses the app for you \xB7 only what your role can see", "Usa l\u2019aplicaci\xF3 per tu \xB7 nom\xE9s el que veu el teu lloc", "Usa a aplica\xE7\xE3o por si \xB7 s\xF3 o que o seu cargo v\xEA", "Bedient die App f\xFCr dich \xB7 nur, was deine Rolle sieht", "Utilise l\u2019application pour toi \xB7 uniquement ce que voit ton poste"],
+          ["ia.sobre", "Sobre:", "About:", "Sobre:", "Sobre:", "Zu:", "Sur :"],
+          ["ia.esteCaso", "este caso", "this case", "aquest cas", "este caso", "diesem Fall", "ce cas"],
           ["ini.secciones", "Secciones", "Sections", "Seccions", "Sec\xE7\xF5es", "Bereiche", "Sections"],
           ["ini.queSecciones", "Qu\xE9 secciones ver", "Which sections to show", "Quines seccions veure", "Que sec\xE7\xF5es ver", "Welche Bereiche anzeigen", "Quelles sections afficher"],
           ["ini.verTodas", "Ver todas", "Show all", "Veure-les totes", "Ver todas", "Alle anzeigen", "Tout afficher"],
@@ -212675,7 +213603,104 @@ En el claim, esta l\xEDnea suma su venta: ${eur(venta)}. El plazo (coste indirec
           ["ini.obras", "obras", "sites", "obres", "obras", "Baustellen", "chantiers"],
           ["ini.total", "Total", "Total", "Total", "Total", "Summe", "Total"],
           ["ini.obrasMas", "Y {n} obras m\xE1s.", "And {n} more sites.", "I {n} obres m\xE9s.", "E mais {n} obras.", "Und {n} weitere Baustellen.", "Et {n} chantiers de plus."],
-          ["lat.eligeObraPista", "Elige tu obra: hasta entonces, lo de obra sale en gris.", "Choose your site: until then, site items stay greyed out.", "Tria la teva obra: fins llavors, el que \xE9s d\u2019obra surt en gris.", "Escolha a sua obra: at\xE9 l\xE1, o que \xE9 de obra fica a cinzento.", "W\xE4hlen Sie Ihre Baustelle: Bis dahin bleibt alles zur Baustelle grau.", "Choisissez votre chantier : d\u2019ici l\xE0, ce qui concerne le chantier reste gris\xE9."]
+          ["lat.eligeObraPista", "Elige tu obra: hasta entonces, lo de obra sale en gris.", "Choose your site: until then, site items stay greyed out.", "Tria la teva obra: fins llavors, el que \xE9s d\u2019obra surt en gris.", "Escolha a sua obra: at\xE9 l\xE1, o que \xE9 de obra fica a cinzento.", "W\xE4hlen Sie Ihre Baustelle: Bis dahin bleibt alles zur Baustelle grau.", "Choisissez votre chantier : d\u2019ici l\xE0, ce qui concerne le chantier reste gris\xE9."],
+          /* Certificaciones › Mes a mes › Desfase › Por causa (14-nov, renderer/certMesAMesCe.js). */
+          ["dfc.vista", "Por causa", "By cause", "Per causa", "Por causa", "Nach Ursache", "Par cause"],
+          ["dfc.titulo", "El desfase por causa \xB7 mes a mes", "The gap by cause \xB7 month by month", "El desfasament per causa \xB7 mes a mes", "O desfasamento por causa \xB7 m\xEAs a m\xEAs", "Die Differenz nach Ursache \xB7 Monat f\xFCr Monat", "L\u2019\xE9cart par cause \xB7 mois par mois"],
+          ["dfc.cuenta", "{n} causas con desfase \xB7 {m} meses \xB7 pulsa una para ver sus documentos", "{n} causes with a gap \xB7 {m} months \xB7 tap one to see its documents", "{n} causes amb desfasament \xB7 {m} mesos \xB7 prem-ne una per veure\u2019n els documents", "{n} causas com desfasamento \xB7 {m} meses \xB7 toque numa para ver os documentos", "{n} Ursachen mit Differenz \xB7 {m} Monate \xB7 tippen Sie eine an, um ihre Dokumente zu sehen", "{n} causes avec \xE9cart \xB7 {m} mois \xB7 touchez-en une pour voir ses documents"],
+          ["dfc.sinCausas", "Esta versi\xF3n no reparte el desfase por causa.", "This version does not split the gap by cause.", "Aquesta versi\xF3 no reparteix el desfasament per causa.", "Esta vers\xE3o n\xE3o reparte o desfasamento por causa.", "Diese Version teilt die Differenz nicht nach Ursache auf.", "Cette version ne r\xE9partit pas l\u2019\xE9cart par cause."],
+          ["dfc.h.causa", "Causa", "Cause", "Causa", "Causa", "Ursache", "Cause"],
+          ["dfc.h.aOrigen", "A origen", "To date", "A origen", "Acumulado", "Kumuliert", "Cumul\xE9"],
+          ["dfc.pieOrigen", "Desfase a origen, \u20AC", "Gap to date, \u20AC", "Desfasament a origen, \u20AC", "Desfasamento acumulado, \u20AC", "Kumulierte Differenz, \u20AC", "\xC9cart cumul\xE9, \u20AC"],
+          /* Lo que ahorra › En esta obra: el estudio del desfase por causa (14-nov, renderer/queHaceLaAppPantalla.js). */
+          ["ahd.partidas", "Estudio del desfase cliente/industrial: partidas casadas una a una", "Client/subcontractor gap study: items matched one by one", "Estudi del desfasament client/industrial: partides casades una a una", "Estudo do desfasamento cliente/industrial: artigos casados um a um", "Studie der Differenz Kunde/Subunternehmer: Positionen einzeln abgeglichen", "\xC9tude de l\u2019\xE9cart client/sous-traitant : postes rapproch\xE9s un par un"],
+          ["ahd.horas", "Estudio del desfase cliente/industrial: horas de cada industrial y mes revisadas", "Client/subcontractor gap study: hours reviewed for each subcontractor and month", "Estudi del desfasament client/industrial: hores de cada industrial i mes revisades", "Estudo do desfasamento cliente/industrial: horas de cada industrial e m\xEAs revistas", "Studie der Differenz Kunde/Subunternehmer: gepr\xFCfte Stunden je Subunternehmer und Monat", "\xC9tude de l\u2019\xE9cart client/sous-traitant : heures revues par sous-traitant et par mois"],
+          ["ahd.justificantes", "Estudio del desfase cliente/industrial: justificantes localizados y enlazados", "Client/subcontractor gap study: supporting documents found and linked", "Estudi del desfasament client/industrial: justificants localitzats i enlla\xE7ats", "Estudo do desfasamento cliente/industrial: justificativos localizados e ligados", "Studie der Differenz Kunde/Subunternehmer: Belege gefunden und verkn\xFCpft", "\xC9tude de l\u2019\xE9cart client/sous-traitant : justificatifs retrouv\xE9s et reli\xE9s"],
+          ["ahd.u.partidas", "partidas casadas", "matched items", "partides casades", "artigos casados", "abgeglichene Positionen", "postes rapproch\xE9s"],
+          ["ahd.u.horas", "industriales-mes de horas", "subcontractor-months of hours", "industrials-mes d\u2019hores", "industriais-m\xEAs de horas", "Subunternehmer-Monate mit Stunden", "sous-traitants-mois d\u2019heures"],
+          ["ahd.u.justificantes", "justificantes", "supporting documents", "justificants", "justificativos", "Belege", "justificatifs"],
+          [
+            "ahd.supuesto",
+            "Estudio del desfase por causa, hecho por la app: {p} min por partida casada \xB7 {h} min por industrial y mes de horas revisadas \xB7 {j} min por justificante, de {rol}. Se cuenta en el mes en que la app hizo el estudio. C\xE1mbialos en \xABPor l\xEDnea\xBB.",
+            "Gap-by-cause study done by the app: {p} min per matched item \xB7 {h} min per subcontractor and month of hours reviewed \xB7 {j} min per supporting document, by {rol}. Counted in the month the app ran the study. Change them in \u201CBy line\u201D.",
+            "Estudi del desfasament per causa fet per l\u2019app: {p} min per partida casada \xB7 {h} min per industrial i mes d\u2019hores revisades \xB7 {j} min per justificant, de {rol}. Es compta el mes en qu\xE8 l\u2019app va fer l\u2019estudi. Canvia\u2019ls a \xABPer l\xEDnia\xBB.",
+            "Estudo do desfasamento por causa feito pela app: {p} min por artigo casado \xB7 {h} min por industrial e m\xEAs de horas revistas \xB7 {j} min por justificativo, de {rol}. Conta no m\xEAs em que a app fez o estudo. Altere-os em \xABPor linha\xBB.",
+            "Von der App erstellte Studie der Differenz nach Ursache: {p} Min. je abgeglichene Position \xB7 {h} Min. je Subunternehmer und Monat gepr\xFCfter Stunden \xB7 {j} Min. je Beleg, durch {rol}. Gez\xE4hlt im Monat, in dem die App die Studie erstellt hat. \xC4ndern unter \u201EPro Zeile\u201C.",
+            "\xC9tude de l\u2019\xE9cart par cause r\xE9alis\xE9e par l\u2019app : {p} min par poste rapproch\xE9 \xB7 {h} min par sous-traitant et par mois d\u2019heures revues \xB7 {j} min par justificatif, par {rol}. Compt\xE9e le mois o\xF9 l\u2019app a fait l\u2019\xE9tude. \xC0 modifier dans \xAB Par ligne \xBB."
+          ],
+          ["ahd.rol", "jefe de producci\xF3n (60 %) y jefe de obra (40 %)", "the production manager (60 %) and the site manager (40 %)", "cap de producci\xF3 (60 %) i cap d\u2019obra (40 %)", "diretor de produ\xE7\xE3o (60 %) e diretor de obra (40 %)", "Produktionsleiter (60 %) und Bauleiter (40 %)", "le responsable de production (60 %) et le chef de chantier (40 %)"],
+          ["dfc.pieSube", "Sube o baja, \u20AC", "Up or down, \u20AC", "Puja o baixa, \u20AC", "Sobe ou desce, \u20AC", "Steigt oder sinkt, \u20AC", "Hausse ou baisse, \u20AC"],
+          ["dfc.c.horas", "Horas no repercutidas", "Hours not passed on", "Hores no repercutides", "Horas n\xE3o repercutidas", "Nicht weiterberechnete Stunden", "Heures non refactur\xE9es"],
+          ["dfc.c.metros", "Metros de m\xE1s", "Extra metres", "Metres de m\xE9s", "Metros a mais", "Mehrmeter", "M\xE8tres en trop"],
+          ["dfc.c.sinCobrar", "Sin certificar al cliente", "Not certified to client", "Sense certificar al client", "Por certificar ao cliente", "Nicht an Kunden abgerechnet", "Non certifi\xE9 au client"],
+          ["dfc.c.precio", "Precio sobre el de venta", "Price above selling", "Preu sobre el de venda", "Pre\xE7o acima da venda", "Preis \xFCber Verkauf", "Prix au-dessus de la vente"],
+          ["dfc.d.horas", "Horas de administraci\xF3n que pasan los industriales y que el cliente no ha reconocido. Cada l\xEDnea, con el documento del que sale.", "Day-work hours charged by subcontractors that the client has not accepted. Each line with its source document.", "Hores d\u2019administraci\xF3 que passen els industrials i que el client no ha reconegut. Cada l\xEDnia, amb el document d\u2019on surt.", "Horas de administra\xE7\xE3o faturadas pelos subempreiteiros que o cliente n\xE3o reconheceu. Cada linha, com o documento de origem.", "Regiestunden der Subunternehmer, die der Kunde nicht anerkannt hat. Jede Zeile mit ihrem Quelldokument.", "Heures en r\xE9gie factur\xE9es par les sous-traitants que le client n\u2019a pas reconnues. Chaque ligne avec son document source."],
+          ["dfc.d.metros", "Partidas en las que los industriales llevan pagada m\xE1s cantidad que la certificada al cliente: metros pagados, certificados, precios y documentos.", "Items where more quantity has been paid to subcontractors than certified to the client: metres paid, certified, prices and documents.", "Partides en qu\xE8 els industrials porten pagada m\xE9s quantitat que la certificada al client: metres pagats, certificats, preus i documents.", "Rubricas em que se pagou aos subempreiteiros mais quantidade do que a certificada ao cliente: metros pagos, certificados, pre\xE7os e documentos.", "Positionen, bei denen den Subunternehmern mehr Menge bezahlt als dem Kunden abgerechnet wurde: bezahlte und abgerechnete Meter, Preise und Dokumente.", "Postes o\xF9 l\u2019on a pay\xE9 aux sous-traitants plus de quantit\xE9 que celle certifi\xE9e au client : m\xE8tres pay\xE9s, certifi\xE9s, prix et documents."],
+          ["dfc.d.sinCobrar", "Partidas pagadas a los industriales de las que al cliente a\xFAn no se le ha certificado nada.", "Items paid to subcontractors for which nothing has yet been certified to the client.", "Partides pagades als industrials de les quals al client encara no se li ha certificat res.", "Rubricas pagas aos subempreiteiros das quais ainda nada foi certificado ao cliente.", "Den Subunternehmern bezahlte Positionen, von denen dem Kunden noch nichts abgerechnet wurde.", "Postes pay\xE9s aux sous-traitants dont rien n\u2019a encore \xE9t\xE9 certifi\xE9 au client."],
+          ["dfc.d.precio", "Lo pagado de m\xE1s porque el precio del industrial pasa del precio de venta.", "The overpayment because the subcontractor\u2019s price is above the selling price.", "El que s\u2019ha pagat de m\xE9s perqu\xE8 el preu de l\u2019industrial supera el preu de venda.", "O pago a mais porque o pre\xE7o do subempreiteiro ultrapassa o pre\xE7o de venda.", "Die Mehrzahlung, weil der Preis des Subunternehmers \xFCber dem Verkaufspreis liegt.", "Le trop-pay\xE9 parce que le prix du sous-traitant d\xE9passe le prix de vente."],
+          ["dfc.h.industrial", "Industrial", "Subcontractor", "Industrial", "Subempreiteiro", "Subunternehmer", "Sous-traitant"],
+          ["dfc.h.mes", "Mes", "Month", "Mes", "M\xEAs", "Monat", "Mois"],
+          ["dfc.h.horas", "Horas", "Hours", "Hores", "Horas", "Stunden", "Heures"],
+          ["dfc.h.importe", "Importe", "Amount", "Import", "Montante", "Betrag", "Montant"],
+          ["dfc.h.doc", "Documento", "Document", "Document", "Documento", "Dokument", "Document"],
+          ["dfc.h.docs", "Documentos", "Documents", "Documents", "Documentos", "Dokumente", "Documents"],
+          ["dfc.h.partida", "Partida", "Item", "Partida", "Rubrica", "Position", "Poste"],
+          ["dfc.h.pagados", "Pagado", "Paid", "Pagat", "Pago", "Bezahlt", "Pay\xE9"],
+          ["dfc.h.cliente", "Al cliente", "To client", "Al client", "Ao cliente", "An Kunden", "Au client"],
+          ["dfc.h.precios", "\u20AC/ud pagado / venta", "\u20AC/unit paid / selling", "\u20AC/u pagat / venda", "\u20AC/un. pago / venda", "\u20AC/Einh. bezahlt / Verkauf", "\u20AC/u pay\xE9 / vente"],
+          ["dfc.porRevisar", "por revisar", "to review", "per revisar", "por rever", "zu pr\xFCfen", "\xE0 v\xE9rifier"],
+          ["dfc.sinDocs", "No hay documentos de horas.", "There are no hour documents.", "No hi ha documents d\u2019hores.", "N\xE3o h\xE1 documentos de horas.", "Es gibt keine Stundendokumente.", "Il n\u2019y a pas de documents d\u2019heures."],
+          ["dfc.sinPartidas", "Ninguna partida en esta causa.", "No items in this cause.", "Cap partida en aquesta causa.", "Nenhuma rubrica nesta causa.", "Keine Position in dieser Ursache.", "Aucun poste dans cette cause."],
+          ["dfc.hojaCliente", "Hoja del cliente", "Client sheet", "Full del client", "Folha do cliente", "Kundenblatt", "Feuille du client"],
+          ["dfc.h.quien", "Qui\xE9n", "Who", "Qui", "Quem", "Wer", "Qui"],
+          ["dfc.h.cantidad", "Cantidad", "Quantity", "Quantitat", "Quantidade", "Menge", "Quantit\xE9"],
+          ["dfc.h.precioUd", "\u20AC/ud", "\u20AC/unit", "\u20AC/u", "\u20AC/un.", "\u20AC/Einh.", "\u20AC/u"],
+          ["dfc.h.justif", "Justificaci\xF3n", "Supporting evidence", "Justificaci\xF3", "Justifica\xE7\xE3o", "Nachweis", "Justificatif"],
+          ["dfc.cliente", "Certificado al cliente", "Certified to the client", "Certificat al client", "Certificado ao cliente", "An den Kunden abgerechnet", "Certifi\xE9 au client"],
+          ["dfc.diferencia", "Diferencia", "Difference", "Difer\xE8ncia", "Diferen\xE7a", "Differenz", "Diff\xE9rence"],
+          ["dfc.enCausa", "En esta causa: {eur} \u20AC", "In this cause: \u20AC{eur}", "En aquesta causa: {eur} \u20AC", "Nesta causa: {eur} \u20AC", "In dieser Ursache: {eur} \u20AC", "Dans cette cause : {eur} \u20AC"],
+          ["dfc.sinHoja", "sin hoja del cliente", "no client sheet", "sense full del client", "sem folha do cliente", "kein Kundenblatt", "sans feuille du client"],
+          ["dfc.sinDocInd", "sin documento", "no document", "sense document", "sem documento", "kein Dokument", "sans document"],
+          ["dfc.verJust", "Ver justificaci\xF3n ({n})", "View evidence ({n})", "Veure justificaci\xF3 ({n})", "Ver justifica\xE7\xE3o ({n})", "Nachweis ansehen ({n})", "Voir le justificatif ({n})"],
+          ["dfc.justHoras", "{j} h en partes", "{j} h in timesheets", "{j} h en parts", "{j} h em folhas de horas", "{j} Std. in Stundenzetteln", "{j} h en feuilles d\u2019heures"],
+          ["dfc.sinJust", "Sin justificaci\xF3n del industrial", "No evidence from the subcontractor", "Sense justificaci\xF3 de l\u2019industrial", "Sem justifica\xE7\xE3o do subempreiteiro", "Kein Nachweis des Nachunternehmers", "Aucun justificatif du sous-traitant"],
+          ["dfc.resumenJust", "{n} de {t} industriales y meses tienen parte de horas que lo justifique.", "{n} of {t} subcontractor-months have a timesheet that supports them.", "{n} de {t} industrials i mesos tenen part d\u2019hores que ho justifiqui.", "{n} de {t} subempreiteiros e meses t\xEAm folha de horas que o justifique.", "{n} von {t} Nachunternehmer-Monaten haben einen Stundenzettel als Nachweis.", "{n} sur {t} sous-traitants et mois ont une feuille d\u2019heures qui le justifie."],
+          ["dfc.justTitulo", "Justificaci\xF3n de {emisor} \xB7 {mes}", "Evidence from {emisor} \xB7 {mes}", "Justificaci\xF3 de {emisor} \xB7 {mes}", "Justifica\xE7\xE3o de {emisor} \xB7 {mes}", "Nachweis von {emisor} \xB7 {mes}", "Justificatif de {emisor} \xB7 {mes}"],
+          ["dfc.pedidas", "Pide {h} h; los partes justifican {j} h", "Claims {h} h; timesheets support {j} h", "Demana {h} h; els parts justifiquen {j} h", "Pede {h} h; as folhas justificam {j} h", "Fordert {h} Std.; Stundenzettel belegen {j} Std.", "Demande {h} h ; les feuilles justifient {j} h"],
+          ["dfc.casa.referencia", "casa por la referencia del documento", "matches the document reference", "casa per la refer\xE8ncia del document", "corresponde pela refer\xEAncia do documento", "passt \xFCber die Dokumentreferenz", "correspond par la r\xE9f\xE9rence du document"],
+          ["dfc.casa.mes", "del mismo mes", "same month", "del mateix mes", "do mesmo m\xEAs", "gleicher Monat", "du m\xEAme mois"],
+          ["dfc.casa.mesAnterior", "del mes anterior", "previous month", "del mes anterior", "do m\xEAs anterior", "Vormonat", "du mois pr\xE9c\xE9dent"],
+          ["dfc.fuenteClaim", "prueba del claim {c}", "claim evidence {c}", "prova del claim {c}", "prova do claim {c}", "Claim-Nachweis {c}", "preuve de la r\xE9clamation {c}"],
+          ["dfc.fuenteMedObra", "Med Obra", "Site measurement", "Med Obra", "Medi\xE7\xE3o de obra", "Baustellenaufma\xDF", "M\xE9tr\xE9 de chantier"],
+          ["dfc.horasNoLegibles", "horas no legibles en el parte", "hours not legible in the timesheet", "hores no llegibles al part", "horas ileg\xEDveis na folha", "Stunden im Zettel nicht lesbar", "heures illisibles sur la feuille"],
+          ["dfc.abrir", "Abrir", "Open", "Obrir", "Abrir", "\xD6ffnen", "Ouvrir"],
+          ["dfc.abrirFichero", "Abrir fichero", "Open file", "Obrir fitxer", "Abrir ficheiro", "Datei \xF6ffnen", "Ouvrir le fichier"],
+          ["dfc.cerrar", "Cerrar", "Close", "Tancar", "Fechar", "Schlie\xDFen", "Fermer"],
+          ["dfc.cargando", "Cargando\u2026", "Loading\u2026", "Carregant\u2026", "A carregar\u2026", "Wird geladen\u2026", "Chargement\u2026"],
+          ["dfc.noAbre", "No se ha podido abrir.", "Could not be opened.", "No s\u2019ha pogut obrir.", "N\xE3o foi poss\xEDvel abrir.", "Konnte nicht ge\xF6ffnet werden.", "Impossible d\u2019ouvrir."],
+          ["dfc.docSinFichero", "En este equipo solo est\xE1 la lectura del documento; el original est\xE1 en el correo de la obra.", "Only the reading of this document is on this computer; the original is in the project mailbox.", "En aquest equip nom\xE9s hi ha la lectura del document; l\u2019original \xE9s al correu de l\u2019obra.", "Neste computador s\xF3 est\xE1 a leitura do documento; o original est\xE1 no correio da obra.", "Auf diesem Rechner liegt nur die Auslesung; das Original ist im Postfach der Baustelle.", "Sur cet ordinateur, seule la lecture du document est disponible ; l\u2019original est dans la messagerie du chantier."],
+          ["dfc.docCortado", "Texto cortado: abre el fichero para verlo entero.", "Text truncated: open the file to see it all.", "Text tallat: obre el fitxer per veure\u2019l sencer.", "Texto cortado: abra o ficheiro para o ver inteiro.", "Text gek\xFCrzt: Datei \xF6ffnen, um alles zu sehen.", "Texte tronqu\xE9 : ouvrez le fichier pour tout voir."],
+          ["dfc.disciplinas", "Conductos {c} \u20AC ({cm} \u20AC de metros de m\xE1s y {cs} \u20AC sin certificar) \xB7 tuber\xEDas {t} \u20AC \xB7 resto {r} \u20AC", "Ductwork \u20AC{c} (\u20AC{cm} extra metres and \u20AC{cs} not certified) \xB7 piping \u20AC{t} \xB7 other \u20AC{r}", "Conductes {c} \u20AC ({cm} \u20AC de metres de m\xE9s i {cs} \u20AC sense certificar) \xB7 canonades {t} \u20AC \xB7 resta {r} \u20AC", "Condutas {c} \u20AC ({cm} \u20AC de metros a mais e {cs} \u20AC por certificar) \xB7 tubagens {t} \u20AC \xB7 resto {r} \u20AC", "Kan\xE4le {c} \u20AC ({cm} \u20AC Mehrmeter und {cs} \u20AC nicht abgerechnet) \xB7 Rohrleitungen {t} \u20AC \xB7 Rest {r} \u20AC", "Gaines {c} \u20AC ({cm} \u20AC de m\xE8tres en trop et {cs} \u20AC non certifi\xE9s) \xB7 tuyauteries {t} \u20AC \xB7 reste {r} \u20AC"],
+          ["dfc.objetivo", "Cifra que te han dicho", "Figure you were given", "Xifra que t\u2019han dit", "Valor que lhe disseram", "Genannte Zahl", "Chiffre annonc\xE9"],
+          ["dfc.desfase", "Desfase pagado / cobrado", "Paid / billed gap", "Desfasament pagat / cobrat", "Desfasamento pago / cobrado", "Differenz bezahlt / eingenommen", "\xC9cart pay\xE9 / encaiss\xE9"],
+          ["dfc.cuadra", "Cuadra al c\xE9ntimo", "Matches to the cent", "Quadra al c\xE8ntim", "Bate ao c\xEAntimo", "Stimmt auf den Cent", "Correspond au centime"],
+          ["dfc.sobra", "Por encima de la cifra dicha", "Above the figure given", "Per sobre de la xifra dita", "Acima do valor indicado", "\xDCber der genannten Zahl", "Au-dessus du chiffre annonc\xE9"],
+          ["dfc.falta", "Por debajo de la cifra dicha", "Below the figure given", "Per sota de la xifra dita", "Abaixo do valor indicado", "Unter der genannten Zahl", "En dessous du chiffre annonc\xE9"],
+          ["dfc.cerca", "Lo que m\xE1s se acerca: {piezas}", "Closest match: {piezas}", "El que m\xE9s s\u2019hi acosta: {piezas}", "O que mais se aproxima: {piezas}", "Am n\xE4chsten kommt: {piezas}", "Ce qui s\u2019en approche le plus : {piezas}"],
+          ["dfc.mesCerca", "Mes m\xE1s cercano a origen: {mes}", "Closest month to date: {mes}", "Mes m\xE9s proper a origen: {mes}", "M\xEAs acumulado mais pr\xF3ximo: {mes}", "N\xE4chster kumulierter Monat: {mes}", "Mois cumul\xE9 le plus proche : {mes}"],
+          ["dfc.p.horas", "horas", "hours", "hores", "horas", "Stunden", "heures"],
+          ["dfc.p.metros", "metros de m\xE1s", "extra metres", "metres de m\xE9s", "metros a mais", "Mehrmeter", "m\xE8tres en trop"],
+          ["dfc.p.sinCobrar", "sin certificar", "not certified", "sense certificar", "por certificar", "nicht abgerechnet", "non certifi\xE9"],
+          ["dfc.p.precio", "precio", "price", "preu", "pre\xE7o", "Preis", "prix"],
+          ["dfc.p.claimReconocido", "lo reconocido del claim", "accepted part of the claim", "el reconegut del claim", "o reconhecido do claim", "anerkannter Teil des Claims", "part reconnue de la r\xE9clamation"],
+          ["dfc.p.claimReclamado", "todo el claim reclamado", "the whole claim", "tot el claim reclamat", "todo o claim reclamado", "gesamter Claim", "toute la r\xE9clamation"],
+          ["dfc.fuera", "No suman \xB7 {n} bloques que se dicen pero no entran en la cuenta", "Not counted \xB7 {n} blocks shown but left out of the total", "No sumen \xB7 {n} blocs que es diuen per\xF2 no entren al compte", "N\xE3o somam \xB7 {n} blocos indicados mas fora da conta", "Nicht mitgez\xE4hlt \xB7 {n} Bl\xF6cke, genannt, aber nicht in der Summe", "Non compt\xE9s \xB7 {n} blocs indiqu\xE9s mais hors du total"],
+          ["dfc.f.porCasar", "Partidas por casar", "Items to match", "Partides per casar", "Rubricas por associar", "Zuzuordnende Positionen", "Postes \xE0 rapprocher"],
+          ["dfc.f.claim", "Claim de los industriales en disputa", "Subcontractor claim in dispute", "Claim dels industrials en disputa", "Claim dos subempreiteiros em disputa", "Strittiger Claim der Subunternehmer", "R\xE9clamation des sous-traitants en litige"],
+          ["dfc.f.duplicados", "Documentos repetidos o sustituidos", "Repeated or replaced documents", "Documents repetits o substitu\xEFts", "Documentos repetidos ou substitu\xEDdos", "Doppelte oder ersetzte Dokumente", "Documents r\xE9p\xE9t\xE9s ou remplac\xE9s"],
+          ["dfc.f.noCertificacion", "Presupuestos y pedidos (no son certificaci\xF3n)", "Quotes and orders (not certificates)", "Pressupostos i comandes (no s\xF3n certificaci\xF3)", "Or\xE7amentos e encomendas (n\xE3o s\xE3o certifica\xE7\xE3o)", "Angebote und Bestellungen (keine Abrechnung)", "Devis et commandes (pas des certificats)"],
+          ["dfc.reconocido", "{eur} \u20AC reconocidos", "\u20AC{eur} accepted", "{eur} \u20AC reconeguts", "{eur} \u20AC reconhecidos", "{eur} \u20AC anerkannt", "{eur} \u20AC reconnus"],
+          ["dfc.verPorCasar", "Casarlas \u203A", "Match them \u203A", "Casar-les \u203A", "Associ\xE1-las \u203A", "Zuordnen \u203A", "Les rapprocher \u203A"]
         ];
         const NOMBRES = [
           /* Módulos (shared/roles.js › MODULOS) */
@@ -213070,7 +214095,878 @@ En el claim, esta l\xEDnea suma su venta: ${eur(venta)}. El plazo (coste indirec
           ["Incidencia repetida no abierta: ya hab\xEDa una reparaci\xF3n viva", "Repeated issue not opened: a repair was already live", "Incid\xE8ncia repetida no oberta: ja hi havia una reparaci\xF3 viva", "Ocorr\xEAncia repetida n\xE3o aberta: j\xE1 havia uma repara\xE7\xE3o ativa", "Doppelte St\xF6rung nicht er\xF6ffnet: es lief schon eine Reparatur", "Incident r\xE9p\xE9t\xE9 non ouvert : une r\xE9paration \xE9tait d\xE9j\xE0 en cours"],
           ["Presupuesto", "Quotation", "Pressupost", "Or\xE7amento", "Kostenvoranschlag", "Devis re\xE7u"],
           ["Albar\xE1n", "Delivery note", "Albar\xE0", "Guia de remessa", "Lieferschein", "Bon de livraison"],
-          ["Informe", "Report", "Informe", "Relat\xF3rio", "Bericht", "Rapport"]
+          ["Informe", "Report", "Informe", "Relat\xF3rio", "Bericht", "Rapport"],
+          /* Lo que ahorra › En esta obra › Real, mes a mes (14-nov): renderer/queHaceLaAppPantalla.js */
+          ["C\xF3mo verlo", "How to view it", "Com veure-ho", "Como ver", "Ansicht", "Affichage"],
+          ["Real, mes a mes", "Actual, month by month", "Real, mes a mes", "Real, m\xEAs a m\xEAs", "Real, Monat f\xFCr Monat", "R\xE9el, mois par mois"],
+          ["Por l\xEDnea y por mes de obra", "By line and by month of works", "Per l\xEDnia i per mes d\u2019obra", "Por linha e por m\xEAs de obra", "Nach Position und Baumonat", "Par ligne et par mois de chantier"],
+          ["jefe de obra", "site manager", "cap d\u2019obra", "chefe de obra", "Bauleiter", "chef de chantier"],
+          ["jefe de producci\xF3n", "production manager", "cap de producci\xF3", "chefe de produ\xE7\xE3o", "Produktionsleiter", "chef de production"],
+          ["encargado", "foreman", "encarregat", "encarregado", "Vorarbeiter", "contrema\xEEtre"],
+          ["Ahorro real en la obra", "Actual savings on the project", "Estalvi real a l\u2019obra", "Poupan\xE7a real na obra", "Tats\xE4chliche Ersparnis auf der Baustelle", "\xC9conomie r\xE9elle sur le chantier"],
+          ["{h} h desde el alta ({dia})", "{h} h since set-up ({dia})", "{h} h des de l\u2019alta ({dia})", "{h} h desde o registo ({dia})", "{h} Std. seit Anlage ({dia})", "{h} h depuis la cr\xE9ation ({dia})"],
+          ["en curso", "in progress", "en curs", "em curso", "laufend", "en cours"],
+          ["Por rol", "By role", "Per rol", "Por fun\xE7\xE3o", "Nach Rolle", "Par r\xF4le"],
+          ["jefe de obra \xB7 {p} h producci\xF3n \xB7 {e} h encargado", "site manager \xB7 {p} h production \xB7 {e} h foreman", "cap d\u2019obra \xB7 {p} h producci\xF3 \xB7 {e} h encarregat", "chefe de obra \xB7 {p} h produ\xE7\xE3o \xB7 {e} h encarregado", "Bauleiter \xB7 {p} Std. Produktion \xB7 {e} Std. Vorarbeiter", "chef de chantier \xB7 {p} h production \xB7 {e} h contrema\xEEtre"],
+          ["Sin el claim", "Without the claim", "Sense el claim", "Sem o claim", "Ohne den Claim", "Sans le claim"],
+          ["claim {eur} ({h} h), minutos a confirmar", "claim {eur} ({h} h), minutes to be confirmed", "claim {eur} ({h} h), minuts per confirmar", "claim {eur} ({h} h), minutos por confirmar", "Claim {eur} ({h} Std.), Minuten zu best\xE4tigen", "claim {eur} ({h} h), minutes \xE0 confirmer"],
+          ["No cuenta", "Not counted", "No compta", "N\xE3o conta", "Z\xE4hlt nicht", "Non compt\xE9"],
+          ["historial cargado de antes del alta", "history loaded from before set-up", "historial carregat d\u2019abans de l\u2019alta", "hist\xF3rico carregado de antes do registo", "vor der Anlage geladener Verlauf", "historique charg\xE9 avant la cr\xE9ation"],
+          ["Minutos a mano a confirmar por JC", "Manual minutes to be confirmed by JC", "Minuts a m\xE0 per confirmar per JC", "Minutos manuais por confirmar por JC", "Manuelle Minuten, von JC zu best\xE4tigen", "Minutes manuelles \xE0 confirmer par JC"],
+          ["a confirmar", "to confirm", "per confirmar", "por confirmar", "zu best\xE4tigen", "\xE0 confirmer"],
+          ["La base no guarda cu\xE1ndo se hizo: va al mes en curso", "The database does not record when it was done: it goes to the current month", "La base no guarda quan es va fer: va al mes en curs", "A base n\xE3o guarda quando foi feito: vai para o m\xEAs em curso", "Die Datenbank speichert nicht, wann es geschah: es geht in den laufenden Monat", "La base n\u2019enregistre pas quand cela a \xE9t\xE9 fait : cela va au mois en cours"],
+          ["sin fecha", "no date", "sense data", "sem data", "ohne Datum", "sans date"],
+          ["De d\xF3nde sale:", "Where it comes from:", "D\u2019on surt:", "De onde vem:", "Woher es kommt:", "D\u2019o\xF9 cela vient :"],
+          ["No cuentan", "Not counted:", "No compten", "N\xE3o contam", "Nicht gez\xE4hlt:", "Non compt\xE9s"],
+          [
+            "Cada cosa cuenta en el mes en que la hizo la app (su fecha en la base). Los minutos a mano y los \u20AC/h, los de \xABPor l\xEDnea\xBB: si los cambias all\xED, esto cambia.",
+            "Each item counts in the month the app did it (its date in the database). The manual minutes and the \u20AC/h are those of \u201CBy line\u201D: if you change them there, this changes.",
+            "Cada cosa compta al mes en qu\xE8 la va fer l\u2019app (la seva data a la base). Els minuts a m\xE0 i els \u20AC/h s\xF3n els de \xABPer l\xEDnia\xBB: si els canvies all\xE0, aix\xF2 canvia.",
+            "Cada coisa conta no m\xEAs em que a app a fez (a sua data na base). Os minutos manuais e os \u20AC/h s\xE3o os de \xABPor linha\xBB: se os alterar l\xE1, isto muda.",
+            "Jede Sache z\xE4hlt in dem Monat, in dem die App sie erledigt hat (ihr Datum in der Datenbank). Die manuellen Minuten und die \u20AC/Std. sind die aus \u201ENach Position\u201C: \xC4ndern Sie sie dort, \xE4ndert sich dies.",
+            "Chaque \xE9l\xE9ment compte dans le mois o\xF9 l\u2019app l\u2019a fait (sa date dans la base). Les minutes manuelles et les \u20AC/h sont ceux de \xAB Par ligne \xBB : si vous les changez l\xE0, ceci change."
+          ],
+          ["Qu\xE9 ha hecho la app \xB7 de d\xF3nde sale", "What the app has done \xB7 where it comes from", "Qu\xE8 ha fet l\u2019app \xB7 d\u2019on surt", "O que a app fez \xB7 de onde vem", "Was die App getan hat \xB7 woher es kommt", "Ce que l\u2019app a fait \xB7 d\u2019o\xF9 cela vient"],
+          ["jefe de obra {a} \u20AC/h \xB7 producci\xF3n {b} \u20AC/h \xB7 encargado {c} \u20AC/h", "site manager {a} \u20AC/h \xB7 production {b} \u20AC/h \xB7 foreman {c} \u20AC/h", "cap d\u2019obra {a} \u20AC/h \xB7 producci\xF3 {b} \u20AC/h \xB7 encarregat {c} \u20AC/h", "chefe de obra {a} \u20AC/h \xB7 produ\xE7\xE3o {b} \u20AC/h \xB7 encarregado {c} \u20AC/h", "Bauleiter {a} \u20AC/Std. \xB7 Produktion {b} \u20AC/Std. \xB7 Vorarbeiter {c} \u20AC/Std.", "chef de chantier {a} \u20AC/h \xB7 production {b} \u20AC/h \xB7 contrema\xEEtre {c} \u20AC/h"],
+          [
+            "Solo lo hecho en la app desde el alta de la obra ({dia}); el primer y el \xFAltimo mes van incompletos. No cuenta lo cargado de antes (NCR importadas, pedidos, certificaciones y actas de meses anteriores): se ve en cada l\xEDnea. El claim va con sus minutos \xABa confirmar\xBB; \xABSin el claim\xBB da la cifra sin \xE9l.",
+            "Only what has been done in the app since the project was set up ({dia}); the first and the last month are incomplete. What was loaded from before (imported NCRs, orders, certifications and minutes of earlier months) is not counted: you can see it on each line. The claim goes with its minutes \u201Cto confirm\u201D; \u201CWithout the claim\u201D gives the figure without it.",
+            "Nom\xE9s el fet a l\u2019app des de l\u2019alta de l\u2019obra ({dia}); el primer i l\u2019\xFAltim mes van incomplets. No compta el carregat d\u2019abans (NCR importades, comandes, certificacions i actes de mesos anteriors): es veu a cada l\xEDnia. El claim va amb els seus minuts \xABper confirmar\xBB; \xABSense el claim\xBB d\xF3na la xifra sense ell.",
+            "S\xF3 o feito na app desde o registo da obra ({dia}); o primeiro e o \xFAltimo m\xEAs ficam incompletos. N\xE3o conta o carregado de antes (NCR importadas, encomendas, certifica\xE7\xF5es e atas de meses anteriores): v\xEA-se em cada linha. O claim vai com os seus minutos \xABpor confirmar\xBB; \xABSem o claim\xBB d\xE1 o valor sem ele.",
+            "Nur das, was seit der Anlage der Baustelle ({dia}) in der App erledigt wurde; der erste und der letzte Monat sind unvollst\xE4ndig. Vorher Geladenes (importierte NCR, Bestellungen, Zertifizierungen und Protokolle fr\xFCherer Monate) z\xE4hlt nicht: Es ist in jeder Zeile zu sehen. Der Claim l\xE4uft mit seinen Minuten \u201Ezu best\xE4tigen\u201C; \u201EOhne den Claim\u201C nennt den Wert ohne ihn.",
+            "Uniquement ce qui a \xE9t\xE9 fait dans l\u2019app depuis la cr\xE9ation du chantier ({dia}) ; le premier et le dernier mois sont incomplets. Ce qui a \xE9t\xE9 charg\xE9 avant (NCR import\xE9es, commandes, certifications et proc\xE8s-verbaux des mois pr\xE9c\xE9dents) ne compte pas : on le voit sur chaque ligne. Le claim va avec ses minutes \xAB \xE0 confirmer \xBB ; \xAB Sans le claim \xBB donne le chiffre sans lui."
+          ],
+          [
+            "Los \u20AC/h salen de los brutos de \xABPor fase y rol\xBB (jefe de obra 45.000 \u20AC, encargado 42.000 \u20AC, jefe de producci\xF3n 38.000 \u20AC) + 33 % de Seguridad Social, entre 1.736 h. Sin licencias. Solo lo ve el administrador.",
+            "The \u20AC/h come from the gross salaries in \u201CBy phase and role\u201D (site manager \u20AC45,000, foreman \u20AC42,000, production manager \u20AC38,000) + 33 % social security, divided by 1,736 h. No licences. Only the administrator sees this.",
+            "Els \u20AC/h surten dels bruts de \xABPer fase i rol\xBB (cap d\u2019obra 45.000 \u20AC, encarregat 42.000 \u20AC, cap de producci\xF3 38.000 \u20AC) + 33 % de Seguretat Social, entre 1.736 h. Sense llic\xE8ncies. Nom\xE9s ho veu l\u2019administrador.",
+            "Os \u20AC/h saem dos brutos de \xABPor fase e fun\xE7\xE3o\xBB (chefe de obra 45.000 \u20AC, encarregado 42.000 \u20AC, chefe de produ\xE7\xE3o 38.000 \u20AC) + 33 % de Seguran\xE7a Social, a dividir por 1.736 h. Sem licen\xE7as. S\xF3 o administrador o v\xEA.",
+            "Die \u20AC/Std. ergeben sich aus den Bruttogeh\xE4ltern in \u201ENach Phase und Rolle\u201C (Bauleiter 45.000 \u20AC, Vorarbeiter 42.000 \u20AC, Produktionsleiter 38.000 \u20AC) + 33 % Sozialversicherung, geteilt durch 1.736 Std. Ohne Lizenzen. Nur der Administrator sieht dies.",
+            "Les \u20AC/h viennent des bruts de \xAB Par phase et r\xF4le \xBB (chef de chantier 45 000 \u20AC, contrema\xEEtre 42 000 \u20AC, chef de production 38 000 \u20AC) + 33 % de charges sociales, divis\xE9s par 1 736 h. Sans licences. Seul l\u2019administrateur le voit."
+          ],
+          /* 14-nov (notas 3da06329 y b58b07b6): Reclamaciones, su panel y «Lo que ahorra» con la app en otro idioma. */
+          ["\u2014 suma aqu\xED \u2014", "\u2014 add here \u2014", "\u2014 suma aqu\xED \u2014", "\u2014 soma aqui \u2014", "\u2014 hier summieren \u2014", "\u2014 additionner ici \u2014"],
+          ["\xBFNotificado al cliente?", "Client notified?", "Notificat al client?", "Notificado ao cliente?", "Dem Kunden mitgeteilt?", "Client notifi\xE9 ?"],
+          ["\xB7 Avisos del tajo", "\xB7 Site alerts", "\xB7 Avisos del tall", "\xB7 Avisos do local de trabalho", "\xB7 Baustellenhinweise", "\xB7 Alertes de chantier"],
+          ["\xB7 Cada mes que la obra est\xE1 en marcha", "\xB7 Each month the project is under way", "\xB7 Cada mes que l'obra est\xE0 en marxa", "\xB7 Cada m\xEAs em que a obra est\xE1 em curso", "\xB7 Jeden Monat, in dem das Projekt l\xE4uft", "\xB7 Chaque mois o\xF9 le chantier est en cours"],
+          ["\xB7 Cantidad \xD7 precio", "\xB7 Quantity \xD7 price", "\xB7 Quantitat \xD7 preu", "\xB7 Quantidade \xD7 pre\xE7o", "\xB7 Menge \xD7 Preis", "\xB7 Quantit\xE9 \xD7 prix"],
+          ["Cantidad \xD7 precio", "Quantity \xD7 price", "Quantitat \xD7 preu", "Quantidade \xD7 pre\xE7o", "Menge \xD7 Preis", "Quantit\xE9 \xD7 prix"],
+          ["\xB7 Competencia", "\xB7 Competition", "\xB7 Compet\xE8ncia", "\xB7 Concorr\xEAncia", "\xB7 Konkurrenz", "\xB7 Concurrence"],
+          ["\xB7 concepto y qu\xE9 justifica cada uno", "\xB7 item and what justifies each one", "\xB7 concepte i qu\xE8 justifica cadascun", "\xB7 conceito e o que justifica cada um", "\xB7 Position und was jede einzelne begr\xFCndet", "\xB7 poste et ce que chacun justifie"],
+          ["\xB7 Cuantificaci\xF3n", "\xB7 Quantification", "\xB7 Quantificaci\xF3", "\xB7 Quantifica\xE7\xE3o", "\xB7 Quantifizierung", "\xB7 Quantification"],
+          ["\xB7 Defendibilidad", "\xB7 Defensibility", "\xB7 Defensabilitat", "\xB7 Defensibilidade", "\xB7 Verteidigbarkeit", "\xB7 D\xE9fendabilit\xE9"],
+          ["\xB7 Defensa", "\xB7 Defence", "\xB7 Defensa", "\xB7 Defesa", "\xB7 Verteidigung", "\xB7 D\xE9fense"],
+          ["\xB7 D\xEDas \xD7 coste diario", "\xB7 Days \xD7 daily cost", "\xB7 Dies \xD7 cost diari", "\xB7 Dias \xD7 custo di\xE1rio", "\xB7 Tage \xD7 Tageskosten", "\xB7 Jours \xD7 co\xFBt journalier"],
+          ["\xB7 el aviso al cliente", "\xB7 the notice to the client", "\xB7 l'av\xEDs al client", "\xB7 o aviso ao cliente", "\xB7 die Mitteilung an den Kunden", "\xB7 l'avis au client"],
+          ["\xB7 El mismo commissioning en NCN (Camp Nou", "\xB7 The same commissioning at NCN (Camp Nou", "\xB7 El mateix commissioning a NCN (Camp Nou", "\xB7 O mesmo commissioning na NCN (Camp Nou", "\xB7 Dasselbe Commissioning bei NCN (Camp Nou", "\xB7 Le m\xEAme commissioning chez NCN (Camp Nou"],
+          ["\xB7 Equipos en uso", "\xB7 Equipment in use", "\xB7 Equips en \xFAs", "\xB7 Equipamentos em uso", "\xB7 Ger\xE4te in Gebrauch", "\xB7 \xC9quipements en service"],
+          ["\xB7 Gen\xE9rico", "\xB7 Generic", "\xB7 Gen\xE8ric", "\xB7 Gen\xE9rico", "\xB7 Generisch", "\xB7 G\xE9n\xE9rique"],
+          ["\xB7 Hechos", "\xB7 Events", "\xB7 Fets", "\xB7 Factos", "\xB7 Ereignisse", "\xB7 Faits"],
+          ["\xB7 Importe directo", "\xB7 Direct amount", "\xB7 Import directe", "\xB7 Montante direto", "\xB7 Direkter Betrag", "\xB7 Montant direct"],
+          ["\xB7 Licencia Vidaire", "\xB7 Vidaire licence", "\xB7 Llic\xE8ncia Vidaire", "\xB7 Licen\xE7a Vidaire", "\xB7 Vidaire-Lizenz", "\xB7 Licence Vidaire"],
+          ["\xB7 Lo que se deja por no contar", "\xB7 What is lost by not counting", "\xB7 All\xF2 que es deixa per no comptar", "\xB7 O que se perde por n\xE3o contar", "\xB7 Was verloren geht, weil nicht erfasst wird", "\xB7 Ce qu'on perd faute de comptage"],
+          ["\xB7 Los cuatro ejes", "\xB7 The four axes", "\xB7 Els quatre eixos", "\xB7 Os quatro eixos", "\xB7 Die vier Achsen", "\xB7 Les quatre axes"],
+          ["\xB7 Meses \xD7 coste mensual", "\xB7 Months \xD7 monthly cost", "\xB7 Mesos \xD7 cost mensual", "\xB7 Meses \xD7 custo mensal", "\xB7 Monate \xD7 Monatskosten", "\xB7 Mois \xD7 co\xFBt mensuel"],
+          ["\xB7 Minutos por equipo \xD7 equipos de la obra; al mes va su media (\xF7 meses que dura la obra", "\xB7 Minutes per unit \xD7 units on the project; the monthly figure is the average (\xF7 months the project lasts", "\xB7 Minuts per equip \xD7 equips de l'obra; al mes va la mitjana (\xF7 mesos que dura l'obra", "\xB7 Minutos por equipamento \xD7 equipamentos da obra; ao m\xEAs vai a m\xE9dia (\xF7 meses que dura a obra", "\xB7 Minuten pro Ger\xE4t \xD7 Ger\xE4te des Projekts; pro Monat der Durchschnitt (\xF7 Monate Projektdauer", "\xB7 Minutes par \xE9quipement \xD7 \xE9quipements du chantier ; par mois, la moyenne (\xF7 mois de dur\xE9e du chantier"],
+          ["\xB7 No depende de ninguna obra", "\xB7 Does not depend on any project", "\xB7 No dep\xE8n de cap obra", "\xB7 N\xE3o depende de nenhuma obra", "\xB7 Von keinem Projekt abh\xE4ngig", "\xB7 Ne d\xE9pend d'aucun chantier"],
+          ["\xB7 Organizar cada mes las actuaciones y las rutas", "\xB7 Organise the interventions and routes each month", "\xB7 Organitzar cada mes les actuacions i les rutes", "\xB7 Organizar todos os meses as interven\xE7\xF5es e os percursos", "\xB7 Jeden Monat die Eins\xE4tze und Routen organisieren", "\xB7 Organiser chaque mois les interventions et les tourn\xE9es"],
+          ["\xB7 Personas \xD7 horas \xD7 d\xEDas \xD7 \u20AC/h", "\xB7 People \xD7 hours \xD7 days \xD7 \u20AC/h", "\xB7 Persones \xD7 hores \xD7 dies \xD7 \u20AC/h", "\xB7 Pessoas \xD7 horas \xD7 dias \xD7 \u20AC/h", "\xB7 Personen \xD7 Stunden \xD7 Tage \xD7 \u20AC/h", "\xB7 Personnes \xD7 heures \xD7 jours \xD7 \u20AC/h"],
+          ["\xB7 Plazos", "\xB7 Deadlines", "\xB7 Terminis", "\xB7 Prazos", "\xB7 Fristen", "\xB7 D\xE9lais"],
+          ["\xB7 Por fase y rol", "\xB7 By phase and role", "\xB7 Per fase i rol", "\xB7 Por fase e fun\xE7\xE3o", "\xB7 Nach Phase und Rolle", "\xB7 Par phase et r\xF4le"],
+          ["\xB7 Presentaci\xF3n", "\xB7 Presentation", "\xB7 Presentaci\xF3", "\xB7 Apresenta\xE7\xE3o", "\xB7 Pr\xE4sentation", "\xB7 Pr\xE9sentation"],
+          ["\xB7 Pruebas", "\xB7 Evidence", "\xB7 Proves", "\xB7 Provas", "\xB7 Beweise", "\xB7 Preuves"],
+          ["\xB7 pruebas ligadas", "\xB7 linked evidence", "\xB7 proves lligades", "\xB7 provas associadas", "\xB7 verkn\xFCpfte Beweise", "\xB7 preuves li\xE9es"],
+          ["\xB7 Sin defendibilidad", "\xB7 No defensibility", "\xB7 Sense defensabilitat", "\xB7 Sem defensibilidade", "\xB7 Ohne Verteidigbarkeit", "\xB7 Sans d\xE9fendabilit\xE9"],
+          ["/obra", "/project", "/obra", "/obra", "/Projekt", "/chantier"],
+          ["% \xD7 producci\xF3n o venta", "% \xD7 production or sale price", "% \xD7 producci\xF3 o venda", "% \xD7 produ\xE7\xE3o ou venda", "% \xD7 Produktion oder Verkaufspreis", "% \xD7 production ou prix de vente"],
+          ["+ Causa", "+ Cause", "+ Causa", "+ Causa", "+ Ursache", "+ Cause"],
+          ["+ Cuadrilla", "+ Crew", "+ Quadrilla", "+ Equipa", "+ Kolonne", "+ \xC9quipe"],
+          ["+ Maquinaria o alquiler", "+ Machinery or hire", "+ Maquin\xE0ria o lloguer", "+ Maquinaria ou aluguer", "+ Maschinen oder Miete", "+ Machines ou location"],
+          ["+ Material o factura", "+ Material or invoice", "+ Material o factura", "+ Material ou fatura", "+ Material oder Rechnung", "+ Mat\xE9riel ou facture"],
+          ["+ Medio fijo", "+ Fixed resource", "+ Mitj\xE0 fix", "+ Meio fixo", "+ Festes Betriebsmittel", "+ Moyen fixe"],
+          ["\u20AC al a\xF1o", "\u20AC per year", "\u20AC a l'any", "\u20AC por ano", "\u20AC pro Jahr", "\u20AC par an"],
+          ["\u20AC/a\xF1o", "\u20AC/year", "\u20AC/any", "\u20AC/ano", "\u20AC/Jahr", "\u20AC/an"],
+          ["\u20AC/a\xF1o empresa", "\u20AC/year company", "\u20AC/any empresa", "\u20AC/ano empresa", "\u20AC/Jahr Unternehmen", "\u20AC/an entreprise"],
+          ["\u20AC/a\xF1o usuario", "\u20AC/year user", "\u20AC/any usuari", "\u20AC/ano utilizador", "\u20AC/Jahr Benutzer", "\u20AC/an utilisateur"],
+          ["\u20AC/d\xEDa", "\u20AC/day", "\u20AC/dia", "\u20AC/dia", "\u20AC/Tag", "\u20AC/jour"],
+          ["\u20AC/h encargado", "\u20AC/h foreman", "\u20AC/h encarregat", "\u20AC/h encarregado", "\u20AC/h Vorarbeiter", "\u20AC/h chef d'\xE9quipe"],
+          ["\u20AC/h jefe de obra", "\u20AC/h site manager", "\u20AC/h cap d'obra", "\u20AC/h diretor de obra", "\u20AC/h Bauleiter", "\u20AC/h chef de chantier"],
+          ["\u20AC/mes", "\u20AC/month", "\u20AC/mes", "\u20AC/m\xEAs", "\u20AC/Monat", "\u20AC/mois"],
+          ["\u20AC/mes del rol", "\u20AC/month for the role", "\u20AC/mes del rol", "\u20AC/m\xEAs da fun\xE7\xE3o", "\u20AC/Monat der Rolle", "\u20AC/mois du r\xF4le"],
+          ["A cargo de", "Responsible", "A c\xE0rrec de", "A cargo de", "Zust\xE4ndig", "Responsable"],
+          ["A confirmar por JC", "To be confirmed by JC", "Per confirmar per JC", "A confirmar por JC", "Von JC zu best\xE4tigen", "\xC0 confirmer par JC"],
+          ["Aceleraci\xF3n", "Acceleration", "Acceleraci\xF3", "Acelera\xE7\xE3o", "Beschleunigung", "Acc\xE9l\xE9ration"],
+          ["Acordada", "Agreed", "Acordada", "Acordada", "Vereinbart", "Convenue"],
+          ["actas", "minutes", "actes", "atas", "Protokolle", "proc\xE8s-verbaux"],
+          ["Adjunta la oferta o el correo que respalda el importe", "Attach the quotation or email that supports the amount", "Adjunta l'oferta o el correu que avala l'import", "Anexe a proposta ou o email que sustenta o montante", "Angebot oder E-Mail anh\xE4ngen, die den Betrag belegt", "Joignez l'offre ou le courriel qui justifie le montant"],
+          ["Adjuntar", "Attach", "Adjuntar", "Anexar", "Anh\xE4ngen", "Joindre"],
+          ["Adjuntar archivo", "Attach file", "Adjuntar fitxer", "Anexar ficheiro", "Datei anh\xE4ngen", "Joindre un fichier"],
+          ["Adjuntos", "Attachments", "Adjunts", "Anexos", "Anh\xE4nge", "Pi\xE8ces jointes"],
+          ["Agenda de los t\xE9cnicos con su carga, Gantt del preventivo e incidencias de cada equipo en una vista. Antes, el calendario y el historial se montaban a mano", "Technicians' schedule with their workload, preventive maintenance Gantt and incidents for each unit in one view. Before, the calendar and history were put together by hand", "Agenda dels t\xE8cnics amb la seva c\xE0rrega, Gantt del preventiu i incid\xE8ncies de cada equip en una vista. Abans, el calendari i l'historial es muntaven a m\xE0", "Agenda dos t\xE9cnicos com a sua carga, Gantt do preventivo e incid\xEAncias de cada equipamento numa s\xF3 vista. Antes, o calend\xE1rio e o hist\xF3rico eram montados \xE0 m\xE3o", "Agenda der Techniker mit ihrer Auslastung, Gantt der vorbeugenden Wartung und St\xF6rungen jedes Ger\xE4ts in einer Ansicht. Fr\xFCher wurden Kalender und Verlauf von Hand erstellt", "Agenda des techniciens avec leur charge, Gantt du pr\xE9ventif et incidents de chaque \xE9quipement en une seule vue. Avant, le calendrier et l'historique se montaient \xE0 la main"],
+          ["Ahorra", "Saves", "Estalvia", "Poupa", "Spart", "\xC9conomise"],
+          ["Ahorro en esta obra", "Saving on this project", "Estalvi en aquesta obra", "Poupan\xE7a nesta obra", "Einsparung bei diesem Projekt", "\xC9conomie sur ce chantier"],
+          ["Al a\xF1o \xB7 mil \u20AC", "Per year \xB7 \u20AC thousand", "A l'any \xB7 mil \u20AC", "Por ano \xB7 mil \u20AC", "Pro Jahr \xB7 Tsd. \u20AC", "Par an \xB7 k\u20AC"],
+          ["al mes", "per month", "al mes", "por m\xEAs", "pro Monat", "par mois"],
+          ["Al mes", "Per month", "Al mes", "Por m\xEAs", "Pro Monat", "Par mois"],
+          ["albaranes", "delivery notes", "albarans", "guias de remessa", "Lieferscheine", "bons de livraison"],
+          ["Albaranes registrados", "Delivery notes logged", "Albarans registrats", "Guias de remessa registadas", "Erfasste Lieferscheine", "Bons de livraison enregistr\xE9s"],
+          ["Alquiler: unidades \xD7 d\xEDas \xD7 \u20AC/d\xEDa", "Hire: units \xD7 days \xD7 \u20AC/day", "Lloguer: unitats \xD7 dies \xD7 \u20AC/dia", "Aluguer: unidades \xD7 dias \xD7 \u20AC/dia", "Miete: Einheiten \xD7 Tage \xD7 \u20AC/Tag", "Location : unit\xE9s \xD7 jours \xD7 \u20AC/jour"],
+          ["Ancho del panel", "Panel width", "Amplada del panell", "Largura do painel", "Panelbreite", "Largeur du panneau"],
+          ["Andamios y plataformas", "Scaffolding and platforms", "Bastides i plataformes", "Andaimes e plataformas", "Ger\xFCste und Plattformen", "\xC9chafaudages et plateformes"],
+          ["Antecedentes", "Background", "Antecedents", "Antecedentes", "Vorgeschichte", "Ant\xE9c\xE9dents"],
+          ["Antecedentes (ingl\xE9s", "Background (English", "Antecedents (angl\xE8s", "Antecedentes (ingl\xEAs", "Vorgeschichte (Englisch", "Ant\xE9c\xE9dents (anglais"],
+          ["A\xF1adir hito", "Add milestone", "Afegir fita", "Adicionar marco", "Meilenstein hinzuf\xFCgen", "Ajouter un jalon"],
+          ["A\xF1adir medio fijo", "Add fixed resource", "Afegir mitj\xE0 fix", "Adicionar meio fixo", "Festes Betriebsmittel hinzuf\xFCgen", "Ajouter un moyen fixe"],
+          ["A\xF1adir plazo", "Add deadline", "Afegir termini", "Adicionar prazo", "Frist hinzuf\xFCgen", "Ajouter un d\xE9lai"],
+          ["A\xF1adir preaviso", "Add advance notice", "Afegir preav\xEDs", "Adicionar pr\xE9-aviso", "Vorank\xFCndigung hinzuf\xFCgen", "Ajouter un pr\xE9avis"],
+          ["Apartado", "Section", "Apartat", "Sec\xE7\xE3o", "Abschnitt", "Section"],
+          ["apartados con hechos", "sections with events", "apartats amb fets", "sec\xE7\xF5es com factos", "Abschnitte mit Ereignissen", "sections avec faits"],
+          ["Aplicar plantilla del contrato", "Apply contract template", "Aplicar plantilla del contracte", "Aplicar modelo do contrato", "Vertragsvorlage anwenden", "Appliquer le mod\xE8le du contrat"],
+          ["Arbitraje", "Arbitration", "Arbitratge", "Arbitragem", "Schiedsverfahren", "Arbitrage"],
+          ["archivos", "files", "fitxers", "ficheiros", "Dateien", "fichiers"],
+          ["Archivos del SharePoint le\xEDdos y clasificados", "SharePoint files read and classified", "Fitxers del SharePoint llegits i classificats", "Ficheiros do SharePoint lidos e classificados", "SharePoint-Dateien gelesen und klassifiziert", "Fichiers SharePoint lus et class\xE9s"],
+          ["Argumentos", "Arguments", "Arguments", "Argumentos", "Argumente", "Arguments"],
+          ["Arrastra para cambiar el ancho \xB7 doble clic: el de siempre", "Drag to change the width \xB7 double-click: the usual one", "Arrossega per canviar l'amplada \xB7 doble clic: la de sempre", "Arraste para alterar a largura \xB7 duplo clique: a habitual", "Ziehen, um die Breite zu \xE4ndern \xB7 Doppelklick: die gewohnte", "Faites glisser pour changer la largeur \xB7 double-clic : la largeur habituelle"],
+          ["Asunto", "Subject", "Assumpte", "Assunto", "Betreff", "Objet"],
+          ["auto \xB7 Aceleraci\xF3n", "auto \xB7 Acceleration", "auto \xB7 Acceleraci\xF3", "auto \xB7 Acelera\xE7\xE3o", "auto \xB7 Beschleunigung", "auto \xB7 Acc\xE9l\xE9ration"],
+          ["auto \xB7 Baja productividad", "auto \xB7 Low productivity", "auto \xB7 Baixa productivitat", "auto \xB7 Baixa produtividade", "auto \xB7 Geringe Produktivit\xE4t", "auto \xB7 Faible productivit\xE9"],
+          ["auto \xB7 Cambios y retrabajos del cliente", "auto \xB7 Client changes and rework", "auto \xB7 Canvis i retreballs del client", "auto \xB7 Altera\xE7\xF5es e retrabalhos do cliente", "auto \xB7 \xC4nderungen und Nacharbeiten des Kunden", "auto \xB7 Modifications et reprises du client"],
+          ["auto \xB7 Retrasos del cliente", "auto \xB7 Client delays", "auto \xB7 Retards del client", "auto \xB7 Atrasos do cliente", "auto \xB7 Verz\xF6gerungen des Kunden", "auto \xB7 Retards du client"],
+          ["auto \xB7 Staff y prolongaci\xF3n", "auto \xB7 Staff and prolongation", "auto \xB7 Staff i perllongaci\xF3", "auto \xB7 Staff e prolongamento", "auto \xB7 Personal und Verl\xE4ngerung", "auto \xB7 Personnel et prolongation"],
+          ["autom\xE1tica", "automatic", "autom\xE0tica", "autom\xE1tica", "automatisch", "automatique"],
+          ["avance", "progress", "avan\xE7", "avan\xE7o", "Fortschritt", "avancement"],
+          ["Avance de obra medido sobre plano", "Works progress measured on the drawing", "Avan\xE7 d'obra mesurat sobre pl\xE0nol", "Avan\xE7o de obra medido sobre planta", "Baufortschritt, auf dem Plan gemessen", "Avancement des travaux mesur\xE9 sur plan"],
+          ["Avance y plazos de todas sus obras en un panel, sin pedir a cada jefe de obra el informe ni el Gantt al d\xEDa", "Progress and deadlines for all its projects in one panel, without asking each site manager for the report or an up-to-date Gantt", "Avan\xE7 i terminis de totes les seves obres en un panell, sense demanar a cada cap d'obra l'informe ni el Gantt al dia", "Avan\xE7o e prazos de todas as suas obras num painel, sem pedir a cada diretor de obra o relat\xF3rio nem o Gantt atualizado", "Fortschritt und Fristen aller Projekte in einem Panel, ohne von jedem Bauleiter den Bericht oder das aktuelle Gantt anzufordern", "Avancement et d\xE9lais de tous ses chantiers dans un seul panneau, sans demander \xE0 chaque chef de chantier le rapport ni le Gantt \xE0 jour"],
+          ["Aviso al cliente", "Notice to client", "Av\xEDs al client", "Aviso ao cliente", "Mitteilung an den Kunden", "Avis au client"],
+          ["Avisos", "Alerts", "Avisos", "Avisos", "Hinweise", "Alertes"],
+          ["Avisos del tajo", "Site alerts", "Avisos del tall", "Avisos do local de trabalho", "Baustellenhinweise", "Alertes de chantier"],
+          ["Baja productividad", "Low productivity", "Baixa productivitat", "Baixa produtividade", "Geringe Produktivit\xE4t", "Faible productivit\xE9"],
+          ["Base", "Base", "Base", "Base", "Basis", "Base"],
+          ["Base: presupuesto, proyectos, obras y personal", "Base: budget, designs, projects and staff", "Base: pressupost, projectes, obres i personal", "Base: or\xE7amento, projetos, obras e pessoal", "Basis: Budget, Projekte, Baustellen und Personal", "Base : budget, projets, chantiers et personnel"],
+          ["Bastante defendible", "Fairly defensible", "Bastant defensable", "Bastante defens\xE1vel", "Ziemlich vertretbar", "Assez d\xE9fendable"],
+          ["Beneficio %", "Profit %", "Benefici %", "Lucro %", "Gewinn %", "B\xE9n\xE9fice %"],
+          ["Beneficio o recargo (%", "Profit or surcharge (%", "Benefici o rec\xE0rrec (%", "Lucro ou acr\xE9scimo (%", "Gewinn oder Zuschlag (%", "B\xE9n\xE9fice ou majoration (%"],
+          ["bocas", "outlets", "boques", "bocas", "Ausl\xE4sse", "bouches"],
+          ["Bocas situadas en los planos de difusores", "Outlets placed on the diffuser drawings", "Boques situades als pl\xE0nols de difusors", "Bocas colocadas nas plantas de difusores", "Ausl\xE4sse auf den Diffusorpl\xE4nen platziert", "Bouches plac\xE9es sur les plans de diffuseurs"],
+          ["Borrador", "Draft", "Esborrany", "Rascunho", "Entwurf", "Brouillon"],
+          ["Bruto al a\xF1o", "Gross per year", "Brut a l'any", "Bruto por ano", "Brutto pro Jahr", "Brut par an"],
+          ["Buscar en mi correo", "Search my email", "Cercar al meu correu", "Pesquisar no meu email", "In meiner E-Mail suchen", "Rechercher dans ma messagerie"],
+          ["Buscar prueba existente", "Find existing evidence", "Cercar prova existent", "Procurar prova existente", "Vorhandenen Beweis suchen", "Chercher une preuve existante"],
+          ["Cada causa con sus d\xEDas y su importe propuesto (la suma de las l\xEDneas que le asignes); modifica las l\xEDneas y cambia solo", "Each cause with its days and proposed amount (the sum of the lines you assign to it); change the lines and it updates by itself", "Cada causa amb els seus dies i el seu import proposat (la suma de les l\xEDnies que li assignis); modifica les l\xEDnies i canvia sol", "Cada causa com os seus dias e o seu montante proposto (a soma das linhas que lhe atribuir); altere as linhas e muda sozinho", "Jede Ursache mit ihren Tagen und ihrem vorgeschlagenen Betrag (die Summe der zugewiesenen Zeilen); Zeilen \xE4ndern, und er passt sich von selbst an", "Chaque cause avec ses jours et son montant propos\xE9 (la somme des lignes que vous lui attribuez) ; modifiez les lignes et il change tout seul"],
+          ["Cada l\xEDnea con su coste, su venta o los dos; se reclama la venta si est\xE1, si no el coste", "Each line with its cost, its sale price or both; the sale price is claimed if present, otherwise the cost", "Cada l\xEDnia amb el seu cost, la seva venda o els dos; es reclama la venda si hi \xE9s, si no el cost", "Cada linha com o seu custo, a sua venda ou ambos; reclama-se a venda se existir, sen\xE3o o custo", "Jede Zeile mit ihren Kosten, ihrem Verkaufspreis oder beidem; eingefordert wird der Verkaufspreis, falls vorhanden, sonst die Kosten", "Chaque ligne avec son co\xFBt, son prix de vente ou les deux ; on r\xE9clame le prix de vente s'il existe, sinon le co\xFBt"],
+          ["Cada tema lleva su etiqueta, lo nuestro que se sostiene (con sus pruebas) y lo que el cliente alegar\xE1. Las valoraciones del programa entran como", "Each topic carries its label, what is ours that holds up (with its evidence) and what the client will argue. The programme's valuations come in as", "Cada tema porta la seva etiqueta, all\xF2 nostre que se sost\xE9 (amb les seves proves) i all\xF2 que el client al\xB7legar\xE0. Les valoracions del programa entren com a", "Cada tema leva a sua etiqueta, o que \xE9 nosso e se sustenta (com as suas provas) e o que o cliente alegar\xE1. As avalia\xE7\xF5es do programa entram como", "Jedes Thema tr\xE4gt seine Bezeichnung, was von uns Bestand hat (mit Beweisen) und was der Kunde vorbringen wird. Die Bewertungen des Programms kommen als", "Chaque th\xE8me porte son \xE9tiquette, ce qui est \xE0 nous et tient (avec ses preuves) et ce que le client all\xE9guera. Les \xE9valuations du programme entrent comme"],
+          ["CAE / PRL", "CAE / OHS", "CAE / PRL", "CAE / PRL", "CAE / Arbeitssicherheit", "CAE / PRL"],
+          ["calidad", "quality", "qualitat", "qualidade", "Qualit\xE4t", "qualit\xE9"],
+          ["Calidad e incidencias en obra", "Quality and incidents on site", "Qualitat i incid\xE8ncies a l'obra", "Qualidade e incid\xEAncias em obra", "Qualit\xE4t und St\xF6rungen auf der Baustelle", "Qualit\xE9 et incidents sur le chantier"],
+          ["Calidad y QHSE", "Quality and QHSE", "Qualitat i QHSE", "Qualidade e QHSE", "Qualit\xE4t und QHSE", "Qualit\xE9 et QHSE"],
+          ["c\xE1mbialo para tu equipo", "change it for your team", "canvia'l per al teu equip", "altere-o para a sua equipa", "\xE4ndere es f\xFCr dein Team", "modifiez-le pour votre \xE9quipe"],
+          ["Cambios de dise\xF1o sin aviso", "Design changes without notice", "Canvis de disseny sense av\xEDs", "Altera\xE7\xF5es de projeto sem aviso", "Konstruktions\xE4nderungen ohne Vorank\xFCndigung", "Modifications de conception sans pr\xE9avis"],
+          ["Cambios y retrabajos del cliente", "Client changes and rework", "Canvis i retreballs del client", "Altera\xE7\xF5es e retrabalhos do cliente", "\xC4nderungen und Nacharbeiten des Kunden", "Modifications et reprises du client"],
+          ["Cantidad que pasa a otra l\xEDnea (\u20AC", "Amount moved to another line (\u20AC", "Quantitat que passa a una altra l\xEDnia (\u20AC", "Quantidade que passa para outra linha (\u20AC", "Betrag, der in eine andere Zeile \xFCbergeht (\u20AC", "Montant report\xE9 sur une autre ligne (\u20AC"],
+          ["Cantidad que pasa a otra l\xEDnea (\u20AC/d\xEDa", "Amount moved to another line (\u20AC/day", "Quantitat que passa a una altra l\xEDnia (\u20AC/dia", "Quantidade que passa para outra linha (\u20AC/dia", "Betrag, der in eine andere Zeile \xFCbergeht (\u20AC/Tag", "Montant report\xE9 sur une autre ligne (\u20AC/jour"],
+          ["C\xE1rgalos del commissioning o a\xF1\xE1delos a mano", "Load them from the commissioning or add them by hand", "Carrega'ls del commissioning o afegeix-los a m\xE0", "Carregue-os do commissioning ou adicione-os \xE0 m\xE3o", "Lade sie aus dem Commissioning oder f\xFCge sie von Hand hinzu", "Chargez-les depuis le commissioning ou ajoutez-les \xE0 la main"],
+          ["Cargar correos", "Load emails", "Carregar correus", "Carregar emails", "E-Mails laden", "Charger les courriels"],
+          ["Cargar propuesta del claim", "Load claim proposal", "Carregar proposta del claim", "Carregar proposta do claim", "Claim-Vorschlag laden", "Charger la proposition du claim"],
+          ["Cargar sistemas del commissioning", "Load commissioning systems", "Carregar sistemes del commissioning", "Carregar sistemas do commissioning", "Commissioning-Systeme laden", "Charger les syst\xE8mes du commissioning"],
+          ["Casetas y medios auxiliares", "Site cabins and auxiliary resources", "Casetes i mitjans auxiliars", "Estaleiros e meios auxiliares", "Baub\xFCros und Hilfsmittel", "Baraques et moyens auxiliaires"],
+          ["Categor\xEDa de la prueba", "Evidence category", "Categoria de la prova", "Categoria da prova", "Beweiskategorie", "Cat\xE9gorie de la preuve"],
+          ["Categor\xEDa del hecho", "Event category", "Categoria del fet", "Categoria do facto", "Ereigniskategorie", "Cat\xE9gorie du fait"],
+          ["Cerrada", "Closed", "Tancada", "Fechada", "Geschlossen", "Cl\xF4tur\xE9e"],
+          ["Cerrar el correo", "Close the email", "Tancar el correu", "Fechar o email", "E-Mail schliessen", "Fermer le courriel"],
+          ["Certeza", "Certainty", "Certesa", "Certeza", "Gewissheit", "Certitude"],
+          ["certificaciones", "certifications", "certificacions", "certifica\xE7\xF5es", "Abrechnungen", "certifications"],
+          ["Certificaciones a cliente", "Certifications to client", "Certificacions a client", "Certifica\xE7\xF5es ao cliente", "Abrechnungen an den Kunden", "Certifications au client"],
+          ["Certificaciones a cliente e industriales", "Certifications to client and subcontractors", "Certificacions a client i industrials", "Certifica\xE7\xF5es ao cliente e a industriais", "Abrechnungen an Kunden und Handwerker", "Certifications au client et aux industriels"],
+          ["Certificaciones de industriales", "Subcontractor certifications", "Certificacions d'industrials", "Certifica\xE7\xF5es de industriais", "Abrechnungen der Handwerker", "Certifications des industriels"],
+          ["Certificaciones y cuadro econ\xF3mico de cada obra revisados en la app, sin pedir el Excel ni cuadrarlo a mano", "Certifications and cost summary of each project reviewed in the app, without asking for the Excel or reconciling it by hand", "Certificacions i quadre econ\xF2mic de cada obra revisats a l'app, sense demanar l'Excel ni quadrar-lo a m\xE0", "Certifica\xE7\xF5es e quadro econ\xF3mico de cada obra revistos na app, sem pedir o Excel nem acert\xE1-lo \xE0 m\xE3o", "Abrechnungen und Kosten\xFCbersicht jedes Projekts in der App gepr\xFCft, ohne das Excel anzufordern oder von Hand abzugleichen", "Certifications et tableau \xE9conomique de chaque chantier v\xE9rifi\xE9s dans l'appli, sans demander l'Excel ni le rapprocher \xE0 la main"],
+          ["certificados", "certificates", "certificats", "certificados", "Zertifikate", "certificats"],
+          ["Certificados de instalador rellenados solos", "Installer certificates filled in automatically", "Certificats d'instal\xB7lador emplenats sols", "Certificados de instalador preenchidos sozinhos", "Installateurzertifikate automatisch ausgef\xFCllt", "Certificats d'installateur remplis automatiquement"],
+          ["Claim: anexos numerados en el PDF", "Claim: numbered annexes in the PDF", "Claim: annexos numerats al PDF", "Claim: anexos numerados no PDF", "Claim: nummerierte Anh\xE4nge im PDF", "Claim : annexes num\xE9rot\xE9es dans le PDF"],
+          ["Claim: apartados con su relato, su subtotal y su hoja de Excel", "Claim: sections with their narrative, subtotal and Excel sheet", "Claim: apartats amb el seu relat, el seu subtotal i el seu full d'Excel", "Claim: sec\xE7\xF5es com a sua narrativa, o seu subtotal e a sua folha de Excel", "Claim: Abschnitte mit ihrer Darstellung, ihrem Zwischentotal und ihrem Excel-Blatt", "Claim : sections avec leur r\xE9cit, leur sous-total et leur feuille Excel"],
+          ["Claim: cl\xE1usulas del contrato citadas en cada hecho", "Claim: contract clauses cited in each event", "Claim: cl\xE0usules del contracte citades en cada fet", "Claim: cl\xE1usulas do contrato citadas em cada facto", "Claim: Vertragsklauseln, in jedem Ereignis zitiert", "Claim : clauses du contrat cit\xE9es dans chaque fait"],
+          ["Claim: correos le\xEDdos, clasificados y guardados como prueba", "Claim: emails read, classified and saved as evidence", "Claim: correus llegits, classificats i desats com a prova", "Claim: emails lidos, classificados e guardados como prova", "Claim: E-Mails gelesen, klassifiziert und als Beweis gespeichert", "Claim : courriels lus, class\xE9s et conserv\xE9s comme preuve"],
+          ["Claim: documentos y actas guardados como prueba", "Claim: documents and minutes saved as evidence", "Claim: documents i actes desats com a prova", "Claim: documentos e atas guardados como prova", "Claim: Dokumente und Protokolle als Beweis gespeichert", "Claim : documents et proc\xE8s-verbaux conserv\xE9s comme preuve"],
+          ["Claim: el documento (PDF con \xEDndice y Excel de cuantificaci\xF3n", "Claim: the document (PDF with index and quantification Excel", "Claim: el document (PDF amb \xEDndex i Excel de quantificaci\xF3", "Claim: o documento (PDF com \xEDndice e Excel de quantifica\xE7\xE3o", "Claim: das Dokument (PDF mit Index und Excel zur Quantifizierung", "Claim : le document (PDF avec index et Excel de quantification"],
+          ["Claim: equipos en uso por el cliente y devoluci\xF3n de retenciones", "Claim: equipment in use by the client and release of retentions", "Claim: equips en \xFAs pel client i devoluci\xF3 de retencions", "Claim: equipamentos em uso pelo cliente e devolu\xE7\xE3o de reten\xE7\xF5es", "Claim: vom Kunden genutzte Ger\xE4te und R\xFCckgabe von Einbehalten", "Claim : \xE9quipements utilis\xE9s par le client et restitution des retenues"],
+          ["Claim: fotos del WhatsApp casadas con su hecho", "Claim: WhatsApp photos matched to their event", "Claim: fotos del WhatsApp casades amb el seu fet", "Claim: fotos do WhatsApp associadas ao seu facto", "Claim: WhatsApp-Fotos dem jeweiligen Ereignis zugeordnet", "Claim : photos WhatsApp rattach\xE9es \xE0 leur fait"],
+          ["Claim: Gantt de plazos (fecha exigida frente a la real y d\xEDas de retraso", "Claim: deadlines Gantt (required date against actual and days of delay", "Claim: Gantt de terminis (data exigida davant de la real i dies de retard", "Claim: Gantt de prazos (data exigida face \xE0 real e dias de atraso", "Claim: Gantt der Fristen (geforderter gegen\xFCber tats\xE4chlichem Termin und Verzugstage", "Claim : Gantt des d\xE9lais (date exig\xE9e face \xE0 la date r\xE9elle et jours de retard"],
+          ["Claim: hechos clasificados por categor\xEDa con su recuento", "Claim: events classified by category with their count", "Claim: fets classificats per categoria amb el seu recompte", "Claim: factos classificados por categoria com a sua contagem", "Claim: Ereignisse nach Kategorie klassifiziert mit ihrer Anzahl", "Claim : faits class\xE9s par cat\xE9gorie avec leur d\xE9compte"],
+          ["Claim: hechos sacados de correos, WhatsApp y partes", "Claim: events extracted from emails, WhatsApp and daily reports", "Claim: fets extrets de correus, WhatsApp i parts", "Claim: factos extra\xEDdos de emails, WhatsApp e partes", "Claim: aus E-Mails, WhatsApp und Tagesberichten gezogene Ereignisse", "Claim : faits tir\xE9s des courriels, de WhatsApp et des rapports"],
+          ["Claim: importes calculados con los m\xE9todos del claim", "Claim: amounts calculated with the claim methods", "Claim: imports calculats amb els m\xE8todes del claim", "Claim: montantes calculados com os m\xE9todos do claim", "Claim: mit den Claim-Methoden berechnete Betr\xE4ge", "Claim : montants calcul\xE9s avec les m\xE9thodes du claim"],
+          ["Claim: IPC, pagos, retenciones e intereses por retraso", "Claim: CPI, payments, retentions and late-payment interest", "Claim: IPC, pagaments, retencions i interessos per retard", "Claim: IPC, pagamentos, reten\xE7\xF5es e juros de mora", "Claim: Preisindex, Zahlungen, Einbehalte und Verzugszinsen", "Claim : IPC, paiements, retenues et int\xE9r\xEAts de retard"],
+          ["Claim: material conciliado (pedido \u2212 certificado \u2212 almac\xE9n) para los robos", "Claim: reconciled material (ordered \u2212 certified \u2212 stock) for thefts", "Claim: material conciliat (comanda \u2212 certificat \u2212 magatzem) per als robatoris", "Claim: material conciliado (encomenda \u2212 certificado \u2212 armaz\xE9m) para os roubos", "Claim: abgestimmtes Material (bestellt \u2212 abgerechnet \u2212 Lager) f\xFCr die Diebst\xE4hle", "Claim : mat\xE9riel rapproch\xE9 (commande \u2212 certifi\xE9 \u2212 magasin) pour les vols"],
+          ["Claim: pruebas enlazadas a cada hecho", "Claim: evidence linked to each event", "Claim: proves enlla\xE7ades a cada fet", "Claim: provas ligadas a cada facto", "Claim: jedem Ereignis zugeordnete Beweise", "Claim : preuves li\xE9es \xE0 chaque fait"],
+          ["Cliente", "Client", "Client", "Cliente", "Kunde", "Client"],
+          ["Commissioning + Mantenimiento", "Commissioning + Maintenance", "Commissioning + Manteniment", "Commissioning + Manuten\xE7\xE3o", "Commissioning + Wartung", "Commissioning + Maintenance"],
+          ["Commissioning, balanceo y estanqueidad", "Commissioning, balancing and leak testing", "Commissioning, balanceig i estanquitat", "Commissioning, equilibragem e estanquidade", "Commissioning, Abgleich und Dichtheit", "Commissioning, \xE9quilibrage et \xE9tanch\xE9it\xE9"],
+          ["Comparativo, estad\xEDsticas y cierre de la oferta sin rehacer hojas", "Comparison, statistics and bid close-out without redoing spreadsheets", "Comparatiu, estad\xEDstiques i tancament de l'oferta sense refer fulls", "Comparativo, estat\xEDsticas e fecho da proposta sem refazer folhas", "Vergleich, Statistiken und Abschluss des Angebots ohne Tabellen neu zu erstellen", "Comparatif, statistiques et cl\xF4ture de l'offre sans refaire de feuilles"],
+          ["Competencia", "Competition", "Compet\xE8ncia", "Concorr\xEAncia", "Konkurrenz", "Concurrence"],
+          ["Completar", "Complete", "Completar", "Completar", "Vervollst\xE4ndigen", "Compl\xE9ter"],
+          ["Compras de la oficina", "Office purchasing", "Compres de l'oficina", "Compras do escrit\xF3rio", "Eink\xE4ufe des B\xFCros", "Achats du bureau"],
+          ["Compras de obra", "Site purchasing", "Compres d'obra", "Compras de obra", "Baustelleneink\xE4ufe", "Achats de chantier"],
+          ["Con esta plantilla", "With this template", "Amb aquesta plantilla", "Com este modelo", "Mit dieser Vorlage", "Avec ce mod\xE8le"],
+          ["Con ficha de PM", "With PM sheet", "Amb fitxa de PM", "Com ficha de PM", "Mit PM-Blatt", "Avec fiche PM"],
+          ["con prueba", "with evidence", "amb prova", "com prova", "mit Beweis", "avec preuve"],
+          ["Concepto", "Item", "Concepte", "Conceito", "Position", "Poste"],
+          ["Concepto (opcional", "Item (optional", "Concepte (opcional", "Conceito (opcional", "Position (optional", "Poste (facultatif"],
+          ["Concepto del c\xE1lculo", "Calculation item", "Concepte del c\xE0lcul", "Conceito do c\xE1lculo", "Position der Berechnung", "Poste du calcul"],
+          ["Conflicto enlazado", "Linked conflict", "Conflicte enlla\xE7at", "Conflito associado", "Verkn\xFCpfter Konflikt", "Conflit li\xE9"],
+          ["Conflictos", "Conflicts", "Conflictes", "Conflitos", "Konflikte", "Conflits"],
+          ["Contado en la base al abrir. Los minutos son lo que costar\xEDa a mano: c\xE1mbialos y se guarda", "Counted in the database on opening. The minutes are what it would cost by hand: change them and it is saved", "Comptat a la base en obrir. Els minuts s\xF3n el que costaria a m\xE0: canvia'ls i es desa", "Contado na base ao abrir. Os minutos s\xE3o o que custaria \xE0 m\xE3o: altere-os e fica guardado", "Beim \xD6ffnen in der Datenbank gez\xE4hlt. Die Minuten sind der Aufwand von Hand: \xE4ndere sie, und sie werden gespeichert", "Compt\xE9 dans la base \xE0 l'ouverture. Les minutes sont ce que cela co\xFBterait \xE0 la main : modifiez-les et c'est enregistr\xE9"],
+          ["Contractual", "Contractual", "Contractual", "Contratual", "Vertraglich", "Contractuel"],
+          ["Contraparte", "Counterparty", "Contrapart", "Contraparte", "Gegenpartei", "Contrepartie"],
+          ["Contrato propio y normativa: las obligaciones legales y sus fechas se vigilan solas. Antes, se revisaban a mano contra el contrato y el BOE", "Own contract and regulations: legal obligations and their dates are monitored automatically. Before, they were checked by hand against the contract and the BOE", "Contracte propi i normativa: les obligacions legals i les seves dates es vigilen soles. Abans, es revisaven a m\xE0 contra el contracte i el BOE", "Contrato pr\xF3prio e normativa: as obriga\xE7\xF5es legais e as suas datas s\xE3o vigiadas sozinhas. Antes, eram revistas \xE0 m\xE3o face ao contrato e ao BOE", "Eigener Vertrag und Vorschriften: Die gesetzlichen Pflichten und ihre Termine werden automatisch \xFCberwacht. Fr\xFCher wurden sie von Hand gegen den Vertrag und das BOE gepr\xFCft", "Contrat propre et r\xE9glementation : les obligations l\xE9gales et leurs dates sont surveill\xE9es automatiquement. Avant, elles se v\xE9rifiaient \xE0 la main par rapport au contrat et au BOE"],
+          ["Control de costes, desv\xEDo y plan de compras", "Cost control, deviation and purchasing plan", "Control de costos, desviaci\xF3 i pla de compres", "Controlo de custos, desvio e plano de compras", "Kostenkontrolle, Abweichung und Einkaufsplan", "Contr\xF4le des co\xFBts, \xE9cart et plan d'achats"],
+          ["Coordinaci\xF3n de actividades", "Activity coordination", "Coordinaci\xF3 d'activitats", "Coordena\xE7\xE3o de atividades", "Koordination der T\xE4tigkeiten", "Coordination des activit\xE9s"],
+          ["Coordinaci\xF3n de actividades empresariales (CAE/PRL", "Coordination of business activities (CAE/OHS", "Coordinaci\xF3 d'activitats empresarials (CAE/PRL", "Coordena\xE7\xE3o de atividades empresariais (CAE/SST", "Koordination der Unternehmenst\xE4tigkeiten (CAE/Arbeitssicherheit", "Coordination des activit\xE9s d'entreprises (CAE/PRL"],
+          ["Copiar anexo (Excel", "Copy annex (Excel", "Copiar annex (Excel", "Copiar anexo (Excel", "Anhang kopieren (Excel", "Copier l'annexe (Excel"],
+          ["correos", "emails", "correus", "emails", "E-Mails", "courriels"],
+          ["Correos .msg/.eml y chats de WhatsApp (.txt o .zip) con cita literal, autor y fecha", "Emails (.msg/.eml) and WhatsApp chats (.txt or .zip) with verbatim quote, author and date", "Correus .msg/.eml i xats de WhatsApp (.txt o .zip) amb cita literal, autor i data", "Emails .msg/.eml e chats de WhatsApp (.txt ou .zip) com cita\xE7\xE3o literal, autor e data", "E-Mails (.msg/.eml) und WhatsApp-Chats (.txt oder .zip) mit w\xF6rtlichem Zitat, Autor und Datum", "Courriels .msg/.eml et chats WhatsApp (.txt ou .zip) avec citation litt\xE9rale, auteur et date"],
+          ["Correos y notificaci\xF3n", "Emails and notification", "Correus i notificaci\xF3", "Emails e notifica\xE7\xE3o", "E-Mails und Benachrichtigung", "Courriels et notification"],
+          ["Correos y WhatsApp", "Emails and WhatsApp", "Correus i WhatsApp", "Emails e WhatsApp", "E-Mails und WhatsApp", "Courriels et WhatsApp"],
+          ["coste", "cost", "cost", "custo", "Kosten", "co\xFBt"],
+          ["Coste", "Cost", "Cost", "Custo", "Kosten", "Co\xFBt"],
+          ["Coste (\u20AC", "Cost (\u20AC", "Cost (\u20AC", "Custo (\u20AC", "Kosten (\u20AC", "Co\xFBt (\u20AC"],
+          ["Coste de una hora de encargado", "Cost of one foreman hour", "Cost d'una hora d'encarregat", "Custo de uma hora de encarregado", "Kosten einer Vorarbeiterstunde", "Co\xFBt d'une heure de chef d'\xE9quipe"],
+          ["Coste de una hora de jefe de obra", "Cost of one site manager hour", "Cost d'una hora de cap d'obra", "Custo de uma hora de diretor de obra", "Kosten einer Bauleiterstunde", "Co\xFBt d'une heure de chef de chantier"],
+          ["Coste diario (\u20AC", "Daily cost (\u20AC", "Cost diari (\u20AC", "Custo di\xE1rio (\u20AC", "Tageskosten (\u20AC", "Co\xFBt journalier (\u20AC"],
+          ["Coste directo", "Direct cost", "Cost directe", "Custo direto", "Direkte Kosten", "Co\xFBt direct"],
+          ["Coste directo + coste indirecto", "Direct cost + indirect cost", "Cost directe + cost indirecte", "Custo direto + custo indireto", "Direkte Kosten + indirekte Kosten", "Co\xFBt direct + co\xFBt indirect"],
+          ["Coste indirecto", "Indirect cost", "Cost indirecte", "Custo indireto", "Indirekte Kosten", "Co\xFBt indirect"],
+          ["Coste mensual (\u20AC", "Monthly cost (\u20AC", "Cost mensual (\u20AC", "Custo mensal (\u20AC", "Monatskosten (\u20AC", "Co\xFBt mensuel (\u20AC"],
+          ["Costes indirectos y staff por alargamiento", "Indirect costs and staff due to extension", "Costos indirectes i staff per allargament", "Custos indiretos e staff por prolongamento", "Indirekte Kosten und Personal durch Verl\xE4ngerung", "Co\xFBts indirects et personnel dus \xE0 l'allongement"],
+          ["Cu\xE1ndo", "When", "Quan", "Quando", "Wann", "Quand"],
+          ["Cuantificaci\xF3n", "Quantification", "Quantificaci\xF3", "Quantifica\xE7\xE3o", "Quantifizierung", "Quantification"],
+          ["Cu\xE1nto ahorra", "How much it saves", "Quant estalvia", "Quanto poupa", "Wie viel es spart", "Combien cela \xE9conomise"],
+          ["Cu\xE1nto vale", "How much it is worth", "Quant val", "Quanto vale", "Was es wert ist", "Combien cela vaut"],
+          ["Cuenta", "Account", "Compte", "Conta", "Konto", "Compte"],
+          ["CxAlloy y similares", "CxAlloy and similar", "CxAlloy i similars", "CxAlloy e semelhantes", "CxAlloy und \xC4hnliche", "CxAlloy et similaires"],
+          ["Da\xF1os de terceros", "Third-party damage", "Danys de tercers", "Danos de terceiros", "Sch\xE4den Dritter", "Dommages de tiers"],
+          ["dato", "data item", "dada", "dado", "Datum", "donn\xE9e"],
+          ["datos", "data", "dades", "dados", "Daten", "donn\xE9es"],
+          ["Datos", "Data", "Dades", "Dados", "Daten", "Donn\xE9es"],
+          ["Datos de proyecto sacados de fichas t\xE9cnicas y memoria", "Project data extracted from datasheets and specification", "Dades de projecte extretes de fitxes t\xE8cniques i mem\xF2ria", "Dados de projeto extra\xEDdos de fichas t\xE9cnicas e mem\xF3ria", "Projektdaten aus Datenbl\xE4ttern und Bericht entnommen", "Donn\xE9es de projet extraites des fiches techniques et du m\xE9moire"],
+          ["De \u2192 Para", "From \u2192 To", "De \u2192 A", "De \u2192 Para", "Von \u2192 Nach", "De \u2192 Vers"],
+          ["De d\xF3nde sale el valor", "Where the value comes from", "D'on surt el valor", "De onde vem o valor", "Woher der Wert stammt", "D'o\xF9 vient la valeur"],
+          ["De d\xF3nde salen", "Where they come from", "D'on surten", "De onde v\xEAm", "Woher sie stammen", "D'o\xF9 ils viennent"],
+          ["De ellos, desplazan la fecha final", "Of these, they shift the end date", "D'aquests, desplacen la data final", "Destes, deslocam a data final", "Davon verschieben das Enddatum", "Parmi eux, ceux qui d\xE9calent la date de fin"],
+          ["de la base", "from the database", "de la base", "da base", "aus der Datenbank", "de la base"],
+          ["De qu\xE9 va", "What it is about", "De qu\xE8 va", "Do que trata", "Worum es geht", "De quoi il s'agit"],
+          ["De qui\xE9n son las horas", "Whose hours they are", "De qui s\xF3n les hores", "De quem s\xE3o as horas", "Wessen Stunden es sind", "\xC0 qui sont les heures"],
+          ["Defendibilidad", "Defensibility", "Defensabilitat", "Defensibilidade", "Verteidigbarkeit", "D\xE9fendabilit\xE9"],
+          ["Defensa", "Defence", "Defensa", "Defesa", "Verteidigung", "D\xE9fense"],
+          ["Defensa del cliente", "Client's defence", "Defensa del client", "Defesa do cliente", "Verteidigung des Kunden", "D\xE9fense du client"],
+          ["delineante", "draughtsperson", "delineant", "desenhador", "Zeichner", "dessinateur"],
+          ["Descartados", "Discarded", "Descartats", "Descartados", "Verworfen", "\xC9cart\xE9s"],
+          ["Descripci\xF3n", "Description", "Descripci\xF3", "Descri\xE7\xE3o", "Beschreibung", "Description"],
+          ["Desde", "From", "Des de", "Desde", "Ab", "Depuis"],
+          ["Desviaciones del control de costes y NCR abiertas de todas sus obras juntas, sin pedirlas por correo", "Cost control deviations and open NCRs from all its projects together, without requesting them by email", "Desviacions del control de costos i NCR obertes de totes les seves obres juntes, sense demanar-les per correu", "Desvios do controlo de custos e NCR abertas de todas as suas obras juntas, sem as pedir por email", "Abweichungen der Kostenkontrolle und offene NCR aller Projekte zusammen, ohne sie per E-Mail anzufordern", "\xC9carts du contr\xF4le des co\xFBts et NCR ouvertes de tous ses chantiers r\xE9unis, sans les demander par courriel"],
+          ["Devoluci\xF3n de retenciones", "Release of retentions", "Devoluci\xF3 de retencions", "Devolu\xE7\xE3o de reten\xE7\xF5es", "R\xFCckgabe von Einbehalten", "Restitution des retenues"],
+          ["D\xEDas", "Days", "Dies", "Dias", "Tage", "Jours"],
+          ["D\xEDas \xD7 coste diario", "Days \xD7 daily cost", "Dies \xD7 cost diari", "Dias \xD7 custo di\xE1rio", "Tage \xD7 Tageskosten", "Jours \xD7 co\xFBt journalier"],
+          ["D\xEDas \xD7 Coste diario (\u20AC", "Days \xD7 Daily cost (\u20AC", "Dies \xD7 Cost diari (\u20AC", "Dias \xD7 Custo di\xE1rio (\u20AC", "Tage \xD7 Tageskosten (\u20AC", "Jours \xD7 Co\xFBt journalier (\u20AC"],
+          ["D\xEDas de retraso", "Days of delay", "Dies de retard", "Dias de atraso", "Verzugstage", "Jours de retard"],
+          ["D\xEDas de uso", "Days of use", "Dies d'\xFAs", "Dias de utiliza\xE7\xE3o", "Nutzungstage", "Jours d'utilisation"],
+          ["D\xEDas medios", "Average days", "Dies mitjans", "Dias m\xE9dios", "Durchschnittliche Tage", "Jours moyens"],
+          ["D\xEDas netos", "Net days", "Dies nets", "Dias l\xEDquidos", "Nettotage", "Jours nets"],
+          ["D\xEDas por causa", "Days per cause", "Dies per causa", "Dias por causa", "Tage pro Ursache", "Jours par cause"],
+          ["D\xEDas que desplazan la fecha final \xD7 coste diario de los medios fijos, a coste", "Days that push back the end date \xD7 daily cost of the fixed resources, at cost", "Dies que desplacen la data final \xD7 cost diari dels mitjans fixos, a cost", "Dias que deslocam a data final \xD7 custo di\xE1rio dos meios fixos, a custo", "Tage, die das Enddatum verschieben \xD7 Tageskosten der festen Mittel, zu Kosten", "Jours qui d\xE9calent la date de fin \xD7 co\xFBt journalier des moyens fixes, au co\xFBt"],
+          ["Direcci\xF3n y gerencia", "Management and executive office", "Direcci\xF3 i ger\xE8ncia", "Dire\xE7\xE3o e ger\xEAncia", "Leitung und Gesch\xE4ftsf\xFChrung", "Direction et g\xE9rance"],
+          ["Directos", "Direct", "Directes", "Diretos", "Direkte", "Directs"],
+          ["Dise\xF1o", "Design", "Disseny", "Design", "Design", "Conception"],
+          ["Documentaci\xF3n y planos", "Documentation and drawings", "Documentaci\xF3 i pl\xE0nols", "Documenta\xE7\xE3o e plantas", "Dokumentation und Pl\xE4ne", "Documentation et plans"],
+          ["Documentado", "Documented", "Documentat", "Documentado", "Dokumentiert", "Document\xE9"],
+          ["documentos", "documents", "documents", "documentos", "Dokumente", "documents"],
+          ["Documentos enlazados a cada equipo", "Documents linked to each unit", "Documents enlla\xE7ats a cada equip", "Documentos ligados a cada equipamento", "Mit jedem Ger\xE4t verkn\xFCpfte Dokumente", "Documents li\xE9s \xE0 chaque \xE9quipement"],
+          ["Dokify Enterprise (titular", "Dokify Enterprise (holder", "Dokify Enterprise (titular", "Dokify Enterprise (titular", "Dokify Enterprise (Inhaber", "Dokify Enterprise (titulaire"],
+          ["Eje \xB7 qu\xE9 se ahorra \xB7 cuenta", "Axis \xB7 what is saved \xB7 counts", "Eix \xB7 qu\xE8 s'estalvia \xB7 compta", "Eixo \xB7 o que se poupa \xB7 conta", "Achse \xB7 was eingespart wird \xB7 z\xE4hlt", "Axe \xB7 ce qui est \xE9conomis\xE9 \xB7 compte"],
+          ["ejemplo", "example", "exemple", "exemplo", "Beispiel", "exemple"],
+          ["El hecho", "The event", "El fet", "O facto", "Das Ereignis", "Le fait"],
+          ["El hecho no cuelga de ning\xFAn tema con defensa preparada", "The event does not hang from any topic with a prepared defence", "El fet no penja de cap tema amb defensa preparada", "O facto n\xE3o depende de nenhum tema com defesa preparada", "Das Ereignis h\xE4ngt an keinem Thema mit vorbereiteter Verteidigung", "Le fait ne se rattache \xE0 aucun th\xE8me ayant une d\xE9fense pr\xE9par\xE9e"],
+          ["El precio y su FUENTE (contrato, oferta, convenio) se escriben aqu\xED; queda en el historial", "The price and its SOURCE (contract, offer, agreement) are entered here; it is kept in the history", "El preu i la seva FONT (contracte, oferta, conveni) s'escriuen aqu\xED; queda a l'historial", "O pre\xE7o e a sua FONTE (contrato, proposta, conven\xE7\xE3o) escrevem-se aqui; fica no hist\xF3rico", "Der Preis und seine QUELLE (Vertrag, Offerte, Tarifvertrag) werden hier eingetragen; er bleibt im Verlauf", "Le prix et sa SOURCE (contrat, offre, convention) s'\xE9crivent ici ; ils restent dans l'historique"],
+          ["elementos contados en planos", "items counted on drawings", "elements comptats en pl\xE0nols", "elementos contados em plantas", "in Pl\xE4nen gez\xE4hlte Elemente", "\xE9l\xE9ments compt\xE9s sur plans"],
+          ["Elige o arrastra aqu\xED correos .eml o .msg: la app lee su texto, los agrupa por hilo y resume cada hilo con citas literales", "Choose or drag .eml or .msg emails here: the app reads their text, groups them by thread and summarises each thread with verbatim quotes", "Tria o arrossega aqu\xED correus .eml o .msg: l'app en llegeix el text, els agrupa per fil i resumeix cada fil amb cites literals", "Escolha ou arraste aqui e-mails .eml ou .msg: a app l\xEA o texto, agrupa-os por conversa e resume cada conversa com cita\xE7\xF5es literais", "W\xE4hle oder ziehe hier E-Mails (.eml oder .msg) hinein: Die App liest ihren Text, gruppiert sie nach Verlauf und fasst jeden Verlauf mit w\xF6rtlichen Zitaten zusammen", "Choisissez ou glissez ici des e-mails .eml ou .msg : l'app lit leur texte, les regroupe par fil et r\xE9sume chaque fil avec des citations litt\xE9rales"],
+          ["En el total", "In the total", "Al total", "No total", "Im Total", "Dans le total"],
+          ["En esta obra", "In this project", "En aquesta obra", "Nesta obra", "In diesem Projekt", "Sur ce chantier"],
+          ["en marcha a la vez", "running at the same time", "en marxa alhora", "em curso em simult\xE2neo", "gleichzeitig laufend", "en cours en m\xEAme temps"],
+          ["En negociaci\xF3n", "In negotiation", "En negociaci\xF3", "Em negocia\xE7\xE3o", "In Verhandlung", "En n\xE9gociation"],
+          ["Encargado", "Foreman", "Encarregat", "Encarregado", "Vorarbeiter", "Chef d'\xE9quipe"],
+          ["encargados", "foremen", "encarregats", "encarregados", "Vorarbeiter", "chefs d'\xE9quipe"],
+          ["enlaces", "links", "enlla\xE7os", "liga\xE7\xF5es", "Verkn\xFCpfungen", "liens"],
+          ["enlaces hecho-cl\xE1usula", "event-clause links", "enlla\xE7os fet-cl\xE0usula", "liga\xE7\xF5es facto-cl\xE1usula", "Verkn\xFCpfungen Ereignis-Klausel", "liens fait-clause"],
+          ["enlaces hecho-prueba", "event-evidence links", "enlla\xE7os fet-prova", "liga\xE7\xF5es facto-prova", "Verkn\xFCpfungen Ereignis-Beweis", "liens fait-preuve"],
+          ["Enlazar", "Link", "Enlla\xE7ar", "Ligar", "Verkn\xFCpfen", "Lier"],
+          ["Enlazar bajo otro hecho (nivel inferior", "Link under another event (lower level", "Enlla\xE7ar sota un altre fet (nivell inferior", "Ligar sob outro facto (n\xEDvel inferior", "Unter ein anderes Ereignis verkn\xFCpfen (untere Ebene", "Lier sous un autre fait (niveau inf\xE9rieur"],
+          ["Enlazar URL", "Link URL", "Enlla\xE7ar URL", "Ligar URL", "URL verkn\xFCpfen", "Lier une URL"],
+          ["Entran con los correos de la carpeta y con el JSON de hechos", "They come in with the emails in the folder and with the events JSON", "Entren amb els correus de la carpeta i amb el JSON de fets", "Entram com os e-mails da pasta e com o JSON de factos", "Sie kommen mit den E-Mails des Ordners und mit dem JSON der Ereignisse herein", "Ils entrent avec les e-mails du dossier et avec le JSON des faits"],
+          ["Entrega y dossier", "Handover and dossier", "Lliurament i dossier", "Entrega e dossi\xEA", "\xDCbergabe und Dossier", "Livraison et dossier"],
+          ["equipos", "units", "equips", "equipamentos", "Ger\xE4te", "\xE9quipements"],
+          ["Equipos dados de alta", "Units registered", "Equips donats d'alta", "Equipamentos registados", "Erfasste Ger\xE4te", "\xC9quipements enregistr\xE9s"],
+          ["Equipos en uso", "Units in use", "Equips en \xFAs", "Equipamentos em utiliza\xE7\xE3o", "Ger\xE4te in Gebrauch", "\xC9quipements en service"],
+          ["Equipos en uso antes de la recepci\xF3n", "Units in use before handover", "Equips en \xFAs abans de la recepci\xF3", "Equipamentos em utiliza\xE7\xE3o antes da rece\xE7\xE3o", "Ger\xE4te in Gebrauch vor der Abnahme", "\xC9quipements en service avant la r\xE9ception"],
+          ["equipos puestos en marcha", "units commissioned", "equips posats en marxa", "equipamentos postos em funcionamento", "in Betrieb genommene Ger\xE4te", "\xE9quipements mis en service"],
+          ["Estado", "Status", "Estat", "Estado", "Status", "Statut"],
+          ["estimaci\xF3n", "estimate", "estimaci\xF3", "estimativa", "Sch\xE4tzung", "estimation"],
+          ["Estimaci\xF3n del sector: a confirmar por JC", "Industry estimate: to be confirmed by JC", "Estimaci\xF3 del sector: a confirmar per JC", "Estimativa do setor: a confirmar por JC", "Sch\xE4tzung der Branche: von JC zu best\xE4tigen", "Estimation du secteur : \xE0 confirmer par JC"],
+          ["Estimaciones del sector, a confirmar por JC", "Industry estimates, to be confirmed by JC", "Estimacions del sector, a confirmar per JC", "Estimativas do setor, a confirmar por JC", "Sch\xE4tzungen der Branche, von JC zu best\xE4tigen", "Estimations du secteur, \xE0 confirmer par JC"],
+          ["Estimado", "Estimated", "Estimat", "Estimado", "Gesch\xE4tzt", "Estim\xE9"],
+          ["estimado o sin certeza", "estimated or uncertain", "estimat o sense certesa", "estimado ou sem certeza", "gesch\xE4tzt oder unsicher", "estim\xE9 ou sans certitude"],
+          ["Estudios y ofertas", "Estimating and bids", "Estudis i ofertes", "Estudos e propostas", "Studien und Offerten", "\xC9tudes et offres"],
+          ["Excel con f\xF3rmulas", "Excel with formulas", "Excel amb f\xF3rmules", "Excel com f\xF3rmulas", "Excel mit Formeln", "Excel avec formules"],
+          ["Excel de los lunes", "Monday Excel", "Excel dels dilluns", "Excel das segundas-feiras", "Excel vom Montag", "Excel du lundi"],
+          ["Excluido", "Excluded", "Excl\xF2s", "Exclu\xEDdo", "Ausgeschlossen", "Exclu"],
+          ["Expediente (PDF", "File (PDF", "Expedient (PDF", "Processo (PDF", "Dossier (PDF", "Dossier (PDF"],
+          ["Expediente en", "File in", "Expedient en", "Processo em", "Dossier in", "Dossier en"],
+          ["facturas", "invoices", "factures", "faturas", "Rechnungen", "factures"],
+          ["Facturas de proveedor imputadas", "Supplier invoices allocated", "Factures de prove\xEFdor imputades", "Faturas de fornecedor imputadas", "Zugeordnete Lieferantenrechnungen", "Factures fournisseur imput\xE9es"],
+          ["falta", "missing", "falta", "em falta", "fehlt", "manque"],
+          ["Falta", "Missing", "Falta", "Em falta", "Fehlt", "Manque"],
+          ["Falta justificar: ninguna prueba justifica el IMPORTE", "To be justified: no evidence supports the AMOUNT", "Falta justificar: cap prova justifica l'IMPORT", "Falta justificar: nenhuma prova justifica o VALOR", "Noch zu belegen: kein Beweis belegt den BETRAG", "\xC0 justifier : aucune preuve ne justifie le MONTANT"],
+          ["Faltan datos", "Data missing", "Falten dades", "Faltam dados", "Daten fehlen", "Donn\xE9es manquantes"],
+          ["Fase", "Phase", "Fase", "Fase", "Phase", "Phase"],
+          ["Fecha del documento", "Document date", "Data del document", "Data do documento", "Dokumentdatum", "Date du document"],
+          ["Fecha PM", "PM date", "Data PM", "Data PM", "PM-Datum", "Date PM"],
+          ["Ficha completa", "Full record", "Fitxa completa", "Ficha completa", "Vollst\xE4ndiges Datenblatt", "Fiche compl\xE8te"],
+          ["fichajes", "clock-ins", "fitxatges", "registos de ponto", "Zeiterfassungen", "pointages"],
+          ["Fichajes de personal", "Staff clock-ins", "Fitxatges de personal", "Registos de ponto do pessoal", "Zeiterfassungen des Personals", "Pointages du personnel"],
+          ["fichas", "records", "fitxes", "fichas", "Datenbl\xE4tter", "fiches"],
+          ["Fichas PM y checklists generadas", "PM records and checklists generated", "Fitxes PM i checklists generades", "Fichas PM e checklists geradas", "Erzeugte PM-Datenbl\xE4tter und Checklisten", "Fiches PM et checklists g\xE9n\xE9r\xE9es"],
+          ["Filtrar avisos", "Filter alerts", "Filtrar avisos", "Filtrar avisos", "Hinweise filtern", "Filtrer les alertes"],
+          ["Firmas PM", "PM signatures", "Signatures PM", "Assinaturas PM", "PM-Unterschriften", "Signatures PM"],
+          ["Foto", "Photo", "Foto", "Foto", "Foto", "Photo"],
+          ["fotos", "photos", "fotos", "fotos", "Fotos", "photos"],
+          ["Fuente y fecha de consulta", "Source and date consulted", "Font i data de consulta", "Fonte e data de consulta", "Quelle und Abfragedatum", "Source et date de consultation"],
+          ["Fuente: contrato, oferta, convenio", "Source: contract, offer, agreement", "Font: contracte, oferta, conveni", "Fonte: contrato, proposta, conven\xE7\xE3o", "Quelle: Vertrag, Offerte, Tarifvertrag", "Source : contrat, offre, convention"],
+          ["Garant\xEDa consumida", "Warranty used", "Garantia consumida", "Garantia consumida", "Verbrauchte Garantie", "Garantie consomm\xE9e"],
+          ["Gen\xE9rico", "Generic", "Gen\xE8ric", "Gen\xE9rico", "Generisch", "G\xE9n\xE9rique"],
+          ["Gerencia", "Executive office", "Ger\xE8ncia", "Ger\xEAncia", "Gesch\xE4ftsf\xFChrung", "G\xE9rance"],
+          ["gerente", "manager", "gerent", "gerente", "Gesch\xE4ftsf\xFChrer", "g\xE9rant"],
+          ["GMAO (tipo MaintainX) / plan en Excel", "CMMS (MaintainX-type) / Excel plan", "GMAO (tipus MaintainX) / pla en Excel", "GMAO (tipo MaintainX) / plano em Excel", "CMMS (Typ MaintainX) / Plan in Excel", "GMAO (type MaintainX) / plan sous Excel"],
+          ["Gr\xFAa", "Crane", "Grua", "Grua", "Kran", "Grue"],
+          ["Guardar", "Save", "Desar", "Guardar", "Speichern", "Enregistrer"],
+          ["Guardar anexo CSV", "Save CSV annex", "Desar annex CSV", "Guardar anexo CSV", "CSV-Anhang speichern", "Enregistrer l'annexe CSV"],
+          ["h encargado", "h foreman", "h encarregat", "h encarregado", "Std. Vorarbeiter", "h chef d'\xE9quipe"],
+          ["h jefe", "h manager", "h cap", "h chefe", "Std. Leiter", "h chef"],
+          ["h/mes del rol", "h/month of the role", "h/mes del rol", "h/m\xEAs do perfil", "Std./Monat der Rolle", "h/mois du r\xF4le"],
+          ["h/mes por persona", "h/month per person", "h/mes per persona", "h/m\xEAs por pessoa", "Std./Monat pro Person", "h/mois par personne"],
+          ["h/obra", "h/project", "h/obra", "h/obra", "Std./Projekt", "h/chantier"],
+          ["h/persona", "h/person", "h/persona", "h/pessoa", "Std./Person", "h/personne"],
+          ["Hasta", "Until", "Fins a", "At\xE9", "Bis", "Jusqu'\xE0"],
+          ["hasta que se validan. Un subapartado sin nivel hereda el de su tema; un hecho puede fijar el suyo", "until they are validated. A sub-section without a level inherits that of its topic; an event can set its own", "fins que es validen. Un subapartat sense nivell hereta el del seu tema; un fet pot fixar el seu", "at\xE9 serem validados. Uma subsec\xE7\xE3o sem n\xEDvel herda o do seu tema; um facto pode fixar o seu", "bis sie validiert sind. Ein Unterabschnitt ohne Stufe erbt die seines Themas; ein Ereignis kann eine eigene festlegen", "jusqu'\xE0 leur validation. Une sous-section sans niveau h\xE9rite de celui de son th\xE8me ; un fait peut fixer le sien"],
+          ["Hecho", "Event", "Fet", "Facto", "Ereignis", "Fait"],
+          ["hechos", "events", "fets", "factos", "Ereignisse", "faits"],
+          ["Hechos", "Events", "Fets", "Factos", "Ereignisse", "Faits"],
+          ["hechos clasificados", "classified events", "fets classificats", "factos classificados", "klassifizierte Ereignisse", "faits class\xE9s"],
+          ["hechos con plazo o retraso", "events with deadline or delay", "fets amb termini o retard", "factos com prazo ou atraso", "Ereignisse mit Frist oder Verzug", "faits avec d\xE9lai ou retard"],
+          ["hechos cuantificados", "quantified events", "fets quantificats", "factos quantificados", "quantifizierte Ereignisse", "faits chiffr\xE9s"],
+          ["Hechos validados", "Validated events", "Fets validats", "Factos validados", "Validierte Ereignisse", "Faits valid\xE9s"],
+          ["Hip\xF3tesis de horas", "Hours assumptions", "Hip\xF2tesis d'hores", "Hip\xF3teses de horas", "Stundenannahmen", "Hypoth\xE8ses d'heures"],
+          ["hojas", "sheets", "fulls", "folhas", "Bl\xE4tter", "feuilles"],
+          ["Hojas de balanceo", "Balancing sheets", "Fulls de balanceig", "Folhas de balanceamento", "Abgleichsbl\xE4tter", "Feuilles d'\xE9quilibrage"],
+          ["Hojas DTM.CERT en Excel", "DTM.CERT sheets in Excel", "Fulls DTM.CERT en Excel", "Folhas DTM.CERT em Excel", "DTM.CERT-Bl\xE4tter in Excel", "Feuilles DTM.CERT sous Excel"],
+          ["Horas (al a\xF1o por usuario, o al mes por obra", "Hours (per year per user, or per month per project", "Hores (a l'any per usuari, o al mes per obra", "Horas (por ano por utilizador, ou por m\xEAs por obra", "Stunden (pro Jahr und Benutzer, oder pro Monat und Projekt", "Heures (par an et par utilisateur, ou par mois et par chantier"],
+          ["Horas por usuario y a\xF1o, al precio del jefe de obra; las de certificaciones y avance, por obra y mes, con las del jefe de obra y las del encargado cada una a su precio. Las licencias, por usuario salvo la de CAE (una por empresa). Los precios y sus fuentes est\xE1n en \xABCompetencia\xBB, y se cambian all\xED. Donde no hay precio p\xFAblico no se suma nada. Solo suma la licencia de Microsoft Project, la \xFAnica que la empresa paga hoy de las que la app sustituye; de Presto, CAE y GMAO cuentan las horas, no la licencia. Esta subsecci\xF3n solo la ve el administrador", "Hours per user and year, at the site manager's rate; those for certifications and progress, per project and month, with the site manager's and the foreman's hours each at their own rate. Licences, per user except the CAE one (one per company). Prices and their sources are in \xABCompetencia\xBB and are changed there. Where there is no public price, nothing is added. Only the Microsoft Project licence is counted, the only one the company pays today among those the app replaces; for Presto, CAE and GMAO the hours count, not the licence. Only the administrator sees this sub-section", "Hores per usuari i any, al preu del cap d'obra; les de certificacions i avan\xE7, per obra i mes, amb les del cap d'obra i les de l'encarregat cadascuna al seu preu. Les llic\xE8ncies, per usuari tret de la de CAE (una per empresa). Els preus i les seves fonts s\xF3n a \xABCompetencia\xBB, i s'hi canvien. On no hi ha preu p\xFAblic no se suma res. Nom\xE9s suma la llic\xE8ncia de Microsoft Project, l'\xFAnica que l'empresa paga avui de les que l'app substitueix; de Presto, CAE i GMAO compten les hores, no la llic\xE8ncia. Aquest subapartat nom\xE9s el veu l'administrador", "Horas por utilizador e ano, ao pre\xE7o do diretor de obra; as de certifica\xE7\xF5es e avan\xE7o, por obra e m\xEAs, com as do diretor de obra e as do encarregado cada uma ao seu pre\xE7o. As licen\xE7as, por utilizador exceto a de CAE (uma por empresa). Os pre\xE7os e as suas fontes est\xE3o em \xABCompetencia\xBB e alteram-se a\xED. Onde n\xE3o h\xE1 pre\xE7o p\xFAblico n\xE3o se soma nada. S\xF3 soma a licen\xE7a de Microsoft Project, a \xFAnica que a empresa paga hoje das que a app substitui; de Presto, CAE e GMAO contam as horas, n\xE3o a licen\xE7a. Esta subsec\xE7\xE3o s\xF3 \xE9 vista pelo administrador", "Stunden pro Benutzer und Jahr, zum Satz des Bauleiters; jene f\xFCr Zertifizierungen und Baufortschritt pro Projekt und Monat, mit den Stunden des Bauleiters und des Vorarbeiters je zu ihrem eigenen Satz. Die Lizenzen pro Benutzer ausser jener f\xFCr CAE (eine pro Firma). Die Preise und ihre Quellen stehen unter \xABCompetencia\xBB und werden dort ge\xE4ndert. Wo es keinen \xF6ffentlichen Preis gibt, wird nichts addiert. Nur die Lizenz von Microsoft Project wird addiert, die einzige, die die Firma heute von denen bezahlt, die die App ersetzt; bei Presto, CAE und GMAO z\xE4hlen die Stunden, nicht die Lizenz. Diesen Unterabschnitt sieht nur der Administrator", "Heures par utilisateur et par an, au tarif du chef de chantier ; celles des certifications et de l'avancement, par chantier et par mois, avec celles du chef de chantier et celles du chef d'\xE9quipe, chacune \xE0 son tarif. Les licences, par utilisateur sauf celle de CAE (une par entreprise). Les prix et leurs sources se trouvent dans \xABCompetencia\xBB et s'y modifient. L\xE0 o\xF9 il n'y a pas de prix public, rien n'est ajout\xE9. Seule la licence de Microsoft Project est compt\xE9e, la seule que l'entreprise paie aujourd'hui parmi celles que l'app remplace ; pour Presto, CAE et GMAO, les heures comptent, pas la licence. Seul l'administrateur voit cette sous-section"],
+          ["https://\u2026 (SharePoint, correo", "https://\u2026 (SharePoint, email", "https://\u2026 (SharePoint, correu", "https://\u2026 (SharePoint, e-mail", "https://\u2026 (SharePoint, E-Mail", "https://\u2026 (SharePoint, e-mail"],
+          ["Idioma del expediente", "File language", "Idioma de l'expedient", "Idioma do processo", "Sprache des Dossiers", "Langue du dossier"],
+          ["Importar correos o WhatsApp", "Import emails or WhatsApp", "Importar correus o WhatsApp", "Importar e-mails ou WhatsApp", "E-Mails oder WhatsApp importieren", "Importer des e-mails ou WhatsApp"],
+          ["Importe", "Amount", "Import", "Valor", "Betrag", "Montant"],
+          ["Importe (\u20AC", "Amount (\u20AC", "Import (\u20AC", "Valor (\u20AC", "Betrag (\u20AC", "Montant (\u20AC"],
+          ["Importe directo", "Direct amount", "Import directe", "Valor direto", "Direkter Betrag", "Montant direct"],
+          ["Importe total (\u20AC", "Total amount (\u20AC", "Import total (\u20AC", "Valor total (\u20AC", "Gesamtbetrag (\u20AC", "Montant total (\u20AC"],
+          ["Importe validado (\u20AC", "Validated amount (\u20AC", "Import validat (\u20AC", "Valor validado (\u20AC", "Validierter Betrag (\u20AC", "Montant valid\xE9 (\u20AC"],
+          ["\xCDndice de anexos", "Annex index", "\xCDndex d'annexos", "\xCDndice de anexos", "Anhangsverzeichnis", "Index des annexes"],
+          ["Indirectos", "Indirect", "Indirectes", "Indiretos", "Indirekte", "Indirects"],
+          ["informe", "report", "informe", "relat\xF3rio", "Bericht", "rapport"],
+          ["informes", "reports", "informes", "relat\xF3rios", "Berichte", "rapports"],
+          ["Informes semanales", "Weekly reports", "Informes setmanals", "Relat\xF3rios semanais", "Wochenberichte", "Rapports hebdomadaires"],
+          ["Interferencias con otros gremios", "Interference with other trades", "Interfer\xE8ncies amb altres gremis", "Interfer\xEAncias com outras especialidades", "Behinderungen durch andere Gewerke", "Interf\xE9rences avec les autres corps de m\xE9tier"],
+          ["Izados, accesos y log\xEDstica", "Lifting, access and logistics", "Hissats, accessos i log\xEDstica", "I\xE7amentos, acessos e log\xEDstica", "Hebearbeiten, Zug\xE4nge und Logistik", "Levages, acc\xE8s et logistique"],
+          ["Izados: da\xF1os y dinero perdido", "Lifting: damage and money lost", "Hissats: danys i diners perduts", "I\xE7amentos: danos e dinheiro perdido", "Hebearbeiten: Sch\xE4den und verlorenes Geld", "Levages : dommages et argent perdu"],
+          ["j. prod", "prod. mgr", "cap prod.", "dir. prod.", "Prod.-Ltr.", "resp. prod."],
+          ["Jefe de commissioning", "Commissioning manager", "Cap de commissioning", "Respons\xE1vel de commissioning", "Commissioning-Leiter", "Responsable commissioning"],
+          ["Jefe de estudios", "Estimating manager", "Cap d'estudis", "Respons\xE1vel de estudos", "Studienleiter", "Responsable des \xE9tudes"],
+          ["jefe de grupo", "group manager", "cap de grup", "chefe de grupo", "Gruppenleiter", "chef de groupe"],
+          ["Jefe de grupo", "Group manager", "Cap de grup", "Chefe de grupo", "Gruppenleiter", "Chef de groupe"],
+          ["Jefe de mantenimiento", "Maintenance manager", "Cap de manteniment", "Respons\xE1vel de manuten\xE7\xE3o", "Wartungsleiter", "Responsable maintenance"],
+          ["Jefe de obra", "Site manager", "Cap d'obra", "Diretor de obra", "Bauleiter", "Chef de chantier"],
+          ["Jefe de obra / de producci\xF3n", "Site manager / production manager", "Cap d'obra / de producci\xF3", "Diretor de obra / de produ\xE7\xE3o", "Bauleiter / Produktionsleiter", "Chef de chantier / responsable de production"],
+          ["Jefe de obra / encargado", "Site manager / foreman", "Cap d'obra / encarregat", "Diretor de obra / encarregado", "Bauleiter / Vorarbeiter", "Chef de chantier / chef d'\xE9quipe"],
+          ["Jefe de producci\xF3n", "Production manager", "Cap de producci\xF3", "Diretor de produ\xE7\xE3o", "Produktionsleiter", "Responsable de production"],
+          ["jefe obra", "site manager", "cap d'obra", "diretor de obra", "Bauleiter", "chef de chantier"],
+          ["jefes de obra", "site managers", "caps d'obra", "diretores de obra", "Bauleiter", "chefs de chantier"],
+          ["Justifica", "Justifies", "Justifica", "Justifica", "Belegt", "Justifie"],
+          ["Justificantes del importe", "Supporting documents for the amount", "Justificants de l'import", "Comprovativos do valor", "Belege f\xFCr den Betrag", "Justificatifs du montant"],
+          ["la de la obra media", "that of the average project", "la de l'obra mitjana", "a da obra m\xE9dia", "jene des durchschnittlichen Projekts", "celle du chantier moyen"],
+          ["La empresa no la paga hoy", "The company does not pay for it today", "L'empresa no la paga avui", "A empresa n\xE3o a paga hoje", "Die Firma bezahlt sie heute nicht", "L'entreprise ne la paie pas aujourd'hui"],
+          ["La reclamaci\xF3n", "The claim", "La claim", "A claim", "Der Claim", "La claim"],
+          ["Legalizaciones por territorio: qu\xE9 presentar, modelo vigente y plazos", "Legalisations by territory: what to submit, current form and deadlines", "Legalitzacions per territori: qu\xE8 presentar, model vigent i terminis", "Legaliza\xE7\xF5es por territ\xF3rio: o que apresentar, modelo em vigor e prazos", "Legalisierungen nach Gebiet: was einzureichen ist, g\xFCltiges Formular und Fristen", "L\xE9galisations par territoire : quoi pr\xE9senter, mod\xE8le en vigueur et d\xE9lais"],
+          ["Libro NCR con macros y plantillas PPI", "NCR workbook with macros and PPI templates", "Llibre NCR amb macros i plantilles PPI", "Livro NCR com macros e modelos PPI", "NCR-Arbeitsmappe mit Makros und PPI-Vorlagen", "Classeur NCR avec macros et mod\xE8les PPI"],
+          ["Libros Excel del control de costes y del comparativo", "Excel workbooks for cost control and the comparison", "Llibres Excel del control de costos i del comparatiu", "Livros Excel do controlo de custos e do comparativo", "Excel-Arbeitsmappen der Kostenkontrolle und des Vergleichs", "Classeurs Excel du contr\xF4le des co\xFBts et du comparatif"],
+          ["Licencia Vidaire", "Vidaire licence", "Llic\xE8ncia Vidaire", "Licen\xE7a Vidaire", "Vidaire-Lizenz", "Licence Vidaire"],
+          ["Licencia/a\xF1o", "Licence/year", "Llic\xE8ncia/any", "Licen\xE7a/ano", "Lizenz/Jahr", "Licence/an"],
+          ["Limpieza, reposici\xF3n, material", "Cleaning, replacement, materials", "Neteja, reposici\xF3, material", "Limpeza, reposi\xE7\xE3o, material", "Reinigung, Ersatz, Material", "Nettoyage, remplacement, mat\xE9riel"],
+          ["l\xEDneas de material", "material lines", "l\xEDnies de material", "linhas de material", "Materialpositionen", "lignes de mat\xE9riel"],
+          ["l\xEDneas de pedido cruzadas", "cross-checked order lines", "l\xEDnies de comanda creuades", "linhas de encomenda cruzadas", "abgeglichene Bestellpositionen", "lignes de commande crois\xE9es"],
+          ["Lo que ahorra", "What it saves", "El que estalvia", "O que poupa", "Was sie einspart", "Ce qu'elle \xE9conomise"],
+          ["Lo que genera sola", "What it generates by itself", "El que genera sola", "O que gera sozinha", "Was sie selbst erzeugt", "Ce qu'elle g\xE9n\xE8re seule"],
+          ["Lo que no son horas", "What is not hours", "El que no s\xF3n hores", "O que n\xE3o s\xE3o horas", "Was keine Stunden sind", "Ce qui n'est pas des heures"],
+          ["Los cuatro ejes", "The four axes", "Els quatre eixos", "Os quatro eixos", "Die vier Achsen", "Les quatre axes"],
+          ["los d\xEDas de retraso", "the days of delay", "els dies de retard", "os dias de atraso", "die Verzugstage", "les jours de retard"],
+          ["Los mandan los encargados desde el m\xF3vil (Cx Obra \u203A \xAB+\xBB \u203A Algo reclamable). Sin tarifa: la pones t\xFA en el hecho", "Foremen send them from their mobile (Cx Obra \u203A \xAB+\xBB \u203A Something claimable). No rate: you enter it on the event", "Els envien els encarregats des del m\xF2bil (Cx Obra \u203A \xAB+\xBB \u203A Quelcom reclamable). Sense tarifa: la poses tu al fet", "Os encarregados enviam-nos pelo telem\xF3vel (Cx Obra \u203A \xAB+\xBB \u203A Algo reclam\xE1vel). Sem tarifa: coloca-a voc\xEA no facto", "Die Vorarbeiter senden sie vom Handy (Cx Obra \u203A \xAB+\xBB \u203A Etwas Einforderbares). Ohne Tarif: Du tr\xE4gst ihn beim Ereignis ein", "Les chefs d'\xE9quipe les envoient depuis leur mobile (Cx Obra \u203A \xAB+\xBB \u203A Quelque chose de r\xE9clamable). Sans tarif : vous le saisissez sur le fait"],
+          ["mantenimiento", "maintenance", "manteniment", "manuten\xE7\xE3o", "Wartung", "maintenance"],
+          ["Mantenimiento preventivo (GMAO", "Preventive maintenance (CMMS", "Manteniment preventiu (GMAO", "Manuten\xE7\xE3o preventiva (GMAO", "Vorbeugende Wartung (CMMS", "Maintenance pr\xE9ventive (GMAO"],
+          ["Mantenimiento preventivo e inspecciones", "Preventive maintenance and inspections", "Manteniment preventiu i inspeccions", "Manuten\xE7\xE3o preventiva e inspe\xE7\xF5es", "Vorbeugende Wartung und Inspektionen", "Maintenance pr\xE9ventive et inspections"],
+          ["Marca del dato", "Data marker", "Marca de la dada", "Marca do dado", "Datenmarkierung", "Marque de la donn\xE9e"],
+          ["Marcar todos los hechos a la vista", "Mark all events in view", "Marcar tots els fets a la vista", "Marcar todos os factos \xE0 vista", "Alle sichtbaren Ereignisse markieren", "Cocher tous les faits affich\xE9s"],
+          ["marcas", "marks", "marques", "marcas", "Markierungen", "marques"],
+          ["Marcas de avance en plano", "Progress marks on drawing", "Marques d'avan\xE7 en pl\xE0nol", "Marcas de avan\xE7o na planta", "Fortschrittsmarkierungen im Plan", "Marques d'avancement sur le plan"],
+          ["M\xE1s acciones", "More actions", "M\xE9s accions", "Mais a\xE7\xF5es", "Weitere Aktionen", "Plus d'actions"],
+          ["Material", "Material", "Material", "Material", "Material", "Mat\xE9riel"],
+          ["Material \u20AC", "Material \u20AC", "Material \u20AC", "Material \u20AC", "Material \u20AC", "Mat\xE9riel \u20AC"],
+          ["Media al mes de la obra", "Monthly average for the project", "Mitjana al mes de l'obra", "M\xE9dia mensal da obra", "Monatsdurchschnitt des Projekts", "Moyenne mensuelle du chantier"],
+          ["Media al mes de toda la obra", "Monthly average for the whole project", "Mitjana al mes de tota l'obra", "M\xE9dia mensal de toda a obra", "Monatsdurchschnitt des gesamten Projekts", "Moyenne mensuelle de tout le chantier"],
+          ["Medici\xF3n comprobada en planos: cada elemento contado y su partida, por planta", "Measurement checked on drawings: each item counted and its line item, per floor", "Mesurament comprovat en pl\xE0nols: cada element comptat i la seva partida, per planta", "Medi\xE7\xE3o verificada em plantas: cada elemento contado e a sua rubrica, por piso", "In Pl\xE4nen gepr\xFCfte Mengenermittlung: jedes gez\xE4hlte Element und seine Position, pro Geschoss", "M\xE9tr\xE9 v\xE9rifi\xE9 sur plans : chaque \xE9l\xE9ment compt\xE9 et son poste, par \xE9tage"],
+          ["Mediciones sobre plano que ya no se pasan a mano al presupuesto", "Measurements from drawings that are no longer entered by hand into the budget", "Mesuraments sobre pl\xE0nol que ja no es passen a m\xE0 al pressupost", "Medi\xE7\xF5es sobre planta que j\xE1 n\xE3o se passam \xE0 m\xE3o para o or\xE7amento", "Mengenermittlungen aus Pl\xE4nen, die nicht mehr von Hand ins Budget \xFCbertragen werden", "M\xE9tr\xE9s sur plan qui ne sont plus report\xE9s \xE0 la main dans le budget"],
+          ["Medio fijo", "Fixed resource", "Mitj\xE0 fix", "Meio fixo", "Festes Mittel", "Moyen fixe"],
+          ["Medir a escal\xEDmetro y preguntar al encargado", "Measure with a scale rule and ask the foreman", "Mesurar amb escal\xEDmetre i preguntar a l'encarregat", "Medir com escal\xEDmetro e perguntar ao encarregado", "Mit dem Massstab messen und den Vorarbeiter fragen", "Mesurer \xE0 l'\xE9chelle et demander au chef d'\xE9quipe"],
+          ["meses", "months", "mesos", "meses", "Monate", "mois"],
+          ["Meses", "Months", "Mesos", "Meses", "Monate", "Mois"],
+          ["Meses \xD7 coste mensual", "Months \xD7 monthly cost", "Mesos \xD7 cost mensual", "Meses \xD7 custo mensal", "Monate \xD7 Monatskosten", "Mois \xD7 co\xFBt mensuel"],
+          ["Meses \xD7 Coste mensual (\u20AC", "Months \xD7 Monthly cost (\u20AC", "Mesos \xD7 Cost mensual (\u20AC", "Meses \xD7 Custo mensal (\u20AC", "Monate \xD7 Monatskosten (\u20AC", "Mois \xD7 Co\xFBt mensuel (\u20AC"],
+          ["meses de obra", "months of works", "mesos d'obra", "meses de obra", "Baumonate", "mois de chantier"],
+          ["M\xE9todo", "Method", "M\xE8tode", "M\xE9todo", "Methode", "M\xE9thode"],
+          ["minutos", "minutes", "minuts", "minutos", "Minuten", "minutes"],
+          ["min/equipo", "min/unit", "min/equip", "min/equipamento", "Min./Ger\xE4t", "min/\xE9quipement"],
+          ["min/equipo \xB7 Gen\xE9rico", "min/unit \xB7 Generic", "min/equip \xB7 Gen\xE8ric", "min/equipamento \xB7 Gen\xE9rico", "Min./Ger\xE4t \xB7 Generisch", "min/\xE9quipement \xB7 G\xE9n\xE9rique"],
+          ["Min/ud a mano", "Min/unit by hand", "Min/ut a m\xE0", "Min/un. \xE0 m\xE3o", "Min./Einheit von Hand", "Min/unit\xE9 \xE0 la main"],
+          ["Modelo", "Model", "Model", "Modelo", "Modell", "Mod\xE8le"],
+          ["modelos", "models", "models", "modelos", "Modelle", "mod\xE8les"],
+          ["Modelos con la documentaci\xF3n heredada", "Models with inherited documentation", "Models amb la documentaci\xF3 heretada", "Modelos com a documenta\xE7\xE3o herdada", "Modelle mit \xFCbernommener Dokumentation", "Mod\xE8les avec la documentation h\xE9rit\xE9e"],
+          ["M\xF3dulo a m\xF3dulo", "Module by module", "M\xF2dul a m\xF2dul", "M\xF3dulo a m\xF3dulo", "Modul f\xFCr Modul", "Module par module"],
+          ["Mostrar la tabla resumen por secci\xF3n", "Show the summary table by section", "Mostrar la taula resum per secci\xF3", "Mostrar a tabela resumo por sec\xE7\xE3o", "\xDCbersichtstabelle pro Abschnitt anzeigen", "Afficher le tableau r\xE9capitulatif par section"],
+          ["Mover", "Move", "Moure", "Mover", "Verschieben", "D\xE9placer"],
+          ["m\xF3vil", "mobile", "m\xF2bil", "telem\xF3vel", "Handy", "mobile"],
+          ["Muy defendible", "Highly defensible", "Molt defensable", "Muito defens\xE1vel", "Sehr gut vertretbar", "Tr\xE8s d\xE9fendable"],
+          ["Nada por tramitar", "Nothing to process", "Res per tramitar", "Nada por tramitar", "Nichts zu bearbeiten", "Rien \xE0 traiter"],
+          ["Nada sin presupuestar", "Nothing left unbudgeted", "Res sense pressupostar", "Nada por or\xE7amentar", "Nichts ohne Budget", "Rien de non budg\xE9t\xE9"],
+          ["NCR, PPI y partes de incidencia", "NCR, PPI and incident reports", "NCR, PPI i parts d'incid\xE8ncia", "NCR, PPI e participa\xE7\xF5es de incid\xEAncia", "NCR, PPI und St\xF6rungsmeldungen", "NCR, PPI et rapports d'incident"],
+          ["Ninguna prueba", "No evidence", "Cap prova", "Nenhuma prova", "Kein Beweis", "Aucune preuve"],
+          ["No", "No", "No", "N\xE3o", "Nein", "Non"],
+          ["no la ten\xE9is", "you do not have it", "no la teniu", "n\xE3o a t\xEAm", "ihr habt sie nicht", "vous ne l'avez pas"],
+          ["no suma", "does not add up", "no suma", "n\xE3o soma", "wird nicht addiert", "ne s'additionne pas"],
+          ["normativa", "regulations", "normativa", "normativa", "Vorschriften", "r\xE9glementation"],
+          ["Nos reclaman", "Claimed against us", "Ens reclamen", "Reclamam-nos", "Gegen uns geltend gemacht", "On nous r\xE9clame"],
+          ["Notas", "Notes", "Notes", "Notas", "Notizen", "Notes"],
+          ["Nuestro", "Ours", "El nostre", "O nosso", "Unser", "Le n\xF4tre"],
+          ["Nueva categor\xEDa", "New category", "Nova categoria", "Nova categoria", "Neue Kategorie", "Nouvelle cat\xE9gorie"],
+          ["Nueva prueba (enlace", "New evidence (link", "Nova prova (enlla\xE7", "Nova prova (liga\xE7\xE3o", "Neuer Beweis (Verkn\xFCpfung", "Nouvelle preuve (lien"],
+          ["Nuevo sistema", "New system", "Nou sistema", "Novo sistema", "Neues System", "Nouveau syst\xE8me"],
+          ["obra media", "average project", "obra mitjana", "obra m\xE9dia", "durchschnittliches Projekt", "chantier moyen"],
+          ["Obras en marcha", "Projects under way", "Obres en marxa", "Obras em curso", "Laufende Projekte", "Chantiers en cours"],
+          ["Oferta", "Offer", "Oferta", "Proposta", "Offerte", "Offre"],
+          ["oficial", "official", "oficial", "oficial", "offiziell", "officiel"],
+          ["Oficial", "Official", "Oficial", "Oficial", "Offiziell", "Officiel"],
+          ["Oficina y casetas", "Office and site cabins", "Oficina i casetes", "Escrit\xF3rio e estaleiro", "B\xFCro und Baucontainer", "Bureau et baraques de chantier"],
+          ["\xF3rdenes", "orders", "ordres", "ordens", "Auftr\xE4ge", "ordres"],
+          ["\xD3rdenes de trabajo de mantenimiento cerradas", "Closed maintenance work orders", "Ordres de treball de manteniment tancades", "Ordens de trabalho de manuten\xE7\xE3o fechadas", "Abgeschlossene Wartungsauftr\xE4ge", "Ordres de travail de maintenance cl\xF4tur\xE9s"],
+          ["Origen", "Origin", "Origen", "Origem", "Herkunft", "Origine"],
+          ["Otro", "Other", "Altre", "Outro", "Anderes", "Autre"],
+          ["Otro gremio", "Other trade", "Altre gremi", "Outro of\xEDcio", "Anderes Gewerk", "Autre corps de m\xE9tier"],
+          ["Otro medio fijo", "Other fixed means", "Altre mitj\xE0 fix", "Outro meio fixo", "Anderes festes Mittel", "Autre moyen fixe"],
+          ["pago \xFAnico: no es anual", "one-off payment: not annual", "pagament \xFAnic: no \xE9s anual", "pagamento \xFAnico: n\xE3o \xE9 anual", "Einmalzahlung: nicht j\xE4hrlich", "paiement unique : non annuel"],
+          ["Pagos, IPC y deducciones", "Payments, CPI and deductions", "Pagaments, IPC i deduccions", "Pagamentos, IPC e dedu\xE7\xF5es", "Zahlungen, Teuerung und Abz\xFCge", "Paiements, IPC et d\xE9ductions"],
+          ["Pantalla completa", "Full screen", "Pantalla completa", "Ecr\xE3 inteiro", "Vollbild", "Plein \xE9cran"],
+          ["paquete", "package", "paquet", "pacote", "Paket", "paquet"],
+          ["partes", "reports", "parts", "registos", "Rapporte", "rapports"],
+          ["Partes de horas de subcontratas", "Subcontractor timesheets", "Parts d'hores de subcontractistes", "Folhas de horas de subempreiteiros", "Stundenrapporte der Subunternehmer", "Feuilles d'heures des sous-traitants"],
+          ["Partes de incidencia", "Incident reports", "Parts d'incid\xE8ncia", "Participa\xE7\xF5es de incid\xEAncia", "St\xF6rungsmeldungen", "Rapports d'incident"],
+          ["Partes del correo", "Reports from email", "Parts del correu", "Participa\xE7\xF5es do e-mail", "Rapporte aus der E-Mail", "Rapports du courriel"],
+          ["Partes del hecho", "Event reports", "Parts del fet", "Participa\xE7\xF5es do facto", "Rapporte zum Ereignis", "Rapports du fait"],
+          ["partidas", "line items", "partides", "artigos", "Positionen", "postes"],
+          ["Partidas del presupuesto de la obra", "Project budget line items", "Partides del pressupost de l'obra", "Artigos do or\xE7amento da obra", "Positionen des Projektbudgets", "Postes du budget du chantier"],
+          ["Partir", "Split", "Dividir", "Dividir", "Teilen", "Diviser"],
+          ["Pasar al claim", "Move to claim", "Passar al claim", "Passar para o claim", "In den Claim \xFCbernehmen", "Passer au claim"],
+          ["pedidos", "orders", "comandes", "encomendas", "Bestellungen", "commandes"],
+          ["Pedidos cruzados con el proyecto: partida nueva o Med Obra y modelo al certificado", "Orders cross-checked against the project: new line item or Med Obra and model to the certificate", "Comandes creuades amb el projecte: partida nova o Med Obra i model al certificat", "Encomendas cruzadas com o projeto: artigo novo ou Med Obra e modelo para o certificado", "Mit dem Projekt abgeglichene Bestellungen: neue Position oder Med Obra und Modell zur Abrechnung", "Commandes crois\xE9es avec le projet : nouveau poste ou Med Obra et mod\xE8le vers le d\xE9compte"],
+          ["Pedidos de compra", "Purchase orders", "Comandes de compra", "Encomendas de compra", "Einkaufsbestellungen", "Commandes d'achat"],
+          ["Pedidos numerados y facturas imputadas a su cap\xEDtulo solas", "Numbered orders and invoices charged to their chapter automatically", "Comandes numerades i factures imputades al seu cap\xEDtol soles", "Encomendas numeradas e faturas imputadas ao seu cap\xEDtulo automaticamente", "Nummerierte Bestellungen und Rechnungen werden automatisch ihrem Kapitel zugeordnet", "Commandes num\xE9rot\xE9es et factures imput\xE9es automatiquement \xE0 leur chapitre"],
+          ["Pendiente", "Pending", "Pendent", "Pendente", "Ausstehend", "En attente"],
+          ["Pendiente de validar", "Pending validation", "Pendent de validar", "Pendente de valida\xE7\xE3o", "Validierung ausstehend", "En attente de validation"],
+          ["Pendiente doc", "Doc pending", "Doc pendent", "Doc pendente", "Dok. ausstehend", "Doc en attente"],
+          ["Pendiente est", "Est. pending", "Est. pendent", "Est. pendente", "Sch\xE4tzung ausstehend", "Est. en attente"],
+          ["P\xE9rdidas de tiempo y baja productividad", "Time losses and low productivity", "P\xE8rdues de temps i baixa productivitat", "Perdas de tempo e baixa produtividade", "Zeitverluste und geringe Produktivit\xE4t", "Pertes de temps et faible productivit\xE9"],
+          ["Periodo desde", "Period from", "Per\xEDode des de", "Per\xEDodo de", "Zeitraum von", "P\xE9riode du"],
+          ["Periodo hasta", "Period to", "Per\xEDode fins a", "Per\xEDodo at\xE9", "Zeitraum bis", "P\xE9riode au"],
+          ["Permisos y seguridad", "Permits and safety", "Permisos i seguretat", "Licen\xE7as e seguran\xE7a", "Bewilligungen und Sicherheit", "Permis et s\xE9curit\xE9"],
+          ["Personal adicional por aceleraci\xF3n", "Additional staff for acceleration", "Personal addicional per acceleraci\xF3", "Pessoal adicional por acelera\xE7\xE3o", "Zus\xE4tzliches Personal wegen Beschleunigung", "Personnel suppl\xE9mentaire pour acc\xE9l\xE9ration"],
+          ["Personal en obra y PRL/CAE", "Site personnel and PRL/CAE", "Personal a l'obra i PRL/CAE", "Pessoal em obra e PRL/CAE", "Personal auf der Baustelle und PRL/CAE", "Personnel sur chantier et PRL/CAE"],
+          ["Personas", "People", "Persones", "Pessoas", "Personen", "Personnes"],
+          ["Personas \xD7 horas \xD7 d\xEDas \xD7 \u20AC/h", "People \xD7 hours \xD7 days \xD7 \u20AC/h", "Persones \xD7 hores \xD7 dies \xD7 \u20AC/h", "Pessoas \xD7 horas \xD7 dias \xD7 \u20AC/h", "Personen \xD7 Stunden \xD7 Tage \xD7 \u20AC/h", "Personnes \xD7 heures \xD7 jours \xD7 \u20AC/h"],
+          ["Personas \xD7 Horas \xD7 D\xEDas \xD7 \u20AC/h", "People \xD7 Hours \xD7 Days \xD7 \u20AC/h", "Persones \xD7 Hores \xD7 Dies \xD7 \u20AC/h", "Pessoas \xD7 Horas \xD7 Dias \xD7 \u20AC/h", "Personen \xD7 Stunden \xD7 Tage \xD7 \u20AC/h", "Personnes \xD7 Heures \xD7 Jours \xD7 \u20AC/h"],
+          ["Plan", "Plan", "Pla", "Plano", "Plan", "Plan"],
+          ["planificacion", "planning", "planificaci\xF3", "planeamento", "Planung", "planification"],
+          ["Planificaci\xF3n de obra", "Project planning", "Planificaci\xF3 d'obra", "Planeamento de obra", "Bauplanung", "Planification de chantier"],
+          ["Planta", "Floor", "Planta", "Piso", "Geschoss", "\xC9tage"],
+          ["Plantilla de esta obra", "Template for this project", "Plantilla d'aquesta obra", "Modelo desta obra", "Vorlage f\xFCr dieses Projekt", "Mod\xE8le de ce chantier"],
+          ["Plantilla de la obra", "Project template", "Plantilla de l'obra", "Modelo da obra", "Projektvorlage", "Mod\xE8le du chantier"],
+          ["Plataforma de CAE/PRL (tipo Dokify o CTAIMA", "CAE/PRL platform (such as Dokify or CTAIMA", "Plataforma de CAE/PRL (tipus Dokify o CTAIMA", "Plataforma de CAE/PRL (tipo Dokify ou CTAIMA", "CAE/PRL-Plattform (wie Dokify oder CTAIMA", "Plateforme CAE/PRL (type Dokify ou CTAIMA"],
+          ["Plataforma de obra completa", "Complete project platform", "Plataforma d'obra completa", "Plataforma de obra completa", "Vollst\xE4ndige Baustellenplattform", "Plateforme de chantier compl\xE8te"],
+          ["Plazo original", "Original deadline", "Termini original", "Prazo original", "Urspr\xFCngliche Frist", "D\xE9lai initial"],
+          ["Plazo vigente", "Current deadline", "Termini vigent", "Prazo em vigor", "Geltende Frist", "D\xE9lai en vigueur"],
+          ["Plazos", "Deadlines", "Terminis", "Prazos", "Fristen", "D\xE9lais"],
+          ["Poco defendible", "Weakly defensible", "Poc defensable", "Pouco defens\xE1vel", "Wenig vertretbar", "Peu d\xE9fendable"],
+          ["por claim", "per claim", "per claim", "por claim", "pro Claim", "par claim"],
+          ["por defecto", "by default", "per defecte", "por defeito", "standardm\xE4ssig", "par d\xE9faut"],
+          ["Por departamento y mes", "By department and month", "Per departament i mes", "Por departamento e m\xEAs", "Nach Abteilung und Monat", "Par d\xE9partement et par mois"],
+          ["Por fase y rol", "By phase and role", "Per fase i rol", "Por fase e fun\xE7\xE3o", "Nach Phase und Rolle", "Par phase et r\xF4le"],
+          ["Por mes", "By month", "Per mes", "Por m\xEAs", "Pro Monat", "Par mois"],
+          ["por obra y mes", "per project and month", "per obra i mes", "por obra e m\xEAs", "pro Projekt und Monat", "par chantier et par mois"],
+          ["Por obra y mes", "By project and month", "Per obra i mes", "Por obra e m\xEAs", "Pro Projekt und Monat", "Par chantier et par mois"],
+          ["Por obra y mes (sin cx", "By project and month (excl. cx", "Per obra i mes (sense cx", "Por obra e m\xEAs (sem cx", "Pro Projekt und Monat (ohne Cx", "Par chantier et par mois (hors cx"],
+          ["por renuncias", "due to waivers", "per ren\xFAncies", "por ren\xFAncias", "wegen Verzichten", "du fait de renonciations"],
+          ["Por tramitar", "To be processed", "Per tramitar", "Por tramitar", "Zu bearbeiten", "\xC0 traiter"],
+          ["por unidad y a\xF1o", "per unit and year", "per unitat i any", "por unidade e ano", "pro Einheit und Jahr", "par unit\xE9 et par an"],
+          ["Precio", "Price", "Preu", "Pre\xE7o", "Preis", "Prix"],
+          ["precios", "prices", "preus", "pre\xE7os", "Preise", "prix"],
+          ["Precios de contrato por partida", "Contract prices per line item", "Preus de contracte per partida", "Pre\xE7os de contrato por artigo", "Vertragspreise pro Position", "Prix du contrat par poste"],
+          ["Preparar commissioning autom\xE1tico", "Prepare automatic commissioning", "Preparar commissioning autom\xE0tic", "Preparar commissioning autom\xE1tico", "Automatisches Commissioning vorbereiten", "Pr\xE9parer le commissioning automatique"],
+          ["Preparar, presentaci\xF3n interna, trabajo interno, redacci\xF3n, env\xEDo y negociaci\xF3n. No pisa lo que ya hay", "Prepare, internal presentation, internal work, drafting, sending and negotiation. It does not overwrite what is already there", "Preparar, presentaci\xF3 interna, treball intern, redacci\xF3, enviament i negociaci\xF3. No trepitja el que ja hi ha", "Preparar, apresenta\xE7\xE3o interna, trabalho interno, reda\xE7\xE3o, envio e negocia\xE7\xE3o. N\xE3o sobrep\xF5e o que j\xE1 existe", "Vorbereiten, interne Pr\xE4sentation, interne Arbeit, Verfassen, Versand und Verhandlung. \xDCberschreibt nichts, was bereits vorhanden ist", "Pr\xE9parer, pr\xE9sentation interne, travail interne, r\xE9daction, envoi et n\xE9gociation. N'\xE9crase pas ce qui existe d\xE9j\xE0"],
+          ["Presentaci\xF3n", "Presentation", "Presentaci\xF3", "Apresenta\xE7\xE3o", "Pr\xE4sentation", "Pr\xE9sentation"],
+          ["Presentaci\xF3n interna", "Internal presentation", "Presentaci\xF3 interna", "Apresenta\xE7\xE3o interna", "Interne Pr\xE4sentation", "Pr\xE9sentation interne"],
+          ["Presentaci\xF3n: Vidaire Obras", "Presentation: Vidaire Obras", "Presentaci\xF3: Vidaire Obras", "Apresenta\xE7\xE3o: Vidaire Obras", "Pr\xE4sentation: Vidaire Obras", "Pr\xE9sentation : Vidaire Obras"],
+          ["Presentada", "Submitted", "Presentada", "Apresentada", "Eingereicht", "Pr\xE9sent\xE9e"],
+          ["presupuesto y mediciones, planificaci\xF3n, compras y certificaciones, calidad y NCR, commissioning, CAE y mantenimiento, sobre los mismos datos", "budget and measurements, planning, purchasing and certifications, quality and NCR, commissioning, CAE and maintenance, on the same data", "pressupost i mesuraments, planificaci\xF3, compres i certificacions, qualitat i NCR, commissioning, CAE i manteniment, sobre les mateixes dades", "or\xE7amento e medi\xE7\xF5es, planeamento, compras e certifica\xE7\xF5es, qualidade e NCR, commissioning, CAE e manuten\xE7\xE3o, sobre os mesmos dados", "Budget und Mengenermittlung, Planung, Einkauf und Abrechnungen, Qualit\xE4t und NCR, Commissioning, CAE und Wartung auf denselben Daten", "budget et m\xE9tr\xE9s, planification, achats et certifications, qualit\xE9 et NCR, commissioning, CAE et maintenance, sur les m\xEAmes donn\xE9es"],
+          ["presupuestos", "budgets", "pressupostos", "or\xE7amentos", "Budgets", "budgets"],
+          ["Presupuestos y mediciones", "Budgets and measurements", "Pressupostos i mesuraments", "Or\xE7amentos e medi\xE7\xF5es", "Budgets und Mengenermittlung", "Budgets et m\xE9tr\xE9s"],
+          ["Presupuestos, mediciones y certificaciones", "Budgets, measurements and certifications", "Pressupostos, mesuraments i certificacions", "Or\xE7amentos, medi\xE7\xF5es e certifica\xE7\xF5es", "Budgets, Mengenermittlung und Abrechnungen", "Budgets, m\xE9tr\xE9s et certifications"],
+          ["Previsto", "Planned", "Previst", "Previsto", "Geplant", "Pr\xE9vu"],
+          ["Procore cobra por volumen anual de obra y solo da precio con presupuesto", "Procore charges by annual construction volume and only gives a price with a quote", "Procore cobra per volum anual d'obra i nom\xE9s dona preu amb pressupost", "A Procore cobra por volume anual de obra e s\xF3 d\xE1 pre\xE7o com or\xE7amento", "Procore verrechnet nach j\xE4hrlichem Bauvolumen und nennt nur mit Offerte einen Preis", "Procore facture selon le volume annuel de travaux et ne donne un prix que sur devis"],
+          ["Producci\xF3n y certificaciones", "Production and certifications", "Producci\xF3 i certificacions", "Produ\xE7\xE3o e certifica\xE7\xF5es", "Produktion und Abrechnungen", "Production et certifications"],
+          ["Producto", "Product", "Producte", "Produto", "Produkt", "Produit"],
+          ["Propio", "Own", "Propi", "Pr\xF3prio", "Eigen", "Propre"],
+          ["propuesta", "proposal", "proposta", "proposta", "Vorschlag", "proposition"],
+          ["Propuesta CBRE", "CBRE proposal", "Proposta de CBRE", "Proposta da CBRE", "Vorschlag von CBRE", "Proposition de CBRE"],
+          ["propuestos", "proposed", "proposats", "propostos", "vorgeschlagen", "propos\xE9s"],
+          ["pruebas", "tests", "proves", "testes", "Pr\xFCfungen", "essais"],
+          ["Pruebas", "Evidence", "Proves", "Provas", "Beweise", "Preuves"],
+          ["pruebas anexadas", "attached evidence", "proves annexades", "provas anexadas", "beigef\xFCgte Beweise", "preuves jointes"],
+          ["Pruebas de estanqueidad con informe", "Leak-tightness tests with report", "Proves d'estanquitat amb informe", "Testes de estanquidade com relat\xF3rio", "Dichtheitspr\xFCfungen mit Bericht", "Essais d'\xE9tanch\xE9it\xE9 avec rapport"],
+          ["Pulsa una categor\xEDa para ver sus hechos. Se asigna sola; se fija a mano en el hecho", "Click a category to see its events. It is assigned automatically; set it by hand on the event", "Prem una categoria per veure'n els fets. S'assigna sola; es fixa a m\xE0 al fet", "Clique numa categoria para ver os seus factos. \xC9 atribu\xEDda automaticamente; fixa-se manualmente no facto", "Kategorie anklicken, um die zugeh\xF6rigen Ereignisse zu sehen. Sie wird automatisch zugewiesen; von Hand im Ereignis festlegbar", "Cliquez sur une cat\xE9gorie pour voir ses faits. Elle est attribu\xE9e automatiquement ; on la fixe \xE0 la main dans le fait"],
+          ["puntos", "points", "punts", "pontos", "Punkte", "points"],
+          ["Puntos de control del listado de la obra", "Control points on the project checklist", "Punts de control del llistat de l'obra", "Pontos de controlo da lista da obra", "Kontrollpunkte der Projektliste", "Points de contr\xF4le de la liste du chantier"],
+          ["Qu\xE9", "What", "Qu\xE8", "O qu\xEA", "Was", "Quoi"],
+          ["Qu\xE9 cubre", "What it covers", "Qu\xE8 cobreix", "O que cobre", "Was es abdeckt", "Ce que cela couvre"],
+          ["Qu\xE9 ha hecho la app \xB7 hip\xF3tesis", "What the app has done \xB7 hypothesis", "Qu\xE8 ha fet l'app \xB7 hip\xF2tesi", "O que a app fez \xB7 hip\xF3tese", "Was die App getan hat \xB7 Hypothese", "Ce qu'a fait l'app \xB7 hypoth\xE8se"],
+          ["Qu\xE9 impidi\xF3 arrancar cada sistema y por culpa de qui\xE9n: el cap\xEDtulo de defensa del expediente", "What prevented each system from starting and whose fault it was: the defence chapter of the file", "Qu\xE8 va impedir arrencar cada sistema i per culpa de qui: el cap\xEDtol de defensa de l'expedient", "O que impediu o arranque de cada sistema e por culpa de quem: o cap\xEDtulo de defesa do processo", "Was den Start jedes Systems verhindert hat und wer schuld ist: das Verteidigungskapitel der Akte", "Ce qui a emp\xEAch\xE9 le d\xE9marrage de chaque syst\xE8me et par la faute de qui : le chapitre de d\xE9fense du dossier"],
+          ["Qu\xE9 lo impidi\xF3", "What prevented it", "Qu\xE8 ho va impedir", "O que o impediu", "Was es verhindert hat", "Ce qui l'a emp\xEAch\xE9"],
+          ["Qu\xE9 lo puede tirar", "What could bring it down", "Qu\xE8 ho pot tombar", "O que o pode deitar abaixo", "Was es zu Fall bringen k\xF6nnte", "Ce qui peut le faire tomber"],
+          ["Qu\xE9 lo sustenta", "What supports it", "Qu\xE8 ho sustenta", "O que o sustenta", "Was es st\xFCtzt", "Ce qui le soutient"],
+          ["Qui\xE9n", "Who", "Qui", "Quem", "Wer", "Qui"],
+          ["Qui\xE9n la ve", "Who sees it", "Qui la veu", "Quem a v\xEA", "Wer sie sieht", "Qui la voit"],
+          ["Quitar", "Remove", "Treure", "Remover", "Entfernen", "Retirer"],
+          ["Reacciones", "Reactions", "Reaccions", "Rea\xE7\xF5es", "Reaktionen", "R\xE9actions"],
+          ["Real", "Actual", "Real", "Real", "Effektiv", "R\xE9el"],
+          ["Recargo (%", "Surcharge (%", "Rec\xE0rrec (%", "Sobretaxa (%", "Zuschlag (%", "Majoration (%"],
+          ["reclamaciones", "claims", "reclamacions", "reclama\xE7\xF5es", "Nachforderungen", "r\xE9clamations"],
+          ["Reclamaciones", "Claims", "Reclamacions", "Reclama\xE7\xF5es", "Nachforderungen", "R\xE9clamations"],
+          ["Reclamaciones a subcontratas", "Claims against subcontractors", "Reclamacions a subcontractistes", "Reclama\xE7\xF5es a subempreiteiros", "Nachforderungen an Subunternehmer", "R\xE9clamations aux sous-traitants"],
+          ["Reclamaciones al cliente", "Claims to the client", "Reclamacions al client", "Reclama\xE7\xF5es ao cliente", "Nachforderungen an den Kunden", "R\xE9clamations au client"],
+          ["Reclamamos nosotros", "We are claiming", "Reclamem nosaltres", "Reclamamos n\xF3s", "Wir fordern", "Nous r\xE9clamons"],
+          ["referencia", "reference", "refer\xE8ncia", "refer\xEAncia", "Referenz", "r\xE9f\xE9rence"],
+          ["registros", "records", "registres", "registos", "Eintr\xE4ge", "enregistrements"],
+          ["Reservada: solo jefe de obra y direcci\xF3n", "Restricted: site manager and management only", "Reservada: nom\xE9s cap d'obra i direcci\xF3", "Reservada: apenas diretor de obra e dire\xE7\xE3o", "Vertraulich: nur Bauleiter und Gesch\xE4ftsleitung", "R\xE9serv\xE9e : chef de chantier et direction uniquement"],
+          ["Responsable", "Responsible", "Responsable", "Respons\xE1vel", "Verantwortlich", "Responsable"],
+          ["Resumen (ingl\xE9s", "Summary (English", "Resum (angl\xE8s", "Resumo (ingl\xEAs", "Zusammenfassung (Englisch", "R\xE9sum\xE9 (anglais"],
+          ["Resumen ejecutivo", "Executive summary", "Resum executiu", "Resumo executivo", "Management Summary", "R\xE9sum\xE9 ex\xE9cutif"],
+          ["Resumen por secci\xF3n", "Summary by section", "Resum per secci\xF3", "Resumo por sec\xE7\xE3o", "Zusammenfassung pro Abschnitt", "R\xE9sum\xE9 par section"],
+          ["Resumen por secci\xF3n del claim", "Summary by claim section", "Resum per secci\xF3 del claim", "Resumo por sec\xE7\xE3o do claim", "Zusammenfassung pro Claim-Abschnitt", "R\xE9sum\xE9 par section du claim"],
+          ["Retenci\xF3n", "Retention", "Retenci\xF3", "Reten\xE7\xE3o", "R\xFCckbehalt", "Retenue"],
+          ["Retenci\xF3n (\u20AC", "Retention (\u20AC", "Retenci\xF3 (\u20AC", "Reten\xE7\xE3o (\u20AC", "R\xFCckbehalt (\u20AC", "Retenue (\u20AC"],
+          ["Retrasos acumulados del cliente", "Cumulative client delays", "Retards acumulats del client", "Atrasos acumulados do cliente", "Kumulierte Verz\xF6gerungen des Kunden", "Retards cumul\xE9s du client"],
+          ["Retrasos del cliente", "Client delays", "Retards del client", "Atrasos do cliente", "Verz\xF6gerungen des Kunden", "Retards du client"],
+          ["Revisi\xF3n manual del BOE", "Manual BOE review", "Revisi\xF3 manual del BOE", "Revis\xE3o manual do BOE", "Manuelle BOE-Pr\xFCfung", "R\xE9vision manuelle du BOE"],
+          ["revisiones", "reviews", "revisions", "revis\xF5es", "\xDCberpr\xFCfungen", "r\xE9visions"],
+          ["Revisiones de mantenimiento e inspecciones", "Maintenance reviews and inspections", "Revisions de manteniment i inspeccions", "Revis\xF5es de manuten\xE7\xE3o e inspe\xE7\xF5es", "Wartungspr\xFCfungen und Inspektionen", "R\xE9visions de maintenance et inspections"],
+          ["Revisiones de PPI", "PPI reviews", "Revisions de PPI", "Revis\xF5es de PPI", "PPI-\xDCberpr\xFCfungen", "R\xE9visions du PPI"],
+          ["Riesgo de claims de subcontratas", "Subcontractor claim risk", "Risc de claims de subcontractistes", "Risco de claims de subempreiteiros", "Risiko von Subunternehmer-Claims", "Risque de claims de sous-traitants"],
+          ["Robos", "Thefts", "Robatoris", "Roubos", "Diebst\xE4hle", "Vols"],
+          ["S\xE1bados y fuera de horario", "Saturdays and out-of-hours work", "Dissabtes i fora d'horari", "S\xE1bados e fora de hor\xE1rio", "Samstage und ausserhalb der Arbeitszeit", "Samedis et hors horaires"],
+          ["Sacar a mano los datos de proyecto de fichas t\xE9cnicas y memoria, y montar checklists, estanqueidad y balanceo", "Manually extract the project data from datasheets and the project report, and put together checklists, leak-tightness and balancing", "Treure a m\xE0 les dades de projecte de fitxes t\xE8cniques i mem\xF2ria, i muntar checklists, estanquitat i balanceig", "Extrair \xE0 m\xE3o os dados de projeto de fichas t\xE9cnicas e mem\xF3ria, e montar checklists, estanquidade e balanceamento", "Projektdaten von Hand aus Datenbl\xE4ttern und Bericht herausziehen und Checklisten, Dichtheit und Abgleich aufbauen", "Extraire \xE0 la main les donn\xE9es de projet des fiches techniques et du m\xE9moire, et monter checklists, \xE9tanch\xE9it\xE9 et \xE9quilibrage"],
+          ["Sacarlas del texto del hecho", "Extract them from the event text", "Treure-les del text del fet", "Extra\xED-las do texto do facto", "Aus dem Text des Ereignisses entnehmen", "Les extraire du texte du fait"],
+          ["Se reclama", "Claimed", "Es reclama", "Reclama-se", "Gefordert", "R\xE9clam\xE9"],
+          ["Secci\xF3n del claim", "Claim section", "Secci\xF3 del claim", "Sec\xE7\xE3o do claim", "Claim-Abschnitt", "Section du claim"],
+          ["Seguros", "Insurance", "Assegurances", "Seguros", "Versicherungen", "Assurances"],
+          ["semanas", "weeks", "setmanes", "semanas", "Wochen", "semaines"],
+          ["Sentido", "Direction", "Sentit", "Sentido", "Richtung", "Sens"],
+          ["S\xED", "Yes", "S\xED", "Sim", "Ja", "Oui"],
+          ["Simulaci\xF3n \xB7 obra de", "Simulation \xB7 project of", "Simulaci\xF3 \xB7 obra de", "Simula\xE7\xE3o \xB7 obra de", "Simulation \xB7 Projekt von", "Simulation \xB7 chantier de"],
+          ["Sin adjuntos", "No attachments", "Sense adjunts", "Sem anexos", "Keine Anh\xE4nge", "Sans pi\xE8ces jointes"],
+          ["Sin argumentos", "No arguments", "Sense arguments", "Sem argumentos", "Keine Argumente", "Sans arguments"],
+          ["Sin aviso al cliente. Si se le avis\xF3, elige \xABS\xED\xBB y pide fecha, medio y referencia", "No notice given to the client. If notice was given, choose \xABYes\xBB and enter the date, means and reference", "Sense av\xEDs al client. Si se li va avisar, tria \xABS\xED\xBB i demana data, mitj\xE0 i refer\xE8ncia", "Sem aviso ao cliente. Se foi avisado, escolha \xABSim\xBB e indique data, meio e refer\xEAncia", "Keine Mitteilung an den Kunden. Falls mitgeteilt, \xABJa\xBB w\xE4hlen und Datum, Mittel und Referenz angeben", "Sans avis au client. S'il a \xE9t\xE9 pr\xE9venu, choisissez \xABOui\xBB et indiquez la date, le moyen et la r\xE9f\xE9rence"],
+          ["Sin causas: si el hecho tiene varios tramos de d\xEDas con motivos distintos, a\xF1\xE1delos para valorar cada uno", "No causes: if the event has several stretches of days with different reasons, add them to value each one", "Sense causes: si el fet t\xE9 diversos trams de dies amb motius diferents, afegeix-los per valorar-ne cadascun", "Sem causas: se o facto tem v\xE1rios per\xEDodos de dias com motivos distintos, adicione-os para valorar cada um", "Keine Ursachen: Hat das Ereignis mehrere Tagesabschnitte mit unterschiedlichen Gr\xFCnden, diese hinzuf\xFCgen, um jeden zu bewerten", "Sans causes : si le fait comporte plusieurs p\xE9riodes de jours avec des motifs diff\xE9rents, ajoutez-les pour valoriser chacune"],
+          ["Sin correo ni conversaci\xF3n de WhatsApp asociados: todo hecho necesita su origen para poder valorarlo", "No email or WhatsApp conversation linked: every event needs its origin in order to be valued", "Sense correu ni conversa de WhatsApp associats: tot fet necessita el seu origen per poder valorar-lo", "Sem e-mail nem conversa de WhatsApp associados: todo o facto precisa da sua origem para poder ser valorado", "Keine E-Mail und kein WhatsApp-Gespr\xE4ch zugeordnet: Jedes Ereignis braucht seinen Ursprung, um bewertet werden zu k\xF6nnen", "Sans courriel ni conversation WhatsApp associ\xE9s : tout fait a besoin de son origine pour pouvoir \xEAtre valoris\xE9"],
+          ["Sin correo ni WhatsApp", "No email or WhatsApp", "Sense correu ni WhatsApp", "Sem e-mail nem WhatsApp", "Keine E-Mail, kein WhatsApp", "Sans courriel ni WhatsApp"],
+          ["Sin cuantificar", "Unquantified", "Sense quantificar", "Sem quantifica\xE7\xE3o", "Nicht quantifiziert", "Non quantifi\xE9"],
+          ["sin descripci\xF3n", "no description", "sense descripci\xF3", "sem descri\xE7\xE3o", "ohne Beschreibung", "sans description"],
+          ["Sin d\xEDas", "No days", "Sense dies", "Sem dias", "Keine Tage", "Sans jours"],
+          ["sin indicar", "not specified", "sense indicar", "sem indica\xE7\xE3o", "nicht angegeben", "non indiqu\xE9"],
+          ["Sin justificantes", "No supporting documents", "Sense justificants", "Sem comprovativos", "Ohne Belege", "Sans justificatifs"],
+          ["sin precio p\xFAblico", "no public price", "sense preu p\xFAblic", "sem pre\xE7o p\xFAblico", "ohne \xF6ffentlichen Preis", "sans prix public"],
+          ["Sin pruebas ligadas (correos, WhatsApp, documentos", "No linked evidence (emails, WhatsApp, documents", "Sense proves lligades (correus, WhatsApp, documents", "Sem provas associadas (e-mails, WhatsApp, documentos", "Keine verkn\xFCpften Beweise (E-Mails, WhatsApp, Dokumente", "Sans preuves li\xE9es (courriels, WhatsApp, documents"],
+          ["Sin sistemas", "No systems", "Sense sistemes", "Sem sistemas", "Keine Systeme", "Sans syst\xE8mes"],
+          ["Sin valorar", "Not valued", "Sense valorar", "Sem valora\xE7\xE3o", "Nicht bewertet", "Non valoris\xE9"],
+          ["Sistema", "System", "Sistema", "Sistema", "System", "Syst\xE8me"],
+          ["Software de commissioning (tipo CxAlloy) y libros PM en Excel", "Commissioning software (such as CxAlloy) and PM workbooks in Excel", "Programari de commissioning (tipus CxAlloy) i llibres PM en Excel", "Software de commissioning (tipo CxAlloy) e livros PM em Excel", "Commissioning-Software (wie CxAlloy) und PM-B\xFCcher in Excel", "Logiciel de commissioning (type CxAlloy) et classeurs PM sous Excel"],
+          ["Solo commissioning", "Commissioning only", "Nom\xE9s commissioning", "Apenas commissioning", "Nur Commissioning", "Commissioning uniquement"],
+          ["Solo planificaci\xF3n (cartera, recursos, Project de escritorio incluido", "Planning only (portfolio, resources, desktop Project included", "Nom\xE9s planificaci\xF3 (cartera, recursos, Project d'escriptori incl\xF2s", "Apenas planeamento (carteira, recursos, Project de secret\xE1ria inclu\xEDdo", "Nur Planung (Portfolio, Ressourcen, Desktop-Project inklusive", "Planification seule (portefeuille, ressources, Project de bureau inclus"],
+          ["Soporte", "Support", "Suport", "Suporte", "Support", "Support"],
+          ["Soporte de los d\xEDas", "Supporting evidence for the days", "Suport dels dies", "Suporte dos dias", "Nachweis der Tage", "Justification des jours"],
+          ["Staff de obra (sin desglosar", "Site staff (not broken down", "Staff d'obra (sense desglossar", "Staff de obra (sem desagrega\xE7\xE3o", "Baustellenpersonal (nicht aufgeschl\xFCsselt", "Personnel de chantier (non d\xE9taill\xE9"],
+          ["Staff y prolongaci\xF3n", "Staff and prolongation", "Staff i prolongaci\xF3", "Staff e prolongamento", "Personal und Verl\xE4ngerung", "Personnel et prolongation"],
+          ["Subcontrata \u2192 CBRE (repercutible a LIMAK", "Subcontractor \u2192 CBRE (recoverable from LIMAK", "Subcontractista \u2192 CBRE (repercutible a LIMAK", "Subempreiteiro \u2192 CBRE (repercut\xEDvel \xE0 LIMAK", "Subunternehmer \u2192 CBRE (weiterverrechenbar an LIMAK", "Sous-traitant \u2192 CBRE (r\xE9percutable \xE0 LIMAK"],
+          ["Subcontrata que lo reclama", "Subcontractor claiming it", "Subcontractista que ho reclama", "Subempreiteiro que o reclama", "Subunternehmer, der es fordert", "Sous-traitant qui le r\xE9clame"],
+          ["Subsecciones de la reclamaci\xF3n", "Subsections of the claim", "Subseccions de la reclamaci\xF3", "Subsec\xE7\xF5es da reclama\xE7\xE3o", "Unterabschnitte der Nachforderung", "Sous-sections de la r\xE9clamation"],
+          ["Subsecciones de qu\xE9 hace la app", "Subsections of what the app does", "Subseccions de qu\xE8 fa l'app", "Subsec\xE7\xF5es do que a app faz", "Unterabschnitte dazu, was die App leistet", "Sous-sections de ce que fait l'app"],
+          ["Subtotal coste indirecto", "Indirect cost subtotal", "Subtotal cost indirecte", "Subtotal custo indireto", "Zwischensumme indirekte Kosten", "Sous-total co\xFBt indirect"],
+          ["Subtotal directo", "Direct subtotal", "Subtotal directe", "Subtotal direto", "Direkte Zwischensumme", "Sous-total direct"],
+          ["suma", "sum", "suma", "soma", "Summe", "somme"],
+          ["suman los validados", "the validated ones are summed", "se sumen els validats", "somam-se os validados", "die validierten werden summiert", "les valid\xE9s sont additionn\xE9s"],
+          ["supuesto", "assumption", "sup\xF2sit", "pressuposto", "Annahme", "hypoth\xE8se"],
+          ["Supuesto: a confirmar por JC", "Assumption: to be confirmed by JC", "Sup\xF2sit: a confirmar per JC", "Pressuposto: a confirmar por JC", "Annahme: von JC zu best\xE4tigen", "Hypoth\xE8se : \xE0 confirmer par JC"],
+          ["Sustituye a", "Replaces", "Substitueix", "Substitui", "Ersetzt", "Remplace"],
+          ["tareas", "tasks", "tasques", "tarefas", "Aufgaben", "t\xE2ches"],
+          ["Tareas del Gantt", "Gantt tasks", "Tasques del Gantt", "Tarefas do Gantt", "Gantt-Aufgaben", "T\xE2ches du Gantt"],
+          ["Tareas encargadas al equipo", "Tasks assigned to the team", "Tasques encarregades a l'equip", "Tarefas atribu\xEDdas \xE0 equipa", "Dem Team zugewiesene Aufgaben", "T\xE2ches confi\xE9es \xE0 l'\xE9quipe"],
+          ["Tarifa", "Rate", "Tarifa", "Tarifa", "Tarif", "Tarif"],
+          ["Tarifas", "Rates", "Tarifes", "Tarifas", "Tarife", "Tarifs"],
+          ["T\xE9cnico", "Technician", "T\xE8cnic", "T\xE9cnico", "Techniker", "Technicien"],
+          ["T\xE9cnico de commissioning", "Commissioning technician", "T\xE8cnic de commissioning", "T\xE9cnico de commissioning", "Commissioning-Techniker", "Technicien de commissioning"],
+          ["T\xE9cnico de estudios", "Studies technician", "T\xE8cnic d'estudis", "T\xE9cnico de estudos", "Techniker Studien", "Technicien d'\xE9tudes"],
+          ["T\xE9cnico de mantenimiento", "Maintenance technician", "T\xE8cnic de manteniment", "T\xE9cnico de manuten\xE7\xE3o", "Wartungstechniker", "Technicien de maintenance"],
+          ["Tema", "Topic", "Tema", "Tema", "Thema", "Th\xE8me"],
+          ["Temas", "Topics", "Temes", "Temas", "Themen", "Th\xE8mes"],
+          ["Textos del escrito", "Texts of the submission", "Textos de l'escrit", "Textos do escrito", "Texte des Schreibens", "Textes de l'\xE9crit"],
+          ["Tiempo (d\xEDas", "Time (days", "Temps (dies", "Tempo (dias", "Zeit (Tage", "Temps (jours"],
+          ["Tiempo del hecho", "Event time", "Temps del fet", "Tempo do facto", "Zeit des Ereignisses", "Temps du fait"],
+          ["Tiempo: extensi\xF3n de plazo", "Time: extension of deadline", "Temps: ampliaci\xF3 de termini", "Tempo: prorroga\xE7\xE3o de prazo", "Zeit: Fristverl\xE4ngerung", "Temps : prolongation de d\xE9lai"],
+          ["Tipo", "Type", "Tipus", "Tipo", "Typ", "Type"],
+          ["Tipo (seg\xFAn archivo", "Type (by file", "Tipus (segons arxiu", "Tipo (segundo o ficheiro", "Typ (nach Datei", "Type (selon le fichier"],
+          ["T\xEDtulo", "Title", "T\xEDtol", "T\xEDtulo", "Titel", "Titre"],
+          ["T\xEDtulo (opcional", "Title (optional", "T\xEDtol (opcional", "T\xEDtulo (opcional", "Titel (optional", "Titre (facultatif"],
+          ["Todas las categor\xEDas", "All categories", "Totes les categories", "Todas as categorias", "Alle Kategorien", "Toutes les cat\xE9gories"],
+          ["Todav\xEDa sin argumentos ni reacciones", "No arguments or reactions yet", "Encara sense arguments ni reaccions", "Ainda sem argumentos nem rea\xE7\xF5es", "Noch keine Argumente oder Reaktionen", "Pas encore d'arguments ni de r\xE9actions"],
+          ["Todos", "All", "Tots", "Todos", "Alle", "Tous"],
+          ["Todos los que ven reclamaciones", "Everyone who sees claims", "Tots els qui veuen reclamacions", "Todos os que veem reclama\xE7\xF5es", "Alle, die Nachforderungen sehen", "Tous ceux qui voient les r\xE9clamations"],
+          ["Total \xB7 suma de los hechos", "Total \xB7 sum of the events", "Total \xB7 suma dels fets", "Total \xB7 soma dos factos", "Total \xB7 Summe der Ereignisse", "Total \xB7 somme des faits"],
+          ["Total de la fase al mes", "Phase total per month", "Total de la fase al mes", "Total da fase por m\xEAs", "Phasentotal pro Monat", "Total de la phase par mois"],
+          ["Total de la obra", "Project total", "Total de l'obra", "Total da obra", "Projekttotal", "Total du chantier"],
+          ["Total orientativo \xB7 mil \u20AC", "Indicative total \xB7 thousand \u20AC", "Total orientatiu \xB7 mil \u20AC", "Total indicativo \xB7 mil \u20AC", "Richtwert gesamt \xB7 Tausend \u20AC", "Total indicatif \xB7 milliers d'\u20AC"],
+          ["Total reclamado", "Total claimed", "Total reclamat", "Total reclamado", "Total gefordert", "Total r\xE9clam\xE9"],
+          ["Trabajo de campo con la app m\xF3vil", "Fieldwork with the mobile app", "Treball de camp amb l'app m\xF2bil", "Trabalho de campo com a app m\xF3vel", "Feldarbeit mit der mobilen App", "Travail de terrain avec l'app mobile"],
+          ["Trabajos previos no hechos", "Preliminary works not done", "Treballs previs no fets", "Trabalhos pr\xE9vios n\xE3o realizados", "Nicht ausgef\xFChrte Vorarbeiten", "Travaux pr\xE9alables non r\xE9alis\xE9s"],
+          ["Traer", "Fetch", "Portar", "Trazer", "Holen", "R\xE9cup\xE9rer"],
+          ["Tramitados", "Processed", "Tramitats", "Tramitados", "Bearbeitet", "Trait\xE9s"],
+          ["tr\xE1mites", "procedures", "tr\xE0mits", "tr\xE2mites", "Verfahren", "d\xE9marches"],
+          ["Un JSON con preaviso, medios, renuncias, exclusiones y cl\xE1usulas (p. ej. docs/claim/plantilla-ncn.json", "A JSON with notice period, means, waivers, exclusions and clauses (e.g. docs/claim/plantilla-ncn.json", "Un JSON amb preav\xEDs, mitjans, ren\xFAncies, exclusions i cl\xE0usules (p. ex. docs/claim/plantilla-ncn.json", "Um JSON com pr\xE9-aviso, meios, ren\xFAncias, exclus\xF5es e cl\xE1usulas (p. ex. docs/claim/plantilla-ncn.json", "Ein JSON mit Vorank\xFCndigung, Mitteln, Verzichten, Ausschl\xFCssen und Klauseln (z. B. docs/claim/plantilla-ncn.json", "Un JSON avec pr\xE9avis, moyens, renonciations, exclusions et clauses (p. ex. docs/claim/plantilla-ncn.json"],
+          ["Una fila por instalaci\xF3n de los equipos de la obra", "One row per installation of the project's equipment", "Una fila per instal\xB7laci\xF3 dels equips de l'obra", "Uma linha por instala\xE7\xE3o dos equipamentos da obra", "Eine Zeile pro Installation der Anlagen im Projekt", "Une ligne par installation des \xE9quipements du chantier"],
+          ["una vez", "once", "una vegada", "uma vez", "einmal", "une fois"],
+          ["una vez \xB7 media al mes", "once \xB7 monthly average", "una vegada \xB7 mitjana al mes", "uma vez \xB7 m\xE9dia mensal", "einmal \xB7 Durchschnitt pro Monat", "une fois \xB7 moyenne mensuelle"],
+          ["Una vez al final (cx + entrega", "Once at the end (cx + handover", "Una vegada al final (cx + lliurament", "Uma vez no final (cx + entrega", "Einmal am Ende (Cx + \xDCbergabe", "Une fois \xE0 la fin (cx + remise"],
+          ["Una vez por obra", "Once per project", "Una vegada per obra", "Uma vez por obra", "Einmal pro Projekt", "Une fois par chantier"],
+          ["Una vez por obra, al final", "Once per project, at the end", "Una vegada per obra, al final", "Uma vez por obra, no final", "Einmal pro Projekt, am Ende", "Une fois par chantier, \xE0 la fin"],
+          ["Unidad de negocio", "Business unit", "Unitat de negoci", "Unidade de neg\xF3cio", "Gesch\xE4ftseinheit", "Unit\xE9 d'affaires"],
+          ["Unidad de referencia (Base + Cx y Mantenimiento", "Reference unit (Base + Cx and Maintenance", "Unitat de refer\xE8ncia (Base + Cx i Manteniment", "Unidade de refer\xEAncia (Base + Cx e Manuten\xE7\xE3o", "Referenzeinheit (Basis + Cx und Wartung", "Unit\xE9 de r\xE9f\xE9rence (Base + Cx et Maintenance"],
+          ["Unidades", "Units", "Unitats", "Unidades", "Einheiten", "Unit\xE9s"],
+          ["Usuarios", "Users", "Usuaris", "Utilizadores", "Benutzer", "Utilisateurs"],
+          ["Usuarios del equipo", "Team users", "Usuaris de l'equip", "Utilizadores da equipa", "Benutzer des Teams", "Utilisateurs de l'\xE9quipe"],
+          ["Validado", "Validated", "Validat", "Validado", "Validiert", "Valid\xE9"],
+          ["validados", "validated", "validats", "validados", "validiert", "valid\xE9s"],
+          ["Validados", "Validated", "Validats", "Validados", "Validiert", "Valid\xE9s"],
+          ["validados que suman", "validated ones that add up", "validats que sumen", "validados que somam", "validierte, die sich summieren", "valid\xE9s qui s'additionnent"],
+          ["Valor (\u20AC", "Value (\u20AC", "Valor (\u20AC", "Valor (\u20AC", "Wert (\u20AC", "Valeur (\u20AC"],
+          ["Valoraci\xF3n", "Valuation", "Valoraci\xF3", "Valora\xE7\xE3o", "Bewertung", "Valorisation"],
+          ["Valorar", "Value", "Valorar", "Valorar", "Bewerten", "Valoriser"],
+          ["Venta", "Sale price", "Preu de venda", "Pre\xE7o de venda", "Verkaufspreis", "Prix de vente"],
+          ["Venta (\u20AC", "Sale price (\u20AC", "Preu de venda (\u20AC", "Pre\xE7o de venda (\u20AC", "Verkaufspreis (\u20AC", "Prix de vente (\u20AC"],
+          ["Ver los hechos de \xABBastante defendible", "See the events of \xABFairly defensible", "Veure els fets de \xABBastant defensable", "Ver os factos de \xABBastante defens\xE1vel", "Ereignisse von \xABZiemlich vertretbar anzeigen", "Voir les faits de \xABAssez d\xE9fendable"],
+          ["Ver los hechos de \xABMuy defendible", "See the events of \xABHighly defensible", "Veure els fets de \xABMolt defensable", "Ver os factos de \xABMuito defens\xE1vel", "Ereignisse von \xABSehr vertretbar anzeigen", "Voir les faits de \xABTr\xE8s d\xE9fendable"],
+          ["Ver los hechos de \xABPoco defendible", "See the events of \xABWeakly defensible", "Veure els fets de \xABPoc defensable", "Ver os factos de \xABPouco defens\xE1vel", "Ereignisse von \xABWenig vertretbar anzeigen", "Voir les faits de \xABPeu d\xE9fendable"],
+          ["Ver los hechos de \xABSin valorar", "See the events of \xABNot valued", "Veure els fets de \xABSense valorar", "Ver os factos de \xABSem valora\xE7\xE3o", "Ereignisse von \xABNicht bewertet anzeigen", "Voir les faits de \xABNon valoris\xE9"],
+          ["Ver los hechos de Aceleraci\xF3n", "See the events of Acceleration", "Veure els fets d'Acceleraci\xF3", "Ver os factos de Acelera\xE7\xE3o", "Ereignisse von Beschleunigung anzeigen", "Voir les faits d'Acc\xE9l\xE9ration"],
+          ["Ver los hechos de Baja productividad", "See the events of Low productivity", "Veure els fets de Baixa productivitat", "Ver os factos de Baixa produtividade", "Ereignisse von Geringe Produktivit\xE4t anzeigen", "Voir les faits de Faible productivit\xE9"],
+          ["Ver los hechos de Cambios y retrabajos del cliente", "See the events of Client changes and rework", "Veure els fets de Canvis i retreballs del client", "Ver os factos de Altera\xE7\xF5es e retrabalho do cliente", "Ereignisse von \xC4nderungen und Nacharbeiten des Kunden anzeigen", "Voir les faits de Modifications et reprises du client"],
+          ["Ver los hechos de Retrasos del cliente", "See the events of Client delays", "Veure els fets de Retards del client", "Ver os factos de Atrasos do cliente", "Ereignisse von Verz\xF6gerungen des Kunden anzeigen", "Voir les faits de Retards du client"],
+          ["Ver los hechos de Staff y prolongaci\xF3n", "See the events of Staff and prolongation", "Veure els fets de Staff i prolongaci\xF3", "Ver os factos de Staff e prolongamento", "Ereignisse von Personal und Verl\xE4ngerung anzeigen", "Voir les faits de Personnel et prolongation"],
+          ["Verlas", "See them", "Veure-les", "V\xEA-las", "Ansehen", "Les voir"],
+          ["Vidaire Obras junta todo eso en un solo programa centrado en instalaciones", "Vidaire Obras brings all of that together in a single program focused on building services", "Vidaire Obras ajunta tot aix\xF2 en un sol programa centrat en instal\xB7lacions", "A Vidaire Obras junta tudo isso num \xFAnico programa centrado em instala\xE7\xF5es", "Vidaire Obras vereint all das in einem einzigen, auf Installationen ausgerichteten Programm", "Vidaire Obras r\xE9unit tout cela dans un seul logiciel centr\xE9 sur les installations"],
+          ["Vigilancia de normativa", "Regulatory monitoring", "Vigil\xE0ncia de normativa", "Vigil\xE2ncia normativa", "\xDCberwachung der Vorschriften", "Veille r\xE9glementaire"],
+          ["Volver a propuesto", "Back to proposed", "Tornar a proposat", "Voltar a proposto", "Zur\xFCck zu vorgeschlagen", "Remettre en propos\xE9"],
+          ["Ya reclamado en", "Already claimed in", "Ja reclamat a", "J\xE1 reclamado em", "Bereits gefordert in", "D\xE9j\xE0 r\xE9clam\xE9 dans"],
+          /* 14-nov (notas 3da06329 y b58b07b6): Reclamaciones, su panel y «Lo que ahorra» con la app en otro idioma. */
+          ["Defender", "Defend", "Defensar", "Defender", "Verteidigen", "D\xE9fendre"],
+          ["Vista", "View", "Vista", "Vista", "Ansicht", "Vue"],
+          ["Filtros", "Filters", "Filtres", "Filtros", "Filter", "Filtres"],
+          ["Nuevo hecho", "New event", "Nou fet", "Novo facto", "Neues Ereignis", "Nouveau fait"],
+          ["Buscar en los hechos", "Search the events", "Cerca als fets", "Pesquisar nos factos", "In den Ereignissen suchen", "Rechercher dans les faits"],
+          ["Estudio", "Study", "Estudi", "Estudo", "Studie", "\xC9tude"],
+          ["Motivo", "Reason", "Motiu", "Motivo", "Grund", "Motif"],
+          ["Qu\xE9 falta", "What is missing", "Qu\xE8 falta", "O que falta", "Was fehlt", "Ce qui manque"],
+          ["Filtro y orden", "Filter and order", "Filtre i ordre", "Filtro e ordem", "Filter und Reihenfolge", "Filtre et ordre"],
+          ["M\xE1s", "More", "M\xE9s", "Mais", "Mehr", "Plus"],
+          ["Y sobre todo lo que hace sola", "And above all what it does by itself", "I sobretot el que fa sola", "E sobretudo o que faz sozinha", "Und vor allem, was sie selbst erledigt", "Et surtout ce qu'elle fait seule"],
+          ["Uso de equipos", "Equipment use", "\xDAs d'equips", "Uso de equipamentos", "Ger\xE4tenutzung", "Utilisation des \xE9quipements"],
+          /* 14-nov (notas 3da06329 y b58b07b6): Reclamaciones, su panel y «Lo que ahorra» con la app en otro idioma. */
+          ["Equipos \u203A una fila por equipo, en el mes en que se dio de alta (creadoEn)", "Units \u203A one row per unit, in the month it was registered (creadoEn)", "Equips \u203A una fila per equip, al mes en qu\xE8 es va donar d'alta (creadoEn)", "Equipamentos \u203A uma linha por equipamento, no m\xEAs em que foi registado (creadoEn)", "Anlagen \u203A eine Zeile pro Anlage, im Monat der Erfassung (creadoEn)", "\xC9quipements \u203A une ligne par \xE9quipement, dans le mois o\xF9 il a \xE9t\xE9 enregistr\xE9 (creadoEn)"],
+          ["Equipos \u203A Modelos, en el mes en que se cre\xF3 el modelo (creadoEn)", "Units \u203A Models, in the month the model was created (creadoEn)", "Equips \u203A Models, al mes en qu\xE8 es va crear el model (creadoEn)", "Equipamentos \u203A Modelos, no m\xEAs em que o modelo foi criado (creadoEn)", "Anlagen \u203A Modelle, im Monat der Erstellung des Modells (creadoEn)", "\xC9quipements \u203A Mod\xE8les, dans le mois o\xF9 le mod\xE8le a \xE9t\xE9 cr\xE9\xE9 (creadoEn)"],
+          ["Documentos enlazados a cada equipo, en el mes de la \xFAltima modificaci\xF3n del equipo (aproximado: la base no guarda la fecha de cada enlace)", "Documents linked to each unit, in the month of the unit's last modification (approximate: the database does not store the date of each link)", "Documents enlla\xE7ats a cada equip, al mes de l'\xFAltima modificaci\xF3 de l'equip (aproximat: la base no guarda la data de cada enlla\xE7)", "Documentos ligados a cada equipamento, no m\xEAs da \xFAltima modifica\xE7\xE3o do equipamento (aproximado: a base n\xE3o guarda a data de cada liga\xE7\xE3o)", "Mit jeder Anlage verkn\xFCpfte Dokumente, im Monat der letzten \xC4nderung der Anlage (ungef\xE4hr: die Datenbank speichert das Datum jeder Verkn\xFCpfung nicht)", "Documents li\xE9s \xE0 chaque \xE9quipement, dans le mois de la derni\xE8re modification de l'\xE9quipement (approximatif : la base ne conserve pas la date de chaque lien)"],
+          ["Commissioning \u203A Fichas PM, en el mes en que se gener\xF3 cada ficha (creadoEn)", "Commissioning \u203A PM records, in the month each record was generated (creadoEn)", "Commissioning \u203A Fitxes PM, al mes en qu\xE8 es va generar cada fitxa (creadoEn)", "Commissioning \u203A Fichas PM, no m\xEAs em que cada ficha foi gerada (creadoEn)", "Commissioning \u203A PM-Bl\xE4tter, im Monat der Erstellung jedes Blatts (creadoEn)", "Commissioning \u203A Fiches PM, dans le mois o\xF9 chaque fiche a \xE9t\xE9 g\xE9n\xE9r\xE9e (creadoEn)"],
+          ["Datos de proyecto en las fichas PM, en el mes de la \xFAltima modificaci\xF3n de la ficha (aproximado)", "Project data in the PM records, in the month of the record's last modification (approximate)", "Dades de projecte a les fitxes PM, al mes de l'\xFAltima modificaci\xF3 de la fitxa (aproximat)", "Dados de projeto nas fichas PM, no m\xEAs da \xFAltima modifica\xE7\xE3o da ficha (aproximado)", "Projektdaten in den PM-Bl\xE4ttern, im Monat der letzten \xC4nderung des Blatts (ungef\xE4hr)", "Donn\xE9es de projet dans les fiches PM, dans le mois de la derni\xE8re modification de la fiche (approximatif)"],
+          ["Commissioning \u203A Balanceo, hojas con circuitos (creadoEn)", "Commissioning \u203A Balancing, sheets with circuits (creadoEn)", "Commissioning \u203A Balanceig, fulls amb circuits (creadoEn)", "Commissioning \u203A Balanceamento, folhas com circuitos (creadoEn)", "Commissioning \u203A Abgleich, Bl\xE4tter mit Kreisen (creadoEn)", "Commissioning \u203A \xC9quilibrage, feuilles avec circuits (creadoEn)"],
+          ["Planos de difusores, bocas situadas, en el mes de la \xFAltima modificaci\xF3n del plano", "Diffuser drawings, outlets placed, in the month of the drawing's last modification", "Pl\xE0nols de difusors, boques situades, al mes de l'\xFAltima modificaci\xF3 del pl\xE0nol", "Plantas de difusores, bocas colocadas, no m\xEAs da \xFAltima modifica\xE7\xE3o da planta", "Pl\xE4ne der Diffusoren, platzierte Ausl\xE4sse, im Monat der letzten \xC4nderung des Plans", "Plans de diffuseurs, bouches plac\xE9es, dans le mois de la derni\xE8re modification du plan"],
+          ["Puntos de control: salen de los equipos, en el mes del alta de cada equipo (aproximado)", "Control points: they come from the units, in the month each unit was registered (approximate)", "Punts de control: surten dels equips, al mes de l'alta de cada equip (aproximat)", "Pontos de controlo: saem dos equipamentos, no m\xEAs do registo de cada equipamento (aproximado)", "Kontrollpunkte: stammen aus den Anlagen, im Monat der Erfassung jeder Anlage (ungef\xE4hr)", "Points de contr\xF4le : ils proviennent des \xE9quipements, dans le mois de l'enregistrement de chaque \xE9quipement (approximatif)"],
+          ["Presupuesto de la obra, partidas (creadoEn)", "Site budget, line items (creadoEn)", "Pressupost de l'obra, partides (creadoEn)", "Or\xE7amento da obra, artigos (creadoEn)", "Baustellenbudget, Positionen (creadoEn)", "Budget du chantier, lignes (creadoEn)"],
+          ["Precios de contrato por partida (creadoEn)", "Contract prices per line item (creadoEn)", "Preus de contracte per partida (creadoEn)", "Pre\xE7os de contrato por artigo (creadoEn)", "Vertragspreise pro Position (creadoEn)", "Prix de contrat par ligne (creadoEn)"],
+          ["Certificaciones a cliente (creadoEn); las de un periodo anterior al alta son historial", "Certifications to the client (creadoEn); those for a period before the set-up are history", "Certificacions a client (creadoEn); les d'un per\xEDode anterior a l'alta s\xF3n historial", "Certifica\xE7\xF5es ao cliente (creadoEn); as de um per\xEDodo anterior ao registo da obra s\xE3o hist\xF3rico", "Zertifizierungen an den Kunden (creadoEn); jene f\xFCr einen Zeitraum vor der Einrichtung sind Verlauf", "Certifications au client (creadoEn) ; celles d'une p\xE9riode ant\xE9rieure \xE0 la mise en place sont de l'historique"],
+          ["certificaciones de meses anteriores al alta, cargadas despu\xE9s", "certifications from months before the set-up, loaded afterwards", "certificacions de mesos anteriors a l'alta, carregades despr\xE9s", "certifica\xE7\xF5es de meses anteriores ao registo da obra, carregadas depois", "Zertifizierungen aus Monaten vor der Einrichtung, nachtr\xE4glich geladen", "certifications de mois ant\xE9rieurs \xE0 la mise en place, charg\xE9es apr\xE8s coup"],
+          ["Certificaciones de industriales (creadoEn); las de un periodo anterior al alta son historial", "Subcontractor certifications (creadoEn); those for a period before the set-up are history", "Certificacions d'industrials (creadoEn); les d'un per\xEDode anterior a l'alta s\xF3n historial", "Certifica\xE7\xF5es de subempreiteiros (creadoEn); as de um per\xEDodo anterior ao registo da obra s\xE3o hist\xF3rico", "Zertifizierungen von Subunternehmern (creadoEn); jene f\xFCr einen Zeitraum vor der Einrichtung sind Verlauf", "Certifications de sous-traitants (creadoEn) ; celles d'une p\xE9riode ant\xE9rieure \xE0 la mise en place sont de l'historique"],
+          ["certificaciones de industriales de meses anteriores al alta, cargadas despu\xE9s", "subcontractor certifications from months before the set-up, loaded afterwards", "certificacions d'industrials de mesos anteriors a l'alta, carregades despr\xE9s", "certifica\xE7\xF5es de subempreiteiros de meses anteriores ao registo da obra, carregadas depois", "Zertifizierungen von Subunternehmern aus Monaten vor der Einrichtung, nachtr\xE4glich geladen", "certifications de sous-traitants de mois ant\xE9rieurs \xE0 la mise en place, charg\xE9es apr\xE8s coup"],
+          ["Compras \u203A Pedidos (creadoEn); los pedidos solicitados antes del alta son historial", "Purchasing \u203A Purchase orders (creadoEn); purchase orders requested before the set-up are history", "Compres \u203A Comandes (creadoEn); les comandes sol\xB7licitades abans de l'alta s\xF3n historial", "Compras \u203A Encomendas (creadoEn); as encomendas pedidas antes do registo da obra s\xE3o hist\xF3rico", "Einkauf \u203A Bestellungen (creadoEn); vor der Einrichtung angefragte Bestellungen sind Verlauf", "Achats \u203A Commandes (creadoEn) ; les commandes demand\xE9es avant la mise en place sont de l'historique"],
+          ["pedidos solicitados antes del alta (cargados del Excel de compras)", "purchase orders requested before the set-up (loaded from the purchasing Excel)", "comandes sol\xB7licitades abans de l'alta (carregades de l'Excel de compres)", "encomendas pedidas antes do registo da obra (carregadas do Excel de compras)", "vor der Einrichtung angefragte Bestellungen (aus dem Einkaufs-Excel geladen)", "commandes demand\xE9es avant la mise en place (charg\xE9es du Excel des achats)"],
+          ["Albaranes (creadoEn); los de fecha anterior al alta son historial", "Delivery notes (creadoEn); those dated before the set-up are history", "Albarans (creadoEn); els de data anterior a l'alta s\xF3n historial", "Guias de remessa (creadoEn); as de data anterior ao registo da obra s\xE3o hist\xF3rico", "Lieferscheine (creadoEn); jene mit Datum vor der Einrichtung sind Verlauf", "Bons de livraison (creadoEn) ; ceux dat\xE9s d'avant la mise en place sont de l'historique"],
+          ["albaranes de antes del alta", "delivery notes from before the set-up", "albarans d'abans de l'alta", "guias de remessa de antes do registo da obra", "Lieferscheine von vor der Einrichtung", "bons de livraison d'avant la mise en place"],
+          ["Facturas de proveedor (creadoEn); las de antes del alta son historial", "Supplier invoices (creadoEn); those from before the set-up are history", "Factures de prove\xEFdor (creadoEn); les d'abans de l'alta s\xF3n historial", "Faturas de fornecedor (creadoEn); as de antes do registo da obra s\xE3o hist\xF3rico", "Lieferantenrechnungen (creadoEn); jene von vor der Einrichtung sind Verlauf", "Factures fournisseur (creadoEn) ; celles d'avant la mise en place sont de l'historique"],
+          ["facturas de antes del alta", "invoices from before the set-up", "factures d'abans de l'alta", "faturas de antes do registo da obra", "Rechnungen von vor der Einrichtung", "factures d'avant la mise en place"],
+          ["Calidad \u203A NCR (creadoEn); las importadas del libro de NCR o detectadas antes del alta son historial", "Quality \u203A NCR (creadoEn); those imported from the NCR log or detected before the set-up are history", "Qualitat \u203A NCR (creadoEn); les importades del llibre de NCR o detectades abans de l'alta s\xF3n historial", "Qualidade \u203A NCR (creadoEn); as importadas do livro de NCR ou detetadas antes do registo da obra s\xE3o hist\xF3rico", "Qualit\xE4t \u203A NCR (creadoEn); jene aus dem NCR-Buch importierten oder vor der Einrichtung festgestellten sind Verlauf", "Qualit\xE9 \u203A NCR (creadoEn) ; celles import\xE9es du registre des NCR ou d\xE9tect\xE9es avant la mise en place sont de l'historique"],
+          ["NCR importadas del libro de NCR (detectadas antes del alta)", "NCR imported from the NCR log (detected before the set-up)", "NCR importades del llibre de NCR (detectades abans de l'alta)", "NCR importadas do livro de NCR (detetadas antes do registo da obra)", "Aus dem NCR-Buch importierte NCR (vor der Einrichtung festgestellt)", "NCR import\xE9es du registre des NCR (d\xE9tect\xE9es avant la mise en place)"],
+          ["Partes de incidencia (creadoEn)", "Incident reports (creadoEn)", "Parts d'incid\xE8ncia (creadoEn)", "Partes de incid\xEAncia (creadoEn)", "St\xF6rungsmeldungen (creadoEn)", "Rapports d'incident (creadoEn)"],
+          ["partes de antes del alta", "reports from before the set-up", "parts d'abans de l'alta", "partes de antes do registo da obra", "Meldungen von vor der Einrichtung", "rapports d'avant la mise en place"],
+          ["Pruebas de estanqueidad (creadoEn)", "Tightness tests (creadoEn)", "Proves d'estanquitat (creadoEn)", "Ensaios de estanquidade (creadoEn)", "Dichtheitspr\xFCfungen (creadoEn)", "Essais d'\xE9tanch\xE9it\xE9 (creadoEn)"],
+          ["pruebas de antes del alta", "tests from before the set-up", "proves d'abans de l'alta", "ensaios de antes do registo da obra", "Pr\xFCfungen von vor der Einrichtung", "essais d'avant la mise en place"],
+          ["Revisiones de PPI (creadoEn)", "PPI reviews (creadoEn)", "Revisions de PPI (creadoEn)", "Revis\xF5es de PPI (creadoEn)", "PPI-Kontrollen (creadoEn)", "Revues de PPI (creadoEn)"],
+          ["Planificaci\xF3n \u203A Gantt, actividades (creadoEn)", "Planning \u203A Gantt, activities (creadoEn)", "Planificaci\xF3 \u203A Gantt, activitats (creadoEn)", "Planeamento \u203A Gantt, atividades (creadoEn)", "Planung \u203A Gantt, Aktivit\xE4ten (creadoEn)", "Planification \u203A Gantt, activit\xE9s (creadoEn)"],
+          ["Tareas encargadas (creadoEn)", "Assigned tasks (creadoEn)", "Tasques encarregades (creadoEn)", "Tarefas atribu\xEDdas (creadoEn)", "Zugewiesene Aufgaben (creadoEn)", "T\xE2ches confi\xE9es (creadoEn)"],
+          ["Actas de obra (creadoEn); las de reuniones anteriores al alta son historial", "Site meeting minutes (creadoEn); those of meetings before the set-up are history", "Actes d'obra (creadoEn); les de reunions anteriors a l'alta s\xF3n historial", "Atas de obra (creadoEn); as de reuni\xF5es anteriores ao registo da obra s\xE3o hist\xF3rico", "Baustellenprotokolle (creadoEn); jene von Besprechungen vor der Einrichtung sind Verlauf", "Comptes rendus de chantier (creadoEn) ; ceux des r\xE9unions ant\xE9rieures \xE0 la mise en place sont de l'historique"],
+          ["actas de reuniones anteriores al alta", "minutes of meetings before the set-up", "actes de reunions anteriors a l'alta", "atas de reuni\xF5es anteriores ao registo da obra", "Protokolle von Besprechungen vor der Einrichtung", "comptes rendus de r\xE9unions ant\xE9rieures \xE0 la mise en place"],
+          ["Marcas de avance en plano (creadoEn)", "Progress marks on drawings (creadoEn)", "Marques d'avan\xE7 en pl\xE0nol (creadoEn)", "Marcas de avan\xE7o na planta (creadoEn)", "Fortschrittsmarkierungen im Plan (creadoEn)", "Marques d'avancement sur plan (creadoEn)"],
+          ["marcas de antes del alta", "marks from before the set-up", "marques d'abans de l'alta", "marcas de antes do registo da obra", "Markierungen von vor der Einrichtung", "marques d'avant la mise en place"],
+          ["Mantenimiento \u203A \xF3rdenes cerradas (creadoEn)", "Maintenance \u203A closed work orders (creadoEn)", "Manteniment \u203A ordres tancades (creadoEn)", "Manuten\xE7\xE3o \u203A ordens fechadas (creadoEn)", "Wartung \u203A abgeschlossene Auftr\xE4ge (creadoEn)", "Maintenance \u203A ordres cl\xF4tur\xE9s (creadoEn)"],
+          ["Fichajes (creadoEn)", "Clock-ins (creadoEn)", "Fitxatges (creadoEn)", "Registos de ponto (creadoEn)", "Zeiterfassungen (creadoEn)", "Pointages (creadoEn)"],
+          ["fichajes de antes del alta", "clock-ins from before the set-up", "fitxatges d'abans de l'alta", "registos de ponto de antes do registo da obra", "Zeiterfassungen von vor der Einrichtung", "pointages d'avant la mise en place"],
+          ["Pedidos \u203A Pedido \u2194 proyecto, l\xEDneas cruzadas (creadoEn de la propuesta)", "Purchase orders \u203A Purchase order \u2194 project, cross-matched lines (creadoEn of the proposal)", "Comandes \u203A Comanda \u2194 projecte, l\xEDnies creuades (creadoEn de la proposta)", "Encomendas \u203A Encomenda \u2194 projeto, linhas cruzadas (creadoEn da proposta)", "Bestellungen \u203A Bestellung \u2194 Projekt, abgeglichene Zeilen (creadoEn des Vorschlags)", "Commandes \u203A Commande \u2194 projet, lignes crois\xE9es (creadoEn de la proposition)"],
+          ["Medici\xF3n comprobada en planos (creadoEn)", "Quantity checked on drawings (creadoEn)", "Mesurament comprovat en pl\xE0nols (creadoEn)", "Medi\xE7\xE3o verificada nas plantas (creadoEn)", "In Pl\xE4nen gepr\xFCfte Mengenermittlung (creadoEn)", "M\xE9tr\xE9 v\xE9rifi\xE9 sur plans (creadoEn)"],
+          ["Reclamaciones \u203A pruebas tipo correo (creadoEn)", "Claims \u203A email-type evidence (creadoEn)", "Reclamacions \u203A proves de tipus correu (creadoEn)", "Reclama\xE7\xF5es \u203A provas do tipo correio (creadoEn)", "Nachforderungen \u203A Beweise vom Typ E-Mail (creadoEn)", "R\xE9clamations \u203A preuves de type courriel (creadoEn)"],
+          ["Reclamaciones \u203A pruebas tipo foto (creadoEn)", "Claims \u203A photo-type evidence (creadoEn)", "Reclamacions \u203A proves de tipus foto (creadoEn)", "Reclama\xE7\xF5es \u203A provas do tipo fotografia (creadoEn)", "Nachforderungen \u203A Beweise vom Typ Foto (creadoEn)", "R\xE9clamations \u203A preuves de type photo (creadoEn)"],
+          ["Reclamaciones \u203A pruebas documento o acta (creadoEn)", "Claims \u203A document or minutes evidence (creadoEn)", "Reclamacions \u203A proves de document o acta (creadoEn)", "Reclama\xE7\xF5es \u203A provas de documento ou ata (creadoEn)", "Nachforderungen \u203A Beweise vom Typ Dokument oder Protokoll (creadoEn)", "R\xE9clamations \u203A preuves de type document ou compte rendu (creadoEn)"],
+          ["Reclamaciones \u203A hechos (creadoEn)", "Claims \u203A events (creadoEn)", "Reclamacions \u203A fets (creadoEn)", "Reclama\xE7\xF5es \u203A factos (creadoEn)", "Nachforderungen \u203A Ereignisse (creadoEn)", "R\xE9clamations \u203A faits (creadoEn)"],
+          ["Reclamaciones \u203A hechos cuantificados (creadoEn del hecho)", "Claims \u203A quantified events (creadoEn of the event)", "Reclamacions \u203A fets quantificats (creadoEn del fet)", "Reclama\xE7\xF5es \u203A factos quantificados (creadoEn do facto)", "Nachforderungen \u203A quantifizierte Ereignisse (creadoEn des Ereignisses)", "R\xE9clamations \u203A faits chiffr\xE9s (creadoEn du fait)"],
+          ["Reclamaciones \u203A hechos de pagos e IPC (creadoEn del hecho)", "Claims \u203A payment and IPC events (creadoEn of the event)", "Reclamacions \u203A fets de pagaments i IPC (creadoEn del fet)", "Reclama\xE7\xF5es \u203A factos de pagamentos e IPC (creadoEn do facto)", "Nachforderungen \u203A Zahlungs- und IPC-Ereignisse (creadoEn des Ereignisses)", "R\xE9clamations \u203A faits de paiements et d'IPC (creadoEn du fait)"],
+          ["Reclamaciones \u203A hechos clasificados (creadoEn del hecho)", "Claims \u203A classified events (creadoEn of the event)", "Reclamacions \u203A fets classificats (creadoEn del fet)", "Reclama\xE7\xF5es \u203A factos classificados (creadoEn do facto)", "Nachforderungen \u203A klassifizierte Ereignisse (creadoEn des Ereignisses)", "R\xE9clamations \u203A faits class\xE9s (creadoEn du fait)"],
+          ["Reclamaciones \u203A hechos con plazo (creadoEn del hecho)", "Claims \u203A events with a deadline (creadoEn of the event)", "Reclamacions \u203A fets amb termini (creadoEn del fet)", "Reclama\xE7\xF5es \u203A factos com prazo (creadoEn do facto)", "Nachforderungen \u203A Ereignisse mit Frist (creadoEn des Ereignisses)", "R\xE9clamations \u203A faits avec d\xE9lai (creadoEn du fait)"],
+          ["Reclamaciones \u203A enlaces hecho-prueba (creadoEn)", "Claims \u203A event-evidence links (creadoEn)", "Reclamacions \u203A enlla\xE7os fet-prova (creadoEn)", "Reclama\xE7\xF5es \u203A liga\xE7\xF5es facto-prova (creadoEn)", "Nachforderungen \u203A Verkn\xFCpfungen Ereignis-Beweis (creadoEn)", "R\xE9clamations \u203A liens fait-preuve (creadoEn)"],
+          ["Reclamaciones \u203A pruebas anexadas (creadoEn del enlace)", "Claims \u203A attached evidence (creadoEn of the link)", "Reclamacions \u203A proves annexades (creadoEn de l'enlla\xE7)", "Reclama\xE7\xF5es \u203A provas anexadas (creadoEn da liga\xE7\xE3o)", "Nachforderungen \u203A beigef\xFCgte Beweise (creadoEn der Verkn\xFCpfung)", "R\xE9clamations \u203A preuves annex\xE9es (creadoEn du lien)"],
+          ["Reclamaciones \u203A cl\xE1usulas citadas (creadoEn)", "Claims \u203A clauses cited (creadoEn)", "Reclamacions \u203A cl\xE0usules citades (creadoEn)", "Reclama\xE7\xF5es \u203A cl\xE1usulas citadas (creadoEn)", "Nachforderungen \u203A zitierte Klauseln (creadoEn)", "R\xE9clamations \u203A clauses cit\xE9es (creadoEn)"],
+          ["Reclamaciones \u203A apartados (creadoEn)", "Claims \u203A sections (creadoEn)", "Reclamacions \u203A apartats (creadoEn)", "Reclama\xE7\xF5es \u203A sec\xE7\xF5es (creadoEn)", "Nachforderungen \u203A Abschnitte (creadoEn)", "R\xE9clamations \u203A sections (creadoEn)"],
+          ["Reclamaciones \u203A una por expediente (creadoEn)", "Claims \u203A one per file (creadoEn)", "Reclamacions \u203A una per expedient (creadoEn)", "Reclama\xE7\xF5es \u203A uma por processo (creadoEn)", "Nachforderungen \u203A eine pro Akte (creadoEn)", "R\xE9clamations \u203A une par dossier (creadoEn)"],
+          ["Reclamaciones \u203A conciliaci\xF3n de material (creadoEn)", "Claims \u203A material reconciliation (creadoEn)", "Reclamacions \u203A conciliaci\xF3 de material (creadoEn)", "Reclama\xE7\xF5es \u203A concilia\xE7\xE3o de material (creadoEn)", "Nachforderungen \u203A Materialabgleich (creadoEn)", "R\xE9clamations \u203A rapprochement du mat\xE9riel (creadoEn)"],
+          ["Equipos en uso para el claim, en el mes de la reclamaci\xF3n (aproximado)", "Units in use for the claim, in the month of the claim (approximate)", "Equips en \xFAs per al claim, al mes de la reclamaci\xF3 (aproximat)", "Equipamentos em uso para o claim, no m\xEAs da reclama\xE7\xE3o (aproximado)", "F\xFCr den Claim verwendete Anlagen, im Monat der Nachforderung (ungef\xE4hr)", "\xC9quipements utilis\xE9s pour le claim, dans le mois de la r\xE9clamation (approximatif)"],
+          ["Informe semanal: un lunes = un informe, desde el alta de la obra (no se guarda cada informe sacado)", "Weekly report: one Monday = one report, from the site set-up (each report produced is not stored)", "Informe setmanal: un dilluns = un informe, des de l'alta de l'obra (no es guarda cada informe tret)", "Relat\xF3rio semanal: uma segunda-feira = um relat\xF3rio, desde o registo da obra (n\xE3o se guarda cada relat\xF3rio emitido)", "Wochenbericht: ein Montag = ein Bericht, seit der Einrichtung der Baustelle (jeder erstellte Bericht wird nicht gespeichert)", "Rapport hebdomadaire : un lundi = un rapport, depuis la mise en place du chantier (chaque rapport sorti n'est pas conserv\xE9)"],
+          ["SELECT calculadoEn FROM desfaseCalculos WHERE obraId = ?", "SELECT calculadoEn FROM desfaseCalculos WHERE obraId = ?", "SELECT calculadoEn FROM desfaseCalculos WHERE obraId = ?", "SELECT calculadoEn FROM desfaseCalculos WHERE obraId = ?", "SELECT calculadoEn FROM desfaseCalculos WHERE obraId = ?", "SELECT calculadoEn FROM desfaseCalculos WHERE obraId = ?"],
+          ["Certificaciones \u203A Mes a mes \u203A Por causa: lo que la app cas\xF3, revis\xF3 y enlaz\xF3 al calcular el desfase, en el mes de ese c\xE1lculo (desfaseCalculos)", "Certifications \u203A Month by month \u203A By cause: what the app matched, reviewed and linked when calculating the delay, in the month of that calculation (desfaseCalculos)", "Certificacions \u203A Mes a mes \u203A Per causa: el que l'app va casar, revisar i enlla\xE7ar en calcular el desf\xE0s, al mes d'aquest c\xE0lcul (desfaseCalculos)", "Certifica\xE7\xF5es \u203A M\xEAs a m\xEAs \u203A Por causa: o que a app cruzou, reviu e ligou ao calcular o desfasamento, no m\xEAs desse c\xE1lculo (desfaseCalculos)", "Zertifizierungen \u203A Monat f\xFCr Monat \u203A Nach Ursache: was die App beim Berechnen der Verz\xF6gerung abgeglichen, gepr\xFCft und verkn\xFCpft hat, im Monat dieser Berechnung (desfaseCalculos)", "Certifications \u203A Mois par mois \u203A Par cause : ce que l'appli a rapproch\xE9, revu et li\xE9 lors du calcul du d\xE9calage, dans le mois de ce calcul (desfaseCalculos)"],
+          ["SELECT ultimoEnlace FROM configCommissioning WHERE obraId = ?", "SELECT ultimoEnlace FROM configCommissioning WHERE obraId = ?", "SELECT ultimoEnlace FROM configCommissioning WHERE obraId = ?", "SELECT ultimoEnlace FROM configCommissioning WHERE obraId = ?", "SELECT ultimoEnlace FROM configCommissioning WHERE obraId = ?", "SELECT ultimoEnlace FROM configCommissioning WHERE obraId = ?"],
+          ["Commissioning \u203A \xFAltima pasada por el SharePoint (archivos le\xEDdos), en el mes de esa pasada", "Commissioning \u203A last pass through SharePoint (files read), in the month of that pass", "Commissioning \u203A \xFAltima passada pel SharePoint (arxius llegits), al mes d'aquesta passada", "Commissioning \u203A \xFAltima passagem pelo SharePoint (ficheiros lidos), no m\xEAs dessa passagem", "Commissioning \u203A letzter Durchlauf durch SharePoint (gelesene Dateien), im Monat dieses Durchlaufs", "Commissioning \u203A dernier passage dans SharePoint (fichiers lus), dans le mois de ce passage"],
+          ["Legalizaciones \u203A certificados de instalador que aplican (sin fecha en la base: van al mes en curso)", "Legalisations \u203A applicable installer certificates (no date in the database: they go to the current month)", "Legalitzacions \u203A certificats d'instal\xB7lador que s'apliquen (sense data a la base: van al mes en curs)", "Legaliza\xE7\xF5es \u203A certificados de instalador aplic\xE1veis (sem data na base: v\xE3o para o m\xEAs em curso)", "Bewilligungen \u203A anwendbare Installateurzertifikate (kein Datum in der Datenbank: sie gehen in den laufenden Monat)", "L\xE9galisations \u203A certificats d'installateur applicables (sans date dans la base : ils vont au mois en cours)"],
+          ["Legalizaciones \u203A tr\xE1mites del territorio (sin fecha en la base: van al mes en curso)", "Legalisations \u203A procedures of the territory (no date in the database: they go to the current month)", "Legalitzacions \u203A tr\xE0mits del territori (sense data a la base: van al mes en curs)", "Legaliza\xE7\xF5es \u203A tr\xE2mites do territ\xF3rio (sem data na base: v\xE3o para o m\xEAs em curso)", "Bewilligungen \u203A Verfahren des Gebiets (kein Datum in der Datenbank: sie gehen in den laufenden Monat)", "L\xE9galisations \u203A d\xE9marches du territoire (sans date dans la base : elles vont au mois en cours)"],
+          ["Sin fecha en la base: va al mes en curso", "No date in the database: it goes to the current month", "Sense data a la base: va al mes en curs", "Sem data na base: vai para o m\xEAs em curso", "Kein Datum in der Datenbank: es geht in den laufenden Monat", "Sans date dans la base : il va au mois en cours"],
+          ["SELECT valores, modificadoEn FROM ajustesAhorro WHERE id = ?", "SELECT valores, modificadoEn FROM ajustesAhorro WHERE id = ?", "SELECT valores, modificadoEn FROM ajustesAhorro WHERE id = ?", "SELECT valores, modificadoEn FROM ajustesAhorro WHERE id = ?", "SELECT valores, modificadoEn FROM ajustesAhorro WHERE id = ?", "SELECT valores, modificadoEn FROM ajustesAhorro WHERE id = ?"],
+          ["No se encuentra la obra.", "The site cannot be found.", "No es troba l'obra.", "N\xE3o se encontra a obra.", "Die Baustelle wurde nicht gefunden.", "Le chantier est introuvable."],
+          ["SELECT rol, COUNT(*) AS n FROM personas WHERE activo = 1 GROUP BY rol", "SELECT rol, COUNT(*) AS n FROM personas WHERE activo = 1 GROUP BY rol", "SELECT rol, COUNT(*) AS n FROM personas WHERE activo = 1 GROUP BY rol", "SELECT rol, COUNT(*) AS n FROM personas WHERE activo = 1 GROUP BY rol", "SELECT rol, COUNT(*) AS n FROM personas WHERE activo = 1 GROUP BY rol", "SELECT rol, COUNT(*) AS n FROM personas WHERE activo = 1 GROUP BY rol"],
+          ["Poner a cada hecho su categor\xEDa (Robos, Staff, Retrasos, Dise\xF1o\u2026) y llevar a mano el recuento y el subtotal de cada una: ~1 min por hecho. A confirmar", "Assign each event its category (Thefts, Staff, Delays, Design\u2026) and keep the count and subtotal of each one by hand: ~1 min per event. To be confirmed", "Posar a cada fet la seva categoria (Robatoris, Staff, Retards, Disseny\u2026) i portar a m\xE0 el recompte i el subtotal de cadascuna: ~1 min per fet. A confirmar", "Atribuir a cada facto a sua categoria (Roubos, Staff, Atrasos, Design\u2026) e manter \xE0 m\xE3o a contagem e o subtotal de cada uma: ~1 min por facto. A confirmar", "Jedem Ereignis seine Kategorie zuweisen (Diebst\xE4hle, Staff, Verz\xF6gerungen, Design\u2026) und die Anzahl und Zwischensumme jeder Kategorie von Hand f\xFChren: ~1 min pro Ereignis. Zu best\xE4tigen", "Attribuer \xE0 chaque fait sa cat\xE9gorie (Vols, Staff, Retards, Conception\u2026) et tenir \xE0 la main le d\xE9compte et le sous-total de chacune : ~1 min par fait. \xC0 confirmer"],
+          ["Por cada apartado (o subapartado) con hechos: redactar su cap\xEDtulo de la justificaci\xF3n, sumar su subtotal y montar su hoja del Excel: ~30 min por apartado. A confirmar", "For each section (or subsection) with events: write its chapter of the justification, add up its subtotal and build its Excel sheet: ~30 min per section. To be confirmed", "Per cada apartat (o subapartat) amb fets: redactar el seu cap\xEDtol de la justificaci\xF3, sumar el seu subtotal i muntar el seu full de l'Excel: ~30 min per apartat. A confirmar", "Por cada sec\xE7\xE3o (ou subsec\xE7\xE3o) com factos: redigir o seu cap\xEDtulo da justifica\xE7\xE3o, somar o seu subtotal e montar a sua folha do Excel: ~30 min por sec\xE7\xE3o. A confirmar", "F\xFCr jeden Abschnitt (oder Unterabschnitt) mit Ereignissen: sein Kapitel der Begr\xFCndung verfassen, seine Zwischensumme addieren und sein Excel-Blatt aufbauen: ~30 min pro Abschnitt. Zu best\xE4tigen", "Pour chaque section (ou sous-section) avec des faits : r\xE9diger son chapitre de la justification, additionner son sous-total et monter sa feuille Excel : ~30 min par section. \xC0 confirmer"],
+          ["Teclear en el listado TAG, planta, sala, marca, modelo, n\xBA de serie y familia: ~3 min por equipo", "Type into the list the TAG, floor, room, make, model, serial number and family: ~3 min per unit", "Teclejar al llistat TAG, planta, sala, marca, model, nre. de s\xE8rie i fam\xEDlia: ~3 min per equip", "Digitar na lista o TAG, piso, sala, marca, modelo, n.\xBA de s\xE9rie e fam\xEDlia: ~3 min por equipamento", "In die Liste TAG, Stockwerk, Raum, Marke, Modell, Seriennr. und Familie eintippen: ~3 min pro Anlage", "Saisir dans la liste le TAG, l'\xE9tage, la salle, la marque, le mod\xE8le, le n\xB0 de s\xE9rie et la famille : ~3 min par \xE9quipement"],
+          ["Agrupar las unidades de un mismo modelo y copiar a cada una su ficha t\xE9cnica, CE y manual: ~5 min por modelo", "Group the units of the same model and copy to each one its datasheet, CE and manual: ~5 min per model", "Agrupar les unitats d'un mateix model i copiar a cadascuna la seva fitxa t\xE8cnica, CE i manual: ~5 min per model", "Agrupar as unidades de um mesmo modelo e copiar para cada uma a sua ficha t\xE9cnica, CE e manual: ~5 min por modelo", "Die Einheiten desselben Modells gruppieren und jeder ihr Datenblatt, CE und Handbuch kopieren: ~5 min pro Modell", "Regrouper les unit\xE9s d'un m\xEAme mod\xE8le et copier dans chacune sa fiche technique, CE et manuel : ~5 min par mod\xE8le"],
+          ["Mirar nombre y carpeta y decidir si es ficha t\xE9cnica, CE, manual, PM o balanceo: ~30 s por archivo (la \xFAltima pasada del motor", "Look at the name and folder and decide whether it is a datasheet, CE, manual, PM or balancing: ~30 s per file (the engine's last pass", "Mirar nom i carpeta i decidir si \xE9s fitxa t\xE8cnica, CE, manual, PM o balanceig: ~30 s per arxiu (l'\xFAltima passada del motor", "Ver o nome e a pasta e decidir se \xE9 ficha t\xE9cnica, CE, manual, PM ou balanceamento: ~30 s por ficheiro (a \xFAltima passagem do motor", "Name und Ordner ansehen und entscheiden, ob es ein Datenblatt, CE, Handbuch, PM oder Abgleich ist: ~30 s pro Datei (der letzte Durchlauf der Engine", "Regarder le nom et le dossier et d\xE9cider s'il s'agit d'une fiche technique, CE, manuel, PM ou \xE9quilibrage : ~30 s par fichier (le dernier passage du moteur"],
+          ["Buscar el PDF en la carpeta, abrirlo para ver que es de ese equipo o modelo y pegar el enlace en su fila: ~2 min por enlace", "Find the PDF in the folder, open it to check it belongs to that unit or model and paste the link into its row: ~2 min per link", "Buscar el PDF a la carpeta, obrir-lo per veure que \xE9s d'aquest equip o model i enganxar l'enlla\xE7 a la seva fila: ~2 min per enlla\xE7", "Procurar o PDF na pasta, abri-lo para ver que \xE9 desse equipamento ou modelo e colar a liga\xE7\xE3o na sua linha: ~2 min por liga\xE7\xE3o", "Das PDF im Ordner suchen, \xF6ffnen, um zu pr\xFCfen, dass es zu dieser Anlage oder diesem Modell geh\xF6rt, und den Link in seine Zeile einf\xFCgen: ~2 min pro Link", "Chercher le PDF dans le dossier, l'ouvrir pour v\xE9rifier qu'il est de cet \xE9quipement ou mod\xE8le et coller le lien dans sa ligne : ~2 min par lien"],
+          ["Copiar la plantilla Excel, rellenar la cabecera (TAG, ubicaci\xF3n, marca, modelo, serie) y los valores nominales: ~10 min por ficha", "Copy the Excel template, fill in the header (TAG, location, make, model, serial) and the nominal values: ~10 min per record", "Copiar la plantilla Excel, omplir la cap\xE7alera (TAG, ubicaci\xF3, marca, model, s\xE8rie) i els valors nominals: ~10 min per fitxa", "Copiar o modelo Excel, preencher o cabe\xE7alho (TAG, localiza\xE7\xE3o, marca, modelo, s\xE9rie) e os valores nominais: ~10 min por ficha", "Die Excel-Vorlage kopieren, den Kopf (TAG, Standort, Marke, Modell, Serie) und die Nennwerte ausf\xFCllen: ~10 min pro Blatt", "Copier le mod\xE8le Excel, remplir l'en-t\xEAte (TAG, emplacement, marque, mod\xE8le, s\xE9rie) et les valeurs nominales : ~10 min par fiche"],
+          ["Buscar en el PDF del equipo el caudal, el agua o la temperatura y teclearlo en su ficha PM con su p\xE1gina: ~1 min por dato (Preparar commissioning", "Find the airflow, water or temperature in the unit's PDF and type it into its PM record with its page: ~1 min per data point (Prepare commissioning", "Buscar al PDF de l'equip el cabal, l'aigua o la temperatura i teclejar-lo a la seva fitxa PM amb la seva p\xE0gina: ~1 min per dada (Preparar commissioning", "Procurar no PDF do equipamento o caudal, a \xE1gua ou a temperatura e digit\xE1-lo na sua ficha PM com a sua p\xE1gina: ~1 min por dado (Preparar commissioning", "Im PDF der Anlage den Volumenstrom, das Wasser oder die Temperatur suchen und in ihr PM-Blatt mit Seitenangabe eintippen: ~1 min pro Wert (Commissioning vorbereiten", "Chercher dans le PDF de l'\xE9quipement le d\xE9bit, l'eau ou la temp\xE9rature et la saisir dans sa fiche PM avec sa page : ~1 min par donn\xE9e (Pr\xE9parer le commissioning"],
+          ["Montar la hoja con sus bocas, caudales de dise\xF1o y tolerancias, y las f\xF3rmulas de desviaci\xF3n: ~30 min por hoja", "Build the sheet with its outlets, design flows and tolerances, and the deviation formulas: ~30 min per sheet", "Muntar el full amb les seves boques, cabals de disseny i toler\xE0ncies, i les f\xF3rmules de desviaci\xF3: ~30 min per full", "Montar a folha com as suas bocas, caudais de projeto e toler\xE2ncias, e as f\xF3rmulas de desvio: ~30 min por folha", "Das Blatt mit seinen Ausl\xE4ssen, Auslegungsvolumenstr\xF6men und Toleranzen sowie den Abweichungsformeln aufbauen: ~30 min pro Blatt", "Monter la feuille avec ses bouches, ses d\xE9bits de conception et ses tol\xE9rances, et les formules d'\xE9cart : ~30 min par feuille"],
+          ["Marcar y numerar cada boca en el plano y pasarla a la hoja: ~2 min por boca", "Mark and number each outlet on the drawing and transfer it to the sheet: ~2 min per outlet", "Marcar i numerar cada boca al pl\xE0nol i passar-la al full: ~2 min per boca", "Marcar e numerar cada boca na planta e pass\xE1-la para a folha: ~2 min por boca", "Jeden Auslass im Plan markieren und nummerieren und ins Blatt \xFCbertragen: ~2 min pro Auslass", "Marquer et num\xE9roter chaque bouche sur le plan et la reporter dans la feuille : ~2 min par bouche"],
+          ["Escribir cada se\xF1al (equipo, tipo ED/SD/EA/SA y descripci\xF3n) en el listado de regulaci\xF3n: ~1 min por punto", "Write each signal (unit, type ED/SD/EA/SA and description) in the control list: ~1 min per point", "Escriure cada senyal (equip, tipus ED/SD/EA/SA i descripci\xF3) al llistat de regulaci\xF3: ~1 min per punt", "Escrever cada sinal (equipamento, tipo ED/SD/EA/SA e descri\xE7\xE3o) na lista de regula\xE7\xE3o: ~1 min por ponto", "Jedes Signal (Anlage, Typ ED/SD/EA/SA und Beschreibung) in die Regelungsliste schreiben: ~1 min pro Punkt", "\xC9crire chaque signal (\xE9quipement, type ED/SD/EA/SA et description) dans la liste de r\xE9gulation : ~1 min par point"],
+          ["Teclear o pegar y repasar c\xF3digo, unidad, medici\xF3n y precio: ~1 min por partida", "Type or paste and check code, unit, quantity and price: ~1 min per line item", "Teclejar o enganxar i repassar codi, unitat, mesurament i preu: ~1 min per partida", "Digitar ou colar e rever c\xF3digo, unidade, medi\xE7\xE3o e pre\xE7o: ~1 min por artigo", "Code, Einheit, Menge und Preis eintippen oder einf\xFCgen und pr\xFCfen: ~1 min pro Position", "Saisir ou coller et revoir code, unit\xE9, m\xE9tr\xE9 et prix : ~1 min par ligne"],
+          ["Casar cada partida con su precio contratado y su adenda: ~1 min por precio", "Match each line item with its contracted price and its addendum: ~1 min per price", "Casar cada partida amb el seu preu contractat i la seva addenda: ~1 min per preu", "Cruzar cada artigo com o seu pre\xE7o contratado e o seu adenda: ~1 min por pre\xE7o", "Jede Position mit ihrem vertraglich vereinbarten Preis und ihrem Nachtrag abgleichen: ~1 min pro Preis", "Rapprocher chaque ligne de son prix contractuel et de son avenant : ~1 min par prix"],
+          ["Un informe cada lunes desde que la obra est\xE1 en la app: ~1,5 h de juntar commissioning, certificaciones, costes y NCR", "A report every Monday from the moment the site is in the app: ~1.5 h of pulling together commissioning, certifications, costs and NCR", "Un informe cada dilluns des que l'obra \xE9s a l'app: ~1,5 h de ajuntar commissioning, certificacions, costos i NCR", "Um relat\xF3rio todas as segundas-feiras desde que a obra est\xE1 na app: ~1,5 h a juntar commissioning, certifica\xE7\xF5es, custos e NCR", "Jeden Montag ein Bericht, seit die Baustelle in der App ist: ~1,5 h f\xFCr das Zusammentragen von Commissioning, Zertifizierungen, Kosten und NCR", "Un rapport chaque lundi depuis que le chantier est dans l'appli : ~1,5 h pour rassembler commissioning, certifications, co\xFBts et NCR"],
+          ["Anterior, a origen, cuadro econ\xF3mico y PDF en el libro DTM.CERT: ~4 h por certificaci\xF3n", "Previous, to date, cost summary and PDF in the DTM.CERT workbook: ~4 h per certification", "Anterior, a origen, quadre econ\xF2mic i PDF al llibre DTM.CERT: ~4 h per certificaci\xF3", "Anterior, a origem, quadro econ\xF3mico e PDF no livro DTM.CERT: ~4 h por certifica\xE7\xE3o", "Vorherige, kumuliert, Kosten\xFCbersicht und PDF im DTM.CERT-Buch: ~4 h pro Zertifizierung", "Pr\xE9c\xE9dent, \xE0 l'origine, tableau \xE9conomique et PDF dans le classeur DTM.CERT : ~4 h par certification"],
+          ["Leer la certificaci\xF3n del industrial y cuadrarla con sus pedidos: ~1 h por certificaci\xF3n", "Read the subcontractor's certification and reconcile it with their purchase orders: ~1 h per certification", "Llegir la certificaci\xF3 de l'industrial i quadrar-la amb les seves comandes: ~1 h per certificaci\xF3", "Ler a certifica\xE7\xE3o do subempreiteiro e acert\xE1-la com as suas encomendas: ~1 h por certifica\xE7\xE3o", "Die Zertifizierung des Subunternehmers lesen und mit seinen Bestellungen abstimmen: ~1 h pro Zertifizierung", "Lire la certification du sous-traitant et la rapprocher de ses commandes : ~1 h par certification"],
+          ["Redactar el pedido, numerarlo y apuntarlo en el comprometido: ~15 min por pedido", "Write the purchase order, number it and record it in the committed costs: ~15 min per purchase order", "Redactar la comanda, numerar-la i apuntar-la al comprom\xE8s: ~15 min per comanda", "Redigir a encomenda, numer\xE1-la e regist\xE1-la no comprometido: ~15 min por encomenda", "Die Bestellung verfassen, nummerieren und im Obligo erfassen: ~15 min pro Bestellung", "R\xE9diger la commande, la num\xE9roter et la noter dans l'engag\xE9 : ~15 min par commande"],
+          ["Casar el albar\xE1n con su pedido y apuntar lo recibido: ~5 min por albar\xE1n", "Match the delivery note with its purchase order and record what was received: ~5 min per delivery note", "Casar l'albar\xE0 amb la seva comanda i apuntar el rebut: ~5 min per albar\xE0", "Cruzar a guia de remessa com a sua encomenda e registar o recebido: ~5 min por guia", "Den Lieferschein mit seiner Bestellung abgleichen und das Erhaltene erfassen: ~5 min pro Lieferschein", "Rapprocher le bon de livraison de sa commande et noter ce qui a \xE9t\xE9 re\xE7u : ~5 min par bon de livraison"],
+          ["Imputar la factura a su cap\xEDtulo del control de costes: ~5 min por factura", "Allocate the invoice to its chapter in the cost control: ~5 min per invoice", "Imputar la factura al seu cap\xEDtol del control de costos: ~5 min per factura", "Imputar a fatura ao seu cap\xEDtulo do controlo de custos: ~5 min por fatura", "Die Rechnung ihrem Kapitel in der Kostenkontrolle zuordnen: ~5 min pro Rechnung", "Imputer la facture \xE0 son chapitre du contr\xF4le des co\xFBts : ~5 min par facture"],
+          ["Numerar, calcular plazos y aplazamientos, seguir hasta el cierre y pasarla al informe: ~15 min por NCR", "Number it, calculate deadlines and extensions, follow it through to closure and carry it into the report: ~15 min per NCR", "Numerar, calcular terminis i ajornaments, seguir fins al tancament i passar-la a l'informe: ~15 min per NCR", "Numerar, calcular prazos e adiamentos, acompanhar at\xE9 ao fecho e pass\xE1-la ao relat\xF3rio: ~15 min por NCR", "Nummerieren, Fristen und Fristverl\xE4ngerungen berechnen, bis zum Abschluss verfolgen und in den Bericht \xFCbernehmen: ~15 min pro NCR", "Num\xE9roter, calculer les d\xE9lais et les reports, suivre jusqu'\xE0 la cl\xF4ture et la reporter dans le rapport : ~15 min par NCR"],
+          ["Redactar el parte con sus l\xEDneas y su PDF: ~15 min por parte", "Write the report with its lines and its PDF: ~15 min per report", "Redactar el part amb les seves l\xEDnies i el seu PDF: ~15 min per part", "Redigir o parte com as suas linhas e o seu PDF: ~15 min por parte", "Die Meldung mit ihren Zeilen und ihrem PDF verfassen: ~15 min pro Meldung", "R\xE9diger le rapport avec ses lignes et son PDF : ~15 min par rapport"],
+          ["Pasar las lecturas y redactar el informe de la prueba: ~20 min por prueba", "Transfer the readings and write the test report: ~20 min per test", "Passar les lectures i redactar l'informe de la prova: ~20 min per prova", "Passar as leituras e redigir o relat\xF3rio do ensaio: ~20 min por ensaio", "Die Messwerte \xFCbertragen und den Pr\xFCfbericht verfassen: ~20 min pro Pr\xFCfung", "Reporter les relev\xE9s et r\xE9diger le rapport de l'essai : ~20 min par essai"],
+          ["Rellenar la plantilla PPI con sus puntos de inspecci\xF3n: ~20 min por revisi\xF3n", "Fill in the PPI template with its inspection points: ~20 min per review", "Omplir la plantilla PPI amb els seus punts d'inspecci\xF3: ~20 min per revisi\xF3", "Preencher o modelo PPI com os seus pontos de inspe\xE7\xE3o: ~20 min por revis\xE3o", "Die PPI-Vorlage mit ihren Pr\xFCfpunkten ausf\xFCllen: ~20 min pro Kontrolle", "Remplir le mod\xE8le PPI avec ses points d'inspection : ~20 min par revue"],
+          ["Crear la tarea con fechas, enlaces y recurso en Project: ~5 min por tarea", "Create the task with dates, links and resource in Project: ~5 min per task", "Crear la tasca amb dates, enlla\xE7os i recurs a Project: ~5 min per tasca", "Criar a tarefa com datas, liga\xE7\xF5es e recurso no Project: ~5 min por tarefa", "Die Aufgabe mit Terminen, Verkn\xFCpfungen und Ressource in Project anlegen: ~5 min pro Aufgabe", "Cr\xE9er la t\xE2che avec dates, liens et ressource dans Project : ~5 min par t\xE2che"],
+          ["Encargarla por correo o WhatsApp y apuntar su seguimiento: ~3 min por tarea", "Assign it by email or WhatsApp and note its follow-up: ~3 min per task", "Encarregar-la per correu o WhatsApp i apuntar-ne el seguiment: ~3 min per tasca", "Atribu\xED-la por correio ou WhatsApp e registar o seu acompanhamento: ~3 min por tarefa", "Sie per E-Mail oder WhatsApp zuweisen und ihre Nachverfolgung notieren: ~3 min pro Aufgabe", "La confier par courriel ou WhatsApp et noter son suivi : ~3 min par t\xE2che"],
+          ["Redactar el acta con asistentes y acuerdos y mandarla: ~30 min por acta", "Write the minutes with attendees and agreements and send them out: ~30 min per set of minutes", "Redactar l'acta amb assistents i acords i enviar-la: ~30 min per acta", "Redigir a ata com os presentes e os acordos e envi\xE1-la: ~30 min por ata", "Das Protokoll mit Teilnehmern und Beschl\xFCssen verfassen und versenden: ~30 min pro Protokoll", "R\xE9diger le compte rendu avec les participants et les accords et l'envoyer : ~30 min par compte rendu"],
+          ["Medir ese tramo, equipo o zona en el plano y apuntarlo con su fecha: ~5 min por marca", "Measure that section, unit or zone on the drawing and note it with its date: ~5 min per mark", "Mesurar aquest tram, equip o zona al pl\xE0nol i apuntar-lo amb la seva data: ~5 min per marca", "Medir esse tro\xE7o, equipamento ou zona na planta e regist\xE1-lo com a sua data: ~5 min por marca", "Diesen Abschnitt, diese Anlage oder Zone im Plan ausmessen und mit Datum notieren: ~5 min pro Markierung", "Mesurer ce tron\xE7on, cet \xE9quipement ou cette zone sur le plan et le noter avec sa date : ~5 min par marque"],
+          ["Apuntar la revisi\xF3n en el plan y calcular la pr\xF3xima: ~10 min por registro", "Record the review in the plan and calculate the next one: ~10 min per record", "Apuntar la revisi\xF3 al pla i calcular la propera: ~10 min per registre", "Registar a revis\xE3o no plano e calcular a pr\xF3xima: ~10 min por registo", "Die Kontrolle im Plan eintragen und die n\xE4chste berechnen: ~10 min pro Eintrag", "Noter la revue dans le plan et calculer la suivante : ~10 min par enregistrement"],
+          ["Elegir al operario por especialidad, pasarle la orden, recoger la hoja firmada con sus fotos y medidas, pasar las horas al coste y archivar el PDF: ~20 min por orden (provisional", "Choose the operative by specialty, hand over the order, collect the signed sheet with its photos and measurements, pass the hours to cost and file the PDF: ~20 min per order (provisional", "Triar l'operari per especialitat, passar-li l'ordre, recollir el full signat amb les seves fotos i mesures, passar les hores al cost i arxivar el PDF: ~20 min per ordre (provisional", "Escolher o oper\xE1rio por especialidade, passar-lhe a ordem, recolher a folha assinada com as suas fotos e medi\xE7\xF5es, passar as horas ao custo e arquivar o PDF: ~20 min por ordem (provis\xF3rio", "Den Arbeiter nach Fachgebiet ausw\xE4hlen, ihm den Auftrag \xFCbergeben, das unterschriebene Blatt mit Fotos und Messwerten einsammeln, die Stunden in die Kosten \xFCbertragen und das PDF ablegen: ~20 min pro Auftrag (provisorisch", "Choisir l'op\xE9rateur par sp\xE9cialit\xE9, lui passer l'ordre, r\xE9cup\xE9rer la feuille sign\xE9e avec ses photos et mesures, reporter les heures au co\xFBt et archiver le PDF : ~20 min par ordre (provisoire"],
+          ["Pasar la hoja de firmas de entrada a la de personal: ~1 min por fichaje", "Transfer the entry signing sheet to the personnel sheet: ~1 min per clock-in", "Passar el full de signatures d'entrada al de personal: ~1 min per fitxatge", "Passar a folha de assinaturas de entrada para a de pessoal: ~1 min por registo de ponto", "Das Eintrittsunterschriftsblatt in das Personalblatt \xFCbertragen: ~1 min pro Zeiterfassung", "Reporter la feuille de signatures d'entr\xE9e sur celle du personnel : ~1 min par pointage"],
+          ["Buscar el correo en el buz\xF3n o en la carpeta de .msg, leer el hilo, decidir a qu\xE9 apartado va y guardarlo con fecha, remitente, asunto y enlace: ~6 min por correo. A confirmar", "Find the email in the mailbox or in the .msg folder, read the thread, decide which section it goes to and save it with date, sender, subject and link: ~6 min per email. To be confirmed", "Buscar el correu a la b\xFAstia o a la carpeta de .msg, llegir el fil, decidir a quin apartat va i guardar-lo amb data, remitent, assumpte i enlla\xE7: ~6 min per correu. A confirmar", "Procurar o correio na caixa ou na pasta de .msg, ler o fio, decidir a que sec\xE7\xE3o vai e guard\xE1-lo com data, remetente, assunto e liga\xE7\xE3o: ~6 min por correio. A confirmar", "Die E-Mail im Postfach oder im .msg-Ordner suchen, den Verlauf lesen, entscheiden, zu welchem Abschnitt sie geh\xF6rt, und sie mit Datum, Absender, Betreff und Link ablegen: ~6 min pro E-Mail. Zu best\xE4tigen", "Chercher le courriel dans la bo\xEEte ou dans le dossier de .msg, lire le fil, d\xE9cider \xE0 quelle section il va et le conserver avec date, exp\xE9diteur, objet et lien : ~6 min par courriel. \xC0 confirmer"],
+          ["Localizar el documento en el SharePoint, comprobar que es la versi\xF3n buena y apuntarlo con su enlace y su huella: ~3 min por documento. A confirmar", "Locate the document in SharePoint, check it is the right version and record it with its link and its hash: ~3 min per document. To be confirmed", "Localitzar el document al SharePoint, comprovar que \xE9s la versi\xF3 bona i apuntar-lo amb el seu enlla\xE7 i la seva empremta: ~3 min per document. A confirmar", "Localizar o documento no SharePoint, verificar que \xE9 a vers\xE3o certa e regist\xE1-lo com a sua liga\xE7\xE3o e a sua impress\xE3o digital: ~3 min por documento. A confirmar", "Das Dokument in SharePoint finden, pr\xFCfen, dass es die richtige Version ist, und es mit seinem Link und seinem Hash erfassen: ~3 min pro Dokument. Zu best\xE4tigen", "Localiser le document dans SharePoint, v\xE9rifier que c'est la bonne version et le noter avec son lien et son empreinte : ~3 min par document. \xC0 confirmer"],
+          ["Buscar la foto por fecha en el chat exportado, guardarla con su nombre y anotar de qu\xE9 es y a qu\xE9 hecho prueba: ~5 min por foto. A confirmar", "Find the photo by date in the exported chat, save it under its name and note what it shows and which event it is evidence for: ~5 min per photo. To be confirmed", "Buscar la foto per data al xat exportat, guardar-la amb el seu nom i anotar de qu\xE8 \xE9s i a quin fet prova: ~5 min per foto. A confirmar", "Procurar a fotografia por data no chat exportado, guard\xE1-la com o seu nome e anotar de que \xE9 e a que facto prova: ~5 min por fotografia. A confirmar", "Das Foto nach Datum im exportierten Chat suchen, unter seinem Namen speichern und notieren, was es zeigt und f\xFCr welches Ereignis es Beweis ist: ~5 min pro Foto. Zu best\xE4tigen", "Chercher la photo par date dans le chat export\xE9, l'enregistrer sous son nom et noter ce qu'elle montre et de quel fait elle est la preuve : ~5 min par photo. \xC0 confirmer"],
+          ["Por cada prueba de un hecho: localizarla, citar el p\xE1rrafo que lo demuestra y anotar su referencia en la fila del hecho: ~3 min por enlace. A confirmar", "For each piece of evidence of an event: locate it, quote the paragraph that proves it and note its reference in the event's row: ~3 min per link. To be confirmed", "Per cada prova d'un fet: localitzar-la, citar el par\xE0graf que ho demostra i anotar la seva refer\xE8ncia a la fila del fet: ~3 min per enlla\xE7. A confirmar", "Por cada prova de um facto: localiz\xE1-la, citar o par\xE1grafo que o demonstra e anotar a sua refer\xEAncia na linha do facto: ~3 min por liga\xE7\xE3o. A confirmar", "F\xFCr jeden Beweis eines Ereignisses: ihn finden, den Absatz zitieren, der es belegt, und seine Referenz in der Zeile des Ereignisses notieren: ~3 min pro Verkn\xFCpfung. Zu best\xE4tigen", "Pour chaque preuve d'un fait : la localiser, citer le paragraphe qui le d\xE9montre et noter sa r\xE9f\xE9rence dans la ligne du fait : ~3 min par lien. \xC0 confirmer"],
+          ["Buscar en el contrato y sus adendas la cl\xE1usula que ampara el hecho y copiar su cita con p\xE1gina: ~4 min por cl\xE1usula citada. A confirmar", "Find in the contract and its addenda the clause that supports the event and copy its citation with page: ~4 min per clause cited. To be confirmed", "Buscar al contracte i les seves addendes la cl\xE0usula que empara el fet i copiar la seva cita amb p\xE0gina: ~4 min per cl\xE0usula citada. A confirmar", "Procurar no contrato e nos seus adendas a cl\xE1usula que ampara o facto e copiar a sua cita\xE7\xE3o com p\xE1gina: ~4 min por cl\xE1usula citada. A confirmar", "Im Vertrag und seinen Nachtr\xE4gen die Klausel suchen, die das Ereignis st\xFCtzt, und ihre Zitierung mit Seitenangabe kopieren: ~4 min pro zitierter Klausel. Zu best\xE4tigen", "Chercher dans le contrat et ses avenants la clause qui couvre le fait et copier sa citation avec la page : ~4 min par clause cit\xE9e. \xC0 confirmer"],
+          ["Por cada partida de IPC o de pago: buscar la certificaci\xF3n y la factura, sus fechas de presentaci\xF3n, aprobaci\xF3n y cobro, contar los d\xEDas de retraso y calcular el inter\xE9s: ~45 min por partida. A confirmar", "For each IPC or payment item: find the certification and the invoice, their submission, approval and payment dates, count the days of delay and calculate the interest: ~45 min per item. To be confirmed", "Per cada partida d'IPC o de pagament: buscar la certificaci\xF3 i la factura, les seves dates de presentaci\xF3, aprovaci\xF3 i cobrament, comptar els dies de retard i calcular l'inter\xE8s: ~45 min per partida. A confirmar", "Por cada artigo de IPC ou de pagamento: procurar a certifica\xE7\xE3o e a fatura, as suas datas de apresenta\xE7\xE3o, aprova\xE7\xE3o e recebimento, contar os dias de atraso e calcular o juro: ~45 min por artigo. A confirmar", "F\xFCr jede IPC- oder Zahlungsposition: die Zertifizierung und die Rechnung suchen, ihre Einreichungs-, Genehmigungs- und Zahlungsdaten ermitteln, die Verzugstage z\xE4hlen und den Zins berechnen: ~45 min pro Position. Zu best\xE4tigen", "Pour chaque ligne d'IPC ou de paiement : chercher la certification et la facture, leurs dates de pr\xE9sentation, d'approbation et d'encaissement, compter les jours de retard et calculer l'int\xE9r\xEAt : ~45 min par ligne. \xC0 confirmer"],
+          ["Por cada prueba enlazada: pasarla a PDF, numerarla por apartado (\xAB2-07\xBB) y ponerla en el \xEDndice de anexos: ~2 min por prueba. A confirmar", "For each linked piece of evidence: convert it to PDF, number it by section (\xAB2-07\xBB) and put it in the annex index: ~2 min per piece of evidence. To be confirmed", "Per cada prova enlla\xE7ada: passar-la a PDF, numerar-la per apartat (\xAB2-07\xBB) i posar-la a l'\xEDndex d'annexos: ~2 min per prova. A confirmar", "Por cada prova ligada: pass\xE1-la para PDF, numer\xE1-la por sec\xE7\xE3o (\xAB2-07\xBB) e p\xF4-la no \xEDndice de anexos: ~2 min por prova. A confirmar", "F\xFCr jeden verkn\xFCpften Beweis: in PDF umwandeln, nach Abschnitt nummerieren (\xAB2-07\xBB) und ins Anlagenverzeichnis aufnehmen: ~2 min pro Beweis. Zu best\xE4tigen", "Pour chaque preuve li\xE9e : la convertir en PDF, la num\xE9roter par section (\xAB2-07\xBB) et la mettre dans l'index des annexes : ~2 min par preuve. \xC0 confirmer"],
+          ["Albaranes casados con su pedido (~5 min cada uno", "Delivery notes matched with their purchase order (~5 min each", "Albarans casats amb la seva comanda (~5 min cadascun", "Guias de remessa cruzadas com a sua encomenda (~5 min cada uma", "Mit ihrer Bestellung abgeglichene Lieferscheine (~5 min pro St\xFCck", "Bons de livraison rapproch\xE9s de leur commande (~5 min chacun"],
+          ["Desde el m\xF3vil: incidencias, NCR y repasos con foto de antes y de despu\xE9s en el sitio del plano (~15 incidencias al mes \xD7 15 min de apuntarlas en papel, pasar las fotos y escribirlas en la oficina \u2248 4 h). Las mediciones de campo ya cuentan arriba (\xABmediciones del mes", "From the mobile: incidents, NCR and snagging with before and after photos at the place on the drawing (~15 incidents a month \xD7 15 min to note them on paper, transfer the photos and write them up in the office \u2248 4 h). Field measurements are already counted above (\xABmeasurements of the month", "Des del m\xF2bil: incid\xE8ncies, NCR i repassos amb foto d'abans i de despr\xE9s al lloc del pl\xE0nol (~15 incid\xE8ncies al mes \xD7 15 min d'apuntar-les en paper, passar les fotos i escriure-les a l'oficina \u2248 4 h). Els mesuraments de camp ja compten m\xE9s amunt (\xABmesuraments del mes", "Do telem\xF3vel: incid\xEAncias, NCR e repasses com fotografia de antes e de depois no s\xEDtio da planta (~15 incid\xEAncias por m\xEAs \xD7 15 min a apont\xE1-las em papel, passar as fotografias e escrev\xEA-las no escrit\xF3rio \u2248 4 h). As medi\xE7\xF5es de campo j\xE1 contam acima (\xABmedi\xE7\xF5es do m\xEAs", "Vom Mobiltelefon aus: St\xF6rungen, NCR und Nacharbeiten mit Vorher-/Nachher-Foto an der Stelle im Plan (~15 St\xF6rungen pro Monat \xD7 15 min, um sie auf Papier zu notieren, die Fotos zu \xFCbertragen und im B\xFCro zu erfassen \u2248 4 h). Die Feldmessungen z\xE4hlen bereits oben (\xABMessungen des Monats", "Depuis le mobile : incidents, NCR et reprises avec photo avant et apr\xE8s \xE0 l'endroit du plan (~15 incidents par mois \xD7 15 min pour les noter sur papier, reporter les photos et les saisir au bureau \u2248 4 h). Les mesures de terrain comptent d\xE9j\xE0 plus haut (\xABmesures du mois"],
+          ["Seguimiento de producci\xF3n por tajo y cuadrilla frente al Gantt, con el avance que marcan los encargados, sin hoja aparte (~1 h por semana", "Production tracking by work front and crew against the Gantt, with the progress marked by the foremen, without a separate sheet (~1 h per week", "Seguiment de producci\xF3 per tall i colla enfront del Gantt, amb l'avan\xE7 que marquen els encarregats, sense full a part (~1 h per setmana", "Acompanhamento de produ\xE7\xE3o por frente e equipa face ao Gantt, com o avan\xE7o que marcam os encarregados, sem folha \xE0 parte (~1 h por semana", "Produktionsverfolgung nach Arbeitsabschnitt und Kolonne gegen\xFCber dem Gantt, mit dem von den Vorarbeitern markierten Fortschritt, ohne separates Blatt (~1 h pro Woche", "Suivi de production par front et \xE9quipe par rapport au Gantt, avec l'avancement que marquent les contrema\xEEtres, sans feuille \xE0 part (~1 h par semaine"],
+          ["Partes de incidencia e incidencias de reparaci\xF3n de los encargados: los revisa en la app y no los junta ni los pasa a limpio (~45 min por semana", "Incident reports and repair incidents from the foremen: they review them in the app and do not collate them or write them up (~45 min per week", "Parts d'incid\xE8ncia i incid\xE8ncies de reparaci\xF3 dels encarregats: els revisa a l'app i no els ajunta ni els passa a net (~45 min per setmana", "Partes de incid\xEAncia e incid\xEAncias de repara\xE7\xE3o dos encarregados: rev\xEA-os na app e n\xE3o os junta nem os passa a limpo (~45 min por semana", "St\xF6rungsmeldungen und Reparaturst\xF6rungen der Vorarbeiter: er pr\xFCft sie in der App und tr\xE4gt sie weder zusammen noch schreibt sie ins Reine (~45 min pro Woche", "Rapports d'incident et incidents de r\xE9paration des contrema\xEEtres : il les revoit dans l'appli et ne les rassemble ni ne les remet au propre (~45 min par semaine"],
+          ["Pedido de material desde la medici\xF3n pendiente del tajo, con el albar\xE1n casado al llegar (~45 min por semana", "Material purchase order from the pending quantity of the work front, with the delivery note matched on arrival (~45 min per week", "Comanda de material des de la mesura pendent del tall, amb l'albar\xE0 casat en arribar (~45 min per setmana", "Encomenda de material a partir da medi\xE7\xE3o pendente da frente, com a guia de remessa cruzada \xE0 chegada (~45 min por semana", "Materialbestellung aus der ausstehenden Mengenermittlung des Arbeitsabschnitts, mit bei Ankunft abgeglichenem Lieferschein (~45 min pro Woche", "Commande de mat\xE9riel depuis le m\xE9tr\xE9 en attente du front, avec le bon de livraison rapproch\xE9 \xE0 l'arriv\xE9e (~45 min par semaine"],
+          ["El informe semanal de su grupo y los encargos a sus jefes de obra se los pide a Iarvis: no recorre obra por obra ni escribe el correo (~1 h por semana", "He asks Iarvis for the weekly report of his group and the assignments to his site managers: he does not go round site by site or write the email (~1 h per week", "L'informe setmanal del seu grup i els enc\xE0rrecs als seus caps d'obra els demana a Iarvis: no recorre obra per obra ni escriu el correu (~1 h per setmana", "O relat\xF3rio semanal do seu grupo e os encargos aos seus chefes de obra pede-os ao Iarvis: n\xE3o percorre obra a obra nem escreve o correio (~1 h por semana", "Den Wochenbericht seiner Gruppe und die Auftr\xE4ge an seine Bauleiter fordert er bei Iarvis an: er geht nicht Baustelle f\xFCr Baustelle durch und schreibt die E-Mail nicht (~1 h pro Woche", "Le rapport hebdomadaire de son groupe et les commandes \xE0 ses chefs de chantier, il les demande \xE0 Iarvis : il ne parcourt pas chantier par chantier ni n'\xE9crit le courriel (~1 h par semaine"],
+          ["Informe semanal de todo su grupo hecho solo: sus 5-8 obras en una tabla (tambi\xE9n las que no tienen jefe de obra) con plazo, certificado, coste, NCR y conflictos, y el lunes el PDF y el correo a su director preparados. Antes juntaba el informe de cada jefe de obra y lo pasaba a uno (~1,5 h por semana", "Weekly report of his whole group done automatically: his 5-8 sites in one table (including those without a site manager) with schedule, certified, cost, NCR and conflicts, and on Monday the PDF and the email to his director ready. Before, he collected each site manager's report and put them into one (~1.5 h per week", "Informe setmanal de tot el seu grup fet sol: les seves 5-8 obres en una taula (tamb\xE9 les que no tenen cap d'obra) amb termini, certificat, cost, NCR i conflictes, i el dilluns el PDF i el correu al seu director preparats. Abans ajuntava l'informe de cada cap d'obra i el passava a un (~1,5 h per setmana", "Relat\xF3rio semanal de todo o seu grupo feito sozinho: as suas 5-8 obras numa tabela (tamb\xE9m as que n\xE3o t\xEAm chefe de obra) com prazo, certificado, custo, NCR e conflitos, e \xE0 segunda-feira o PDF e o correio ao seu diretor preparados. Antes juntava o relat\xF3rio de cada chefe de obra e passava-o a um s\xF3 (~1,5 h por semana", "Wochenbericht seiner ganzen Gruppe automatisch erstellt: seine 5-8 Baustellen in einer Tabelle (auch jene ohne Bauleiter) mit Termin, Zertifiziertem, Kosten, NCR und Konflikten, und am Montag das PDF und die E-Mail an seinen Direktor bereit. Fr\xFCher trug er den Bericht jedes Bauleiters zusammen und fasste sie in einem zusammen (~1,5 h pro Woche", "Rapport hebdomadaire de tout son groupe fait tout seul : ses 5-8 chantiers dans un tableau (y compris ceux sans chef de chantier) avec d\xE9lai, certifi\xE9, co\xFBt, NCR et conflits, et le lundi le PDF et le courriel \xE0 son directeur pr\xEAts. Avant, il rassemblait le rapport de chaque chef de chantier et le reportait dans un seul (~1,5 h par semaine"],
+          ["Preparar commissioning autom\xE1tico: datos de proyecto, checklists, estanqueidad y balanceo (~12 min por equipo", "Automatic commissioning preparation: project data, checklists, tightness and balancing (~12 min per unit", "Preparar commissioning autom\xE0tic: dades de projecte, checklists, estanquitat i balanceig (~12 min per equip", "Preparar commissioning autom\xE1tico: dados de projeto, checklists, estanquidade e balanceamento (~12 min por equipamento", "Commissioning automatisch vorbereiten: Projektdaten, Checklisten, Dichtheit und Abgleich (~12 min pro Anlage", "Pr\xE9parer le commissioning automatique : donn\xE9es de projet, checklists, \xE9tanch\xE9it\xE9 et \xE9quilibrage (~12 min par \xE9quipement"],
+          ["Documentaci\xF3n enlazada a cada equipo, fichas PM y hojas de balanceo (~18 min por equipo", "Documentation linked to each unit, PM records and balancing sheets (~18 min per unit", "Documentaci\xF3 enlla\xE7ada a cada equip, fitxes PM i fulls de balanceig (~18 min per equip", "Documenta\xE7\xE3o ligada a cada equipamento, fichas PM e folhas de balanceamento (~18 min por equipamento", "Mit jeder Anlage verkn\xFCpfte Dokumentation, PM-Bl\xE4tter und Abgleichbl\xE4tter (~18 min pro Anlage", "Documentation li\xE9e \xE0 chaque \xE9quipement, fiches PM et feuilles d'\xE9quilibrage (~18 min par \xE9quipement"],
+          ["Fichas PM con la cabecera y los valores de proyecto ya puestos, y hojas de balanceo con sus bocas y f\xF3rmulas (~10 min por equipo", "PM records with the header and project values already filled in, and balancing sheets with their outlets and formulas (~10 min per unit", "Fitxes PM amb la cap\xE7alera i els valors de projecte ja posats, i fulls de balanceig amb les seves boques i f\xF3rmules (~10 min per equip", "Fichas PM com o cabe\xE7alho e os valores de projeto j\xE1 preenchidos, e folhas de balanceamento com as suas bocas e f\xF3rmulas (~10 min por equipamento", "PM-Bl\xE4tter mit bereits eingetragenem Kopf und Projektwerten sowie Abgleichbl\xE4tter mit ihren Ausl\xE4ssen und Formeln (~10 min pro Anlage", "Fiches PM avec l'en-t\xEAte et les valeurs de projet d\xE9j\xE0 renseign\xE9s, et feuilles d'\xE9quilibrage avec leurs bouches et formules (~10 min par \xE9quipement"],
+          ["Pruebas de estanqueidad con su informe: ~20 min cada una y ~1 de cada 5 equipos la lleva (\u2248 4 min por equipo", "Tightness tests with their report: ~20 min each and ~1 in 5 units has one (\u2248 4 min per unit", "Proves d'estanquitat amb el seu informe: ~20 min cadascuna i ~1 de cada 5 equips la porta (\u2248 4 min per equip", "Ensaios de estanquidade com o seu relat\xF3rio: ~20 min cada um e ~1 em cada 5 equipamentos leva um (\u2248 4 min por equipamento", "Dichtheitspr\xFCfungen mit ihrem Bericht: ~20 min pro Pr\xFCfung und ~1 von 5 Anlagen hat eine (\u2248 4 min pro Anlage", "Essais d'\xE9tanch\xE9it\xE9 avec leur rapport : ~20 min chacun et ~1 \xE9quipement sur 5 en a un (\u2248 4 min par \xE9quipement"],
+          ["En campo con el m\xF3vil: fichas PM, checklists y balanceo boca a boca con el instrumento y el caudal total sumado solo. Antes, papel o Excel en obra, pasarlo a limpio y montar el PDF: ~20 min por equipo", "In the field with the mobile: PM records, checklists and outlet-by-outlet balancing with the instrument and the total airflow added up automatically. Before, paper or Excel on site, writing it up cleanly and building the PDF: ~20 min per unit", "Al camp amb el m\xF2bil: fitxes PM, checklists i balanceig boca a boca amb l'instrument i el cabal total sumat sol. Abans, paper o Excel a l'obra, passar-ho a net i muntar el PDF: ~20 min per equip", "No campo com o telem\xF3vel: fichas PM, checklists e balanceamento boca a boca com o instrumento e o caudal total somado sozinho. Antes, papel ou Excel em obra, passar a limpo e montar o PDF: ~20 min por equipamento", "Im Feld mit dem Mobiltelefon: PM-Bl\xE4tter, Checklisten und Abgleich Auslass f\xFCr Auslass mit dem Messger\xE4t und dem automatisch summierten Gesamtvolumenstrom. Fr\xFCher Papier oder Excel auf der Baustelle, ins Reine schreiben und das PDF aufbauen: ~20 min pro Anlage", "Sur le terrain avec le mobile : fiches PM, checklists et \xE9quilibrage bouche par bouche avec l'instrument et le d\xE9bit total additionn\xE9 tout seul. Avant, papier ou Excel sur le chantier, remise au propre et montage du PDF : ~20 min par \xE9quipement"],
+          ["Revisa en el m\xF3vil lo medido, equipo a equipo, y no rehace ni monta el PDF de cada ficha (~5 min por equipo; el dossier final va en \xABEntrega", "Reviews on the mobile what was measured, unit by unit, and does not redo or build the PDF of each record (~5 min per unit; the final dossier goes under \xABHandover", "Revisa al m\xF2bil el que s'ha mesurat, equip a equip, i no ref\xE0 ni munta el PDF de cada fitxa (~5 min per equip; el dossier final va a \xABLliurament", "Rev\xEA no telem\xF3vel o que foi medido, equipamento a equipamento, e n\xE3o refaz nem monta o PDF de cada ficha (~5 min por equipamento; o dossi\xEA final vai em \xABEntrega", "Pr\xFCft auf dem Mobiltelefon das Gemessene, Anlage f\xFCr Anlage, und erstellt das PDF jedes Blatts weder neu noch baut es auf (~5 min pro Anlage; das Enddossier steht unter \xAB\xDCbergabe", "Revoit sur le mobile ce qui a \xE9t\xE9 mesur\xE9, \xE9quipement par \xE9quipement, et ne refait ni ne monte le PDF de chaque fiche (~5 min par \xE9quipement ; le dossier final est dans \xABRemise"],
+          ["Dossier final con la documentaci\xF3n ya enlazada por equipo y las fichas firmadas (~7 min por equipo", "Final dossier with the documentation already linked per unit and the records signed (~7 min per unit", "Dossier final amb la documentaci\xF3 ja enlla\xE7ada per equip i les fitxes signades (~7 min per equip", "Dossi\xEA final com a documenta\xE7\xE3o j\xE1 ligada por equipamento e as fichas assinadas (~7 min por equipamento", "Enddossier mit der bereits pro Anlage verkn\xFCpften Dokumentation und den unterschriebenen Bl\xE4ttern (~7 min pro Anlage", "Dossier final avec la documentation d\xE9j\xE0 li\xE9e par \xE9quipement et les fiches sign\xE9es (~7 min par \xE9quipement"],
+          ["Cierre de NCR y reparaciones pendientes para la recepci\xF3n (~4 min por equipo", "Closing out NCR and pending repairs for handover (~4 min per unit", "Tancament de NCR i reparacions pendents per a la recepci\xF3 (~4 min per equip", "Fecho de NCR e repara\xE7\xF5es pendentes para a rece\xE7\xE3o (~4 min por equipamento", "Abschluss von NCR und ausstehenden Reparaturen f\xFCr die Abnahme (~4 min pro Anlage", "Cl\xF4ture des NCR et des r\xE9parations en attente pour la r\xE9ception (~4 min par \xE9quipement"],
+          ["Plan preventivo de 20 a\xF1os desde dos fechas por equipo (40 h por obra entregada", "20-year preventive plan from two dates per unit (40 h per site handed over", "Pla preventiu de 20 anys a partir de dues dates per equip (40 h per obra lliurada", "Plano preventivo de 20 anos a partir de duas datas por equipamento (40 h por obra entregue", "Pr\xE4ventivplan \xFCber 20 Jahre aus zwei Daten pro Anlage (40 h pro \xFCbergebener Baustelle", "Plan pr\xE9ventif de 20 ans \xE0 partir de deux dates par \xE9quipement (40 h par chantier livr\xE9"],
+          ["\xD3rdenes de trabajo repartidas solas por especialidad, carga y cercan\xEDa, con avisos de vencidas y de fugas F-gas, y su PDF al cerrar (~20 min por orden", "Work orders distributed automatically by specialty, workload and proximity, with alerts for overdue ones and F-gas leaks, and their PDF on closing (~20 min per order", "Ordres de treball repartides soles per especialitat, c\xE0rrega i proximitat, amb avisos de ven\xE7udes i de fuites F-gas, i el seu PDF en tancar (~20 min per ordre", "Ordens de trabalho distribu\xEDdas sozinhas por especialidade, carga e proximidade, com avisos de vencidas e de fugas F-gas, e o seu PDF ao fechar (~20 min por ordem", "Arbeitsauftr\xE4ge, die automatisch nach Fachgebiet, Auslastung und N\xE4he verteilt werden, mit Hinweisen auf \xFCberf\xE4llige und auf F-gas-Lecks und ihrem PDF beim Abschluss (~20 min pro Auftrag", "Ordres de travail r\xE9partis tout seuls par sp\xE9cialit\xE9, charge et proximit\xE9, avec alertes d'\xE9ch\xE9ances d\xE9pass\xE9es et de fuites F-gas, et leur PDF \xE0 la cl\xF4ture (~20 min par ordre"],
+          ["Ofertas de cada compra apuntadas, comparadas con el comparativo de Compras y el pedido sale con el precio elegido. Antes, correos y un Excel por compra (~45 min; ~6 compras al mes, ~20 min menos cada una", "Quotes for each purchase recorded, compared in the Purchasing comparison and the purchase order goes out with the chosen price. Before, emails and an Excel per purchase (~45 min; ~6 purchases a month, ~20 min less each", "Ofertes de cada compra apuntades, comparades amb el comparatiu de Compres i la comanda surt amb el preu triat. Abans, correus i un Excel per compra (~45 min; ~6 compres al mes, ~20 min menys cadascuna", "Ofertas de cada compra registadas, comparadas com o comparativo de Compras e a encomenda sai com o pre\xE7o escolhido. Antes, correios e um Excel por compra (~45 min; ~6 compras por m\xEAs, ~20 min menos cada uma", "Angebote jedes Einkaufs erfasst, mit dem Vergleich im Einkauf verglichen, und die Bestellung geht mit dem gew\xE4hlten Preis hinaus. Fr\xFCher E-Mails und ein Excel pro Einkauf (~45 min; ~6 Eink\xE4ufe pro Monat, ~20 min weniger je Einkauf", "Offres de chaque achat not\xE9es, compar\xE9es avec le comparatif des Achats, et la commande sort avec le prix choisi. Avant, courriels et un Excel par achat (~45 min ; ~6 achats par mois, ~20 min de moins chacun"],
+          ["Revisiones e inspecciones hechas desde el m\xF3vil con sus fotos: no se pasan a limpio y la pr\xF3xima fecha sale sola (~10 min cada una, ~18 al mes", "Reviews and inspections done from the mobile with their photos: they are not written up again and the next date comes out automatically (~10 min each, ~18 a month", "Revisions i inspeccions fetes des del m\xF2bil amb les seves fotos: no es passen a net i la propera data surt sola (~10 min cadascuna, ~18 al mes", "Revis\xF5es e inspe\xE7\xF5es feitas a partir do telem\xF3vel com as suas fotografias: n\xE3o se passam a limpo e a pr\xF3xima data sai sozinha (~10 min cada uma, ~18 por m\xEAs", "Vom Mobiltelefon aus durchgef\xFChrte Kontrollen und Inspektionen mit ihren Fotos: sie werden nicht ins Reine geschrieben und das n\xE4chste Datum ergibt sich automatisch (~10 min pro St\xFCck, ~18 pro Monat", "Revues et inspections faites depuis le mobile avec leurs photos : elles ne sont pas remises au propre et la prochaine date sort toute seule (~10 min chacune, ~18 par mois"],
+          ["Informe semanal de todos los grupos hecho solo: una hoja con un resumen por cada jefe de grupo, sus obras urgentes y por qu\xE9, y las obras sin jefe de grupo aparte. Antes juntaba el informe de cada grupo a mano (~1 h por semana", "Weekly report of all groups done automatically: a sheet with a summary for each group manager, their urgent sites and why, and the sites without a group manager separately. Before, he collected each group's report by hand (~1 h per week", "Informe setmanal de tots els grups fet sol: un full amb un resum per cada cap de grup, les seves obres urgents i per qu\xE8, i les obres sense cap de grup a part. Abans ajuntava l'informe de cada grup a m\xE0 (~1 h per setmana", "Relat\xF3rio semanal de todos os grupos feito sozinho: uma folha com um resumo por cada chefe de grupo, as suas obras urgentes e porqu\xEA, e as obras sem chefe de grupo \xE0 parte. Antes juntava o relat\xF3rio de cada grupo \xE0 m\xE3o (~1 h por semana", "Wochenbericht aller Gruppen automatisch erstellt: ein Blatt mit einer Zusammenfassung pro Gruppenleiter, ihren dringenden Baustellen und dem Grund, und die Baustellen ohne Gruppenleiter separat. Fr\xFCher trug er den Bericht jeder Gruppe von Hand zusammen (~1 h pro Woche", "Rapport hebdomadaire de tous les groupes fait tout seul : une feuille avec un r\xE9sum\xE9 par chef de groupe, leurs chantiers urgents et pourquoi, et les chantiers sans chef de groupe \xE0 part. Avant, il rassemblait \xE0 la main le rapport de chaque groupe (~1 h par semaine"],
+          ["Resumen semanal de gerencia hecho solo: una p\xE1gina con las cifras de la empresa y solo las obras urgentes, ordenadas por dinero desviado. Antes se lo ten\xEDan que contar o preparar (~30 min por semana", "Weekly management summary done automatically: one page with the company's figures and only the urgent sites, ordered by money deviated. Before, they had to be told or prepare it themselves (~30 min per week", "Resum setmanal de ger\xE8ncia fet sol: una p\xE0gina amb les xifres de l'empresa i nom\xE9s les obres urgents, ordenades per diners desviats. Abans els ho havien d'explicar o preparar (~30 min per setmana", "Resumo semanal da ger\xEAncia feito sozinho: uma p\xE1gina com os n\xFAmeros da empresa e s\xF3 as obras urgentes, ordenadas por dinheiro desviado. Antes tinham de lho contar ou prepar\xE1-lo (~30 min por semana", "W\xF6chentliche Zusammenfassung f\xFCr die Gesch\xE4ftsleitung automatisch erstellt: eine Seite mit den Zahlen des Unternehmens und nur den dringenden Baustellen, nach abweichendem Geldbetrag geordnet. Fr\xFCher musste man es ihnen erz\xE4hlen oder vorbereiten (~30 min pro Woche", "R\xE9sum\xE9 hebdomadaire de direction fait tout seul : une page avec les chiffres de l'entreprise et seulement les chantiers urgents, class\xE9s par argent d\xE9vi\xE9. Avant, on devait le leur raconter ou le pr\xE9parer (~30 min par semaine"],
+          ["Los mismos tiempos por equipo aplicados a los 734 equipos de NCN. Ejemplo de obra real: no suma en ning\xFAn total", "The same per-unit times applied to the 734 units of NCN. Example of a real site: it does not add to any total", "Els mateixos temps per equip aplicats als 734 equips de NCN. Exemple d'obra real: no suma en cap total", "Os mesmos tempos por equipamento aplicados aos 734 equipamentos da NCN. Exemplo de obra real: n\xE3o soma em nenhum total", "Dieselben Zeiten pro Anlage, angewendet auf die 734 Anlagen von NCN. Beispiel einer realen Baustelle: es z\xE4hlt in keiner Gesamtsumme", "Les m\xEAmes temps par \xE9quipement appliqu\xE9s aux 734 \xE9quipements de NCN. Exemple de chantier r\xE9el : il ne compte dans aucun total"],
+          ["El Gantt sale del control de costes y la planificaci\xF3n econ\xF3mica de \xE9l: ~1 h/semana de pasar fechas e importes entre Project y Excel, 40 semanas", "The Gantt comes from the cost control and the economic planning from it: ~1 h/week of transferring dates and amounts between Project and Excel, 40 weeks", "El Gantt surt del control de costos i la planificaci\xF3 econ\xF2mica d'ell: ~1 h/setmana de passar dates i imports entre Project i Excel, 40 setmanes", "O Gantt sai do controlo de custos e o planeamento econ\xF3mico dele: ~1 h/semana a passar datas e valores entre o Project e o Excel, 40 semanas", "Der Gantt ergibt sich aus der Kostenkontrolle und die Wirtschaftsplanung aus ihm: ~1 h/Woche f\xFCr das \xDCbertragen von Terminen und Betr\xE4gen zwischen Project und Excel, 40 Wochen", "Le Gantt sort du contr\xF4le des co\xFBts et la planification \xE9conomique de lui : ~1 h/semaine pour reporter dates et montants entre Project et Excel, 40 semaines"],
+          ["Lee BC3, Excel y PDF y describe las partidas: ~5 h/mes de teclear y repasar importaciones", "Reads BOQ, Excel and PDF and describes the line items: ~5 h/month of typing and checking imports", "Llegeix BC3, Excel i PDF i descriu les partides: ~5 h/mes de teclejar i repassar importacions", "L\xEA BC3, Excel e PDF e descreve os artigos: ~5 h/m\xEAs a digitar e rever importa\xE7\xF5es", "Liest BC3, Excel und PDF und beschreibt die Positionen: ~5 h/Monat Tipp- und Pr\xFCfarbeit bei Importen", "Lit BC3, Excel et PDF et d\xE9crit les lignes : ~5 h/mois de saisie et de revue des importations"],
+          ["Comprometido, gastado y desv\xEDo salen de pedidos, albaranes y facturas: ~2 h/semana de copiar a mano, 48 semanas", "Committed, spent and variance come from purchase orders, delivery notes and invoices: ~2 h/week of copying by hand, 48 weeks", "Comprom\xE8s, gastat i desviaci\xF3 surten de comandes, albarans i factures: ~2 h/setmana de copiar a m\xE0, 48 setmanes", "Comprometido, gasto e desvio saem de encomendas, guias de remessa e faturas: ~2 h/semana a copiar \xE0 m\xE3o, 48 semanas", "Obligo, Ausgaben und Abweichung ergeben sich aus Bestellungen, Lieferscheinen und Rechnungen: ~2 h/Woche Abschreiben von Hand, 48 Wochen", "Engag\xE9, d\xE9pens\xE9 et \xE9cart sortent des commandes, bons de livraison et factures : ~2 h/semaine de copie \xE0 la main, 48 semaines"],
+          ["Enlace autom\xE1tico de documentaci\xF3n, fichas y PDF: ~10 h/mes en una obra con cientos de equipos", "Automatic linking of documentation, records and PDF: ~10 h/month on a site with hundreds of units", "Enlla\xE7 autom\xE0tic de documentaci\xF3, fitxes i PDF: ~10 h/mes en una obra amb centenars d'equips", "Liga\xE7\xE3o autom\xE1tica de documenta\xE7\xE3o, fichas e PDF: ~10 h/m\xEAs numa obra com centenas de equipamentos", "Automatische Verkn\xFCpfung von Dokumentation, Bl\xE4ttern und PDF: ~10 h/Monat auf einer Baustelle mit Hunderten von Anlagen", "Liaison automatique de la documentation, des fiches et des PDF : ~10 h/mois sur un chantier avec des centaines d'\xE9quipements"],
+          ["Fichaje por QR y caducidades a la vista: ~1 h/semana de cuadrar la hoja de personal", "Clocking in by QR and expiry dates at a glance: ~1 h/week of reconciling the personnel sheet", "Fitxatge per QR i caducitats a la vista: ~1 h/setmana de quadrar el full de personal", "Registo de ponto por QR e caducidades \xE0 vista: ~1 h/semana a acertar a folha de pessoal", "Zeiterfassung per QR und Ablaufdaten auf einen Blick: ~1 h/Woche f\xFCr den Abgleich des Personalblatts", "Pointage par QR et \xE9ch\xE9ances en vue : ~1 h/semaine pour faire concorder la feuille du personnel"],
+          ["Se genera solo: ~1,5 h cada lunes, 48 semanas", "It generates itself: ~1.5 h every Monday, 48 weeks", "Es genera sol: ~1,5 h cada dilluns, 48 setmanes", "Gera-se sozinho: ~1,5 h cada segunda-feira, 48 semanas", "Wird automatisch erstellt: ~1,5 h jeden Montag, 48 Wochen", "Il se g\xE9n\xE8re tout seul : ~1,5 h chaque lundi, 48 semaines"],
+          ["Jefe de obra: anterior y a origen solos (~4 h) y la proforma del industrial cotejada partida a partida (~2 h). Encargado: ya no prepara a mano las mediciones del mes (~2 h", "Site manager: previous and to-date figures automatic (~4 h) and the subcontractor's pro forma checked line by line (~2 h). Foreman: no longer prepares the month's measurements by hand (~2 h", "Cap d'obra: anterior i a origen sols (~4 h) i la proforma de l'industrial confrontada partida a partida (~2 h). Encarregat: ja no prepara a m\xE0 els mesuraments del mes (~2 h", "Chefe de obra: anterior e a origem sozinhos (~4 h) e a proforma do subempreiteiro cotejada artigo a artigo (~2 h). Encarregado: j\xE1 n\xE3o prepara \xE0 m\xE3o as medi\xE7\xF5es do m\xEAs (~2 h", "Bauleiter: Vorherige und kumulierte Werte automatisch (~4 h) und die Proforma des Subunternehmers Position f\xFCr Position abgeglichen (~2 h). Vorarbeiter: bereitet die Monatsmessungen nicht mehr von Hand vor (~2 h", "Chef de chantier : pr\xE9c\xE9dent et \xE0 l'origine automatiques (~4 h) et la proforma du sous-traitant confront\xE9e ligne par ligne (~2 h). Contrema\xEEtre : ne pr\xE9pare plus \xE0 la main les m\xE9tr\xE9s du mois (~2 h"],
+          ["Jefe de obra: no mide a escal\xEDmetro para certificar (~4 h). Encargado: marca en el plano al momento en vez de hacer el parte de lo ejecutado y recorrer la obra con el jefe para medir (~3 h", "Site manager: does not measure with a scale rule to certify (~4 h). Foreman: marks on the drawing on the spot instead of writing the report of what was executed and walking the site with the site manager to measure (~3 h", "Cap d'obra: no mesura amb escal\xEDmetre per certificar (~4 h). Encarregat: marca al pl\xE0nol al moment en lloc de fer el part del que s'ha executat i rec\xF3rrer l'obra amb el cap d'obra per mesurar (~3 h", "Chefe de obra: n\xE3o mede com escal\xEDmetro para certificar (~4 h). Encarregado: marca na planta no momento em vez de fazer o parte do executado e percorrer a obra com o chefe de obra para medir (~3 h", "Bauleiter: misst nicht mit dem Massstab, um zu zertifizieren (~4 h). Vorarbeiter: markiert im Plan sofort, statt die Meldung des Ausgef\xFChrten zu schreiben und die Baustelle mit dem Bauleiter zum Messen abzugehen (~3 h", "Chef de chantier : ne mesure pas \xE0 l'\xE9chelle pour certifier (~4 h). Contrema\xEEtre : marque sur le plan sur le moment au lieu de faire le rapport de l'ex\xE9cut\xE9 et de parcourir le chantier avec le chef de chantier pour mesurer (~3 h"],
+          ["Por equipo: abrir su ficha t\xE9cnica y teclear sus datos de proyecto (caudales, agua, temperaturas, ~6 min), decidir si lleva prueba de estanqueidad (~1 min), crear su checklist (~2 min) y su hoja de balanceo con los caudales (~3 min): ~12 min. Se hace una vez por obra, al final: aqu\xED va repartido entre los meses que dura la obra. Horas del jefe de obra (es quien lo acepta en la app", "Per unit: open its datasheet and type its project data (airflows, water, temperatures, ~6 min), decide whether it needs a tightness test (~1 min), create its checklist (~2 min) and its balancing sheet with the airflows (~3 min): ~12 min. It is done once per site, at the end: here it is spread over the months the site lasts. Hours of the site manager (the one who accepts it in the app", "Per equip: obrir la seva fitxa t\xE8cnica i teclejar les seves dades de projecte (cabals, aigua, temperatures, ~6 min), decidir si porta prova d'estanquitat (~1 min), crear el seu checklist (~2 min) i el seu full de balanceig amb els cabals (~3 min): ~12 min. Es fa una vegada per obra, al final: aqu\xED va repartit entre els mesos que dura l'obra. Hores del cap d'obra (\xE9s qui ho accepta a l'app", "Por equipamento: abrir a sua ficha t\xE9cnica e digitar os seus dados de projeto (caudais, \xE1gua, temperaturas, ~6 min), decidir se leva ensaio de estanquidade (~1 min), criar a sua checklist (~2 min) e a sua folha de balanceamento com os caudais (~3 min): ~12 min. Faz-se uma vez por obra, no fim: aqui vai repartido pelos meses que a obra dura. Horas do chefe de obra (\xE9 quem o aceita na app", "Pro Anlage: ihr Datenblatt \xF6ffnen und ihre Projektdaten eintippen (Volumenstr\xF6me, Wasser, Temperaturen, ~6 min), entscheiden, ob eine Dichtheitspr\xFCfung n\xF6tig ist (~1 min), ihre Checkliste anlegen (~2 min) und ihr Abgleichblatt mit den Volumenstr\xF6men (~3 min): ~12 min. Das geschieht einmal pro Baustelle, am Ende: hier ist es auf die Monate der Baustellendauer verteilt. Stunden des Bauleiters (er ist es, der es in der App akzeptiert", "Par \xE9quipement : ouvrir sa fiche technique et saisir ses donn\xE9es de projet (d\xE9bits, eau, temp\xE9ratures, ~6 min), d\xE9cider s'il comporte un essai d'\xE9tanch\xE9it\xE9 (~1 min), cr\xE9er sa checklist (~2 min) et sa feuille d'\xE9quilibrage avec les d\xE9bits (~3 min) : ~12 min. Cela se fait une fois par chantier, \xE0 la fin : ici c'est r\xE9parti sur les mois que dure le chantier. Heures du chef de chantier (c'est lui qui l'accepte dans l'appli"],
+          ["Plazos, f\xF3rmulas e informes solos: ~3 h/mes", "Deadlines, formulas and reports automatic: ~3 h/month", "Terminis, f\xF3rmules i informes sols: ~3 h/mes", "Prazos, f\xF3rmulas e relat\xF3rios sozinhos: ~3 h/m\xEAs", "Fristen, Formeln und Berichte automatisch: ~3 h/Monat", "D\xE9lais, formules et rapports automatiques : ~3 h/mois"],
+          ["El plan de 20 a\xF1os sale de dos fechas por equipo: ~40 h por obra entregada para montarlo a mano", "The 20-year plan comes from two dates per unit: ~40 h per site handed over to build it by hand", "El pla de 20 anys surt de dues dates per equip: ~40 h per obra lliurada per muntar-lo a m\xE0", "O plano de 20 anos sai de duas datas por equipamento: ~40 h por obra entregue para o montar \xE0 m\xE3o", "Der 20-Jahres-Plan ergibt sich aus zwei Daten pro Anlage: ~40 h pro \xFCbergebener Baustelle, um ihn von Hand aufzubauen", "Le plan de 20 ans sort de deux dates par \xE9quipement : ~40 h par chantier livr\xE9 pour le monter \xE0 la main"],
+          ["Lee el BOE cada d\xEDa y cruza con las partidas: ~30 min/semana", "Reads the BOE every day and cross-checks it with the line items: ~30 min/week", "Llegeix el BOE cada dia i el creua amb les partides: ~30 min/setmana", "L\xEA o BOE todos os dias e cruza-o com os artigos: ~30 min/semana", "Liest t\xE4glich das BOE und gleicht es mit den Positionen ab: ~30 min/Woche", "Lit le BOE chaque jour et le recoupe avec les lignes : ~30 min/semaine"],
+          ["CxAlloy no publica tarifa (se pide propuesta; usuarios ilimitados). Los agregadores (sourceforge.net) dicen \xABdesde 355 $/mes\xBB, cifra no confirmada por el fabricante. Facility Grid tampoco publica precio", "CxAlloy does not publish pricing (a quote is requested; unlimited users). Aggregators (sourceforge.net) say \xABfrom $355/month\xBB, a figure not confirmed by the manufacturer. Facility Grid does not publish a price either", "CxAlloy no publica tarifa (es demana proposta; usuaris il\xB7limitats). Els agregadors (sourceforge.net) diuen \xABdes de 355 $/mes\xBB, xifra no confirmada pel fabricant. Facility Grid tampoc no publica preu", "A CxAlloy n\xE3o publica tarifa (pede-se proposta; utilizadores ilimitados). Os agregadores (sourceforge.net) dizem \xABdesde 355 $/m\xEAs\xBB, valor n\xE3o confirmado pelo fabricante. A Facility Grid tamb\xE9m n\xE3o publica pre\xE7o", "CxAlloy ver\xF6ffentlicht keinen Tarif (ein Angebot wird angefordert; unbegrenzte Benutzer). Die Aggregatoren (sourceforge.net) sagen \xABab 355 $/Monat\xBB, eine vom Hersteller nicht best\xE4tigte Zahl. Auch Facility Grid ver\xF6ffentlicht keinen Preis", "CxAlloy ne publie pas de tarif (on demande une proposition ; utilisateurs illimit\xE9s). Les agr\xE9gateurs (sourceforge.net) disent \xAB\xE0 partir de 355 $/mois\xBB, chiffre non confirm\xE9 par le fabricant. Facility Grid ne publie pas non plus de prix"],
+          ["Todas", "All", "Totes", "Todas", "Alle", "Toutes"],
+          ["Hilos de correo", "Email threads", "Fils de correu", "Fios de correio", "E-Mail-Verl\xE4ufe", "Fils de courriels"],
+          ["Sistemas", "Systems", "Sistemes", "Sistemas", "Systeme", "Syst\xE8mes"],
+          ["Renuncias", "Waivers", "Ren\xFAncies", "Ren\xFAncias", "Verzichte", "Renonciations"],
+          ["Apartados", "Sections", "Apartats", "Sec\xE7\xF5es", "Abschnitte", "Sections"],
+          ["Cl\xE1usulas", "Clauses", "Cl\xE0usules", "Cl\xE1usulas", "Klauseln", "Clauses"],
+          ["d\xEDas", "days", "dies", "dias", "Tage", "jours"],
+          ["objeci\xF3n o riesgo", "objection or risk", "objecci\xF3 o risc", "obje\xE7\xE3o ou risco", "Einwand oder Risiko", "objection ou risque"],
+          ["objeciones o riesgos", "objections or risks", "objeccions o riscos", "obje\xE7\xF5es ou riscos", "Einw\xE4nde oder Risiken", "objections ou risques"],
+          ["Enlazar prueba ya existente", "Link existing evidence", "Enlla\xE7ar prova ja existent", "Ligar prova j\xE1 existente", "Bereits vorhandenen Beweis verkn\xFCpfen", "Lier une preuve d\xE9j\xE0 existante"],
+          ["Propuestas de reclasificaci\xF3n", "Reclassification proposals", "Propostes de reclassificaci\xF3", "Propostas de reclassifica\xE7\xE3o", "Umklassifizierungsvorschl\xE4ge", "Propositions de reclassification"],
+          ["hilos", "threads", "fils", "fios", "Verl\xE4ufe", "fils"],
+          ["categor\xEDas", "categories", "categories", "categorias", "Kategorien", "cat\xE9gories"],
+          ["con precio", "with price", "amb preu", "com pre\xE7o", "mit Preis", "avec prix"],
+          ["historial", "history", "historial", "hist\xF3rico", "Verlauf", "historique"]
         ];
         return { ORDEN, FIJAS, NOMBRES };
       });
