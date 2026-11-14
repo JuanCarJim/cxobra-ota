@@ -500,7 +500,7 @@
     const nom = (SEGMENTOS.find(([id]) => id === segmento) || [])[1] || '';
     const vista = (id, et) => `<button type="button" data-cx="vista-${id}" aria-pressed="${(id === 'lista') === listaCompleta}" class="${(id === 'lista') === listaCompleta ? 'activa' : ''}">${et}</button>`;
     return `<p class="cx-franja">${fr.map((c) => `<button type="button" data-cx-seg="${c.id}" aria-pressed="${segmento === c.id}" class="${segmento === c.id ? 'activa' : ''}">${esc(c.et)} <b>${cifra(c.n)}</b></button>`).join('')}<button type="button" class="cx-filtro" data-cx-seg="${esc(segmento)}" hidden>${esc(nom)} ×</button></p>
-      <div class="cx-busca-fila">${window.BUSCADOR_MOVIL.campo({ placeholder: 'Buscar TAG, tipo, sala o planta', valor: filtro, atributo: 'data-cx-buscar' })}<div class="cx-vista" role="group" aria-label="Vista">${vista('plano', 'Plano')}${vista('lista', 'Lista')}</div></div>`;
+      <div class="cx-busca-fila">${window.BUSCADOR_MOVIL.campo({ placeholder: 'TAG, tipo o sala', valor: filtro, atributo: 'data-cx-buscar' })}<div class="cx-vista" role="group" aria-label="Vista">${vista('plano', 'Plano')}${vista('lista', 'Lista')}</div></div>`;
   }
   function pintarCx(op = {}) {
     $app.innerHTML = `${notaCopiaMovil()}${cabeceraCx()}

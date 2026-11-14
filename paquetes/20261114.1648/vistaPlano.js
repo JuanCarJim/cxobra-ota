@@ -236,7 +236,7 @@ function gestos(marco, op) {
  *     Una sala puede traer `alt` ([{x, y}], otros sitios dentro de ella) por si en el suyo tapa algo.
  * Devuelve { tags: Set, salas: Set, movidas?: { id: {x, y} } } con los ids que se enseñan y las salas que cambian de sitio.
  */
-function rotulosSinChoque({ tags = [], obstaculos = [], salas = [] } = {}, celda = 80, { salasPrimero = false } = {}) {
+function rotulosSinChoque({ tags = [], obstaculos = [], salas = [] } = {}, celda = 80, { salasPrimero = false, despues = null } = {}) {
   const rejilla = new Map();
   const clave = (i, j) => `${i},${j}`;
   const rango = (c) => [Math.floor(c.x / celda), Math.floor((c.x + c.w) / celda), Math.floor(c.y / celda), Math.floor((c.y + c.h) / celda)];
@@ -257,11 +257,15 @@ function rotulosSinChoque({ tags = [], obstaculos = [], salas = [] } = {}, celda
   /* 13-nov (JC: «TAG sin cortar en el borde y sin solaparse»): un TAG puede traer otros sitios (`alt`, p. ej. a la izquierda
      del bloque); si va en uno de ellos, su id sale en `salida.izq` cuando ese sitio lleva `izq`. */
   salida.izq = new Set();
+  /* 14-nov (JC en el iPhone): con `sitio` en un alternativo ('arr' encima del bloque, 'abj' debajo), sale en `salida.sitios`. */
+  salida.sitios = new Map();
   const ponTag = (c) => {
     const q = [c, ...(c.alt || []).map((a) => ({ ...c, ...a }))].find((x) => !choca(x));
     if (!q) return;
     salida.tags.add(c.id); poner(q);
     if (q.izq) salida.izq.add(c.id);
+    if (q.sitio) salida.sitios.set(c.id, q.sitio);
+    salida.cajas = salida.cajas || new Map(); salida.cajas.set(c.id, { x: q.x, y: q.y, w: q.w, h: q.h });
   };
   for (const c of ordenTags.filter((t) => t.pri === 0)) ponTag(c);
   for (const c of obstaculos) poner(c);
@@ -277,6 +281,8 @@ function rotulosSinChoque({ tags = [], obstaculos = [], salas = [] } = {}, celda
     if (sitio !== c) salida.movidas = Object.assign(salida.movidas || {}, { [c.id]: { x: sitio.x, y: sitio.y } });
   }
   if (salasPrimero) ponTags();
+  /* Lo que se coloca al final con la misma rejilla (los grupos «+N» de colocarRotulos). */
+  if (typeof despues === 'function') despues({ choca, poner, salida });
   return salida;
 }
 
@@ -314,7 +320,7 @@ function huecoSalas(salas, aspecto = 1) {
 const LETRA_PX = { tag: 6, elegido: 7.4, sala: 6.2, codigo: 5.4 };
 const ALTO_SALA = 14;
 
-function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], huecos = null, ancho = null } = {}) {
+function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], huecos = null, ancho = null, sitios = false, grupos = false } = {}) {
   const ALTO_SALA_1 = ALTO_SALA; const ALTO_COD = 11;
   /* 13-nov (JC: «número de sala es muy importante también»): el rótulo de sala lleva el nombre y, debajo y más pequeño,
      su número (código del recinto, p. ej. «00.STE.036»). Van en una sola caja: si sale el nombre, sale el número. */
@@ -332,9 +338,16 @@ function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], hue
     /* A la derecha del bloque; si se sale del plano por la derecha o choca, a la izquierda (nunca cortado en el borde). */
     const sale = (o) => o.x < 0 || o.x + w > lw;
     const orden = sale(der) && !sale(izq) ? [izq, der] : [der, izq];
-    const sitios = orden.filter((o) => !sale(o));
-    const [pri0, ...alt] = sitios.length ? sitios : [orden[0]];
-    tags.push({ id, x: pri0.x, izq: pri0.izq, alt, y: cy - (el ? 8 : 6), w, h: el ? 16 : 12, pri: el ? 0 : (q.pri !== undefined ? q.pri : priDef) });
+    const lados = orden.filter((o) => !sale(o));
+    const [pri0, ...alt] = lados.length ? lados : [orden[0]];
+    const h = el ? 16 : 12;
+    /* 14-nov (JC en el iPhone, opción `sitios`): si a los lados choca, encima o debajo del bloque, centrado (sin salirse del plano). */
+    if (sitios) {
+      const x = Math.min(Math.max(0, cx - w / 2), Math.max(0, lw - w));
+      const arr = { x, y: cy - sw / 2 - 1 - h, izq: false, sitio: 'arr' }; const abj = { x, y: cy + sw / 2 + 1, izq: false, sitio: 'abj' };
+      for (const o of [arr, abj]) if (o.y >= 0 && o.y + h <= lh) alt.push(o);
+    }
+    tags.push({ id, x: pri0.x, izq: pri0.izq, alt, y: cy - (el ? 8 : 6), w, h, pri: el ? 0 : (q.pri !== undefined ? q.pri : priDef) });
   };
   for (const e of equipos) mete(e, `eq:${e.id}`, 1.5);
   for (const m of materiales) mete(m, m.id, 3);
@@ -363,14 +376,57 @@ function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], hue
       cajasSala.push({ id: i, x, y, w, h: ALTO_SALA, hueco: (hueco[i] || 0) * lw * 2, pri: conEq - (hueco[i] || 0), alt });
     }
   });
-  const ver = rotulosSinChoque({ tags, obstaculos, salas: cajasSala }, 80, { salasPrimero: true });
+  /* 14-nov (JC en el iPhone, opción `grupos`): los equipos cuyo TAG no cabe, juntos por cercanía, con una píldora «+N»
+     que no pisa nada; al acercar se abren solos. Devuelve grupos: [{ ids, n, x, y (centro px) }]. */
+  const listaGrupos = [];
+  const agrupar = ({ choca, poner, salida }) => {
+    const R = 34;
+    const sueltos = equipos.filter((e) => e && e.x !== null && e.x !== undefined && e.y !== null && e.y !== undefined && !salida.tags.has(`eq:${e.id}`))
+      .map((e) => ({ id: e.id, X: e.x * lw, Y: e.y * lh })).sort((a, b) => a.X - b.X || a.Y - b.Y);
+    const usado = new Set();
+    const sinSitio = [];
+    for (const a of sueltos) {
+      if (usado.has(a.id)) continue;
+      const g = [a]; usado.add(a.id);
+      for (let k = 0; k < g.length; k++) {
+        for (const b of sueltos) {
+          if (usado.has(b.id) || Math.hypot(b.X - g[k].X, b.Y - g[k].Y) > R) continue;
+          /* Un grupo no pasa de ~3R de ancho ni de alto: la píldora queda junto a sus equipos, no en medio de la planta. */
+          const xs = g.map((q) => q.X).concat(b.X); const ys = g.map((q) => q.Y).concat(b.Y);
+          if (Math.max(...xs) - Math.min(...xs) > 3 * R || Math.max(...ys) - Math.min(...ys) > 3 * R) continue;
+          usado.add(b.id); g.push(b);
+        }
+      }
+      const n = g.length;
+      const mx = g.reduce((s, q) => s + q.X, 0) / n; const my = g.reduce((s, q) => s + q.Y, 0) / n;
+      const x0 = Math.min(...g.map((q) => q.X)) - 12; const x1 = Math.max(...g.map((q) => q.X)) + 12;
+      const y0 = Math.min(...g.map((q) => q.Y)) - 12; const y1 = Math.max(...g.map((q) => q.Y)) + 12;
+      const w = mide(`+${Math.max(n, 10)}`, 'tag') + 10; const h = 14;
+      const lim = (c) => ({ x: Math.min(Math.max(0, c.x), Math.max(0, lw - w)), y: Math.min(Math.max(0, c.y), Math.max(0, lh - h)), w, h });
+      const cand = [];
+      for (const d of [0, 10, 22]) cand.push({ x: mx - w / 2, y: y0 - h - d }, { x: mx - w / 2, y: y1 + d }, { x: x1 + d, y: my - h / 2 }, { x: x0 - w - d, y: my - h / 2 });
+      const sitioG = cand.map(lim).find((c) => !choca(c));
+      if (!sitioG) { sinSitio.push(...g); continue; }
+      poner(sitioG);
+      listaGrupos.push({ ids: g.map((q) => q.id), n, x: sitioG.x + w / 2, y: sitioG.y + h / 2, cx: mx, cy: my });
+    }
+    /* Los que no encuentran hueco para su píldora se suman al grupo más cercano (a menos de 4R): sin TAG ni «+N» solo queda
+       alguno muy aislado entre rótulos, y aparece al acercar. */
+    for (const q of sinSitio) {
+      let mejor = null; let d0 = Infinity;
+      for (const gr of listaGrupos) { const d = Math.hypot(gr.cx - q.X, gr.cy - q.Y); if (d < d0) { d0 = d; mejor = gr; } }
+      if (mejor && d0 <= 4 * R) { mejor.ids.push(q.id); mejor.n += 1; }
+    }
+    for (const gr of listaGrupos) { delete gr.cx; delete gr.cy; }
+  };
+  const ver = rotulosSinChoque({ tags, obstaculos, salas: cajasSala }, 80, { salasPrimero: true, despues: grupos ? agrupar : null });
   const sitio = new Map();
   for (const c of cajasSala) {
     if (!ver.salas.has(c.id)) continue;
     const m = ver.movidas && ver.movidas[c.id];
     sitio.set(c.id, { x: (m ? m.x : c.x) + c.w / 2, y: (m ? m.y : c.y) + c.h / 2 });
   }
-  return { tags: ver.tags, salas: ver.salas, sitio, izq: ver.izq || new Set(), codigo: (i) => codigoSala(salas[i]) };
+  return { tags: ver.tags, salas: ver.salas, sitio, izq: ver.izq || new Set(), sitios: ver.sitios || new Map(), cajas: ver.cajas || new Map(), grupos: listaGrupos, codigo: (i) => codigoSala(salas[i]) };
 }
 
 /* 13-nov (coordinador, JC en el iPhone): un «+» desde «Entero» nunca puede dejar la

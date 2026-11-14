@@ -2294,3 +2294,10 @@ main#app.densa ul.lista-ios.filas-ficha > li { background: transparent; border: 
 .barra-fila > .sync-pastilla { font-size: 12px; }
 .boton-iarvis, .boton-iarvis svg { width: 30px; height: 30px; }
 @media (max-width: 699px) { .barra h1 { font-size: 17px; } }
+/* 14-nov (JC en el iPhone: «Conectando» fijo arriba en Cx › Plano): a 480 px o menos, cuando no hay nada que avisar (al día,
+   sincronizando) la pastilla se queda en un punto de color, como la web; el texto sigue en el aria-label y en el title.
+   Sin red, sin sesión o con error sí dice lo que pasa. */
+@media (max-width: 480px) {
+  .barra-fila > .sync-pastilla:not(.error):not(.sin-red):not(.sin-sesion) { font-size: 0; gap: 0; padding: 0 8px; background: transparent; }
+  .barra-fila > .sync-pastilla:not(.error):not(.sin-red):not(.sin-sesion) .sync-texto { display: none; }
+}

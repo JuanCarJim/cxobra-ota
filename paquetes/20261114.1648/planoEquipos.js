@@ -38,6 +38,8 @@
   const CB = window.COLOR_BLOQUE;
   const ORDEN = CB ? CB.ORDEN_BLOQUE : ['cxHecho', 'instalado', 'sinDato'];
   const NOMBRE = CB ? Object.fromEntries(CB.ESTADOS_BLOQUE.map((x) => [x.id, x.nombre])) : { cxHecho: 'Commissioning hecho', instalado: 'Instalado, sin Cx', sinDato: 'Sin dato' };
+  /* 14-nov (JC en el iPhone, chips cortados a 390 px): en la pestaña Cx, los nombres cortos. */
+  const CORTO = { certificado: 'Certificado', cxHecho: 'Cx hecho', instalado: 'Instalado', noInstalado: 'No instalado', sinDato: 'Sin dato' };
   const bq = (e) => (e && e.bloque) || (e && e.color === 'verde' ? 'cxHecho' : e && e.color === 'azul' ? 'instalado' : 'sinDato');
   const ZOOM_MAX = 30; /* 30-oct, JC: «hay que poder ampliar más» */
   const TAM_EQ = 22; const TAM_EQ_MIN = 18; /* 13-nov, JC: «si son grandes y hago zoom y no se adaptan, nunca podré ver los que hay»: 18–24 px */ const TAM_EQ_ELEGIDO = 30; /* px de pantalla, a cualquier zoom */
@@ -46,16 +48,27 @@
      así es el mismo en escritorio, web y móvil, también sin conexión. */
   const SIMBOLO_GENERICO = '<rect class="cuerpo" x="2" y="2" width="20" height="20" rx="3" stroke="currentColor" stroke-width="2"/><rect class="lleno" x="8" y="8" width="8" height="8" rx="1"/>';
   const simbolo = (k) => `<svg class="simbolo-boca" viewBox="0 0 24 24" aria-hidden="true">${(datos && datos.iconos && datos.iconos[k] && datos.iconos[k].svg) || SIMBOLO_GENERICO}</svg>`;
+  /* El tipo de un equipo en palabras (ventilador, fan coil…): el suyo o el de su icono. */
+  const tipoDe = (x) => (x && x.tipo) || (datos && datos.iconos && x && datos.iconos[x.icono] && datos.iconos[x.icono].nombre) || '';
   let datos = null;
   let planta = null;
   let zoom = 1;
   let elegida = null; /* el equipo tocado */
   let ocultos = new Set(); /* colores que no se enseñan */
+  /* 14-nov (JC): el chip «Con incidencia N» deja en el plano solo los equipos con incidencia abierta. */
+  let soloInc = false;
+  /* La regla es la del escritorio y la web: shared/commissioning/incidenciaPlano.js (incidencias SIN CERRAR del registro,
+     extendidas a todo el conjunto de la unidad). */
+  const IP = window.INCIDENCIA_PLANO || null;
+  const conInc = (e) => Boolean(IP ? IP.tiene(e) : (e && Array.isArray(e.incidencias) && e.incidencias.length));
+  const incHtml = () => `<span class="pe-inc" aria-hidden="true">${IP ? IP.DISTINTIVO : '!'}</span>`;
   let $raiz = null;
   let vista = null; /* cómo estaba el plano al irse a una ficha, para volver igual */
   let propio = false; /* sección «Plano de equipos» (sin Commissioning) */
   let verMas = false; /* el desplegable «Leyenda · sin ubicar · revisar» abierto */
   let verSinUbicar = false; /* franja gris «Sin ubicar en el plano» abierta */
+  let verFranja = false; /* 14-nov (JC): la lista «N equipos sin sala, por confirmar» desplegada */
+  let base = 1; /* 14-nov (JC): ancho del lienzo en «Entero» (fracción del marco) para que la planta quepa entera también a lo alto */
   /* Materiales instalados (29-oct, JC): compuertas, difusores, rejillas… con nº de serie y ficha técnica. */
   let capasOff = new Set(); /* capas apagadas (equipos, compuertas, difusores…) */
   let mat = null; /* el material tocado */
@@ -95,6 +108,41 @@
   .pe-franja .marca-boca{position:relative;transform:none;flex:none;width:24px;height:24px;line-height:0;padding:1px;border-radius:4px;background:var(--panel);border:1px solid var(--borde)}
   .pe-franja .marca-boca .simbolo-boca{height:100%;width:100%}
   .pe-franja .marca-boca.elegida{outline:2px solid var(--acento);outline-offset:1px}.pe-marco{display:flex;flex-direction:column}
+  /* 14-nov (JC en el iPhone: «esto no se ve bien»): en la pestaña Cx el plano llena el alto entre los chips y la barra de abajo,
+     la planta entera centrada; debajo, una sola fila con «N equipos sin sala, por confirmar ›» y el −/Entero/+; sin scroll de página. */
+  #app:has(.cx-plano [data-pe-marco]),body:has(.cx-plano [data-pe-marco]){padding-bottom:0}
+  .cx-plano .pe-marco{height:auto}
+  .cx-plano .pe-lienzo{margin:auto}
+  .cx-plano .pe-leyenda.pe-una-fila{flex-wrap:wrap;overflow:visible;gap:4px;margin:0 0 6px}
+  .cx-plano .pe-leyenda.pe-una-fila button{min-height:28px;padding:1px 7px;gap:4px;font-size:12px;margin:0;width:auto}
+  .cx-plano .pe-leyenda .pe-punto{width:10px;height:10px}
+  .cx-plano .pe-planta-sel{margin:0 0 6px}.cx-plano .pe-planta-sel select{min-height:40px}
+  .pe-pie{display:flex;align-items:center;gap:6px;margin:4px 0 0}
+  .pe-pie .pe-zoom{margin:0 0 0 auto;flex:none}
+  .pe-franja-boton{flex:1 1 auto;min-width:0;width:auto;min-height:34px;margin:0;padding:2px 2px;border:0;background:none;color:var(--acento-fuerte,var(--acento));font-size:12.5px;line-height:15px;font-weight:600;text-align:left;display:flex;align-items:center;gap:4px}
+  .pe-franja-boton .flecha{flex:none;display:inline-block;transition:transform .15s;font-size:16px}
+  .pe-franja-boton[aria-expanded="true"] .flecha{transform:rotate(90deg)}
+  .pe-pie{flex-wrap:wrap}
+  .pe-pie .pe-franja-lista{flex:1 0 100%}
+  .cx-plano .pe-pie{position:relative;flex-wrap:nowrap}
+  .cx-plano .pe-pie .pe-franja-lista{position:absolute;left:0;right:0;bottom:calc(100% + 6px);z-index:6;max-height:min(46vh,380px);margin:0;border:1px solid var(--acento);border-radius:8px}
+  .pe-franja-lista{margin:4px 0 0;max-height:30vh;overflow-y:auto;-webkit-overflow-scrolling:touch;border-top:1px solid var(--acento);background:var(--panel)}
+  .pe-franja-lista ul{list-style:none;margin:0;padding:0}
+  .pe-franja-lista li{border-bottom:1px solid var(--borde)}
+  .pe-franja-lista button{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;margin:0;padding:4px 6px;border:0;background:none;color:var(--texto);font-size:14px;text-align:left}
+  .pe-franja-lista .simbolo-boca{width:20px;height:20px;flex:none;color:var(--acento-fuerte)}
+  .pe-franja-lista .simbolo-boca .cuerpo{fill:var(--panel)}
+  .pe-franja-lista b{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .pe-franja-lista .tipo{flex:1;min-width:0;color:var(--textoTenue);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pe-franja-lista .pe-ir{flex:none;color:var(--textoTenue)}
+  /* TAG encima o debajo del bloque cuando a los lados no cabe (vistaPlano.colocarRotulos, opción sitios). */
+  #app .pe-lienzo .marca-boca.tag-arr .rotulo-boca{left:calc(50% + var(--tag-dx,0px));top:auto;bottom:calc(100% + 1px);transform:translateX(-50%);margin:0}
+  #app .pe-lienzo .marca-boca.tag-abj .rotulo-boca{left:calc(50% + var(--tag-dx,0px));top:calc(100% + 1px);transform:translateX(-50%);margin:0}
+  /* Los equipos cuyo TAG no cabe con este zoom, juntos en una píldora «+N»: al tocarla, se acerca y salen sus TAG. */
+  .pe-grupo{position:absolute;transform:translate(-50%,-50%);z-index:3;box-sizing:border-box;width:auto;height:14px;min-height:0;min-width:0;margin:0;padding:0 4px;border:1px solid var(--acento);border-radius:7px;background:var(--panel);color:var(--acento-fuerte,var(--acento));font:700 9px/12px system-ui,sans-serif;white-space:nowrap;box-shadow:none}
+  .pe-grupo::after{content:'';position:absolute;left:50%;top:50%;width:36px;height:36px;transform:translate(-50%,-50%)}
+  /* El nombre de sala con su fondo: la línea de la pared no lo atraviesa. */
+  .pe-lienzo .pe-sala.ver{background:color-mix(in srgb,var(--vd-lienzo) 86%,transparent);border-radius:3px}
   .pe-fondo{display:flex;gap:6px;margin:0 0 6px}.pe-fondo button{flex:1;padding:6px 10px;border:1px solid var(--borde);border-radius:6px;background:transparent;color:inherit;font:inherit;font-size:13px}.pe-fondo button[aria-pressed=true]{background:color-mix(in srgb,currentColor 14%,transparent);font-weight:700;border-color:currentColor}.pe-fondo button:disabled{opacity:.4}
   .pe-lienzo img{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none;pointer-events:none}
   .pe-lienzo .marca-boca.azul{color:var(--pe-azul)}
@@ -104,18 +152,24 @@
   .pe-lienzo .marca-boca::after{width:calc(100% + 16px);height:calc(100% + 16px)}
   .pe-lienzo .marca-boca .simbolo-boca{display:block;height:100%;width:100%;border-radius:0;overflow:visible;filter:drop-shadow(0 0 1px var(--vd-lienzo))}
   .pe-lienzo .marca-boca .simbolo-boca *{vector-effect:non-scaling-stroke;stroke-width:1.2px}
+  /* 14-nov (JC): el contorno del bloque en el color de su estado (colorBloque.cssBloques), algo más grueso que las líneas de dentro. */
+  .pe-lienzo .marca-boca .simbolo-boca .cuerpo{stroke-width:1.8px}
   #app .pe-lienzo .marca-boca .rotulo-boca{display:none}
   #app .pe-lienzo .marca-boca.con-tag .rotulo-boca{display:block}
   #app .pe-lienzo .marca-boca.tag-izq .rotulo-boca{left:auto;right:calc(100% + 2px)}
   #app .pe-lienzo .marca-boca.elegida.tag-izq .rotulo-boca{margin-left:0;margin-right:8px}
   .pe-mat.tag-izq span{left:auto;right:100%;margin-left:0;margin-right:3px}
   /* La etiqueta sin color de estado: el estado se lee en el icono y en la leyenda. */
-  #app .pe-lienzo .marca-boca .rotulo-boca{background:rgba(255,255,255,.74);color:var(--acento-fuerte);padding:0 3px;font-weight:700;text-shadow:0 0 2px var(--vd-lienzo)}
+  #app .pe-lienzo .marca-boca .rotulo-boca{font-size:var(--pe-tag,9px);background:rgba(255,255,255,.74);color:var(--acento-fuerte);padding:0 3px;font-weight:700;text-shadow:0 0 2px var(--vd-lienzo)}
   .pe-lienzo .marca-boca.revisar .simbolo-boca{outline:1.5px dashed currentColor;outline-offset:2px}
   .pe-lienzo .marca-boca.elegida{width:30px!important;z-index:8;opacity:1!important}
-  .pe-lienzo .marca-boca.elegida .simbolo-boca{outline:none;transform:none;filter:drop-shadow(0 0 1.5px var(--acento)) drop-shadow(0 0 5px color-mix(in srgb,var(--acento) 55%,transparent))}
-  .pe-lienzo .marca-boca.elegida .simbolo-boca *{stroke-width:3px}
-  .pe-lienzo .marca-boca.elegida .simbolo-boca path,.pe-lienzo .marca-boca.elegida .simbolo-boca rect{stroke:var(--acento)}
+  /* 14-nov (JC: «al pulsar el equipo no resalta en el plano»): el pulsado, mientras su hoja está abierta, conserva el color de su
+     estado con el contorno grueso y el interior más cargado, y lleva un halo teal en su silueta que late (sin recuadro). */
+  .pe-lienzo .marca-boca.elegida .simbolo-boca{outline:none;transform:none;filter:drop-shadow(0 0 1.5px var(--acento)) drop-shadow(0 0 5px color-mix(in srgb,var(--acento) 70%,transparent));animation:peLatido 1.4s ease-in-out infinite alternate}
+  .pe-lienzo .marca-boca.elegida .simbolo-boca *{stroke-width:2.2px}
+  .pe-lienzo .marca-boca.elegida .simbolo-boca .cuerpo{stroke-width:3px;fill-opacity:.45}
+  @keyframes peLatido{from{filter:drop-shadow(0 0 1.5px var(--acento)) drop-shadow(0 0 4px color-mix(in srgb,var(--acento) 70%,transparent))}to{filter:drop-shadow(0 0 2.5px var(--acento)) drop-shadow(0 0 10px color-mix(in srgb,var(--acento) 85%,transparent))}}
+  @media (prefers-reduced-motion:reduce){.pe-lienzo .marca-boca.elegida .simbolo-boca{animation:none}}
   #app .pe-lienzo .marca-boca.elegida .rotulo-boca{display:block;z-index:9;font-size:12px;color:var(--sobre-relleno);background:var(--acento-relleno);text-shadow:none;padding:1px 5px;border-radius:3px;margin-left:8px}
   .pe-lienzo:has(.marca-boca.elegida) .marca-boca:not(.elegida),.pe-lienzo:has(.pe-mat.elegida) .marca-boca{opacity:.6}
   .pe-iconos{display:flex;flex-wrap:wrap;gap:4px 12px;margin:0 0 8px;font-size:12px;color:var(--textoTenue)}
@@ -145,6 +199,29 @@
   .pe-elegido{margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--panel);box-shadow:var(--sombra)}
   .pe-hoja{position:fixed;left:8px;right:8px;bottom:calc(var(--hueco-barra,104px) + 4px + env(safe-area-inset-bottom,0px));z-index:12;max-height:42vh;overflow:auto;padding:10px 12px 12px;border-radius:14px;background:var(--panel);box-shadow:0 -2px 14px rgba(8,50,60,.28);border:1px solid var(--borde)}
   .pe-hoja[hidden]{display:none}
+  /* 14-nov (JC): incidencia abierta = naranja (tokens --incidencia / --incidenciaTexto, incidenciaPlano.js) con «!»;
+     arriba de la hoja, sus incidencias con enlace (panelEquipoPlano.incidenciasHtml, la del escritorio). */
+  .pe-lienzo .marca-boca .pe-inc{position:absolute;right:-5px;top:-5px;width:13px;height:13px;border-radius:50%;background:var(--incidencia);color:var(--blanco);font:900 10px/13px system-ui,sans-serif;text-align:center;box-shadow:0 0 0 1.5px var(--panel);pointer-events:none}
+  .pe-hoja .pesIncEq{margin:6px 0 4px;padding:6px 8px;border-left:3px solid var(--incidencia);background:color-mix(in srgb,var(--incidencia) 9%,var(--panel));border-radius:4px;font-size:14px}
+  .pe-hoja .pesIncEqTit{display:flex;align-items:center;gap:6px;margin:0 0 2px;color:var(--incidenciaTexto)}
+  .pe-hoja .pesPunto.incidencia{display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--incidencia);color:var(--blanco);font:900 11px/16px system-ui,sans-serif;text-align:center}
+  .pe-hoja .pesIncEqTabla{width:100%;border-collapse:collapse}
+  .pe-hoja .pesIncEqTabla td{padding:2px 6px 2px 0;vertical-align:middle;border:0;overflow-wrap:anywhere}
+  .pe-hoja .pesIncEqTabla td:first-child{white-space:nowrap;width:1%}
+  .pe-hoja .pesIncEqEstado{white-space:nowrap;width:1%;color:var(--textoTenue);text-align:right;font-size:13px}
+  .pe-hoja .pesIncEnlace{min-height:40px;padding:0 4px 0 0;border:0;background:none;color:var(--incidenciaTexto);font-weight:700;text-decoration:underline;font-size:14px}
+  .pe-hoja .pesIncEqDonde{display:block;color:var(--incidenciaTexto);font-size:13px}
+  .pe-leyenda .pe-chip-inc{border-color:var(--incidencia);color:var(--incidenciaTexto)}
+  .pe-leyenda .pe-chip-inc[aria-pressed="false"]{opacity:1}
+  .pe-leyenda .pe-chip-inc[aria-pressed="true"]{background:color-mix(in srgb,var(--incidencia) 16%,var(--panel));font-weight:700}
+  .pe-hoja .pe-ficha-completa{display:block;width:100%;min-height:44px;margin:8px 0 2px;font-size:15px;font-weight:700}
+  /* 14-nov: con la hoja abierta el plano acaba encima de ella; el zoom con botones se esconde mientras (se pellizca). */
+  .cx-plano:has([data-pe-hoja]:not([hidden])) .pe-pie,.cx-plano:has([data-pe-hoja]:not([hidden])) .pe-leyenda{display:none}
+  .cx-plano .pe-hoja{max-height:40vh;padding-top:8px}
+  .cx-plano .pe-hoja .fila-principal strong{flex:1 1 auto;min-width:0;font-size:16px;line-height:1.25;overflow-wrap:anywhere}
+  .cx-plano .pe-hoja .fila-principal .chip{flex:none;white-space:nowrap;font-size:13px}
+  .cx-plano .pe-hoja .pe-sala-cod{display:inline;margin-left:6px}
+  .cx-plano .pe-hoja .sub{margin-top:2px}
   .pe-hoja .fila-principal{display:flex;align-items:center;gap:8px;justify-content:space-between}
   .pe-hoja .sub{margin-top:3px;font-size:14px}
   .pe-hoja .falta{font-size:13.5px;margin-top:3px}
@@ -240,7 +317,7 @@
     if (document.getElementById('pe-estilo')) return;
     const s = document.createElement('style');
     s.id = 'pe-estilo';
-    s.textContent = ESTILO + (CB ? `.pe-lienzo .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-lienzo .marca-boca')}.pe-franja .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-franja .marca-boca')}.pe-punto[class*="bq-punto-"]{border:1px solid rgba(38,43,56,.35)}` : '');
+    s.textContent = ESTILO + (CB ? `.pe-lienzo .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-lienzo .marca-boca')}.pe-franja .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-franja .marca-boca')}${IP ? IP.css('.pe-lienzo .marca-boca.con-inc') : ''}.pe-punto[class*="bq-punto-"]{border:1px solid rgba(38,43,56,.35)}` : '');
     document.head.appendChild(s);
   }
 
@@ -478,6 +555,25 @@
     } catch (err) { C.aviso(err.message); await cargar().then(repintarQuieto).catch(() => {}); }
   }
 
+  /* El chip «Con incidencia N» (14-nov, JC): cuenta los equipos de la planta con incidencia SIN CERRAR del registro de
+     incidencias (IP.recuento, como el escritorio) y, pulsado, deja solo esos en el plano. Sin ninguno, solo sale pulsado. */
+  function chipInc(p) {
+    const n = IP ? IP.recuento(p.equipos) : p.equipos.filter(conInc).length;
+    if (!n && !soloInc) return '';
+    const nombre = IP ? IP.NOMBRE : 'Con incidencia';
+    return `<button class="pe-chip-inc" data-pe-solo-inc aria-pressed="${soloInc}" title="${esc(nombre)}: ${soloInc ? 'ver todos' : 'ver solo estos'}"><i class="pe-punto bq-punto-incidencia"></i>${esc(nombre)} <b>${cifra(n)}</b></button>`;
+  }
+  /* Arriba de la hoja, sus incidencias abiertas, cada una con su enlace: el mismo trozo del panel del escritorio. */
+  function incidenciasHtml(e) {
+    const P = window.PANEL_EQUIPO_PLANO;
+    return P && P.incidenciasHtml ? P.incidenciasHtml(e) : '';
+  }
+  /* El enlace de una incidencia la abre en Incidencias › Reparaciones (reparaciones.js lee «cx.abrir» al entrar). */
+  function abrirIncidencia(id) {
+    try { sessionStorage.setItem('cx.abrir', id); } catch { /* sin almacén */ }
+    location.hash = 'reparaciones';
+  }
+
   function hojaHtml(p) {
     const e = equipoElegido();
     if (!e) return '';
@@ -487,17 +583,19 @@
     const rol = e.conjunto ? `${e.papel === 'UE' ? 'Exterior' : 'Interior'} de ${esc(e.conjunto)}` : '';
     const acc = Array.isArray(e.acciones) ? e.acciones : [];
     return `<div class="fila-principal"><strong class="cifra">${e.papel ? `<em>${esc(e.papel)}</em> ` : ''}${esc(e.tag)}</strong>
-        <span class="chip"><i class="pe-punto bq-punto-${bq(e)}"></i> ${esc(NOMBRE[bq(e)])}</span>
+        <span class="chip" title="${esc(NOMBRE[bq(e)])}"><i class="pe-punto bq-punto-${bq(e)}"></i> ${esc(compacto ? (CORTO[bq(e)] || NOMBRE[bq(e)]) : NOMBRE[bq(e)])}</span>
         <button class="cierra" data-pe-cerrar aria-label="Cerrar">×</button></div>
+      ${incidenciasHtml(e)}
       <div class="sub">${que ? esc(que) : ''}</div>
       <div class="sub">${salaHtml(e.sala)}${p.planta ? ` <span class="tenue">· ${esc(p.planta)}</span>` : ''}</div>
+      ${datos.conCommissioning ? '<button class="boton pe-ficha-completa" data-pe-accion="equipo">Ficha completa ›</button>' : ''}
       ${e.miembros && e.miembros.length > 1 ? conjuntoHtml(e) : (rol ? `<div class="sub">${rol}</div>` : '')}
       ${falta ? `<div class="falta">${falta}</div>` : ''}
       ${documentosEquipoHtml(e)}
       ${p.plano && e.x === null ? '<div class="sub tenue">No está en el plano.</div>' : ''}
       ${vidaHtml(e)}
       ${acc.length ? `<div class="pe-acciones">${acc.map((a) => `<button class="boton${a.id === 'datos' ? '' : ' secundario'}" data-pe-accion="${esc(a.id)}">${esc(a.texto)}</button>`).join('')}</div>` : ''}
-      ${datos.conCommissioning ? `<button class="enlace mas" data-pe-accion="equipo">Ver la ficha completa</button>` : (datos.puedeEditar === false ? '<div class="sub tenue">Solo lectura.</div>' : '')}`;
+      ${!datos.conCommissioning && datos.puedeEditar === false ? '<div class="sub tenue">Solo lectura.</div>' : ''}`;
   }
 
   const casaMat = (m, q) => !q || [m.tag, m.codigo, m.sala, m.numSerie, m.tipoNombre, m.modelo].some((v) => String(v || '').toLowerCase().includes(q));
@@ -631,7 +729,7 @@
       .then((r) => {
         if (!r || r.ok === false) return;
         e.documentos = r.documentos; e.acciones = r.acciones; e.vida = r.vida; e.fichaLista = true;
-        if (elegida === e.id) mostrarHoja();
+        if (elegida === e.id) { mostrarHoja(); asomar(elegida); }
       })
       .catch(() => {})
       .finally(() => { e.fichaPidiendo = false; });
@@ -643,6 +741,7 @@
     const h = $raiz && $raiz.querySelector('[data-pe-hoja]');
     const [marco] = marcoYLienzo();
     if (!h) return;
+    if (compacto) { $raiz.style.paddingBottom = ''; ajustarAlto(); return; }
     const flota = !h.hidden && window.innerWidth < 900;
     $raiz.style.paddingBottom = flota ? `${Math.round(h.offsetHeight) + 12}px` : '';
     if (!marco) return;
@@ -672,10 +771,12 @@
     const e = p && p.equipos.find((x) => x.id === id && x.x !== null);
     const [marco, lienzo] = marcoYLienzo();
     if (!e || !marco || !lienzo) return;
-    const px = e.x * lienzo.offsetWidth - marco.scrollLeft;
-    const py = e.y * lienzo.offsetHeight - marco.scrollTop;
-    if (px < marco.clientWidth * 0.12 || px > marco.clientWidth * 0.88) marco.scrollLeft = e.x * lienzo.offsetWidth - marco.clientWidth / 2;
-    if (py < marco.clientHeight * 0.15 || py > marco.clientHeight * 0.85) marco.scrollTop = e.y * lienzo.offsetHeight - marco.clientHeight / 2;
+    const px = e.x * lienzo.offsetWidth + lienzo.offsetLeft - marco.scrollLeft;
+    const py = e.y * lienzo.offsetHeight + lienzo.offsetTop - marco.scrollTop;
+    /* En Cx (compacto) la hoja deja el plano más bajo: el equipo tocado se lleva siempre al centro de lo que queda. */
+    if (compacto) { marco.scrollLeft = e.x * lienzo.offsetWidth + lienzo.offsetLeft - marco.clientWidth / 2; marco.scrollTop = e.y * lienzo.offsetHeight + lienzo.offsetTop - marco.clientHeight / 2; marco.dispatchEvent(new Event('scroll')); return; }
+    if (px < marco.clientWidth * 0.12 || px > marco.clientWidth * 0.88) marco.scrollLeft = e.x * lienzo.offsetWidth + lienzo.offsetLeft - marco.clientWidth / 2;
+    if (py < marco.clientHeight * 0.15 || py > marco.clientHeight * 0.85) marco.scrollTop = e.y * lienzo.offsetHeight + lienzo.offsetTop - marco.clientHeight / 2;
   }
 
   function pintar() {
@@ -694,7 +795,7 @@
     /* 13-nov (JC: «número de sala es muy importante»): también por número de sala, con o sin puntos («00.STE.036», «00 036»). */
     const BM = window.BUSCADOR_MOVIL;
     const textosEq = (m) => [m.tag, m.sala, m.codSala, m.local];
-    const visibles = p.equipos.filter((m) => !ocultos.has(bq(m)) && (!qq || (BM && BM.coincide ? BM.coincide(filtro.trim(), textosEq(m)) : textosEq(m).some((v) => String(v || '').toLowerCase().includes(qq)))));
+    const visibles = p.equipos.filter((m) => !ocultos.has(bq(m)) && (!soloInc || conInc(m)) && (!qq || (BM && BM.coincide ? BM.coincide(filtro.trim(), textosEq(m)) : textosEq(m).some((v) => String(v || '').toLowerCase().includes(qq)))));
     const enPlano = capasOff.has('equipos') ? [] : visibles.filter((m) => m.x !== null && !m.franja);
     const enFranja = capasOff.has('equipos') ? [] : visibles.filter((m) => m.x !== null && m.franja).sort((a, b) => String(a.tag || '').localeCompare(String(b.tag || ''), 'es', { numeric: true }));
     const enConjunto = idsDelConjunto();
@@ -707,18 +808,19 @@
     const selector = compacto ? '' : pe0 && pe0.ifc ? `<div class="pe-fondo" role="group" aria-label="Fondo del plano"><button data-pe-fondo="ifc" aria-pressed="${Boolean(p.esIfc)}">Modelo IFC</button><button data-pe-fondo="pdf" aria-pressed="${!p.esIfc}"${pe0.plano ? '' : ' disabled'}>Plano PDF</button></div>${p.esIfc ? `<p class="nota" data-pe-fondo-nota>${p.sinUbicar.length ? `${cifra(p.sinUbicar.length)} equipo${p.sinUbicar.length === 1 ? '' : 's'} sin posición en el modelo${pe0.plano ? ' (en el plano PDF quizá sí)' : ''}. ` : ''}${(pe0.materiales || []).some((m) => m.x !== null) || (pe0.faltas || []).length ? 'Los materiales y lo que falta están marcados en el plano PDF.' : ''}</p>` : ''}`
       : (p.plano ? '<p class="nota" data-pe-pdf-sin-ifc>plano PDF (sin IFC)</p>' : '');
     const plano = p.plano ? `${selector}<div class="pe-visor"><div class="pe-marco${FA.marcando() ? ' fa-activo' : ''}" data-pe-marco data-paleta="vidaire">
-        <div class="pe-lienzo${zoom >= ZOOM_SALAS ? ' con-salas' : ''}" data-pe-lienzo style="width:${zoom * 100}%;--pe-esc:${escMarcas()}">
+        <div class="pe-lienzo${zoom >= ZOOM_SALAS ? ' con-salas' : ''}" data-pe-lienzo style="width:${zoom * base * 100}%;${p.plano.ancho > 0 && p.plano.alto > 0 ? `aspect-ratio:${p.plano.ancho}/${p.plano.alto};` : ''}--pe-esc:${escMarcas()}">
           <img data-src="api/plano-equipos/imagen?id=${encodeURIComponent(p.plano.id)}" alt="Plano ${esc(p.plano.nombre)}" draggable="false">
           ${salasDe(p).map((r, i) => `<span class="pe-sala" data-pe-sala="${i}" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}${r.codigo && r.codigo !== r.t ? `<small>${esc(r.codigo)}</small>` : ''}</span>`).join('')}
           ${mats.map((m) => marcaMaterial(m, q, p)).join('')}
           ${FA.marcas(p)}
-          ${enPlano.map((x) => `<button class="marca-boca bq-${bq(x)}${enConjunto.has(x.id) ? ' elegida' : ''}${x.revisar ? ' revisar' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[bq(x)]}${x.revisar ? '; revisar ubicación' : ''}`)}">${simbolo(x.icono)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
+          ${enPlano.map((x) => `<button class="marca-boca bq-${bq(x)}${conInc(x) ? ' con-inc' : ''}${enConjunto.has(x.id) ? ' elegida' : ''}${x.revisar ? ' revisar' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[bq(x)]}${conInc(x) ? '; con incidencia abierta' : ''}${x.revisar ? '; revisar ubicación' : ''}`)}">${simbolo(x.icono)}${conInc(x) ? incHtml() : ''}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
         </div>
       </div>
-      ${p.esIfc && !(p.plano.salas || []).length ? '<p class="nota pe-sin-nombres" data-pe-sin-nombres>El modelo de esta planta no trae nombres de sala y no hay plano de arquitectura para situarlos.</p>' : ''}${p.esIfc && p.plano.fuenteSalas === 'plano' ? '<p class="nota pe-sin-nombres" data-pe-nombres-pdf>Nombres de sala del plano de arquitectura, situados por los equipos: el modelo no los trae.</p>' : ''}
-      ${enFranja.length ? `<div class="pe-franja" data-pe-franja role="group" aria-label="Sin sala en el modelo"><p class="pe-franja-tit">Sin sala en el modelo, por confirmar · ${cifra(enFranja.length)}</p><div class="pe-franja-bloques">${enFranja.map((x) => `<button class="marca-boca bq-${bq(x)}${enConjunto.has(x.id) ? ' elegida' : ''}" data-pe-marca="${esc(x.id)}" title="${esc(x.tag)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[bq(x)]}; sin sala en el modelo`)}">${simbolo(x.icono)}</button>`).join('')}</div></div>` : ''}
-      <!-- 13-nov (JC en el iPhone): el −/Entero/+ en una franja bajo el plano, nunca encima; también pellizco y doble toque -->
-      <div class="pe-zoom" role="group" aria-label="Zoom del plano"><button class="boton secundario" data-pe-zoom="-1" aria-label="Alejar">−</button><button class="boton secundario" data-pe-zoom="0">Entero</button><button class="boton secundario" data-pe-zoom="1" aria-label="Acercar">+</button></div>${FA.marcando() ? FA.mando(p) : ''}</div>`
+      ${!compacto && p.esIfc && !(p.plano.salas || []).length ? '<p class="nota pe-sin-nombres" data-pe-sin-nombres>El modelo de esta planta no trae nombres de sala y no hay plano de arquitectura para situarlos.</p>' : ''}${!compacto && p.esIfc && p.plano.fuenteSalas === 'plano' ? '<p class="nota pe-sin-nombres" data-pe-nombres-pdf>Nombres de sala del plano de arquitectura, situados por los equipos: el modelo no los trae.</p>' : ''}
+      <!-- 13-nov (JC en el iPhone): el −/Entero/+ en una franja bajo el plano, nunca encima; también pellizco y doble toque.
+           14-nov (JC): en la misma fila, plegados, los equipos que el modelo no pone en ninguna sala («por confirmar»). -->
+      <div class="pe-pie">${enFranja.length ? `<button type="button" class="pe-franja-boton" data-pe-franja aria-expanded="${verFranja}" aria-controls="pe-franja-lista"><span>${cifra(enFranja.length)} equipo${enFranja.length === 1 ? '' : 's'} sin sala, por confirmar <span class="flecha" aria-hidden="true">›</span></span></button>` : ''}<div class="pe-zoom" role="group" aria-label="Zoom del plano"><button class="boton secundario" data-pe-zoom="-1" aria-label="Alejar">−</button><button class="boton secundario" data-pe-zoom="0">Entero</button><button class="boton secundario" data-pe-zoom="1" aria-label="Acercar">+</button></div>
+      ${enFranja.length && verFranja ? `<div class="pe-franja-lista" id="pe-franja-lista" data-pe-franja-lista role="list" aria-label="Sin sala en el modelo, por confirmar"><ul>${enFranja.map((x) => `<li><button type="button" class="${enConjunto.has(x.id) ? 'elegida' : ''}" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, sin sala en el modelo, por confirmar: ${NOMBRE[bq(x)]}`)}">${simbolo(x.icono)}<b>${esc(x.tag)}</b><span class="tipo">${esc(tipoDe(x))}</span><i class="pe-punto bq-punto-${conInc(x) ? 'incidencia' : bq(x)}" title="${esc(conInc(x) ? 'Con incidencia' : NOMBRE[bq(x)])}"></i><span class="pe-ir" aria-hidden="true">›</span></button></li>`).join('')}</ul></div>` : ''}</div>${FA.marcando() ? FA.mando(p) : ''}</div>`
       : compacto ? `<div class="pe-sin-plano" data-pe-sin-ifc><b>Falta el IFC de la planta ${esc(etiqueta(p))}</b> (y tampoco tiene plano PDF). Lo prepara el delineante; mientras, sus equipos están en «Lista».</div>`
       : `<div class="pe-sin-plano"><b>La planta ${esc(etiqueta(p))} aún no tiene plano de equipos.</b><br>Lo sube la oficina desde Commissioning › Plano. Mientras, la lista dice la sala y el estado de cada equipo.</div>`;
     /* Fila 1 de la pestaña Cx: el desplegable con todas las plantas (las que tienen IFC dicen cuántos coloca el modelo; las que no,
@@ -736,7 +838,7 @@
     const masPlegado = masDentro.trim() ? `<details class="pe-mas" data-pe-mas${verMas || verSinUbicar ? ' open' : ''}><summary>Leyenda${p.plano && (p.sinUbicar || []).length ? ` · sin ubicar ${cifra(p.sinUbicar.length)}` : ''}${nRev ? ` · revisar ${cifra(nRev)}` : ''}</summary>${masDentro}</details>` : '';
     $raiz.innerHTML = compacto ? `
       ${desplegable}
-      ${p.equipos.length ? `<div class="pe-leyenda pe-una-fila" role="group" aria-label="Estados">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto bq-punto-${k}"></i>${esc(NOMBRE[k])} <b>${cifra((c.bloques || {})[k] || 0)}</b></button>`).join('')}</div>` : ''}
+      ${p.equipos.length ? `<div class="pe-leyenda pe-una-fila" role="group" aria-label="Estados">${ORDEN.filter((k) => ((c.bloques || {})[k] || 0) > 0 || ocultos.has(k)).map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}" title="${esc(NOMBRE[k])}"><i class="pe-punto bq-punto-${k}"></i>${esc(CORTO[k] || NOMBRE[k])} <b>${cifra((c.bloques || {})[k] || 0)}</b></button>`).join('')}${chipInc(p)}</div>` : ''}
       <div class="pe-cuerpo">
         <div>${plano}</div>
         <div class="pe-lado"><div class="pe-hoja" data-pe-hoja hidden></div></div>
@@ -744,7 +846,7 @@
       ${cabeza()}
       <div class="pe-plantas" role="tablist">${plantas().map((x) => `<button role="tab" data-pe-planta="${esc(x.planta || '')}" aria-selected="${x === p}" class="${x === p ? 'activa' : ''}">${esc(etiqueta(x))}<small>${cuentaTexto(nEquipos(x), nMateriales(x))}</small></button>`).join('')}</div>
       ${capas.length > 1 || chipFaltas ? `<div class="pe-capas" role="group" aria-label="Capas">${capas.length > 1 ? capas.map((k) => `<button data-pe-capa="${esc(k.id)}" aria-pressed="${!capasOff.has(k.id)}">${esc(k.nombre)} <b>${cifra(cuentasCapa[k.id])}</b></button>`).join('') : ''}${chipFaltas}</div>` : ''}
-      ${p.equipos.length ? `<div class="pe-leyenda" role="group" aria-label="Colores">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto bq-punto-${k}"></i>${esc(NOMBRE[k])} <b>${cifra((c.bloques || {})[k] || 0)}</b></button>`).join('')}
+      ${p.equipos.length ? `<div class="pe-leyenda" role="group" aria-label="Colores">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto bq-punto-${k}"></i>${esc(NOMBRE[k])} <b>${cifra((c.bloques || {})[k] || 0)}</b></button>`).join('')}${chipInc(p)}
         <p class="nota">sin sala ${cifra(c.sinSala)}${p.plano ? ` · en el plano ${cifra(c.enPlano)} de ${cifra(p.equipos.length)}` : ''}</p></div>` : ''}
       ${masPlegado}
       <div class="pe-cuerpo">
@@ -764,6 +866,9 @@
     mostrarHoja();
     colocarTags($raiz.querySelector('[data-pe-lienzo]'));
     if (compacto || window.innerWidth < 900) ajustarAlto();
+    /* 14-nov: hasta que llega la imagen el lienzo no tiene alto; al llegar, los rótulos se recolocan con el de verdad. */
+    const img = $raiz.querySelector('[data-pe-lienzo] img');
+    if (img) img.addEventListener('load', () => { const l = $raiz.querySelector('[data-pe-lienzo]'); if (l && l.contains(img)) colocarTags(l); }, { once: true });
     const fila = compacto ? null : $raiz.querySelector('.pe-plantas');
     const act = fila && fila.querySelector('.activa');
     if (act) fila.scrollLeft = act.offsetLeft - fila.clientWidth / 2 + act.offsetWidth / 2;
@@ -772,14 +877,15 @@
   /* Pantalla Cx (13-nov, coordinador): el plano se queda con todo el alto que hay entre la cabecera y la barra inferior,
      con la franja del zoom justo debajo; sin hueco blanco debajo. En «Entero» el dibujo va centrado en ese alto. */
   function ajustarAlto() {
-    const [marco] = marcoYLienzo();
+    const [marco, lienzo] = marcoYLienzo();
     if (!marco) return;
+    if (compacto) { ajustarAltoCx(marco, lienzo); return; }
     const cab = document.querySelector('.barra');
     const arriba = cab ? Math.max(0, cab.getBoundingClientRect().bottom) : 0;
     const raiz = getComputedStyle(document.documentElement);
     const barra = parseFloat(raiz.getPropertyValue('--hueco-barra')) || 0;
-    const franja = $raiz.querySelector('.pe-zoom');
-    const sinSala = $raiz.querySelector('[data-pe-franja]');
+    const franja = $raiz.querySelector('.pe-pie');
+    const sinSala = $raiz.querySelector('[data-pe-franja-lista]');
     const fh = (franja ? franja.offsetHeight + 8 : 48) + (sinSala ? sinSala.offsetHeight + 6 : 0);
     const libre = Math.round(Math.max(260, window.innerHeight - arriba - barra - fh - 12));
     /* 14-nov (JC): el dibujo pegado arriba y el marco ajustado a él: sin banda blanca encima ni debajo cuando el plano entero
@@ -788,6 +894,35 @@
     const pl = p && p.plano;
     const alto = pl && pl.ancho > 0 && pl.alto > 0 ? Math.ceil(marco.clientWidth * (pl.alto / pl.ancho)) + 2 : 0;
     marco.style.height = `${alto > 0 ? Math.min(libre, Math.max(200, alto)) : libre}px`;
+  }
+
+  /* 14-nov (JC en el iPhone: «esto no se ve bien»): en la pestaña Cx el marco va desde donde empieza hasta la barra de abajo,
+     menos la fila del pie (sin sala + zoom); la lista desplegada va encima del plano y no le quita alto. Sin scroll de página. Y «Entero» = la planta entera dentro
+     del marco, también si es más alta que ancha (base < 1: el lienzo, más estrecho que el marco y centrado). */
+  function ajustarAltoCx(marco, lienzo) {
+    const pastilla = document.querySelector('.barra-pastilla');
+    const pb = pastilla && pastilla.offsetParent !== null ? pastilla.getBoundingClientRect().top : 0;
+    const raiz = getComputedStyle(document.documentElement);
+    /* 14-nov (JC): con la hoja del equipo abierta el plano acaba encima de ella, para que el equipo resaltado se vea;
+       los botones de zoom se esconden mientras (se acerca con los dedos) y el encaje no cambia (sin saltos). */
+    const hoja = $raiz.querySelector('[data-pe-hoja]');
+    const conHoja = Boolean(hoja && !hoja.hidden && hoja.offsetHeight);
+    const limite = conHoja ? hoja.getBoundingClientRect().top - 6 : pb > 0 ? pb : window.innerHeight - (parseFloat(raiz.getPropertyValue('--hueco-barra')) || 0);
+    const pie = $raiz.querySelector('.pe-pie');
+    const debajo = conHoja ? 0 : (pie ? pie.offsetHeight + 4 : 0) + 8;
+    const top = marco.getBoundingClientRect().top + (window.scrollY || 0);
+    const alto = Math.round(Math.max(conHoja ? 140 : 220, limite - top - debajo));
+    marco.style.height = `${alto}px`;
+    if (conHoja) return;
+    const p = plantaActual();
+    const pl = p && p.plano;
+    const cw = marco.clientWidth; const ch = marco.clientHeight;
+    const nb = pl && pl.ancho > 0 && pl.alto > 0 && cw > 0 ? Math.min(1, (ch - 2) / (cw * (pl.alto / pl.ancho))) : 1;
+    if (lienzo && Math.abs(nb - base) > 0.001) {
+      base = nb;
+      lienzo.style.width = `${zoom * base * 100}%`;
+      colocarTags(lienzo);
+    }
   }
 
   function cabeza() {
@@ -810,7 +945,11 @@
     anchos.set(k, w);
     return w;
   }
-  const LETRA_TAG = '700 9px system-ui, sans-serif';
+  /* 14-nov (JC: «el zoom va mal en el móvil»): al acercar, los símbolos y los TAG crecen un poco (no en proporción al
+     zoom, para que no se amontonen); vistaPlano.tamBloques los sigue encogiendo si chocan con el vecino. */
+  const tamEq = () => Math.round(Math.min(34, TAM_EQ * Math.pow(Math.max(1, zoom), 0.22)));
+  const tamTag = () => Math.round(Math.min(12, 9 * Math.pow(Math.max(1, zoom), 0.13)) * 2) / 2;
+  let LETRA_TAG = '700 9px system-ui, sans-serif';
   const LETRA_TAG_ELEGIDO = '700 12px system-ui, sans-serif';
   const LETRA_SALA = '600 11px system-ui, sans-serif';
   const LETRA_COD = '500 9.5px system-ui, sans-serif';
@@ -836,7 +975,8 @@
     const botones = [...lienzo.querySelectorAll('[data-pe-mat]')];
     const botonesEq = [...lienzo.querySelectorAll('[data-pe-marca]')];
     const rotSalas = [...lienzo.querySelectorAll('[data-pe-sala]')];
-    const quitar = () => { for (const b of [...botones, ...botonesEq]) b.classList.remove('con-tag'); for (const s of rotSalas) s.classList.remove('ver'); };
+    for (const g of lienzo.querySelectorAll('[data-pe-grupo]')) g.remove();
+    const quitar = () => { for (const b of [...botones, ...botonesEq]) b.classList.remove('con-tag', 'en-grupo'); for (const s of rotSalas) s.classList.remove('ver'); };
     if (!V || !V.colocarRotulos || !f || !p || !p.plano) { quitar(); return; }
     const lw = lienzo.offsetWidth; const lh = lienzo.offsetHeight || lw;
     if (!lw) { quitar(); return; }
@@ -853,26 +993,46 @@
     const porEq = new Map((p.equipos || []).map((e) => [e.id, e]));
     /* 13-nov (JC en el iPhone): el bloque mide lo mismo en pantalla a cualquier zoom (TAM_EQ px) y encoge si choca con el
        vecino (vistaPlano.tamBloques): al acercar, las salas crecen y los equipos se separan. */
-    const tam = V.tamBloques ? V.tamBloques(botonesEq.map((b) => porEq.get(b.dataset.peMarca)).filter(Boolean), { lw, lh, max: TAM_EQ, min: TAM_EQ_MIN }) : new Map();
+    const tMax = tamEq(); const tTag = tamTag();
+    LETRA_TAG = `700 ${tTag}px system-ui, sans-serif`;
+    lienzo.style.setProperty('--pe-tag', `${tTag}px`);
+    const tam = V.tamBloques ? V.tamBloques(botonesEq.map((b) => porEq.get(b.dataset.peMarca)).filter(Boolean), { lw, lh, max: tMax, min: TAM_EQ_MIN }) : new Map();
     const equipos = [];
     for (const b of botonesEq) {
       const e = porEq.get(b.dataset.peMarca);
       if (!e || e.x === null) continue;
       const elegido = b.classList.contains('elegida');
-      const t = elegido ? TAM_EQ_ELEGIDO : (tam.get(e.id) || TAM_EQ);
+      const t = elegido ? Math.max(TAM_EQ_ELEGIDO, tMax + 4) : (tam.get(e.id) || tMax);
       b.style.width = `${t}px`;
       equipos.push({ id: e.id, x: e.x, y: e.y, sw: t, tag: e.tag, elegido });
     }
     const listaSalas = salasDe(p);
     if (!huecos.has(listaSalas)) huecos.set(listaSalas, V.huecoSalas(listaSalas, lh / lw));
     const ancho = (t, k) => anchoTexto(t || '', k === 'elegido' ? LETRA_TAG_ELEGIDO : k === 'sala' ? LETRA_SALA : k === 'codigo' ? LETRA_COD : LETRA_TAG);
-    const ver = V.colocarRotulos({ lw, lh, equipos, materiales, salas: listaSalas, huecos: huecos.get(listaSalas), ancho });
+    /* 14-nov (JC en el iPhone): en la pestaña Cx, el TAG también encima o debajo del bloque, y los que no caben, en píldoras «+N». */
+    const ver = V.colocarRotulos({ lw, lh, equipos, materiales, salas: listaSalas, huecos: huecos.get(listaSalas), ancho, sitios: compacto, grupos: compacto });
     for (const b of botones) b.classList.toggle('con-tag', ver.tags.has(b.dataset.peMat));
     for (const b of botonesEq) b.classList.toggle('con-tag', ver.tags.has(`eq:${b.dataset.peMarca}`));
     /* 13-nov: un TAG que se saldría por la derecha del plano va a la izquierda de su equipo (regla compartida). */
     const izq = ver.izq || new Set();
     for (const b of botones) b.classList.toggle('tag-izq', izq.has(b.dataset.peMat));
     for (const b of botonesEq) b.classList.toggle('tag-izq', izq.has(`eq:${b.dataset.peMarca}`));
+    const sitios = ver.sitios || new Map(); const cajas = ver.cajas || new Map();
+    const porEqId = new Map(equipos.map((q) => [q.id, q]));
+    for (const b of botonesEq) {
+      const k = `eq:${b.dataset.peMarca}`; const st = sitios.get(k);
+      b.classList.toggle('tag-arr', st === 'arr'); b.classList.toggle('tag-abj', st === 'abj');
+      const q = porEqId.get(b.dataset.peMarca); const cj = cajas.get(k);
+      /* Junto al borde el TAG de arriba/abajo va desplazado para no cortarse (la caja que dio colocarRotulos). */
+      if (st && q && cj) b.style.setProperty('--tag-dx', `${(cj.x + cj.w / 2 - q.x * lw).toFixed(1)}px`); else b.style.removeProperty('--tag-dx');
+    }
+    const enGrupo = new Set();
+    const pildoras = (ver.grupos || []).map((g, i) => {
+      for (const id of g.ids) enGrupo.add(id);
+      return `<button type="button" class="pe-grupo" data-pe-grupo="${i}" style="left:${((g.x / lw) * 100).toFixed(3)}%;top:${((g.y / lh) * 100).toFixed(3)}%" aria-label="${g.n} equipos más aquí: acercar para ver sus TAG">+${g.n}</button>`;
+    }).join('');
+    for (const b of botonesEq) b.classList.toggle('en-grupo', enGrupo.has(b.dataset.peMarca));
+    if (pildoras) lienzo.insertAdjacentHTML('beforeend', pildoras);
     for (const s of rotSalas) {
       const i = Number(s.dataset.peSala); const c = ver.sitio.get(i);
       s.classList.toggle('ver', Boolean(c));
@@ -881,22 +1041,30 @@
   }
 
   /* Cambia el zoom dejando quieto el punto (px, py del marco) que está bajo los dedos. */
-  function ponerZoom(nuevo, px, py) {
+  /* Durante el pellizco, la rueda o la animación, recolocar los rótulos en cada fotograma es lo que hacía ir a saltos:
+     se recolocan como mucho cada 140 ms y una vez más al soltar (los símbolos van en % del lienzo y siguen al plano). */
+  let tTags = 0;
+  function tagsEnUnRato(lienzo) {
+    if (tTags) return;
+    tTags = setTimeout(() => { tTags = 0; if (lienzo.isConnected) colocarTags(lienzo); }, 140);
+  }
+  function tagsYa(lienzo) { clearTimeout(tTags); tTags = 0; if (lienzo && lienzo.isConnected) colocarTags(lienzo); }
+  function ponerZoom(nuevo, px, py, ligero = false) {
     const [marco, lienzo] = marcoYLienzo();
     nuevo = Math.min(ZOOM_MAX, Math.max(1, nuevo));
     if (!marco || !lienzo) { zoom = nuevo; return; }
     /* Sin dedos: el centro de lo que se ve DEL PLANO (no del marco: en «Entero» el dibujo va centrado y deja margen). */
-    const oy0 = lienzo.offsetTop;
-    if (px === undefined) px = Math.min(marco.clientWidth, lienzo.offsetWidth - marco.scrollLeft) / 2;
+    const oy0 = lienzo.offsetTop; const ox0 = lienzo.offsetLeft;
+    if (px === undefined) { const a = Math.max(0, ox0 - marco.scrollLeft); const b = Math.min(marco.clientWidth, ox0 + lienzo.offsetWidth - marco.scrollLeft); px = (a + b) / 2; }
     if (py === undefined) { const a = Math.max(0, oy0 - marco.scrollTop); const b = Math.min(marco.clientHeight, oy0 + lienzo.offsetHeight - marco.scrollTop); py = (a + b) / 2; }
-    const fx = (marco.scrollLeft + px) / (lienzo.offsetWidth || 1);
+    const fx = Math.max(0, Math.min(1, (marco.scrollLeft + px - ox0) / (lienzo.offsetWidth || 1)));
     const fy = Math.max(0, Math.min(1, (marco.scrollTop + py - oy0) / (lienzo.offsetHeight || 1)));
     zoom = nuevo;
-    lienzo.style.width = `${zoom * 100}%`;
+    lienzo.style.width = `${zoom * base * 100}%`;
     lienzo.style.setProperty('--pe-esc', String(escMarcas()));
     lienzo.classList.toggle('con-salas', zoom >= ZOOM_SALAS);
-    colocarTags(lienzo);
-    marco.scrollLeft = fx * lienzo.offsetWidth - px;
+    if (ligero) tagsEnUnRato(lienzo); else tagsYa(lienzo);
+    marco.scrollLeft = fx * lienzo.offsetWidth + lienzo.offsetLeft - px;
     marco.scrollTop = fy * lienzo.offsetHeight + lienzo.offsetTop - py;
   }
 
@@ -921,7 +1089,7 @@
     const t0 = performance.now();
     const paso = (t) => {
       const k = Math.min(1, (t - t0) / 160);
-      ponerZoom(origen + (destino - origen) * (1 - (1 - k) ** 3), px, py);
+      ponerZoom(origen + (destino - origen) * (1 - (1 - k) ** 3), px, py, k < 1);
       if (k < 1) animando = requestAnimationFrame(paso); else encuadrar();
     };
     animando = requestAnimationFrame(paso);
@@ -937,10 +1105,28 @@
   const enMarco = (ev) => $raiz && $raiz.isConnected && ev.target && ev.target.closest && ev.target.closest('[data-pe-marco]');
   const dentro = (marco, ev) => { const r = marco.getBoundingClientRect(); return [ev.clientX - r.left, ev.clientY - r.top]; };
 
+  let fotoPellizco = 0;
+  function pasoPellizco() {
+    const marco = $raiz && $raiz.querySelector('[data-pe-marco]');
+    if (!marco || !gesto || gesto.tipo !== 'pellizco' || dedos.size < 2) return;
+    const [a, b] = [...dedos.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    const r = marco.getBoundingClientRect();
+    /* El punto de anclaje sigue a los dedos: pellizcar y mover a la vez también desplaza. */
+    const cx = (a.x + b.x) / 2 - r.left;
+    const cy = (a.y + b.y) / 2 - r.top;
+    if (d === gesto.d && cx === gesto.cx && cy === gesto.cy) return;
+    /* Desde el zoom y la distancia del ARRANQUE del pellizco (no del fotograma anterior): sin errores que se acumulen. */
+    ponerZoom(gesto.z0 * (d / gesto.d0), gesto.cx, gesto.cy, true);
+    marco.scrollLeft += gesto.cx - cx;
+    marco.scrollTop += gesto.cy - cy;
+    gesto.cx = cx; gesto.cy = cy; gesto.d = d;
+  }
   function empezarPellizco(marco) {
     const [a, b] = [...dedos.values()];
     const r = marco.getBoundingClientRect();
-    gesto = { tipo: 'pellizco', d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: zoom, cx: (a.x + b.x) / 2 - r.left, cy: (a.y + b.y) / 2 - r.top };
+    const d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+    gesto = { tipo: 'pellizco', d, d0: d, z0: zoom, cx: (a.x + b.x) / 2 - r.left, cy: (a.y + b.y) / 2 - r.top };
     tragarClick = true;
   }
 
@@ -965,19 +1151,8 @@
     dedos.get(ev.pointerId).y = ev.clientY;
     if (!gesto) return;
     if (gesto.tipo === 'pellizco' && dedos.size >= 2) {
-      const [a, b] = [...dedos.values()];
-      const d = Math.hypot(a.x - b.x, a.y - b.y);
-      const r = marco.getBoundingClientRect();
-      /* El punto de anclaje sigue a los dedos: pellizcar y mover a la vez también desplaza. */
-      const cx = (a.x + b.x) / 2 - r.left;
-      const cy = (a.y + b.y) / 2 - r.top;
-      const antes = zoom;
-      ponerZoom(gesto.z * (d / gesto.d), gesto.cx, gesto.cy);
-      if (antes !== zoom || cx !== gesto.cx || cy !== gesto.cy) {
-        marco.scrollLeft += gesto.cx - cx;
-        marco.scrollTop += gesto.cy - cy;
-        gesto.cx = cx; gesto.cy = cy; gesto.d = d; gesto.z = zoom;
-      }
+      /* Los dos dedos mandan un pointermove cada uno: se aplica una vez por fotograma con la última posición de ambos. */
+      if (!fotoPellizco) fotoPellizco = requestAnimationFrame(() => { fotoPellizco = 0; pasoPellizco(); });
       ev.preventDefault();
       return;
     }
@@ -1001,7 +1176,9 @@
     dedos.delete(ev.pointerId);
     if (marco) { try { marco.releasePointerCapture(ev.pointerId); } catch { /* ya soltado */ } }
     if (dedos.size === 0) {
-      if (gesto && gesto.tipo === 'pellizco') encuadrar();
+      if (gesto && (gesto.tipo === 'pellizco' || gesto.tipo === 'arrastre') && fotoPellizco) { cancelAnimationFrame(fotoPellizco); fotoPellizco = 0; pasoPellizco(); }
+      if (gesto && gesto.tipo === 'pellizco') { const l = marco && marco.querySelector('[data-pe-lienzo]'); tagsYa(l); encuadrar(); }
+      else if (tTags && marco) tagsYa(marco.querySelector('[data-pe-lienzo]'));
       /* Marcando (8-nov): el toque dice el sitio, aunque caiga encima de otra marca; arrastrar y pellizcar siguen moviendo el plano. */
       if (eraEspera && marco && FA.marcando()) {
         const caja = marco.querySelector('[data-pe-lienzo]').getBoundingClientRect();
@@ -1016,7 +1193,7 @@
         return;
       }
       /* Doble toque en un hueco del plano: acerca (o, si ya está muy cerca, vuelve a entero). */
-      if (eraEspera && marco && !(ev.target.closest && ev.target.closest('[data-pe-marca],[data-pe-mat],[data-pe-zoom],[data-fa-ver]'))) {
+      if (eraEspera && marco && !(ev.target.closest && ev.target.closest('[data-pe-marca],[data-pe-mat],[data-pe-zoom],[data-pe-grupo],[data-fa-ver]'))) {
         const ahora = performance.now();
         const [px, py] = dentro(marco, ev);
         if (ultimoToque && ahora - ultimoToque.t < 300 && Math.hypot(px - ultimoToque.x, py - ultimoToque.y) < 40) {
@@ -1029,12 +1206,17 @@
       /* El click que sigue a un arrastre o pellizco se traga; la bandera se apaga sola. */
       if (tragarClick) setTimeout(() => { tragarClick = false; }, 350);
     } else if (dedos.size === 1 && marco) {
+      if (fotoPellizco) { cancelAnimationFrame(fotoPellizco); fotoPellizco = 0; }
+      tagsYa(marco.querySelector('[data-pe-lienzo]'));
       /* Al levantar un dedo del pellizco, el que queda sigue arrastrando sin saltos. */
       const [q] = [...dedos.values()];
       gesto = { tipo: 'arrastre', x: q.x, y: q.y, sl: marco.scrollLeft, st: marco.scrollTop, movido: true };
     }
   }
   document.addEventListener('pointerup', soltar);
+  /* Al girar el teléfono o cambiar el alto (barra del navegador), el plano vuelve a llenar su hueco. */
+  let tAlto = 0;
+  window.addEventListener('resize', () => { clearTimeout(tAlto); tAlto = setTimeout(() => { if (compacto && $raiz && $raiz.isConnected && $raiz.querySelector('[data-pe-marco]')) ajustarAlto(); }, 120); });
   document.addEventListener('pointercancel', soltar);
 
   /* Ni la página ni el navegador hacen zoom con los dedos sobre el plano. */
@@ -1048,7 +1230,7 @@
     if (!marco) return;
     ev.preventDefault();
     const [px, py] = dentro(marco, ev);
-    ponerZoom(zoom * Math.exp(-ev.deltaY * (ev.ctrlKey ? 0.012 : 0.0015)), px, py);
+    ponerZoom(zoom * Math.exp(-ev.deltaY * (ev.ctrlKey ? 0.012 : 0.0015)), px, py, true);
   }, { passive: false });
 
   /* Repinta sin perder dónde estaba el plano ni la lista. */
@@ -1071,8 +1253,8 @@
     if (zoom < 3) ponerZoom(3);
     const [marco, lienzo] = marcoYLienzo();
     if (!marco || !lienzo) return;
-    marco.scrollLeft = e.x * lienzo.offsetWidth - marco.clientWidth / 2;
-    marco.scrollTop = e.y * lienzo.offsetHeight - marco.clientHeight / 2;
+    marco.scrollLeft = e.x * lienzo.offsetWidth + lienzo.offsetLeft - marco.clientWidth / 2;
+    marco.scrollTop = e.y * lienzo.offsetHeight + lienzo.offsetTop - marco.clientHeight / 2;
     if (marco.getBoundingClientRect().top < 0 || marco.getBoundingClientRect().bottom > window.innerHeight) marco.scrollIntoView({ block: 'center' });
   }
 
@@ -1145,6 +1327,7 @@
       traerPlanta(nombre).then(() => { planta = nombre; elegida = null; mat = null; zoom = 1; pintar(); precargarVecinas(); }).catch((e) => C.aviso(e.message));
       return;
     }
+    if (ev.target.closest('[data-pe-solo-inc]')) { soloInc = !soloInc; repintarQuieto(); return; }
     const co = ev.target.closest('[data-pe-color]');
     if (co) { const k = co.dataset.peColor; if (ocultos.has(k)) ocultos.delete(k); else ocultos.add(k); repintarQuieto(); return; }
     const fo = ev.target.closest('[data-pe-fondo]');
@@ -1152,6 +1335,17 @@
       const k = planta || '';
       if (fo.dataset.peFondo === 'pdf') { conPdf.add(k); conModelo.delete(k); } else { conPdf.delete(k); conModelo.add(k); }
       elegida = null; mat = null; zoom = 1; pintar();
+      return;
+    }
+    const fr = ev.target.closest('[data-pe-franja]');
+    if (fr) { verFranja = !verFranja; repintarQuieto(); return; }
+    /* Una píldora «+N»: acerca hacia ella hasta que sus TAG caben. */
+    const gr = ev.target.closest('[data-pe-grupo]');
+    if (gr) {
+      const [marco] = marcoYLienzo();
+      if (!marco) return;
+      const r = marco.getBoundingClientRect(); const b = gr.getBoundingClientRect();
+      irAZoom(Math.min(ZOOM_MAX, Math.max(zoom * 2.2, zoom + 1.5)), b.left + b.width / 2 - r.left, b.top + b.height / 2 - r.top);
       return;
     }
     const z = ev.target.closest('[data-pe-zoom]');
@@ -1163,8 +1357,8 @@
       const [marco, lienzo] = marcoYLienzo();
       let cx; let cy;
       if (e && marco && lienzo) {
-        const px = e.x * lienzo.offsetWidth - marco.scrollLeft;
-        const py = e.y * lienzo.offsetHeight - marco.scrollTop;
+        const px = e.x * lienzo.offsetWidth + lienzo.offsetLeft - marco.scrollLeft;
+        const py = e.y * lienzo.offsetHeight + lienzo.offsetTop - marco.scrollTop;
         if (px >= 0 && px <= marco.clientWidth && py >= 0 && py <= marco.clientHeight) { cx = px; cy = py; }
       }
       irAZoom(v === 0 ? 1 : zoom * (v > 0 ? 1.6 : 1 / 1.6), cx, cy);
@@ -1208,14 +1402,19 @@
       else centrar(ver.dataset.peVer);
       return;
     }
+    const inc = ev.target.closest('[data-pes-incidencia]');
+    if (inc) { abrirIncidencia(inc.dataset.pesIncidencia); return; }
     const ac = ev.target.closest('[data-pe-accion]');
     if (ac) { irAlEquipo(ac.dataset.peAccion); return; }
-    /* 13-nov (JC, en reunión): tocar un equipo del plano o de la lista abre SU FICHA COMPLETA (checklist, toma de datos,
-       estanqueidad, balanceo…), no la hoja corta; al volver, el plano sigue con su planta, zoom y sitio (irAlEquipo guarda la vista). */
+    /* 13-nov (JC, en reunión): desde el plano se llega a SU FICHA COMPLETA (checklist, toma de datos, estanqueidad, balanceo…).
+       14-nov (JC: «al pulsar el equipo no resalta en el plano»): el primer toque lo RESALTA en el plano y abre abajo su hoja con
+       lo imprescindible (estado de Cx, sala, conjunto, documentos con «Ver PDF», puesta en marcha y garantía, sus fichas) y el
+       botón «Ficha completa»; tocarlo otra vez también la abre. Al volver, el plano sigue con su planta, zoom, sitio y resaltado. */
     const mk = ev.target.closest('[data-pe-marca]') || ev.target.closest('[data-pe-fila]');
     if (mk) {
       const id = mk.dataset.peMarca || mk.dataset.peFila;
-      if (typeof window.CX_COMMISSIONING_IR === 'function') { elegida = id; mat = null; irAlEquipo('equipo'); if (vista) vista.elegida = null; return; }
+      if (typeof window.CX_COMMISSIONING_IR === 'function' && id === elegida) { irAlEquipo('equipo'); return; }
+      if (mk.closest('[data-pe-franja-lista]')) { verFranja = false; const l = mk.closest('[data-pe-franja-lista]'); const b = $raiz.querySelector('[data-pe-franja]'); if (b) b.setAttribute('aria-expanded', 'false'); l.remove(); }
       if (mk.dataset.peMarca) elegir(id); else elegir(id, { centrarla: true });
     }
   });

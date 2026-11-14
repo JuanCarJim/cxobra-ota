@@ -8,6 +8,10 @@
  * (check list, hoja de puesta en marcha, balanceo, estanqueidad), puesta en marcha / garantía / certificación y su
  * red. El plano no se tapa: el panel ocupa la columna (o una hoja inferior con poco ancho).
  *
+ * 14-nov (JC: «esa ventana … es imprescindible»): lo esencial se ve SIN desplazar — arriba el TAG, el estado de Cx (con lo que
+ * le falta) y la sala con número y nombre; luego sus botones, los documentos y la toma de datos, cada uno con su «Ver PDF» o
+ * «Abrir»; garantía, estado, identificación, fabricante y red van plegados con su dato clave a la vista y se abren con un clic.
+ *
  *   html(d)  → el HTML del panel. `d.pesada` es lo que se pide a demanda (planoEquipos.ficha): undefined mientras
  *              carga, null si no se ha podido leer, o { documentos, tomas, vida }.
  *   documentosDe(pesada) → los documentos que de verdad se pueden abrir (con dirección).
@@ -116,27 +120,59 @@
     }).join('');
     return bloque('Toma de datos', `<table class="pesTablaFicha conAccion"><tbody>${filas}</tbody></table>`, 'data-pes-tomas');
   }
+  /* LO QUE NO ES DE UN VISTAZO, PLEGADO (14-nov, JC: «se corta por abajo; Estado y Garantía solo con scroll»): el título y su
+     dato clave en un renglón, y un clic lo despliega. Nada se pierde: es el mismo contenido de antes. */
+  const plegado = (titulo, cuerpo, dato = '', extra = '') => `<details class="pesBloqueFicha pesPlegado" ${extra}><summary><h4>${esc(titulo)}</h4>${dato ? `<span class="pesPlegadoDato">${esc(dato)}</span>` : ''}</summary>${cuerpo}</details>`;
   function vidaHtml(d) {
     const celda = (c) => (!c || !c.texto ? VACIO : c.tono === 'gris' ? `<span class="pesVacio">${esc(c.texto)}</span>` : c.tono ? `<span class="pesTono ${esc(c.tono)}">${esc(c.texto)}</span>` : esc(c.texto));
     const bs = (d.pesada && d.pesada.vida && d.pesada.vida.bloques) || [];
-    return bs.map((b) => bloque(b.titulo, `<table class="pesTablaFicha"><tbody>${(b.filas || []).map(([k, c]) => `<tr><th>${esc(k)}</th><td>${celda(c)}</td></tr>`).join('')}</tbody></table>`, `data-pes-vida="${esc(b.id)}"`)).join('');
+    return bs.map((b) => {
+      const clave = (b.filas || []).find(([, c]) => c && c.texto);
+      return plegado(b.titulo, `<table class="pesTablaFicha"><tbody>${(b.filas || []).map(([k, c]) => `<tr><th>${esc(k)}</th><td>${celda(c)}</td></tr>`).join('')}</tbody></table>`, clave ? `${clave[0]}: ${clave[1].texto}` : 'Sin datos', `data-pes-vida="${esc(b.id)}"`);
+    }).join('');
   }
 
+  /* El resumen: estado de Cx (con lo que le falta, para que «Certificado» no se contradiga con un «falta» más abajo), sala con
+     número y nombre, y qué equipo es. */
+  function resumenHtml(d) {
+    const est = d.estado || {}, faltan = (est.faltan || []).filter(Boolean);
+    /* El TAG ya va arriba: del «UTA-01 · TROX · TKM 50» de la ficha aquí queda marca y modelo. */
+    const tipo = d.tipo && d.codigo && String(d.tipo).startsWith(`${d.codigo} · `) ? String(d.tipo).slice(String(d.codigo).length + 3) : d.tipo || '';
+    const sala = d.sala || ((d.identificacion || []).find((f) => f && f[0] === 'Recinto') || [])[1] || '';
+    const estado = `<span class="pesEstadoCx"><span class="pesPunto ${esc(est.clase || '')}" aria-hidden="true"></span><b>${esc(est.nombre || '—')}</b></span>`
+      + (faltan.length ? `<small class="pesFaltan">${faltan.length === 1 ? 'Falta el documento' : 'Faltan documentos'}: ${esc(faltan.join(', '))}</small>` : '')
+      + (est.aclaracion ? `<small>${esc(est.aclaracion)}</small>` : '');
+    return `<table class="pesTablaFicha pesResumenEq" data-pes-resumen><tbody><tr><th>Estado de Cx</th><td>${estado}</td></tr><tr><th>Sala</th><td>${sala ? `<b>${esc(sala)}</b>` : VACIO}</td></tr>${tipo ? `<tr><th>Equipo</th><td>${esc(tipo)}</td></tr>` : ''}</tbody></table>`;
+  }
+
+  /* 14-nov (JC: «si hay algún equipo con incidencia deberá verse en otro color»): arriba del panel, sus incidencias sin
+     cerrar, cada una con su enlace (shared/commissioning/incidenciaPlano.js). Sin incidencias no pinta nada. */
+  function incidenciasHtml(d) {
+    const l = (d.incidencias || []).filter(Boolean);
+    if (!l.length) return '';
+    return `<div class="pesIncEq" data-pes-incidencias role="group" aria-label="Incidencias abiertas de este equipo"><p class="pesIncEqTit"><span class="pesPunto incidencia" aria-hidden="true">!</span><b>${l.length === 1 ? '1 incidencia abierta' : `${l.length} incidencias abiertas`}</b></p>
+      <table class="pesTablaFicha pesIncEqTabla"><tbody>${l.map((i) => `<tr><td><button type="button" class="pesIncEnlace" data-pes-incidencia="${esc(i.id)}" title="Abrir la incidencia ${esc(i.codigo)}">${esc(i.codigo || 'Incidencia')}</button></td><td>${esc(i.titulo || '')}${i.enUnidad ? `<span class="pesIncEqDonde">${esc(`En la ${i.enUnidad.exterior ? 'exterior' : 'interior'} ${i.enUnidad.tag || ''}`.trim())}</span>` : ''}</td><td class="pesIncEqEstado">${esc(i.estadoNombre || i.estado || '')}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+
+  /* De arriba abajo: TAG, sus incidencias abiertas, estado de Cx y sala; sus botones; documentos y toma de datos con su botón; lo demás, plegado. */
   function html(d = {}) {
     const est = d.estado || {};
     const botones = (d.botones || []).filter(Boolean).map((b) => `<button type="button" class="botonMini" ${b.dato}>${esc(b.texto)}</button>`).join('');
-    return `<div class="pesPanelCab"><span class="pesPunto ${esc(est.clase || '')}" aria-hidden="true"></span><strong>${esc(d.codigo || 'Equipo')}</strong><span class="pesEstado">${esc(est.nombre || '')}</span><button type="button" class="botonMini pesPanelCerrar" data-pes-panel-cerrar title="Cerrar y volver a la lista" aria-label="Cerrar el panel del equipo">×</button></div>
-      ${d.tipo ? `<div class="pesFichaSub">${esc(d.tipo)}</div>` : ''}
-      ${bloque('Identificación', tabla(d.identificacion || []))}
-      ${bloque('Fabricante', tabla([['Marca', d.marca || VACIO, !d.marca], ['Modelo', d.modelo || VACIO, !d.modelo]]))}
+    const identificacion = (d.identificacion || []).filter((f) => f && !(f[0] === 'Recinto' && !d.sinObra && f[1]));
+    const estados = (d.estados || []).filter((f) => f && f[1] != null && f[1] !== '');
+    return `<div class="pesPanelCab"><span class="pesPunto ${esc(est.clase || '')}" aria-hidden="true"></span><strong>${esc(d.codigo || 'Equipo')}</strong><button type="button" class="botonMini pesPanelCerrar" data-pes-panel-cerrar title="Cerrar y volver a la lista" aria-label="Cerrar el panel del equipo">×</button></div>
+      ${incidenciasHtml(d)}
+      ${resumenHtml(d)}
+      ${botones ? `<div class="pesFichaPie pesAcciones">${botones}</div>` : ''}
       ${documentosHtml(d)}
       ${tomasHtml(d)}
-      ${d.estados && d.estados.length ? bloque('Estado', tabla(d.estados)) : ''}
       ${vidaHtml(d)}
-      ${d.red ? bloque('Su red', d.red, 'data-pes-sured') : ''}
-      ${(d.notas || []).filter(Boolean).map((t) => `<p class="pesNota">${esc(t)}</p>`).join('')}
-      ${botones ? `<div class="pesFichaPie">${botones}</div>` : ''}`;
+      ${estados.length ? plegado('Estado', tabla(estados), estados.map((f) => `${f[0]}: ${f[1]}`).join(' · ')) : ''}
+      ${identificacion.length ? plegado('Identificación', tabla(identificacion), identificacion.filter((f) => f[0] === 'Conjunto' || f[0] === 'Pedido' || f[0] === 'Familia').map((f) => f[1]).filter(Boolean).join(' · ')) : ''}
+      ${plegado('Fabricante', tabla([['Marca', d.marca || VACIO, !d.marca], ['Modelo', d.modelo || VACIO, !d.modelo]]), [d.marca, d.modelo].filter(Boolean).join(' · ') || 'Sin datos')}
+      ${d.red ? plegado('Su red', d.red, '', 'data-pes-sured') : ''}
+      ${(d.notas || []).filter(Boolean).map((t) => `<p class="pesNota">${esc(t)}</p>`).join('')}`;
   }
 
-  return { html, documentosHtml, documentosDe, filasDocumentos, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA };
+  return { html, incidenciasHtml, documentosHtml, documentosDe, filasDocumentos, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA };
 });

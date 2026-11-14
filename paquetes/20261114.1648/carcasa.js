@@ -1071,7 +1071,10 @@
     const atasco = atascos();
     if (e.estado === 'al-dia' && atasco) return ['error', `${atasco} sin subir${pend}`];
     if (e.estado === 'al-dia') return n ? ['sin-red', cambios(n)] : ['al-dia', 'Sincronizado'];
-    return fallo ? ['error', fallo] : ['', 'Conectando'];
+    /* 14-nov (JC en el iPhone: «Conectando» fijo arriba con los datos ya en pantalla): ya entrado, nunca «Conectando»;
+       dando la vuelta, «Sincronizando», y lo pendiente si lo hay. */
+    if (fallo) return ['error', fallo];
+    return ['', n ? `Sincronizando · ${cambios(n)}` : 'Sincronizando'];
   }
   /* Lo que no ha llegado a la nube y no se reintenta solo (motor.sinSubir). */
   function atascos() {
@@ -1080,6 +1083,7 @@
     try { const x = s.sinSubir(); return x ? (x.rechazos || 0) + (x.descartadas || 0) + (x.conflictos || 0) : 0; } catch { return 0; }
   }
   let ultimaClase = null;
+  let ultimoTexto = '';
   function pastillaSync() {
     const s = sincro();
     const fila = document.querySelector('.barra-fila');
@@ -1098,10 +1102,11 @@
     }
     const e = s.estado();
     /* Mientras da la vuelta se queda lo que había (sin parpadear cada 30 s). */
-    if (e.estado === 'sincronizando' && ultimaClase !== null) { b.classList.add('girando'); return; }
+    /* 14-nov: salvo si lo que había era «Conectando» y ya ha entrado (se quedaba fijo para siempre). */
+    if (e.estado === 'sincronizando' && ultimaClase !== null && ultimoTexto !== 'Conectando') { b.classList.add('girando'); return; }
     const [clase, texto] = textoSync(e);
-    ultimaClase = clase;
-    b.className = `sync-pastilla ${clase}`;
+    ultimaClase = clase; ultimoTexto = texto;
+    b.className = `sync-pastilla ${clase}${e.estado === 'sincronizando' ? ' girando' : ''}`;
     b.innerHTML = `<span class="sync-texto">${esc(texto)}</span>`;
     b.title = texto;
     b.setAttribute('aria-label', `Sincronización con la oficina: ${texto}`);
