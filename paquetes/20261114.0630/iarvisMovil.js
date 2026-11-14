@@ -64,6 +64,8 @@
         const r = await N.nube.llamarFuncion('iarvis', '', JSON.stringify({ modo: 'accion', pregunta: String(pregunta || '').slice(0, 2000), obra_id: obraId || null, ...(ESC ? { escalado: 1 } : {}), ...(ESC && sinHerramienta ? { sin_herramienta: String(sinHerramienta).slice(0, 300) } : {}) }), ESC ? 25000 : 12000);
         const j = await r.json().catch(() => null);
         if (j && j.accion && j.accion.id) return j.accion;
+        /* 11-nov: «varias» = lo pedido son varios pasos; lo propone la conversación, en orden. */
+        if (j && j.estado === 'varias') return { varias: true };
         /* 13-nov: el motor duda (UNA pregunta) o no hay herramienta (dicho y anotado): eso es la respuesta. */
         if (ESC && j && (j.estado === 'aclarar' || j.estado === 'sin_herramienta') && j.texto) return { dicho: ESC.quitarMarcas(String(j.texto)).slice(0, 800) };
         return null;
@@ -118,7 +120,9 @@
             const sinH = r.fila.sinHerramienta || null;
             const elegida = d.soloApp ? null : await alMotor(d.pregunta, d.obraId, sinH);
             if (elegida && elegida.dicho) { const f = { id: null, pregunta: d.pregunta, estado: 'respondida', local: true, respuesta: elegida.dicho }; guardarLocal(f); return f; }
-            if (elegida && !sinH) {
+            /* 11-nov: varios pasos: los propone la conversación con la nube, en orden y con botón. */
+            if (elegida && elegida.varias && !sinH) return alNube({ ...d, adjuntos: (d.adjuntos || []).filter((x) => x && !x.soloLocal) });
+            if (elegida && !elegida.varias && !sinH) {
               const r2 = await C.postJson('api/iarvis/accion', { accion: { hacer: 'catalogo', id: elegida.id, parametros: elegida.parametros || {}, pregunta: d.pregunta, obraId: d.obraId || null, fotos } });
               if (r2 && r2.fila) { guardarLocal(r2.fila); return r2.fila; }
             }
@@ -190,6 +194,8 @@
         return conv.valorar(id, v);
       },
       estado: (id) => conv.estado(id),
+      /* 11-nov: «Empezar de cero» también para la memoria de Iarvis (shared/ia/charla.js). */
+      nueva: () => conv.nuevaConversacion(),
       /* Una foto, además de a la nube, al teléfono (por el camino de fotos de siempre: api/foto y el
          autoguardado), para poder meterla como evidencia de una prueba sin depender de la red. */
       adjuntar: async (nombre, bytes, tipo) => {

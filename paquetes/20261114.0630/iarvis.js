@@ -70,6 +70,8 @@
       estado: (id) => p.iarvisEstado(id), adjuntar: (n, b, t) => p.iarvisAdjuntar(n, b, t),
       /* 8-nov: el botón «hacer» (guardar la respuesta del claim) también en el escritorio. */
       hacer: p.iarvisHacer ? (a) => p.iarvisHacer(a) : undefined,
+      /* 11-nov: «Empezar de cero» también para la memoria de Iarvis (shared/ia/charla.js). */
+      nueva: p.iarvisNueva ? () => p.iarvisNueva() : undefined,
     };
   }
 
@@ -409,7 +411,11 @@
 
   /** Lo que Iarvis ha hecho con la app: el PDF, ir a una pantalla, proponer o aplicar. */
   function pintarAcciones(f) {
-    const acc = Array.isArray(f.acciones) ? f.acciones : [];
+    /* 11-nov (hablar con Iarvis): los pasos que el chat propuso (propuesta.pasos, shared/ia/charla.js ·
+       pasosDe). Cada botón solo abre la tarjeta «¿Lo hago?» de la app; nada se escribe sin confirmar. */
+    const pasos = f.propuesta && Array.isArray(f.propuesta.pasos)
+      ? f.propuesta.pasos.filter((a) => a && a.tipo === 'hacer' && !a.confirmado && (a.hacer === 'proponerRegistro' || a.hacer === 'catalogo')) : [];
+    const acc = [...(Array.isArray(f.acciones) ? f.acciones : []), ...pasos];
     if (!acc.length) return '';
     const pdfs = acc.filter((a) => a.tipo === 'pdf').map((a, i) => {
       const id = `${f.id}:${i}`;
@@ -458,11 +464,24 @@
   const ICONO_UTIL = svgPulgar(false);
   const ICONO_NO_UTIL = svgPulgar(true);
 
+  /* 14-nov: quién ha contestado, bajo la respuesta: 🧭 su modelo (el Qwen3 de JC en su Mac) o ✳︎ Claude (la reserva).
+     La misma regla que shared/ia/qwenPrimero.js · quienContesta (la prueba lo compara); nada si contestó la app o el blindaje. */
+  function quienContesta(motor) {
+    const Q = typeof window !== 'undefined' && window.IarvisQwenPrimero;
+    if (Q && Q.quienContesta) return Q.quienContesta(motor);
+    const m = String(motor || '');
+    if (m === 'ollama') return { icono: '🧭', texto: 'Su modelo', clase: 'propio' };
+    if (/^claude/.test(m)) return { icono: '✳︎', texto: 'Claude', clase: 'claude' };
+    return null;
+  }
+
   function pintarRespuesta(f) {
     if (!f.respuesta) return pintarPensando(f);
     const espera = f.estado === 'pendiente' || f.estado === 'respondiendo';
     const valorable = f.estado === 'respondida' && f.id;
-    const pie = valorable ? `<div class="iaPie">
+    const q = f.estado === 'respondida' ? quienContesta(f.motor) : null;
+    const quien = q ? `<span class="iaQuien iaQuien-${q.clase}" title="${q.clase === 'propio' ? 'Ha contestado su modelo, en el Mac de JC' : 'Ha contestado Claude, de reserva'}">${q.icono} ${esc(q.texto)}</span>` : '';
+    const pie = valorable ? `<div class="iaPie">${quien}
       <button data-ia-valorar="util" data-id="${esc(f.id)}" class="${f.valoracion === 'util' ? 'elegida' : ''}" title="Me ha servido" aria-label="Me ha servido">${ICONO_UTIL}</button>
       <button data-ia-valorar="no_util" data-id="${esc(f.id)}" class="${f.valoracion === 'no_util' ? 'elegida' : ''}" title="No me ha servido" aria-label="No me ha servido">${ICONO_NO_UTIL}</button></div>` : '';
     return `<div class="iaRespuesta${espera ? ' iaEspera' : ''}">${textoConEnlaces(f.respuesta)}${pintarAcciones(f)}${pintarPropuestas(f)}${pie}</div>`;
@@ -591,7 +610,7 @@
     let r = adjuntos.length || archivos.length ? null : navegarLocal(pregunta);
     if (!r) {
       try {
-        r = await I.adaptador.preguntar({ pregunta, pantalla: ctx.pantalla, obraId: ctx.obraId, obraNombre: ctx.obraNombre, mirando: ctx.mirando || (ctx.hechoAbierto ? `Caso abierto en pantalla: ${ctx.hechoAbierto.reclamacionCodigo || ''} ${ctx.hechoAbierto.codigo || ''} ${ctx.hechoAbierto.titulo || ''}`.trim() : undefined), idioma: ctx.idioma, hechoAbierto: ctx.hechoAbierto, correoAbierto: ctx.correoAbierto, adjuntos, archivos });
+        r = await I.adaptador.preguntar({ pregunta, pantalla: ctx.pantalla, obraId: ctx.obraId, obraNombre: ctx.obraNombre, presupuestoId: ctx.presupuestoId, mirando: ctx.mirando || (ctx.hechoAbierto ? `Caso abierto en pantalla: ${ctx.hechoAbierto.reclamacionCodigo || ''} ${ctx.hechoAbierto.codigo || ''} ${ctx.hechoAbierto.titulo || ''}`.trim() : undefined), idioma: ctx.idioma, hechoAbierto: ctx.hechoAbierto, correoAbierto: ctx.correoAbierto, adjuntos, archivos });
       } catch { r = { estado: 'fallo', respuesta: 'Iarvis no ha podido contestar ahora. Vuelve a preguntármelo.' }; }
     }
     Object.assign(provisional, r || {});
@@ -867,7 +886,7 @@
       if (sug) { mandar(sug.getAttribute('data-ia-sugerencia')); return; }
       if (e.target.closest('.iaAnclar')) { anclar(!I.anclado); return; }
       if (e.target.closest('.iaVolver')) { if (I.volver) I.volver(); else if (history.length > 1) history.back(); return; }
-      if (e.target.closest('.iaNueva')) { I.deEstaVez = new Set(); I.idsEstaVez = new Set(); I.ultima = 0; try { localStorage.removeItem(CHARLA); } catch { /* nada */ } pintar(); return; }
+      if (e.target.closest('.iaNueva')) { I.deEstaVez = new Set(); I.idsEstaVez = new Set(); I.ultima = 0; try { localStorage.removeItem(CHARLA); } catch { /* nada */ } if (I.adaptador && I.adaptador.nueva) Promise.resolve().then(() => I.adaptador.nueva()).catch(() => { /* sin red: la siguiente caduca sola */ }); pintar(); return; }
       const arch = e.target.closest('[data-ia-archivo]');
       if (arch) { abrirArchivo(arch.getAttribute('data-ia-archivo')); return; }
       const pdf = e.target.closest('[data-ia-pdf]');
