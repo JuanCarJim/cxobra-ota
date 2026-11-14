@@ -504,23 +504,25 @@
 
   /* 8-nov (JC: «no me gusta que se abra así»): se abre LIMPIO —saludo y atajos— y lo de
      otras veces queda plegado en «Conversaciones anteriores». */
+  /* 14-nov: el texto propio del panel sale en el idioma de la app (shared/idiomaTextos.js, claves «ia.»). */
+  const T = (k, v) => (window.IDIOMA ? window.IDIOMA.t(k, v) : k);
   function sugerencias() {
     let ctx = {};
     try { ctx = I.contexto() || {}; } catch { /* sin contexto */ }
-    const mes = new Date().toLocaleDateString('es-ES', { month: 'long' });
+    const mes = new Date().toLocaleDateString(window.IDIOMA ? window.IDIOMA.local() : 'es-ES', { month: 'long' });
     const delineante = window.SESION && window.SESION.rol === 'delineante';
     const lista = delineante
-      ? ['¿Qué falla en mis planos?', '¿Qué tengo que volver a mandar?', '¿Cómo subo un IFC o un plano de AutoCAD?']
+      ? [T('ia.sug.planosFalla'), T('ia.sug.planosMandar'), T('ia.sug.subirIfc')]
       : ctx.obraId
-      ? [`Planificación de commissioning de ${mes}`, '¿Qué hay planificado esta semana?', 'Planificación de las UTAs del mes que viene', '¿Cómo certifico una partida?']
-      : ['¿Cómo elijo la obra en la que trabajo?', '¿Qué puedo hacer con mi puesto?', '¿Cómo subo un documento?'];
+      ? [T('ia.sug.commissioning', { mes }), T('ia.sug.semana'), T('ia.sug.utas'), T('ia.sug.certifico')]
+      : [T('ia.sug.elegirObra'), T('ia.sug.puesto'), T('ia.sug.subirDoc')];
     return lista.map((t) => `<button class="iaSugerencia" data-ia-sugerencia="${esc(t)}">${esc(t)}</button>`).join('');
   }
 
   function saludo() {
     const h = new Date().getHours();
     const nombre = (window.ESTADO_SESION && window.ESTADO_SESION.nombre) || '';
-    return `${h < 6 || h >= 21 ? 'Buenas noches' : h < 14 ? 'Buenos días' : 'Buenas tardes'}${nombre ? `, ${esc(nombre.split(' ')[0])}` : ''}`;
+    return `${T(h < 6 || h >= 21 ? 'ini.buenasNoches' : h < 14 ? 'ini.buenosDias' : 'ini.buenasTardes')}${nombre ? `, ${esc(nombre.split(' ')[0])}` : ''}`;
   }
 
   function pintarFila(f) {
@@ -537,7 +539,7 @@
     try { abierto = (I.contexto() || {}).hechoAbierto || null; } catch { /* sin contexto */ }
     const P = window.IARVIS_PREGUNTAS;
     const ahora = I.filas.filter((f) => (I.deEstaVez.has(f) || (f.id && I.idsEstaVez.has(f.id))) && (!P || !P.vaConElHecho || P.vaConElHecho(f, abierto)));
-    const bienvenida = ahora.length ? '' : `<div class="iaBienvenida"><h3>${saludo()}</h3><p>Pídeme lo que necesites de la obra: lo busco en la app y te lo doy. También te explico cómo se hace cualquier cosa.</p><div class="iaSugerencias">${sugerencias()}</div></div>`;
+    const bienvenida = ahora.length ? '' : `<div class="iaBienvenida"><h3>${saludo()}</h3><p>${esc(T('ia.bienvenida'))}</p><div class="iaSugerencias">${sugerencias()}</div></div>`;
     I.lista.innerHTML = `${bienvenida}${[...ahora].reverse().map(pintarFila).join('')}`;
     I.lista.scrollTop = I.lista.scrollHeight;
     rellenarMiniaturas();
@@ -858,7 +860,7 @@
       ${I.movil
     /* 8-nov (JC): en el móvil, SOLO el chat: una cabecera mínima con «‹» para volver y «Iarvis». */
     ? '<div class="iaCabecera"><button class="iaVolver" title="Volver" aria-label="Volver">‹</button><h2>Iarvis</h2></div>'
-    : '<div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso">Usa la app por ti · solo lo que tu puesto ve</span></div><button class="iaAnclar" type="button" aria-pressed="false" title="Anclar: queda fijo a la derecha" aria-label="Anclar Iarvis"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 6 3 3v2H7v-2l3-3-1-6zM12 15v6"/></svg></button><button class="iaFlotar" title="Soltar como ventana (o anclar a la columna)" aria-label="Soltar o anclar">⧉</button><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button><button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button></div>'}
+    : '<div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso" data-ia-t="ia.aviso">' + esc(T('ia.aviso')) + '</span></div><button class="iaAnclar" type="button" aria-pressed="false" title="Anclar: queda fijo a la derecha" aria-label="Anclar Iarvis"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 6 3 3v2H7v-2l3-3-1-6zM12 15v6"/></svg></button><button class="iaFlotar" title="Soltar como ventana (o anclar a la columna)" aria-label="Soltar o anclar">⧉</button><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button><button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button></div>'}
       <div class="iaSobre" hidden></div>
       <div class="iaLista" role="log" aria-live="polite"></div>
       <div class="iaEntrada">
@@ -866,13 +868,21 @@
         <div class="iaFila">
           <button class="iaClip" title="Adjuntar un archivo" aria-label="Adjuntar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5l-7.6 7.6a4.5 4.5 0 0 1-6.4-6.4l8-8a3 3 0 0 1 4.2 4.2l-8 8a1.5 1.5 0 0 1-2.1-2.1l7.3-7.3"/></svg></button>
           ${I.movil ? '<button class="iaCamara" title="Foto con la cámara" aria-label="Cámara"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2.2l1.5-2h5.6l1.5 2h2.2A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="12.5" r="3.5"/></svg></button>' : ''}
-          <textarea rows="1" placeholder="${I.movil ? 'Escribe o pulsa el micrófono del teclado para dictar' : 'Pregunta a Iarvis…'}"></textarea>
+          <textarea rows="1" placeholder="${esc(T(I.movil ? 'ia.dictar' : 'ia.pregunta'))}"></textarea>
           <button class="iaMandar" title="Mandar (Intro)" aria-label="Mandar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
         </div>
         <input type="file" class="iaArchivo" multiple hidden>
         <input type="file" class="iaFoto" accept="image/*" capture="environment" hidden>
       </div>`;
     I.lista = p.querySelector('.iaLista');
+    /* Al cambiar el idioma de la app, lo propio del panel se repinta sin cerrarlo. */
+    if (window.IDIOMA && window.IDIOMA.alCambiar) {
+      window.IDIOMA.alCambiar(() => {
+        const av = p.querySelector('[data-ia-t]'); if (av) av.textContent = T(av.dataset.iaT);
+        const ta = p.querySelector('textarea'); if (ta) ta.placeholder = T(I.movil ? 'ia.dictar' : 'ia.pregunta');
+        pintar(); contextoCambiado();
+      });
+    }
     p.querySelector('.iaMandar').addEventListener('click', () => mandar());
     p.querySelector('textarea').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !I.movil) { e.preventDefault(); mandar(); } });
     p.querySelector('.iaClip').addEventListener('click', () => p.querySelector('.iaArchivo').click());
@@ -1026,7 +1036,7 @@
     let h = null;
     try { h = (I.contexto() || {}).hechoAbierto || null; } catch { /* sin contexto */ }
     z.hidden = !h;
-    z.innerHTML = h ? `Sobre: <b>${esc([h.reclamacionCodigo, h.codigo].filter(Boolean).join(' · ') || 'este caso')}</b> ${esc(h.titulo || '')}` : '';
+    z.innerHTML = h ? `${esc(T('ia.sobre'))} <b>${esc([h.reclamacionCodigo, h.codigo].filter(Boolean).join(' · ') || T('ia.esteCaso'))}</b> ${esc(h.titulo || '')}` : '';
   }
 
   /*
