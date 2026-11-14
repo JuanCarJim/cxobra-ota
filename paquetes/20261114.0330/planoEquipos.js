@@ -32,10 +32,15 @@
   const { esc, cifra } = C;
   const FA = window.CX_PLANO_FALTAS; /* marcar lo que falta (planoFaltas.js) */
 
-  const NOMBRE = { verde: 'En marcha', azul: 'Falta documentación', rojo: 'Sin empezar' };
-  const ORDEN = ['verde', 'azul', 'rojo'];
+  /* 13-nov (JC): los colores del bloque son los de shared/commissioning/colorBloque.js —certificado (azul), Cx hecho
+     (verde), instalado sin Cx (gris, propuesta), no instalado (rojo), sin dato—; sustituyen a «En marcha / Falta doc. /
+     Sin empezar». La leyenda, el filtro y el recuento de arriba van por ese estado. */
+  const CB = window.COLOR_BLOQUE;
+  const ORDEN = CB ? CB.ORDEN_BLOQUE : ['cxHecho', 'instalado', 'sinDato'];
+  const NOMBRE = CB ? Object.fromEntries(CB.ESTADOS_BLOQUE.map((x) => [x.id, x.nombre])) : { cxHecho: 'Commissioning hecho', instalado: 'Instalado, sin Cx', sinDato: 'Sin dato' };
+  const bq = (e) => (e && e.bloque) || (e && e.color === 'verde' ? 'cxHecho' : e && e.color === 'azul' ? 'instalado' : 'sinDato');
   const ZOOM_MAX = 30; /* 30-oct, JC: «hay que poder ampliar más» */
-  const TAM_EQ = 22; const TAM_EQ_MIN = 10; const TAM_EQ_ELEGIDO = 30; /* px de pantalla, a cualquier zoom */
+  const TAM_EQ = 22; const TAM_EQ_MIN = 18; /* 13-nov, JC: «si son grandes y hago zoom y no se adaptan, nunca podré ver los que hay»: 18–24 px */ const TAM_EQ_ELEGIDO = 30; /* px de pantalla, a cualquier zoom */
   const ZOOM_SALAS = 3; /* desde aquí se leen los nombres de sala encima del plano */
   /* El dibujo de cada familia viene del servidor (shared/commissioning/planoEquipos.js: ICONOS),
      así es el mismo en escritorio, web y móvil, también sin conexión. */
@@ -84,7 +89,12 @@
   .pe-marco .marca-boca.mal .simbolo-boca .cuerpo{fill:color-mix(in srgb,var(--mal) 18%,var(--vd-lienzo))}
   .pe-cuerpo{display:block}
   .pe-marco{position:relative;overflow:hidden;height:52vh;border:1px solid var(--borde);border-radius:10px;background:var(--vd-lienzo);touch-action:none;overscroll-behavior:contain;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-  .pe-lienzo{position:relative;flex:none;margin-block:auto}.pe-marco{display:flex;flex-direction:column}
+  .pe-lienzo{position:relative;flex:none;margin-block:0 auto}
+  .pe-franja{margin:6px 0 0}.pe-franja-tit{margin:0 0 3px;font-size:12px;color:var(--textoTenue)}
+  .pe-franja-bloques{display:flex;flex-wrap:wrap;gap:4px;max-height:58px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .pe-franja .marca-boca{position:relative;transform:none;flex:none;width:24px;height:24px;line-height:0;padding:1px;border-radius:4px;background:var(--panel);border:1px solid var(--borde)}
+  .pe-franja .marca-boca .simbolo-boca{height:100%;width:100%}
+  .pe-franja .marca-boca.elegida{outline:2px solid var(--acento);outline-offset:1px}.pe-marco{display:flex;flex-direction:column}
   .pe-fondo{display:flex;gap:6px;margin:0 0 6px}.pe-fondo button{flex:1;padding:6px 10px;border:1px solid var(--borde);border-radius:6px;background:transparent;color:inherit;font:inherit;font-size:13px}.pe-fondo button[aria-pressed=true]{background:color-mix(in srgb,currentColor 14%,transparent);font-weight:700;border-color:currentColor}.pe-fondo button:disabled{opacity:.4}
   .pe-lienzo img{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none;pointer-events:none}
   .pe-lienzo .marca-boca.azul{color:var(--pe-azul)}
@@ -230,7 +240,7 @@
     if (document.getElementById('pe-estilo')) return;
     const s = document.createElement('style');
     s.id = 'pe-estilo';
-    s.textContent = ESTILO;
+    s.textContent = ESTILO + (CB ? `.pe-lienzo .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-lienzo .marca-boca')}.pe-franja .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-franja .marca-boca')}.pe-punto[class*="bq-punto-"]{border:1px solid rgba(38,43,56,.35)}` : '');
     document.head.appendChild(s);
   }
 
@@ -253,7 +263,9 @@
     const ya = vistas.get(p);
     if (ya) return ya;
     const pos = p.ifc.pos || {};
-    const equipos = p.equipos.map((e) => (pos[e.id] ? { ...e, x: pos[e.id][0], y: pos[e.id][1], mano: false, revisar: false, w: 0, h: 0 } : { ...e, x: null, y: null, mano: false, revisar: false }));
+    /* 14-nov: los de la franja «sin sala» no se pintan sobre el dibujo (a 390 px se pisaban): van en su franja bajo el plano. */
+    const deFranja = new Set(p.ifc.franja || []);
+    const equipos = p.equipos.map((e) => (pos[e.id] ? { ...e, x: pos[e.id][0], y: pos[e.id][1], mano: false, revisar: false, w: 0, h: 0, ...(deFranja.has(e.id) ? { franja: true } : {}) } : { ...e, x: null, y: null, mano: false, revisar: false }));
     const sinUbicar = equipos.filter((q) => q.x === null).map((q) => ({ id: q.id, tag: q.tag, familia: q.familia, sala: q.sala, icono: q.icono }));
     const v = { ...p, plano: p.ifc.plano, equipos, sinUbicar, materiales: (p.materiales || []).map((m) => ({ ...m, x: null, y: null })), faltas: [], esIfc: true,
       cuentas: { ...p.cuentas, enPlano: equipos.length - sinUbicar.length, sinUbicar: sinUbicar.length, revisar: 0 } };
@@ -475,7 +487,7 @@
     const rol = e.conjunto ? `${e.papel === 'UE' ? 'Exterior' : 'Interior'} de ${esc(e.conjunto)}` : '';
     const acc = Array.isArray(e.acciones) ? e.acciones : [];
     return `<div class="fila-principal"><strong class="cifra">${e.papel ? `<em>${esc(e.papel)}</em> ` : ''}${esc(e.tag)}</strong>
-        <span class="chip"><i class="pe-punto pe-${e.color}"></i> ${esc(NOMBRE[e.color])}</span>
+        <span class="chip"><i class="pe-punto bq-punto-${bq(e)}"></i> ${esc(NOMBRE[bq(e)])}</span>
         <button class="cierra" data-pe-cerrar aria-label="Cerrar">×</button></div>
       <div class="sub">${que ? esc(que) : ''}</div>
       <div class="sub">${salaHtml(e.sala)}${p.planta ? ` <span class="tenue">· ${esc(p.planta)}</span>` : ''}</div>
@@ -682,8 +694,9 @@
     /* 13-nov (JC: «número de sala es muy importante»): también por número de sala, con o sin puntos («00.STE.036», «00 036»). */
     const BM = window.BUSCADOR_MOVIL;
     const textosEq = (m) => [m.tag, m.sala, m.codSala, m.local];
-    const visibles = p.equipos.filter((m) => !ocultos.has(m.color) && (!qq || (BM && BM.coincide ? BM.coincide(filtro.trim(), textosEq(m)) : textosEq(m).some((v) => String(v || '').toLowerCase().includes(qq)))));
-    const enPlano = capasOff.has('equipos') ? [] : visibles.filter((m) => m.x !== null);
+    const visibles = p.equipos.filter((m) => !ocultos.has(bq(m)) && (!qq || (BM && BM.coincide ? BM.coincide(filtro.trim(), textosEq(m)) : textosEq(m).some((v) => String(v || '').toLowerCase().includes(qq)))));
+    const enPlano = capasOff.has('equipos') ? [] : visibles.filter((m) => m.x !== null && !m.franja);
+    const enFranja = capasOff.has('equipos') ? [] : visibles.filter((m) => m.x !== null && m.franja).sort((a, b) => String(a.tag || '').localeCompare(String(b.tag || ''), 'es', { numeric: true }));
     const enConjunto = idsDelConjunto();
     const q = filtro.trim().toLowerCase();
     const mats = (p.materiales || []).filter((m) => m.x !== null && !capasOff.has(m.capa));
@@ -699,10 +712,11 @@
           ${salasDe(p).map((r, i) => `<span class="pe-sala" data-pe-sala="${i}" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}${r.codigo && r.codigo !== r.t ? `<small>${esc(r.codigo)}</small>` : ''}</span>`).join('')}
           ${mats.map((m) => marcaMaterial(m, q, p)).join('')}
           ${FA.marcas(p)}
-          ${enPlano.map((x) => `<button class="marca-boca ${x.color === 'verde' ? 'bien' : x.color === 'rojo' ? 'mal' : 'azul'}${enConjunto.has(x.id) ? ' elegida' : ''}${x.revisar ? ' revisar' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[x.color]}${x.revisar ? '; revisar ubicación' : ''}`)}">${simbolo(x.icono)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
+          ${enPlano.map((x) => `<button class="marca-boca bq-${bq(x)}${enConjunto.has(x.id) ? ' elegida' : ''}${x.revisar ? ' revisar' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[bq(x)]}${x.revisar ? '; revisar ubicación' : ''}`)}">${simbolo(x.icono)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
         </div>
       </div>
       ${p.esIfc && !(p.plano.salas || []).length ? '<p class="nota pe-sin-nombres" data-pe-sin-nombres>El modelo de esta planta no trae nombres de sala y no hay plano de arquitectura para situarlos.</p>' : ''}${p.esIfc && p.plano.fuenteSalas === 'plano' ? '<p class="nota pe-sin-nombres" data-pe-nombres-pdf>Nombres de sala del plano de arquitectura, situados por los equipos: el modelo no los trae.</p>' : ''}
+      ${enFranja.length ? `<div class="pe-franja" data-pe-franja role="group" aria-label="Sin sala en el modelo"><p class="pe-franja-tit">Sin sala en el modelo, por confirmar · ${cifra(enFranja.length)}</p><div class="pe-franja-bloques">${enFranja.map((x) => `<button class="marca-boca bq-${bq(x)}${enConjunto.has(x.id) ? ' elegida' : ''}" data-pe-marca="${esc(x.id)}" title="${esc(x.tag)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[bq(x)]}; sin sala en el modelo`)}">${simbolo(x.icono)}</button>`).join('')}</div></div>` : ''}
       <!-- 13-nov (JC en el iPhone): el −/Entero/+ en una franja bajo el plano, nunca encima; también pellizco y doble toque -->
       <div class="pe-zoom" role="group" aria-label="Zoom del plano"><button class="boton secundario" data-pe-zoom="-1" aria-label="Alejar">−</button><button class="boton secundario" data-pe-zoom="0">Entero</button><button class="boton secundario" data-pe-zoom="1" aria-label="Acercar">+</button></div>${FA.marcando() ? FA.mando(p) : ''}</div>`
       : compacto ? `<div class="pe-sin-plano" data-pe-sin-ifc><b>Falta el IFC de la planta ${esc(etiqueta(p))}</b> (y tampoco tiene plano PDF). Lo prepara el delineante; mientras, sus equipos están en «Lista».</div>`
@@ -722,7 +736,7 @@
     const masPlegado = masDentro.trim() ? `<details class="pe-mas" data-pe-mas${verMas || verSinUbicar ? ' open' : ''}><summary>Leyenda${p.plano && (p.sinUbicar || []).length ? ` · sin ubicar ${cifra(p.sinUbicar.length)}` : ''}${nRev ? ` · revisar ${cifra(nRev)}` : ''}</summary>${masDentro}</details>` : '';
     $raiz.innerHTML = compacto ? `
       ${desplegable}
-      ${p.equipos.length ? `<div class="pe-leyenda pe-una-fila" role="group" aria-label="Estados">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto pe-${k}"></i>${esc(NOMBRE[k])} <b>${cifra(c[k] || 0)}</b></button>`).join('')}</div>` : ''}
+      ${p.equipos.length ? `<div class="pe-leyenda pe-una-fila" role="group" aria-label="Estados">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto bq-punto-${k}"></i>${esc(NOMBRE[k])} <b>${cifra((c.bloques || {})[k] || 0)}</b></button>`).join('')}</div>` : ''}
       <div class="pe-cuerpo">
         <div>${plano}</div>
         <div class="pe-lado"><div class="pe-hoja" data-pe-hoja hidden></div></div>
@@ -730,7 +744,7 @@
       ${cabeza()}
       <div class="pe-plantas" role="tablist">${plantas().map((x) => `<button role="tab" data-pe-planta="${esc(x.planta || '')}" aria-selected="${x === p}" class="${x === p ? 'activa' : ''}">${esc(etiqueta(x))}<small>${cuentaTexto(nEquipos(x), nMateriales(x))}</small></button>`).join('')}</div>
       ${capas.length > 1 || chipFaltas ? `<div class="pe-capas" role="group" aria-label="Capas">${capas.length > 1 ? capas.map((k) => `<button data-pe-capa="${esc(k.id)}" aria-pressed="${!capasOff.has(k.id)}">${esc(k.nombre)} <b>${cifra(cuentasCapa[k.id])}</b></button>`).join('') : ''}${chipFaltas}</div>` : ''}
-      ${p.equipos.length ? `<div class="pe-leyenda" role="group" aria-label="Colores">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto pe-${k}"></i>${esc(NOMBRE[k])} <b>${cifra(c[k] || 0)}</b></button>`).join('')}
+      ${p.equipos.length ? `<div class="pe-leyenda" role="group" aria-label="Colores">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto bq-punto-${k}"></i>${esc(NOMBRE[k])} <b>${cifra((c.bloques || {})[k] || 0)}</b></button>`).join('')}
         <p class="nota">sin sala ${cifra(c.sinSala)}${p.plano ? ` · en el plano ${cifra(c.enPlano)} de ${cifra(p.equipos.length)}` : ''}</p></div>` : ''}
       ${masPlegado}
       <div class="pe-cuerpo">
@@ -742,7 +756,7 @@
           <input type="search" class="pe-buscar" data-pe-buscar placeholder="Buscar TAG, sala o nº de serie" value="${esc(filtro)}">
           <p class="nota pe-entregable"><a href="api/plano-equipos/entregable?obra=${encodeURIComponent(C.obraId())}&planta=${encodeURIComponent(p.planta || '')}" target="_blank" rel="noopener">Entregable a mantenimiento (planta ${esc(etiqueta(p))}) ↗</a></p>` : ''}
           ${lista === 'materiales' && (p.materiales || []).length ? listaMateriales(p, q) : `<div class="pe-lista"><table><thead><tr><th>Equipo</th><th>Sala</th><th>Estado</th></tr></thead><tbody>
-          ${visibles.map((e) => `<tr data-pe-fila="${esc(e.id)}" class="${e.id === elegida ? 'elegida' : ''}${p.plano && e.x === null ? ' sin-ubicar' : ''}"><td>${e.papel ? `<em class="tenue">${esc(e.papel)}</em> ` : ''}${esc(e.tag)}</td><td>${salaHtml(e.sala)}</td><td class="estado">${p.plano && e.x === null ? '<i class="pe-punto pe-gris"></i> Sin ubicar' : `<i class="pe-punto pe-${e.color}"></i> ${esc(NOMBRE[e.color])}`}</td></tr>`).join('') || '<tr><td colspan="3" class="tenue">Ningún equipo con esos colores.</td></tr>'}
+          ${visibles.map((e) => `<tr data-pe-fila="${esc(e.id)}" class="${e.id === elegida ? 'elegida' : ''}${p.plano && e.x === null ? ' sin-ubicar' : ''}"><td>${e.papel ? `<em class="tenue">${esc(e.papel)}</em> ` : ''}${esc(e.tag)}</td><td>${salaHtml(e.sala)}</td><td class="estado">${p.plano && e.x === null ? '<i class="pe-punto pe-gris"></i> Sin ubicar' : `<i class="pe-punto bq-punto-${bq(e)}"></i> ${esc(NOMBRE[bq(e)])}`}</td></tr>`).join('') || '<tr><td colspan="3" class="tenue">Ningún equipo con esos colores.</td></tr>'}
           </tbody></table></div>`}
         </div>
       </div>`;
@@ -765,8 +779,15 @@
     const raiz = getComputedStyle(document.documentElement);
     const barra = parseFloat(raiz.getPropertyValue('--hueco-barra')) || 0;
     const franja = $raiz.querySelector('.pe-zoom');
-    const fh = franja ? franja.offsetHeight + 8 : 48;
-    marco.style.height = `${Math.round(Math.max(260, window.innerHeight - arriba - barra - fh - 12))}px`;
+    const sinSala = $raiz.querySelector('[data-pe-franja]');
+    const fh = (franja ? franja.offsetHeight + 8 : 48) + (sinSala ? sinSala.offsetHeight + 6 : 0);
+    const libre = Math.round(Math.max(260, window.innerHeight - arriba - barra - fh - 12));
+    /* 14-nov (JC): el dibujo pegado arriba y el marco ajustado a él: sin banda blanca encima ni debajo cuando el plano entero
+       cabe con menos alto del que hay. */
+    const p = plantaActual();
+    const pl = p && p.plano;
+    const alto = pl && pl.ancho > 0 && pl.alto > 0 ? Math.ceil(marco.clientWidth * (pl.alto / pl.ancho)) + 2 : 0;
+    marco.style.height = `${alto > 0 ? Math.min(libre, Math.max(200, alto)) : libre}px`;
   }
 
   function cabeza() {
@@ -886,7 +907,7 @@
     const p = plantaActual();
     const V = window.VISTA_PLANO;
     if (!marco || !lienzo || !p || !V || !V.encuadreZoom) return;
-    const puntos = (p.equipos || []).filter((e) => e.x !== null && e.x !== undefined && !ocultos.has(e.color)).concat(salasDe(p));
+    const puntos = (p.equipos || []).filter((e) => e.x !== null && e.x !== undefined && !ocultos.has(bq(e))).concat(salasDe(p));
     const r = V.encuadreZoom({ sl: marco.scrollLeft, st: marco.scrollTop, cw: marco.clientWidth, ch: marco.clientHeight, lw: lienzo.offsetWidth, lh: lienzo.offsetHeight, puntos });
     marco.scrollLeft = r.sl; marco.scrollTop = r.st;
   }
