@@ -70,6 +70,8 @@
       estado: (id) => p.iarvisEstado(id), adjuntar: (n, b, t) => p.iarvisAdjuntar(n, b, t),
       /* 8-nov: el botón «hacer» (guardar la respuesta del claim) también en el escritorio. */
       hacer: p.iarvisHacer ? (a) => p.iarvisHacer(a) : undefined,
+      /* 11-nov: «Empezar de cero» también para la memoria de Iarvis (shared/ia/charla.js). */
+      nueva: p.iarvisNueva ? () => p.iarvisNueva() : undefined,
     };
   }
 
@@ -113,7 +115,20 @@
    *     de la línea va a algún sitio, y todo pasa por esc().
    */
   const RE_IMPORTE_TXT = /(^|[\s(>«:])([-−+]?\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?\s?€(?:\/[^\s,;:)<.]+)?)/g;
-  const enTexto = (t) => enLinea(t).replace(RE_IMPORTE_TXT, '$1<span class="iaImporte">$2</span>');
+  /*
+   * 14-nov (JC: «mejorar la presentación del chat de Iarvis»): los códigos sueltos en prosa (salas, TAG, avisos
+   * N00/N10, P-14, UTA-12, INC-012) van en chips de monoespaciada, no mezclados con la frase. Solo lo que es
+   * letras en mayúscula + número; no toca lo que ya va en <code> ni dentro de una etiqueta.
+   */
+  const RE_CODIGO_TXT = /(^|[\s(«,;:])((?:[A-Z]{1,4}-\d{1,4}(?:-\d{1,4})*|[A-Z]{1,3}\d{2,4}|[A-Z]{2,5}-[A-Z]{1,3}\d{1,3})[a-z]?)(?=$|[\s).,;:»])/g;
+  function chipear(html) {
+    let dentroCode = false;
+    return html.split(/(<[^>]+>)/).map((trozo) => {
+      if (trozo[0] === '<') { if (/^<code\b/.test(trozo)) dentroCode = true; else if (/^<\/code>/.test(trozo)) dentroCode = false; return trozo; }
+      return dentroCode ? trozo : trozo.replace(RE_CODIGO_TXT, '$1<code class="iaChip">$2</code>');
+    }).join('');
+  }
+  const enTexto = (t) => chipear(enLinea(t).replace(RE_IMPORTE_TXT, '$1<span class="iaImporte">$2</span>'));
   const RE_HAY_CIFRA = /\d\s?€|\bsin dato\b/;
   const RE_AVISO = /\b(vencid[ao]s?|retrasad[ao]s?|bloquead[ao]s?|sin dato|falta\w*)\b/i;
   const sinAst = (t) => String(t).replace(/\*\*/g, '');
@@ -167,7 +182,8 @@
     const fin = l.slice(k + 1).trim();
     return `<div class="iaElMeta" title="${esc(sinAst(l))}"><span class="iaElMetaIni">${enLinea(ini)}</span><span class="iaElMetaFin">› ${enLinea(fin)}</span></div>`;
   }
-  function listaElementos(els, tag, elegida) {
+  const ini = (n) => (n ? ` start="${n + 1}"` : '');
+  function listaElementos(els, tag, elegida, desde = 0) {
     const fila = (e) => {
       const marcada = tag === 'ol' && elegida && e.n === elegida;
       const cab = [
@@ -181,7 +197,17 @@
       const totales = e.totales.map((t) => `<div class="iaElCifras iaElTotal">${t.et ? `<span class="iaElTotEt">${enLinea(t.et)} →</span>` : ''}${t.cifras.map(cifra).join('')}</div>`).join('');
       return `<li class="iaEl${marcada ? ' iaElegida' : ''}">${cab ? `<div class="iaElCab">${cab}</div>` : ''}${e.nombre ? `<div class="iaElNombre">${enLinea(e.nombre)}</div>` : ''}${cifras}${totales}${e.metas.map(metaDe).join('')}</li>`;
     };
-    return `<${tag} class="iaElementos">${els.map(fila).join('')}</${tag}>`;
+    return `<${tag} class="iaElementos"${tag === 'ol' ? ini(desde) : ''}>${els.map(fila).join('')}</${tag}>`;
+  }
+  /*
+   * 14-nov: las listas largas se pliegan. Hasta 6 puntos, enteras; con más, los 4 primeros y el resto tras
+   * «Ver todo (+N)» (details/summary, sin JS; en móvil y en el panel). Nunca se pierde un punto.
+   */
+  const UMBRAL_PLEGAR = 6;
+  const VISIBLES = 4;
+  function plegada(items, pintar) {
+    if (items.length <= UMBRAL_PLEGAR) return pintar(items, 0);
+    return `${pintar(items.slice(0, VISIBLES), 0)}<details class="iaMas"><summary><span class="iaMasVer">Ver todo (+${items.length - VISIBLES})</span><span class="iaMasMenos">Ver menos</span></summary>${pintar(items.slice(VISIBLES), VISIBLES)}</details>`;
   }
   function formato(texto) {
     const lineas = String(texto || '').replace(/\r\n?/g, '\n').split('\n');
@@ -215,8 +241,8 @@
         }
         /* 12-nov: si TODOS los puntos son elementos (código · nombre — cifras), filas limpias; si no, la lista de siempre. */
         const els = items.map(elemento);
-        if (els.every(Boolean)) out.push(listaElementos(els, tag, elegida));
-        else out.push(`<${tag}>${items.map((x) => `<li>${enTexto(x.lineas.join(' '))}</li>`).join('')}</${tag}>`);
+        if (els.every(Boolean)) out.push(plegada(els, (parte, d) => listaElementos(parte, tag, elegida, d)));
+        else out.push(plegada(items, (parte, d) => `<${tag}${tag === 'ol' ? ini(d) : ''}>${parte.map((x) => `<li>${enTexto(x.lineas.join(' '))}</li>`).join('')}</${tag}>`));
         continue;
       }
       parrafo.push(l);
@@ -385,7 +411,11 @@
 
   /** Lo que Iarvis ha hecho con la app: el PDF, ir a una pantalla, proponer o aplicar. */
   function pintarAcciones(f) {
-    const acc = Array.isArray(f.acciones) ? f.acciones : [];
+    /* 11-nov (hablar con Iarvis): los pasos que el chat propuso (propuesta.pasos, shared/ia/charla.js ·
+       pasosDe). Cada botón solo abre la tarjeta «¿Lo hago?» de la app; nada se escribe sin confirmar. */
+    const pasos = f.propuesta && Array.isArray(f.propuesta.pasos)
+      ? f.propuesta.pasos.filter((a) => a && a.tipo === 'hacer' && !a.confirmado && (a.hacer === 'proponerRegistro' || a.hacer === 'catalogo')) : [];
+    const acc = [...(Array.isArray(f.acciones) ? f.acciones : []), ...pasos];
     if (!acc.length) return '';
     const pdfs = acc.filter((a) => a.tipo === 'pdf').map((a, i) => {
       const id = `${f.id}:${i}`;
@@ -434,11 +464,24 @@
   const ICONO_UTIL = svgPulgar(false);
   const ICONO_NO_UTIL = svgPulgar(true);
 
+  /* 14-nov: quién ha contestado, bajo la respuesta: 🧭 su modelo (el Qwen3 de JC en su Mac) o ✳︎ Claude (la reserva).
+     La misma regla que shared/ia/qwenPrimero.js · quienContesta (la prueba lo compara); nada si contestó la app o el blindaje. */
+  function quienContesta(motor) {
+    const Q = typeof window !== 'undefined' && window.IarvisQwenPrimero;
+    if (Q && Q.quienContesta) return Q.quienContesta(motor);
+    const m = String(motor || '');
+    if (m === 'ollama') return { icono: '🧭', texto: 'Su modelo', clase: 'propio' };
+    if (/^claude/.test(m)) return { icono: '✳︎', texto: 'Claude', clase: 'claude' };
+    return null;
+  }
+
   function pintarRespuesta(f) {
     if (!f.respuesta) return pintarPensando(f);
     const espera = f.estado === 'pendiente' || f.estado === 'respondiendo';
     const valorable = f.estado === 'respondida' && f.id;
-    const pie = valorable ? `<div class="iaPie">
+    const q = f.estado === 'respondida' ? quienContesta(f.motor) : null;
+    const quien = q ? `<span class="iaQuien iaQuien-${q.clase}" title="${q.clase === 'propio' ? 'Ha contestado su modelo, en el Mac de JC' : 'Ha contestado Claude, de reserva'}">${q.icono} ${esc(q.texto)}</span>` : '';
+    const pie = valorable ? `<div class="iaPie">${quien}
       <button data-ia-valorar="util" data-id="${esc(f.id)}" class="${f.valoracion === 'util' ? 'elegida' : ''}" title="Me ha servido" aria-label="Me ha servido">${ICONO_UTIL}</button>
       <button data-ia-valorar="no_util" data-id="${esc(f.id)}" class="${f.valoracion === 'no_util' ? 'elegida' : ''}" title="No me ha servido" aria-label="No me ha servido">${ICONO_NO_UTIL}</button></div>` : '';
     return `<div class="iaRespuesta${espera ? ' iaEspera' : ''}">${textoConEnlaces(f.respuesta)}${pintarAcciones(f)}${pintarPropuestas(f)}${pie}</div>`;
@@ -567,7 +610,7 @@
     let r = adjuntos.length || archivos.length ? null : navegarLocal(pregunta);
     if (!r) {
       try {
-        r = await I.adaptador.preguntar({ pregunta, pantalla: ctx.pantalla, obraId: ctx.obraId, obraNombre: ctx.obraNombre, mirando: ctx.mirando || (ctx.hechoAbierto ? `Caso abierto en pantalla: ${ctx.hechoAbierto.reclamacionCodigo || ''} ${ctx.hechoAbierto.codigo || ''} ${ctx.hechoAbierto.titulo || ''}`.trim() : undefined), idioma: ctx.idioma, hechoAbierto: ctx.hechoAbierto, correoAbierto: ctx.correoAbierto, adjuntos, archivos });
+        r = await I.adaptador.preguntar({ pregunta, pantalla: ctx.pantalla, obraId: ctx.obraId, obraNombre: ctx.obraNombre, presupuestoId: ctx.presupuestoId, mirando: ctx.mirando || (ctx.hechoAbierto ? `Caso abierto en pantalla: ${ctx.hechoAbierto.reclamacionCodigo || ''} ${ctx.hechoAbierto.codigo || ''} ${ctx.hechoAbierto.titulo || ''}`.trim() : undefined), idioma: ctx.idioma, hechoAbierto: ctx.hechoAbierto, correoAbierto: ctx.correoAbierto, adjuntos, archivos });
       } catch { r = { estado: 'fallo', respuesta: 'Iarvis no ha podido contestar ahora. Vuelve a preguntármelo.' }; }
     }
     Object.assign(provisional, r || {});
@@ -843,7 +886,7 @@
       if (sug) { mandar(sug.getAttribute('data-ia-sugerencia')); return; }
       if (e.target.closest('.iaAnclar')) { anclar(!I.anclado); return; }
       if (e.target.closest('.iaVolver')) { if (I.volver) I.volver(); else if (history.length > 1) history.back(); return; }
-      if (e.target.closest('.iaNueva')) { I.deEstaVez = new Set(); I.idsEstaVez = new Set(); I.ultima = 0; try { localStorage.removeItem(CHARLA); } catch { /* nada */ } pintar(); return; }
+      if (e.target.closest('.iaNueva')) { I.deEstaVez = new Set(); I.idsEstaVez = new Set(); I.ultima = 0; try { localStorage.removeItem(CHARLA); } catch { /* nada */ } if (I.adaptador && I.adaptador.nueva) Promise.resolve().then(() => I.adaptador.nueva()).catch(() => { /* sin red: la siguiente caduca sola */ }); pintar(); return; }
       const arch = e.target.closest('[data-ia-archivo]');
       if (arch) { abrirArchivo(arch.getAttribute('data-ia-archivo')); return; }
       const pdf = e.target.closest('[data-ia-pdf]');

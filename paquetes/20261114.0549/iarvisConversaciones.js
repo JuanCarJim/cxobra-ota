@@ -27,7 +27,8 @@
   const MAX_ADJUNTO = 25 * 1024 * 1024; /* el mismo tope que el cubo */
   const MAX_PREGUNTA = 4000;
   const COLA = 'vidaire.iarvis.cola';
-  const CAMPOS = 'id,pregunta,respuesta,estado,valoracion,creado,adjuntos,propuesta,modelo';
+  /* 14-nov: `motor` dice quién contestó (🧭 su modelo «ollama» o ✳︎ «claude»); el chat lo enseña bajo la respuesta. */
+  const CAMPOS = 'id,pregunta,respuesta,estado,valoracion,creado,adjuntos,propuesta,modelo,motor';
   const SIN_RED = 'Sin conexión: tu pregunta queda guardada y Iarvis te contestará en cuanto haya red.';
   const MAS_TARDE = 'Iarvis te contestará en un rato. Tu pregunta queda guardada.';
   /* 8-nov (JC: «Iarvis tiene que responder AL MOMENTO»): la cola es SOLO para cuando no hay red.
@@ -42,6 +43,19 @@
   const uuid = () => (globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID()
     : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = (Math.random() * 16) | 0; return (c === 'x' ? r : (r & 3) | 8).toString(16); }));
   const limpioNombre = (n) => String(n || 'archivo').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.\-]+/g, '_').slice(-120);
+
+  /* 11-nov (bloc 1011-hablar-con-iarvis): cada pregunta lleva el id de la conversación de la sesión
+     (shared/ia/charla.js), y la función recuerda solo lo hablado en ESA conversación. */
+  const Charla = (() => {
+    try { if (typeof require === 'function') return require('./charla'); } catch { /* navegador */ }
+    return (typeof window !== 'undefined' && window.IarvisCharla) || null;
+  })();
+  let convSinCharla = null;
+  const idConversacion = (almacen, nueva = false) => {
+    if (Charla && Charla.idConversacion) return Charla.idConversacion({ almacen, nueva });
+    if (!convSinCharla || nueva) convSinCharla = uuid();
+    return convSinCharla;
+  };
 
   function crearConversaciones({ nube = null, app = 'obras', quien = () => null, almacen = null, plazoRespuesta = 90000 } = {}) {
     const leerCola = () => { try { return JSON.parse((almacen && almacen.getItem(COLA)) || '[]'); } catch { return []; } };
@@ -58,7 +72,7 @@
       try {
         const r = await nube.llamarFuncion('iarvis', '', JSON.stringify({ ...(cuerpo && typeof cuerpo === 'object' ? cuerpo : {}), id, persona_id: personaId, espacio }), cuerpo ? Math.max(plazoRespuesta, 150000) : plazoRespuesta);
         const j = await r.json().catch(() => null);
-        if (j && j.estado) return { id, estado: j.estado, respuesta: j.respuesta || (j.estado === 'pendiente' ? MAS_TARDE : null) };
+        if (j && j.estado) return { id, estado: j.estado, respuesta: j.respuesta || (j.estado === 'pendiente' ? MAS_TARDE : null), propuesta: j.propuesta || null, motor: j.motor || null, modelo: j.modelo || null };
         /* La función no está desplegada (404) o no ha contestado nada que se entienda. */
         return { id, estado: 'fallo', respuesta: NO_PUDO };
       } catch (e) {
@@ -72,8 +86,10 @@
       const texto = String(pregunta || '').trim().slice(0, MAX_PREGUNTA);
       if (!texto) return { estado: 'fallo', respuesta: 'Escribe la pregunta.' };
       const { personaId, espacio } = yo();
-      const fila = { id: uuid(), espacio, persona_id: personaId, obra_id: obraId || null, app, pregunta: texto, contexto, adjuntos };
-      if (sinCola && (!nube || !personaId)) return { id: fila.id, estado: 'fallo', respuesta: NO_PUDO };
+      /* Sin nube y sin cola no se toca el almacén (ni el id de la conversación). */
+      if (sinCola && (!nube || !personaId)) return { id: uuid(), estado: 'fallo', respuesta: NO_PUDO };
+      const conversacion = idConversacion(almacen);
+      const fila = { id: uuid(), espacio, persona_id: personaId, obra_id: obraId || null, app, pregunta: texto, contexto: { ...(contexto || {}), conversacion }, adjuntos };
       if (!nube || !personaId) {
         ponerCola([...leerCola(), fila]);
         return { id: fila.id, estado: 'pendiente', respuesta: SIN_RED, enCola: true };
@@ -84,7 +100,7 @@
         if (sinCola && e && e.sinRed) return { id: fila.id, estado: 'fallo', respuesta: NO_PUDO };
         if (e && e.sinRed) { ponerCola([...leerCola(), fila]); return { id: fila.id, estado: 'pendiente', respuesta: SIN_RED, enCola: true }; }
         /* Una obra que no es suya (RLS) o un contexto demasiado grande: se intenta sin ellos. */
-        try { await nube.meter(TABLA, [{ ...fila, obra_id: null, contexto: { app, pantalla: contexto.pantalla || '' } }]); } catch (e2) {
+        try { await nube.meter(TABLA, [{ ...fila, obra_id: null, contexto: { app, pantalla: (contexto && contexto.pantalla) || '', conversacion } }]); } catch (e2) {
           if (e2 && e2.sinRed) { ponerCola([...leerCola(), fila]); return { id: fila.id, estado: 'pendiente', respuesta: SIN_RED, enCola: true }; }
           /* Antes esto iba a la cola y el móvil decía «te contestará en un rato» sin llamar nunca a la
              función (8-nov: faltaba el permiso de meter el `id`, supabase/cxobra-sync/0050). */
@@ -159,7 +175,10 @@
       }
     }
 
-    return { preguntar, reintentar, historial, valorar, estado, adjuntar, contestar };
+    /** «Nueva conversación»: Iarvis deja de tener en cuenta lo hablado hasta ahora. */
+    const nuevaConversacion = () => idConversacion(almacen, true);
+
+    return { preguntar, reintentar, historial, valorar, estado, adjuntar, contestar, nuevaConversacion };
   }
 
   /** «… mira [[pantalla:compras]] …» → trozos de texto y enlaces para pintar. */
