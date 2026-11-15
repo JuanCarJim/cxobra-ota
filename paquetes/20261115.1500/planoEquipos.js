@@ -64,6 +64,13 @@
   const IP = window.INCIDENCIA_PLANO || null;
   const conInc = (e) => Boolean(IP ? IP.tiene(e) : (e && Array.isArray(e.incidencias) && e.incidencias.length));
   const incHtml = () => `<span class="pe-inc" aria-hidden="true">${IP ? IP.DISTINTIVO : '!'}</span>`;
+  /* 15-nov (JC): incidencia RESUELTA (cerrada) a falta de la toma de datos → azul con «!» azul; la abierta manda. */
+  let soloRes = false;
+  const conRes = (e) => Boolean(IP && IP.pendienteDatos(e));
+  const incClase = (x) => (conInc(x) ? ' con-inc' : conRes(x) ? ' con-incres' : '');
+  const incMarca = (x) => (conInc(x) || conRes(x) ? incHtml() : '');
+  const puntoInc = (x) => (conInc(x) ? 'incidencia' : conRes(x) ? 'incResuelta' : bq(x));
+  const dichoInc = (x) => (conInc(x) ? '; con incidencia abierta' : conRes(x) ? '; incidencia resuelta, faltan datos' : '');
   let $raiz = null;
   let vista = null; /* cómo estaba el plano al irse a una ficha, para volver igual */
   let propio = false; /* sección «Plano de equipos» (sin Commissioning) */
@@ -216,6 +223,12 @@
   .pe-leyenda .pe-chip-inc{border-color:var(--incidencia);color:var(--incidenciaTexto)}
   .pe-leyenda .pe-chip-inc[aria-pressed="false"]{opacity:1}
   .pe-leyenda .pe-chip-inc[aria-pressed="true"]{background:color-mix(in srgb,var(--incidencia) 16%,var(--panel));font-weight:700}
+  .pe-leyenda .pe-chip-res{border-color:var(--incResuelta);color:var(--incResuelta)}
+  .pe-leyenda .pe-chip-res[aria-pressed="true"]{background:color-mix(in srgb,var(--incResuelta) 14%,var(--panel))}
+  .pe-lienzo .marca-boca.con-incres .pe-inc{background:var(--incResuelta)}
+  .pe-hoja .pesIncEq.resuelta{border-left-color:var(--incResuelta);background:color-mix(in srgb,var(--incResuelta) 8%,var(--panel))}
+  .pe-hoja .pesIncEq.resuelta .pesIncEqTit,.pe-hoja .pesIncEq.resuelta .pesIncEnlace,.pe-hoja .pesIncEq.resuelta .pesIncEqDonde{color:var(--incResuelta)}
+  .pe-hoja .pesPunto.incResuelta{display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--incResuelta);color:var(--blanco);font:900 11px/16px system-ui,sans-serif;text-align:center}
   .pe-hoja .pe-ficha-completa{display:block;width:100%;min-height:44px;margin:8px 0 2px;font-size:15px;font-weight:700}
   /* 14-nov: con la hoja abierta el plano acaba encima de ella; el zoom con botones se esconde mientras (se pellizca). */
   .cx-plano:has([data-pe-hoja]:not([hidden])) .pe-pie,.cx-plano:has([data-pe-hoja]:not([hidden])) .pe-leyenda{display:none}
@@ -319,7 +332,7 @@
     if (document.getElementById('pe-estilo')) return;
     const s = document.createElement('style');
     s.id = 'pe-estilo';
-    s.textContent = ESTILO + (CB ? `.pe-lienzo .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-lienzo .marca-boca')}.pe-franja .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-franja .marca-boca')}${IP ? IP.css('.pe-lienzo .marca-boca.con-inc') : ''}.pe-punto[class*="bq-punto-"]{border:1px solid rgba(38,43,56,.35)}` : '');
+    s.textContent = ESTILO + (CB ? `.pe-lienzo .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-lienzo .marca-boca')}.pe-franja .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-franja .marca-boca')}${IP ? IP.css('.pe-lienzo .marca-boca.con-inc', '.pe-lienzo .marca-boca.con-incres') : ''}.pe-punto[class*="bq-punto-"]{border:1px solid rgba(38,43,56,.35)}` : '');
     document.head.appendChild(s);
   }
 
@@ -561,9 +574,15 @@
      incidencias (IP.recuento, como el escritorio) y, pulsado, deja solo esos en el plano. Sin ninguno, solo sale pulsado. */
   function chipInc(p) {
     const n = IP ? IP.recuento(p.equipos) : p.equipos.filter(conInc).length;
-    if (!n && !soloInc) return '';
+    if (!n && !soloInc) return chipRes(p);
     const nombre = IP ? IP.NOMBRE : 'Con incidencia';
-    return `<button class="pe-chip-inc" data-pe-solo-inc aria-pressed="${soloInc}" title="${esc(nombre)}: ${soloInc ? 'ver todos' : 'ver solo estos'}"><i class="pe-punto bq-punto-incidencia"></i>${esc(nombre)} <b>${cifra(n)}</b></button>`;
+    return `<button class="pe-chip-inc" data-pe-solo-inc aria-pressed="${soloInc}" title="${esc(nombre)}: ${soloInc ? 'ver todos' : 'ver solo estos'}"><i class="pe-punto bq-punto-incidencia"></i>${esc(nombre)} <b>${cifra(n)}</b></button>${chipRes(p)}`;
+  }
+  /* «Resuelta, faltan datos N» (15-nov): cerrada y sin toma de datos después del cierre (IP.recuentoResueltas); pulsado, filtra. */
+  function chipRes(p) {
+    const n = IP ? IP.recuentoResueltas(p.equipos) : 0;
+    if (!n && !soloRes) return '';
+    return `<button class="pe-chip-inc pe-chip-res" data-pe-solo-res aria-pressed="${soloRes}" title="${esc(IP.NOMBRE_RESUELTA)}: ${soloRes ? 'ver todos' : 'ver solo estos'}"><i class="pe-punto bq-punto-incResuelta"></i>${esc(IP.NOMBRE_RESUELTA)} <b>${cifra(n)}</b></button>`;
   }
   /* Arriba de la hoja, sus incidencias abiertas, cada una con su enlace: el mismo trozo del panel del escritorio. */
   function incidenciasHtml(e) {
@@ -797,7 +816,7 @@
     /* 13-nov (JC: «número de sala es muy importante»): también por número de sala, con o sin puntos («00.STE.036», «00 036»). */
     const BM = window.BUSCADOR_MOVIL;
     const textosEq = (m) => [m.tag, m.sala, m.codSala, m.local];
-    const visibles = p.equipos.filter((m) => !ocultos.has(bq(m)) && (!soloInc || conInc(m)) && (!qq || (BM && BM.coincide ? BM.coincide(filtro.trim(), textosEq(m)) : textosEq(m).some((v) => String(v || '').toLowerCase().includes(qq)))));
+    const visibles = p.equipos.filter((m) => !ocultos.has(bq(m)) && (!soloInc || conInc(m)) && (!soloRes || conRes(m)) && (!qq || (BM && BM.coincide ? BM.coincide(filtro.trim(), textosEq(m)) : textosEq(m).some((v) => String(v || '').toLowerCase().includes(qq)))));
     const enPlano = capasOff.has('equipos') ? [] : visibles.filter((m) => m.x !== null && !m.franja);
     const enFranja = capasOff.has('equipos') ? [] : visibles.filter((m) => m.x !== null && m.franja).sort((a, b) => String(a.tag || '').localeCompare(String(b.tag || ''), 'es', { numeric: true }));
     const enConjunto = idsDelConjunto();
@@ -815,14 +834,14 @@
           ${salasDe(p).map((r, i) => `<span class="pe-sala" data-pe-sala="${i}" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}${r.codigo && r.codigo !== r.t ? `<small>${esc(r.codigo)}</small>` : ''}</span>`).join('')}
           ${mats.map((m) => marcaMaterial(m, q, p)).join('')}
           ${FA.marcas(p)}
-          ${enPlano.map((x) => `<button class="marca-boca bq-${bq(x)}${conInc(x) ? ' con-inc' : ''}${enConjunto.has(x.id) ? ' elegida' : ''}${x.revisar ? ' revisar' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[bq(x)]}${conInc(x) ? '; con incidencia abierta' : ''}${x.revisar ? '; revisar ubicación' : ''}`)}">${simbolo(x.icono)}${conInc(x) ? incHtml() : ''}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
+          ${enPlano.map((x) => `<button class="marca-boca bq-${bq(x)}${incClase(x)}${enConjunto.has(x.id) ? ' elegida' : ''}${x.revisar ? ' revisar' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[bq(x)]}${dichoInc(x)}${x.revisar ? '; revisar ubicación' : ''}`)}">${simbolo(x.icono)}${incMarca(x)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
         </div>
       </div>
       ${!compacto && p.esIfc && !(p.plano.salas || []).length ? '<p class="nota pe-sin-nombres" data-pe-sin-nombres>El modelo de esta planta no trae nombres de sala y no hay plano de arquitectura para situarlos.</p>' : ''}${!compacto && p.esIfc && p.plano.fuenteSalas === 'plano' ? '<p class="nota pe-sin-nombres" data-pe-nombres-pdf>Nombres de sala del plano de arquitectura, situados por los equipos: el modelo no los trae.</p>' : ''}
       <!-- 13-nov (JC en el iPhone): el −/Entero/+ en una franja bajo el plano, nunca encima; también pellizco y doble toque.
            14-nov (JC): en la misma fila, plegados, los equipos que el modelo no pone en ninguna sala («por confirmar»). -->
       <div class="pe-pie">${enFranja.length ? `<button type="button" class="pe-franja-boton" data-pe-franja aria-expanded="${verFranja}" aria-controls="pe-franja-lista"><span>${cifra(enFranja.length)} equipo${enFranja.length === 1 ? '' : 's'} sin sala, por confirmar <span class="flecha" aria-hidden="true">›</span></span></button>` : ''}<div class="pe-zoom" role="group" aria-label="Zoom del plano"><button class="boton secundario" data-pe-zoom="-1" aria-label="Alejar">−</button><button class="boton secundario" data-pe-zoom="0">Entero</button><button class="boton secundario" data-pe-zoom="1" aria-label="Acercar">+</button></div>
-      ${enFranja.length && verFranja ? `<div class="pe-franja-lista" id="pe-franja-lista" data-pe-franja-lista role="list" aria-label="Sin sala en el modelo, por confirmar"><ul>${enFranja.map((x) => `<li><button type="button" class="${enConjunto.has(x.id) ? 'elegida' : ''}" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, sin sala en el modelo, por confirmar: ${NOMBRE[bq(x)]}`)}">${simbolo(x.icono)}<b>${esc(x.tag)}</b><span class="tipo">${esc(tipoDe(x))}</span><i class="pe-punto bq-punto-${conInc(x) ? 'incidencia' : bq(x)}" title="${esc(conInc(x) ? 'Con incidencia' : NOMBRE[bq(x)])}"></i><span class="pe-ir" aria-hidden="true">›</span></button></li>`).join('')}</ul></div>` : ''}</div>${FA.marcando() ? FA.mando(p) : ''}</div>`
+      ${enFranja.length && verFranja ? `<div class="pe-franja-lista" id="pe-franja-lista" data-pe-franja-lista role="list" aria-label="Sin sala en el modelo, por confirmar"><ul>${enFranja.map((x) => `<li><button type="button" class="${enConjunto.has(x.id) ? 'elegida' : ''}" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, sin sala en el modelo, por confirmar: ${NOMBRE[bq(x)]}`)}">${simbolo(x.icono)}<b>${esc(x.tag)}</b><span class="tipo">${esc(tipoDe(x))}</span><i class="pe-punto bq-punto-${puntoInc(x)}" title="${esc(conInc(x) ? 'Con incidencia' : conRes(x) ? IP.NOMBRE_RESUELTA : NOMBRE[bq(x)])}"></i><span class="pe-ir" aria-hidden="true">›</span></button></li>`).join('')}</ul></div>` : ''}</div>${FA.marcando() ? FA.mando(p) : ''}</div>`
       : compacto ? `<div class="pe-sin-plano" data-pe-sin-ifc><b>Falta el IFC de la planta ${esc(etiqueta(p))}</b> (y tampoco tiene plano PDF). Lo prepara el delineante; mientras, sus equipos están en «Lista».</div>`
       : `<div class="pe-sin-plano"><b>La planta ${esc(etiqueta(p))} aún no tiene plano de equipos.</b><br>Lo sube la oficina desde Commissioning › Plano. Mientras, la lista dice la sala y el estado de cada equipo.</div>`;
     /* Fila 1 de la pestaña Cx: el desplegable con todas las plantas (las que tienen IFC dicen cuántos coloca el modelo; las que no,
@@ -1330,6 +1349,7 @@
       return;
     }
     if (ev.target.closest('[data-pe-solo-inc]')) { soloInc = !soloInc; repintarQuieto(); return; }
+    if (ev.target.closest('[data-pe-solo-res]')) { soloRes = !soloRes; repintarQuieto(); return; }
     const co = ev.target.closest('[data-pe-color]');
     if (co) { const k = co.dataset.peColor; if (ocultos.has(k)) ocultos.delete(k); else ocultos.add(k); repintarQuieto(); return; }
     const fo = ev.target.closest('[data-pe-fondo]');
@@ -1534,7 +1554,7 @@
     const cabe = (c) => c.x0 >= 2 && c.x1 <= W - 2 && c.y0 >= 2 && c.y1 <= MINI_ALTO - 28;
     const [claseTag, cajaTag] = sitios.find(([, c]) => cabe(c) && !cajasEq.some((q) => choca(c, q))) || sitios.find(([, c]) => cabe(c)) || sitios[0];
     const marcas = visibles
-      .map((x) => `<span class="marca-boca bq-${bq(x)}${conInc(x) ? ' con-inc' : ''}${resaltar.has(x.id) ? ' elegida' : ''}${x.id === quien ? ` pe-mini-este ${claseTag}` : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%">${simbolo(x.icono)}${conInc(x) ? incHtml() : ''}${x.id === quien ? `<span class="rotulo-boca">${esc(x.tag)}</span>` : ''}</span>`).join('');
+      .map((x) => `<span class="marca-boca bq-${bq(x)}${incClase(x)}${resaltar.has(x.id) ? ' elegida' : ''}${x.id === quien ? ` pe-mini-este ${claseTag}` : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%">${simbolo(x.icono)}${incMarca(x)}${x.id === quien ? `<span class="rotulo-boca">${esc(x.tag)}</span>` : ''}</span>`).join('');
     /* El nombre de las salas que caen dentro, sin pisarse ni pisar el rótulo ni los equipos. */
     const puestas = [cajaTag, ...cajasEq, { x0: g.px - 15, x1: g.px + 15, y0: g.py - 15, y1: g.py + 15 }];
     const salas = salasDe(v.p.plano === pl ? v.p : { ...v.p, plano: pl }).map((r) => {
@@ -1545,8 +1565,8 @@
       puestas.push(c);
       return `<span class="pe-sala ver" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}</span>`;
     }).join('');
-    const estado = conInc(e) ? (IP ? IP.NOMBRE : 'Con incidencia') : NOMBRE[bq(e)];
-    const punto = conInc(e) ? 'incidencia' : bq(e);
+    const estado = conInc(e) ? (IP ? IP.NOMBRE : 'Con incidencia') : conRes(e) ? IP.NOMBRE_RESUELTA : NOMBRE[bq(e)];
+    const punto = puntoInc(e);
     const planta = v.p.planta || '';
     return `<button type="button" class="pe-mini" data-cx="en-plano" data-eq="${esc(quien)}" data-paleta="vidaire" style="height:${MINI_ALTO}px" aria-label="${esc(`Abrir el plano de ${planta || 'la planta'} con ${e.tag} elegido`)}">
       <span class="pe-lienzo" data-pe-mini-lienzo style="width:${g.lw.toFixed(1)}px;height:${g.lh.toFixed(1)}px;left:${g.left.toFixed(1)}px;top:${g.top.toFixed(1)}px"><img alt="" draggable="false" hidden>${salas}${marcas}</span>
