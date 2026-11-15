@@ -7071,6 +7071,12 @@ globalThis.CX_VARIANTE="cxobra";
         return contratoEnUso;
       }
       var contratoFijado = () => contratoEnUso;
+      var fueraDeLicencia = /* @__PURE__ */ new Set();
+      function fijarFueraDeLicencia(lista) {
+        fueraDeLicencia = new Set(Array.isArray(lista) ? lista : []);
+        return [...fueraDeLicencia];
+      }
+      var conLicenciaObra = (m) => !fueraDeLicencia.has(m);
       var TODO = ["ver", "crear", "editar", "borrar", "exportar"];
       var SOLO_VER = ["ver"];
       var ROLES = [
@@ -8584,7 +8590,7 @@ globalThis.CX_VARIANTE="cxobra";
       function modulosVisibles(idRol, contrato = contratoEnUso) {
         const r = porId.get(idRol);
         if (!r) return [];
-        const ve = (m) => (r.permisos[m] || []).includes("ver") && contratoPermite(contrato, m);
+        const ve = (m) => (r.permisos[m] || []).includes("ver") && contratoPermite(contrato, m) && conLicenciaObra(m);
         return Object.keys(MODULOS).filter((m) => !SIN_PANTALLA.has(m)).filter((m) => ve(m) && (!PANTALLA_NECESITA[m] || ve(PANTALLA_NECESITA[m])));
       }
       function campoVetado(idRol, campo) {
@@ -8865,12 +8871,17 @@ globalThis.CX_VARIANTE="cxobra";
       }
       function barraDeRol(idRol, contrato = contratoEnUso) {
         const visibles = modulosVisibles(idRol, contrato);
+        const fuera = fueraDeLicencia;
+        fueraDeLicencia = /* @__PURE__ */ new Set();
+        const visiblesPorRol = modulosVisibles(idRol, contrato);
+        fueraDeLicencia = fuera;
         const ve = (m) => {
           const a = ATAJOS_OBRA[m];
           if (!contratoPermite(contrato, m)) return false;
+          if (!conLicenciaObra(m)) return false;
           if (a && a.solo === "veAhorroApp" && !veAhorroApp(idRol)) return false;
-          if (a && a.tambienCon && (visibles.includes(a.tambienCon) || ((porId.get(idRol) || { permisos: {} }).permisos[a.tambienCon] || []).includes("ver"))) return true;
-          return visibles.includes(a ? a.modulo : m);
+          if (a && a.tambienCon && (visiblesPorRol.includes(a.tambienCon) || ((porId.get(idRol) || { permisos: {} }).permisos[a.tambienCon] || []).includes("ver"))) return true;
+          return (a ? visiblesPorRol : visibles).includes(a ? a.modulo : m);
         };
         const b = BARRAS_POR_ROL[idRol] || { trabajo: [], consulta: "*" };
         const trabajo = b.trabajo.filter(ve);
@@ -8890,8 +8901,8 @@ globalThis.CX_VARIANTE="cxobra";
           })).filter((s) => s.modulos.length);
           const enSecciones = new Set(secciones.flatMap((s) => s.modulos));
           const cubierto = (m) => (CUBIERTO_POR_ATAJOS[m] || []).some((a) => enSecciones.has(a));
-          const fuera = [...FUERA_DE_OBRA, ...b.trabajo, ...b.consulta === "*" ? [] : b.consulta].filter((m, i, l) => l.indexOf(m) === i && ve(m) && !enSecciones.has(m) && !cubierto(m));
-          return { trabajo: [], consulta: fuera, secciones };
+          const fuera2 = [...FUERA_DE_OBRA, ...b.trabajo, ...b.consulta === "*" ? [] : b.consulta].filter((m, i, l) => l.indexOf(m) === i && ve(m) && !enSecciones.has(m) && !cubierto(m));
+          return { trabajo: [], consulta: fuera2, secciones };
         }
         if (!b.empresa) return { trabajo, consulta, ...b.nombreTrabajo ? { nombreTrabajo: b.nombreTrabajo } : {} };
         const departamentos = Object.entries(DEPARTAMENTOS_EN_BARRA).map(([id, mods]) => ({
@@ -8958,6 +8969,130 @@ globalThis.CX_VARIANTE="cxobra";
         if (rolJefe === "encargadoObra") return false;
         return a < b;
       }
+      var CUENTAS_GESTOR = Object.freeze({
+        admin: "administrador",
+        director_departamento: "jefeDepartamento",
+        jefe_grupo: "jefeGrupo",
+        jefe_obra: "jefeObra",
+        jefe_produccion: "jefeProduccion",
+        encargado: "encargadoObra",
+        encargado_mantenimiento: "encargadoMantenimiento",
+        operario_mantenimiento: "operarioMantenimiento",
+        auditor: null,
+        /* El rol de las cuentas nuevas: en la obra, como un jefe de obra. */
+        usuario: "jefeObra",
+        contract_support: "contractSupport",
+        mantenedora: null,
+        propiedad: null,
+        direccion_facultativa: null,
+        cliente: null
+      });
+      var CUENTA_DE_ROL = new Map(Object.entries(CUENTAS_GESTOR).filter(([c, r]) => r && c !== "usuario").map(([c, r]) => [r, c]));
+      function cuentasGestor() {
+        return [...Object.keys(CUENTAS_GESTOR), ...ROLES.map((r) => r.id).filter((id) => !CUENTA_DE_ROL.has(id))];
+      }
+      function rolDeCuenta(cuenta) {
+        if (Object.prototype.hasOwnProperty.call(CUENTAS_GESTOR, cuenta)) return CUENTAS_GESTOR[cuenta];
+        return porId.has(cuenta) ? cuenta : null;
+      }
+      function cuentaDeRol(idRol) {
+        if (CUENTA_DE_ROL.has(idRol)) return CUENTA_DE_ROL.get(idRol);
+        return porId.has(idRol) ? idRol : null;
+      }
+      function cuentasQuePueden(modulo, verbo) {
+        return cuentasGestor().filter((c) => c !== "usuario" && c !== "admin" && rolDeCuenta(c) && puede(rolDeCuenta(c), modulo, verbo));
+      }
+      var SECCIONES_GESTOR_PERMISOS = Object.freeze({
+        empresa: ["@cartera"],
+        cuentas: ["estadisticas"],
+        comercial: ["clientes"],
+        proyecto: ["alcance", "documentos", "planosDelineacion"],
+        contrato: ["partesTrabajo", "costsPlan"],
+        seguridad: ["qhse", "inducciones"],
+        estudios: ["presupuestos", "biblioteca"],
+        compras: ["compras"],
+        almacen: ["pedidos", "inventarioCampo"],
+        economico: ["costsPlan", "certificaciones"],
+        commissioning: ["commissioning", "balanceo", "pruebasEstanqueidad"],
+        calidad: ["ncr", "ppi", "incidencias"],
+        planificacion: ["avanceObra", "tareas", "portalSubcontratas"],
+        entrega: ["actas"],
+        informes: ["informeSemanal"],
+        normativa: ["normativa"],
+        herramientas: ["calculo"],
+        management: ["@direccion"],
+        licitaciones: ["licitaciones"],
+        calculo: ["calculo"],
+        legalizaciones: ["legalizaciones"],
+        reclamaciones: ["reclamaciones"],
+        bms: ["commissioning"],
+        mantenimiento: ["mantenimiento", "ordenesMant"],
+        usuarios: ["trazabilidad"],
+        plantilla: ["vacaciones"],
+        datos: ["@accesos"],
+        presentaciones: ["@admin"]
+      });
+      var DESTINOS_GESTOR_PERMISOS = Object.freeze({
+        alcanceProyecto: ["alcance"],
+        documentacionProyecto: ["documentos"],
+        planos: ["planosDelineacion", "documentos"],
+        personasObra: ["proyectos"],
+        organigrama: ["proyectos"],
+        intervinientes: ["proyectos"],
+        calendarioPersonal: ["vacaciones"],
+        vacaciones: ["vacaciones"],
+        ausencias: ["vacaciones"],
+        personal: ["personas"],
+        festivos: ["personas"]
+      });
+      var SECCIONES_OBRA_COMPLETA_GESTOR = ["proyecto", "planificacion", "compras", "almacen", "economico", "contrato"];
+      var SECCIONES_JEFE_OBRA_GESTOR = [
+        ...SECCIONES_OBRA_COMPLETA_GESTOR,
+        "commissioning",
+        "calidad",
+        "legalizaciones",
+        "bms",
+        "reclamaciones",
+        "seguridad",
+        "informes",
+        "entrega",
+        "calculo",
+        "herramientas",
+        "normativa",
+        "plantilla",
+        "datos"
+      ];
+      var SECCIONES_CUENTA_GESTOR = Object.freeze({
+        jefe_obra: SECCIONES_JEFE_OBRA_GESTOR,
+        jefe_produccion: SECCIONES_JEFE_OBRA_GESTOR,
+        /* Sin dinero: lo de campo, el almacén y la entrega. */
+        encargado: ["proyecto", "planificacion", "compras", "almacen", "commissioning", "bms", "calidad", "seguridad", "entrega", "herramientas", "plantilla"],
+        /* Departamento de Mantenimiento: sus órdenes y el edificio entregado, nada de la obra. */
+        encargado_mantenimiento: ["mantenimiento", "commissioning", "entrega", "plantilla"],
+        operario_mantenimiento: ["mantenimiento"],
+        /* Una sola obra: el edificio entregado y lo que hace falta para mantenerlo. */
+        mantenedora: ["mantenimiento", "commissioning", "calidad", "entrega"],
+        propiedad: ["proyecto", "commissioning", "calidad", "entrega", "mantenimiento"],
+        cliente: ["proyecto", "planificacion", "commissioning", "calidad", "entrega"]
+      });
+      function rolVeSeccionGestor(idRol, seccion) {
+        const r = porId.get(idRol);
+        const reglas = SECCIONES_GESTOR_PERMISOS[seccion];
+        if (!r || !reglas) return false;
+        return reglas.some((m) => {
+          if (m === "@cartera") return r.alcance === "todo" || r.alcance === "departamento";
+          if (m === "@direccion") return r.departamento === "direccion" || r.alcance === "departamento" && !(r.camposVetados || []).length;
+          if (m === "@accesos") return gestionaAccesos(idRol);
+          if (m === "@admin") return idRol === "administrador";
+          return puede(idRol, m, "ver");
+        });
+      }
+      function seccionesGestor(cuenta) {
+        if (Object.prototype.hasOwnProperty.call(SECCIONES_CUENTA_GESTOR, cuenta)) return [...SECCIONES_CUENTA_GESTOR[cuenta]];
+        if (Object.prototype.hasOwnProperty.call(CUENTAS_GESTOR, cuenta)) return null;
+        if (!porId.has(cuenta) || !entraEnEscritorio(cuenta)) return [];
+        return Object.keys(SECCIONES_GESTOR_PERMISOS).filter((s) => rolVeSeccionGestor(cuenta, s));
+      }
       (function exportar(API) {
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.ROLES = API;
@@ -8977,6 +9112,7 @@ globalThis.CX_VARIANTE="cxobra";
         contratoPermite,
         fijarContrato,
         contratoFijado,
+        fijarFueraDeLicencia,
         rol,
         puede,
         planifica,
@@ -9017,7 +9153,17 @@ globalThis.CX_VARIANTE="cxobra";
         GESTIONA,
         nivelDeMando,
         superioresDe,
-        puedeSerJefeDe
+        puedeSerJefeDe,
+        CUENTAS_GESTOR,
+        cuentasGestor,
+        rolDeCuenta,
+        cuentaDeRol,
+        cuentasQuePueden,
+        SECCIONES_GESTOR_PERMISOS,
+        DESTINOS_GESTOR_PERMISOS,
+        SECCIONES_CUENTA_GESTOR,
+        rolVeSeccionGestor,
+        seccionesGestor
       });
     }
   });
@@ -10699,7 +10845,7 @@ globalThis.CX_VARIANTE="cxobra";
       init_define_CX_LICENCIAS();
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261115.1234" : "0";
+      var VERSION = true ? "20261115.1547" : "0";
       var URL_OTA = "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main" ? "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -22194,8 +22340,8 @@ Familias: ${FAMILIAS.length}`);
           fuera.push(...anexos.filter((a) => a.clase !== "checklist"));
           return fuera;
         }
-        const FAMILIAS_CONJUNTO = /* @__PURE__ */ new Set(["PANASONIC_SPLIT", "PANASONIC_VRF"]);
-        const esConjuntoUnico = (familia) => Boolean(familia && FAMILIAS_CONJUNTO.has(familia.codigo));
+        const FAMILIAS_CONJUNTO = /(^|_)(SPLIT|VRF)$/;
+        const esConjuntoUnico = (familia) => Boolean(familia && FAMILIAS_CONJUNTO.test(String(familia.codigo || "")));
         const RANGO_FICHA = { firmada: 4, completa: 3, pendiente: 2, sinEmpezar: 1 };
         const rangoFicha = (f) => f ? RANGO_FICHA[f.estado] || 1 : 0;
         function fichaFundida(f) {
@@ -22215,7 +22361,7 @@ Familias: ${FAMILIAS.length}`);
           const pm = u.plantillaPM || plantillaPorDefecto(u, familia, indice);
           return /EXTERIOR/.test(sinAcentosFx((indice.get(pm) || {}).nombre || pm || ""));
         }
-        const esVrfConjunto = (familia, interiores) => Boolean(familia && familia.codigo === "PANASONIC_VRF" || interiores.length > 1);
+        const esVrfConjunto = (familia, interiores) => Boolean(familia && /(^|_)VRF$/.test(String(familia.codigo || "")) || interiores.length > 1);
         function rotuloUi(tag) {
           const m = /(?:^|[\s·-])UI\s*0*(\d+)\s*$/i.exec(String(tag || ""));
           return m ? `UI ${m[1].padStart(2, "0")}` : String(tag || "UI");
@@ -22283,7 +22429,9 @@ Familias: ${FAMILIAS.length}`);
             return mejor;
           };
           const vrf = esVrfConjunto(familia, interiores);
-          for (const r of deRef) {
+          const enRef = new Set(deRef.map((r) => r.plantilla));
+          const deUeSola = exteriores.length ? (porUnidad.find((x) => x.u === exteriores[0]) || { reqs: [] }).reqs.filter((q) => q.plantilla && !enRef.has(q.plantilla) && q.clase !== "checklist" && q.clase !== "fichaPM") : [];
+          for (const r of [...deRef, ...deUeSola]) {
             if (r.clase === "checklist") {
               reqs.push({ ...mejorDe(porUnidad.flatMap((x) => x.reqs.filter((q) => q.plantilla === r.plantilla && q.clave))) || r, conjunto: true });
             } else if (r.clase === "fichaPM" && vrf) {
@@ -35912,7 +36060,7 @@ ${obsO}` : obsO).slice(0, 4e3);
           const s = /^[A-Z]+/.exec(m);
           return s ? s[0] : m.split(/[\s/-]/)[0];
         }
-        const familiaVentilador = (f) => /^SP_(VENTILACION|PARKING|PRESURIZACION)$/.test(f || "");
+        const familiaVentilador = (f) => /(^|_)(VENTILACION|PARKING|PRESURIZACION)$/.test(U(f));
         function plantillaVentilador(e, porDefecto) {
           if (e.plantillaPM) return e.plantillaPM;
           const d = porDefecto ? porDefecto(e) : null;
@@ -88660,6 +88808,306 @@ ${linea}` : linea;
     }
   });
 
+  // shared/barraLateral.js
+  var require_barraLateral = __commonJS({
+    "shared/barraLateral.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const MAX_HOJAS = 7;
+        const ARBOL_GESTOR = [
+          /* Remate 15-nov (JC, opción mixta): arriba la empresa; luego la base de la obra en el orden del 13-nov
+             (lo que define la obra y después el trabajo de presupuesto a entrega); debajo, «Módulos», uno por licencia. */
+          { id: "empresa", titulo: "Empresa", secciones: [
+            { id: "empresa", titulo: "Todas las obras", icono: "\u{1F3E2}", color: "var(--area-contratacion)", hojas: [
+              { destino: "cartera", icono: "\u{1F3E2}", nombre: "Todas las obras", desc: "La empresa entera: d\xF3nde est\xE1 el problema", vista: true },
+              { destino: "proyectos", icono: "\u{1F3D7}\uFE0F", nombre: "Proyectos", desc: "Las obras de cada empresa" }
+            ] },
+            /* Cuentas (#21): las estadísticas comerciales; facturación, forecast y gastos vendrán aquí. */
+            { id: "cuentas", titulo: "Cuentas", icono: "\u{1F4C8}", color: "var(--area-costes)", hojas: [
+              { destino: "estadisticas", icono: "\u{1F4C8}", nombre: "Estad\xEDsticas", desc: "Ofertas presentadas, adjudicadas y perdidas, tasa de \xE9xito y dinero ofertado contra adjudicado, por cliente, disciplina y periodo", vista: true }
+            ] },
+            { id: "comercial", titulo: "Comercial", icono: "\u{1F4E3}", color: "var(--area-planificacion)", hojas: [
+              { destino: "clientes", icono: "\u{1F3E2}", nombre: "Clientes", desc: "Las fichas de cliente de la empresa: contacto, condiciones de pago e idioma" }
+            ] }
+          ] },
+          { id: "obra", titulo: "La obra", secciones: [
+            /* Una sola puerta al alcance: «Ficha de alcance» (lo contratado) va en Compras. */
+            { id: "proyecto", titulo: "Proyecto", icono: "\u{1F4DC}", color: "var(--area-costes)", hojas: [
+              { destino: "alcanceProyecto", icono: "\u{1F4DC}", nombre: "Alcance del proyecto", desc: "Identificaci\xF3n, equipo, plazos, econ\xF3micas y condicionantes", vista: true },
+              { destino: "documentacionProyecto", icono: "\u{1F4DA}", nombre: "Documentaci\xF3n del proyecto", desc: "La biblioteca de modelos del proyecto: lo que pide el presupuesto, por tipo, con su estado y su PDF; y el buscador de toda la app", vista: true },
+              { destino: "planos", icono: "\u{1F5C2}\uFE0F", nombre: "Planos de obra", desc: "Los PDF: subirlos, verlos y guardarlos dentro del proyecto", vista: true },
+              { destino: "personasObra", icono: "\u{1F9D1}\u200D\u{1F4BC}", nombre: "Personas de la obra", desc: "Propiedad, direcci\xF3n facultativa, encargados\u2026 con sus tel\xE9fonos", vista: true },
+              { destino: "organigrama", icono: "\u{1F9ED}", nombre: "Organigrama", desc: "Qui\xE9n manda sobre qui\xE9n en la obra, montado solo con la ficha del proyecto y las Personas de la obra", vista: true },
+              { destino: "intervinientes", icono: "\u{1F4C7}", nombre: "Ficha de personas", desc: "Alta y edici\xF3n de las personas de la obra" }
+            ] },
+            /* Conflictos y Reclamaciones (#1 y #3) vendrán aquí en la ola 4. */
+            { id: "contrato", titulo: "Contrato y cliente", icono: "\u{1F500}", color: "var(--area-costes)", hojas: [
+              { destino: "cambios", icono: "\u{1F500}", nombre: "Cambios de proyecto", desc: "Circuito, importe y efecto en el contrato", vista: true },
+              { destino: "variaciones", icono: "\u{1F4DD}", nombre: "Registro de cambios", desc: "Alta y edici\xF3n de cada cambio" },
+              /* Partes de trabajo (ola 2, #7), gemela de Vidaire Obras: renderer/partesTrabajoPantalla.js. */
+              { destino: "partesTrabajoPantalla", icono: "\u{1F6E0}\uFE0F", nombre: "Partes de trabajo", desc: "Un trabajo fuera de contrato: qui\xE9n lo pide, horas y material, validaci\xF3n, firma y a qui\xE9n se repercute", vista: true },
+              { destino: "partesTrabajo", icono: "\u{1F6E0}\uFE0F", nombre: "Partes de trabajo (registro)", desc: "Los partes, en bruto" },
+              { destino: "parteTrabajoLineas", icono: "\u{1F9FE}", nombre: "L\xEDneas de partes de trabajo", desc: "Horas, material y otros de cada parte" },
+              { destino: "variacionLineas", icono: "\u{1F9FE}", nombre: "L\xEDneas de cambio", desc: "El detalle de cada cambio de proyecto" },
+              { destino: "ordenesCambio", icono: "\u{1F4DC}", nombre: "\xD3rdenes de cambio", desc: "Lo que el cliente autoriza por escrito" }
+            ] },
+            { id: "seguridad", titulo: "Seguridad", icono: "\u26A0\uFE0F", color: "var(--area-costes)", hojas: [
+              { destino: "perdidas", icono: "\u26A0\uFE0F", nombre: "Robos y p\xE9rdidas", desc: "Material perdido y su coste" }
+            ] }
+          ] },
+          { id: "trabajo", titulo: "El trabajo", secciones: [
+            { id: "estudios", titulo: "Proyectos y presupuestos", icono: "\u{1F4D0}", color: "var(--area-planificacion)", hojas: [
+              { destino: "estudio", icono: "\u{1F4BC}", nombre: "Estudio y oferta", desc: "Versiones del presupuesto, auditor, banco de precios, alternativas, embudo, la oferta en PDF y el traspaso a obra", vista: true },
+              { destino: "mediciones", icono: "\u{1F4CF}", nombre: "Mediciones del proyecto", desc: "L\xEDnea base, revisiones y c\xF3mo evoluciona la medici\xF3n", vista: true },
+              { destino: "partidasObra", icono: "\u{1F4CA}", nombre: "Partidas del presupuesto", desc: "Presupuesto, coste y margen por partida" },
+              { destino: "desgloseInicial", icono: "\u{1F5C2}\uFE0F", nombre: "Desglose inicial", desc: "Las tareas del desglose inicial del alcance" },
+              { destino: "plantillasPartida", icono: "\u{1F4DA}", nombre: "Plantillas de partida", desc: "La biblioteca de la empresa: partidas con su descripci\xF3n, para cualquier obra" },
+              { destino: "versionesPresupuesto", icono: "\u{1F5C3}\uFE0F", nombre: "Versiones del presupuesto", desc: "Las fotos guardadas del presupuesto, con su estado" },
+              { destino: "alternativasPresupuesto", icono: "\u{1F501}", nombre: "Alternativas", desc: "Otra marca u otra soluci\xF3n para una partida, con su precio" },
+              { destino: "revisionesMedicion", icono: "\u{1F4CF}", nombre: "Revisiones de medici\xF3n", desc: "La historia de la medici\xF3n: solo se consulta" },
+              { destino: "lineasMedicion", icono: "\u{1F4D0}", nombre: "L\xEDneas de medici\xF3n", desc: "El detalle de cada revisi\xF3n, con su traza" },
+              { destino: "cambiosMedicion", icono: "\u{1F4D0}", nombre: "Cambios de medici\xF3n", desc: "Qu\xE9 mediciones cambiaron y qu\xE9 partidas se a\xF1adieron" }
+            ] },
+            /* Contratación y Compras, juntas: paquete, comparativo, adjudicación. */
+            { id: "compras", titulo: "Compras", icono: "\u{1F91D}", color: "var(--area-contratacion)", hojas: [
+              { destino: "compras", icono: "\u23F1\uFE0F", nombre: "Planificaci\xF3n de compras", desc: "Cu\xE1ndo hay que adjudicar cada cosa", vista: true },
+              { destino: "comparativo", icono: "\u2696\uFE0F", nombre: "Comparativos", desc: "Ofertas enfrentadas por paquete", vista: true },
+              { destino: "resumenContrat", icono: "\u{1F4CA}", nombre: "Resumen de contrataciones", desc: "Con qui\xE9n se gasta y d\xF3nde se mejora", vista: true },
+              { destino: "master", icono: "\u{1F9FE}", nombre: "Master de contrataciones", desc: "Venta, estudio, contrataci\xF3n y sus porcentajes", vista: true },
+              { destino: "alcance", icono: "\u{1F4D0}", nombre: "Ficha de alcance", desc: "Qu\xE9 se contrat\xF3 y qu\xE9 papeles faltan", vista: true },
+              { destino: "ganttContratacion", icono: "\u{1F91D}", nombre: "Qui\xE9n est\xE1 en obra", desc: "Cu\xE1ndo entra y sale cada adjudicatario", vista: true },
+              { destino: "paquetesCompra", icono: "\u{1F6D2}", nombre: "Plan de compras", desc: "Paquetes, objetivo y adjudicaci\xF3n" },
+              { destino: "ofertas", icono: "\u{1F4E8}", nombre: "Peticiones de oferta", desc: "Lo pedido y lo recibido" },
+              { destino: "ofertaLineas", icono: "\u{1F4C4}", nombre: "L\xEDneas de oferta", desc: "Los precios unitarios de cada oferta, partida a partida" },
+              { destino: "contrataciones", icono: "\u{1F91D}", nombre: "Contrataciones", desc: "Adjudicado, con desglose de coste" },
+              { destino: "proveedores", icono: "\u{1F3ED}", nombre: "Proveedores (directorio)", desc: "Los proveedores de la empresa: viajan entre obras" }
+            ] },
+            { id: "almacen", titulo: "Pedidos y almac\xE9n", icono: "\u{1F4E6}", color: "var(--area-contratacion)", hojas: [
+              { destino: "pedidosEntregas", icono: "\u{1F69A}", nombre: "Pedidos y entregas", desc: "Solicitud al proveedor, plazo confirmado frente al real, albaranes parciales y puntualidad de cada proveedor", vista: true },
+              { destino: "recepciones", icono: "\u{1F4E5}", nombre: "Recepciones", desc: "Lo que ha llegado y lo que falta por dar de alta", vista: true },
+              { destino: "inventario", icono: "\u{1F4E6}", nombre: "Inventario", desc: "Stock actual y avisos de m\xEDnimo", vista: true },
+              { destino: "pedidos", icono: "\u{1F4E6}", nombre: "Pedidos", desc: "Registro y estado de entrega" },
+              { destino: "lineasPedido", icono: "\u{1F4DD}", nombre: "L\xEDneas de pedido", desc: "Qu\xE9 material trae cada pedido" },
+              { destino: "entregasPedido", icono: "\u{1F69A}", nombre: "Entregas de pedidos", desc: "Cada albar\xE1n recibido: qu\xE9 trajo y con qu\xE9 incidencia" },
+              { destino: "bolsasPedidos", icono: "\u{1F4B0}", nombre: "Bolsas de pedidos", desc: "Lo consumido y lo restante de cada bolsa" },
+              { destino: "articulos", icono: "\u{1F529}", nombre: "Art\xEDculos", desc: "Cat\xE1logo de material" },
+              { destino: "movimientos", icono: "\u{1F504}", nombre: "Movimientos", desc: "Entradas, salidas y ajustes" }
+            ] },
+            { id: "economico", titulo: "Econ\xF3mico", icono: "\u{1F9EE}", color: "var(--area-costes)", hojas: [
+              { destino: "analisis", icono: "\u{1F3AF}", nombre: "An\xE1lisis del proyecto", desc: "Margen, coste objetivo y la K que hay que sacar", vista: true },
+              { destino: "costeDirecto", icono: "\u{1F9EE}", nombre: "Costes directos", desc: "En cu\xE1nto acaba costando y qu\xE9 falta por cerrar", vista: true },
+              { destino: "indirectos", icono: "\u{1F6A7}", nombre: "Costes indirectos y provisionales", desc: "Casetas, alquileres, encargados\u2026 editable en la celda", vista: true },
+              { destino: "proyeccion", icono: "\u{1F52E}", nombre: "Proyecci\xF3n a fin de obra", desc: "En cu\xE1nto acaba si seguimos as\xED", vista: true },
+              { destino: "costsPlan", icono: "\u{1F4D2}", nombre: "Costs Plan", desc: "Por cap\xEDtulo: previsto, comprometido, gastado y a fin de obra; desv\xEDo, ahorro y cierre de mes", vista: true },
+              { destino: "certificacion", icono: "\u{1F4D1}", nombre: "Certificaciones", desc: "La obra al cliente y cada industrial: sus pedidos, sus libros y qu\xE9 queda por pagarle", vista: true },
+              { destino: "certSubcontratas", icono: "\u{1F50E}", nombre: "Revisi\xF3n de industriales", desc: "Antes de aprobarle el mes: excesos, precios contradictorios, equivalencias, extras por horas, descuentos y la proforma", vista: true },
+              { destino: "certificaciones", icono: "\u{1F4C4}", nombre: "Registro de certificaciones", desc: "Alta, edici\xF3n y PDF" },
+              { destino: "certificacionLineas", icono: "\u{1F4C3}", nombre: "L\xEDneas de certificaci\xF3n", desc: "El detalle de cada certificaci\xF3n" },
+              { destino: "certEquivalencias", icono: "\u{1F501}", nombre: "Equivalencias de c\xF3digos", desc: "Su c\xF3digo de industrial \u2192 nuestra partida" },
+              { destino: "certContradictorios", icono: "\u2696\uFE0F", nombre: "Precios contradictorios", desc: "Los precios distintos del contrato y lo decidido" },
+              { destino: "certExtras", icono: "\u{1F552}", nombre: "Extras por horas", desc: "Horas de los industriales fuera de contrato" },
+              { destino: "certDescuentos", icono: "\u2796", nombre: "Descuentos a industriales", desc: "Lo que se les deduce del mes" },
+              { destino: "medicionesConductos", icono: "\u{1F4D0}", nombre: "Mediciones de conductos", desc: "El registro de las hojas de m\xB2 de conductos" },
+              { destino: "provisionales", icono: "\u{1F5C3}\uFE0F", nombre: "Provisionales", desc: "Las l\xEDneas de indirectos y provisionales" },
+              { destino: "costsPlanCierres", icono: "\u{1F4D2}", nombre: "Cierres del Costs Plan", desc: "La foto de cada mes cerrado" }
+            ] },
+            { id: "commissioning", titulo: "Commissioning", icono: "\u2705", color: "var(--area-certificaciones)", hojas: [
+              { destino: "commissioning", icono: "\u2705", nombre: "Control de commissioning", desc: "La tabla de equipos: documentaci\xF3n, ensayos y env\xEDo a DF", vista: true },
+              { destino: "planificacionMes", icono: "\u{1F5D3}\uFE0F", nombre: "Planificaci\xF3n Cx", desc: "El listado de equipos y el mes: arrastra cada equipo a su d\xEDa con actividad, horas y qui\xE9n lo hace; PDF \xFAnico", vista: true },
+              { destino: "fichasCx", icono: "\u{1F52C}", nombre: "Fichas de puesta en marcha", desc: "La puerta \xFAnica de cada equipo: checklist, ficha PM con proyecto, fabricante y medido, y su dossier en PDF", vista: true },
+              { destino: "ensayos", icono: "\u{1F4A8}", nombre: "Ensayos \u2014 balanceo y estanqueidad", desc: "Las tablas para meter los datos: la hoja sale sola, con fotos y firma", vista: true },
+              { destino: "planoEquipos", icono: "\u{1F5FA}\uFE0F", nombre: "Plano de equipos", desc: "El plano de cada planta con los equipos de su color: rojo sin instalar, azul instalado, verde con el commissioning completo", vista: true },
+              { destino: "prepararCx", icono: "\u{1F4E5}", nombre: "Preparar commissioning", desc: "Lee la documentaci\xF3n de la obra y propone fichas, estanqueidad y balanceo: no se graba nada sin aceptarlo", vista: true },
+              /* Los equipos y sus modelos, una sola vez (antes también en Mantenimiento). */
+              { destino: "equipos", icono: "\u2699\uFE0F", nombre: "Equipos", desc: "Inventario de equipos de la obra: lo que se pone en marcha y luego se entrega para mantener" },
+              { destino: "modelosEquipo", icono: "\u{1F3F7}\uFE0F", nombre: "Modelos de equipo", desc: "Ficha t\xE9cnica, CE y manual por modelo; se heredan a sus equipos" },
+              { destino: "puntosControl", icono: "\u2611\uFE0F", nombre: "Puntos de control \u2014 l\xEDneas", desc: "Todas las l\xEDneas de checklist" },
+              { destino: "medicionesPM", icono: "\u{1F4CB}", nombre: "Mediciones de puesta en marcha", desc: "Lo que se mide en obra" },
+              { destino: "bocasMedidas", icono: "\u{1F4A8}", nombre: "Bocas medidas", desc: "Caudal por boca de cada medici\xF3n" },
+              { destino: "redesAgua", icono: "\u{1F4A7}", nombre: "Balanceo \u2014 redes de agua", desc: "Las redes de agua del balanceo: bomba y v\xE1lvulas de equilibrado" },
+              { destino: "planosEquipos", icono: "\u{1F5FA}\uFE0F", nombre: "Planos de equipos \u2014 registros", desc: "Un registro por planta con su plano" },
+              { destino: "sesionesPlanCx", icono: "\u{1F5D3}\uFE0F", nombre: "Planificaci\xF3n Cx \u2014 sesiones", desc: "Lo programado en el calendario, una sesi\xF3n por l\xEDnea" }
+            ] },
+            /* Las incidencias de los equipos, una sola vez: aquí. */
+            { id: "calidad", titulo: "Calidad", icono: "\u{1F4DD}", color: "var(--area-certificaciones)", hojas: [
+              { destino: "calidad", icono: "\u{1F4DD}", nombre: "Calidad en obra", desc: "NCR, listado de repasos e incidencias con foto y ubicaci\xF3n, como las levanta la ingenier\xEDa o la DF al recorrer la obra; filtros y salida a Excel y PDF", vista: true },
+              { destino: "ncr", icono: "\u26A0\uFE0F", nombre: "No conformidades", desc: "El registro NCR: plazos, industriales, equipos bloqueados, fichas e informe semanal", vista: true },
+              { destino: "ppiCuadro", icono: "\u2705", nombre: "PPI (puntos de inspecci\xF3n)", desc: "Cada instalaci\xF3n inspeccionada al 25, 50, 75 y 100 % con su checklist; un No OK abre la NCR. Cuadro de la obra, acta en PDF con firmas y Excel", vista: true },
+              { destino: "incidencias", icono: "\u{1F527}", nombre: "Incidencias y reparaciones", desc: "Las aver\xEDas de los equipos: contadores, planificaci\xF3n del mes con arrastre, horas por t\xE9cnico, costes y lo que se pasa al cliente", vista: true },
+              { destino: "seguimiento", icono: "\u{1F5FA}\uFE0F", nombre: "Mapa de seguimiento", desc: "Por instalaci\xF3n: doc. calidad, fabricante, comit\xE9, conductos y tuber\xEDas", vista: true },
+              { destino: "pruebas", icono: "\u{1F9EA}", nombre: "Pruebas", desc: "Presiones y fluidos de cada certificado" },
+              { destino: "ncrEquipos", icono: "\u{1F517}", nombre: "NCR \u2014 equipos afectados", desc: "Qu\xE9 equipos toca cada no conformidad" },
+              { destino: "ncrAplazamientos", icono: "\u23F1\uFE0F", nombre: "NCR \u2014 aplazamientos", desc: "Cada cambio de plazo de una NCR, con su motivo" },
+              { destino: "ppi", icono: "\u2705", nombre: "PPI \u2014 inspecciones", desc: "El registro de las inspecciones PPI" },
+              { destino: "ppiPuntos", icono: "\u2611\uFE0F", nombre: "PPI \u2014 puntos", desc: "Cada punto revisado, con su resultado y la NCR que abri\xF3" },
+              { destino: "instrumentos", icono: "\u{1F4DF}", nombre: "Instrumentos", desc: "Aparatos de medida y su calibraci\xF3n" }
+            ] },
+            { id: "planificacion", titulo: "Planificaci\xF3n y producci\xF3n", icono: "\u{1F4C5}", color: "var(--area-costes)", hojas: [
+              { destino: "plazo", icono: "\u23F3", nombre: "\xBFVamos bien de plazo?", desc: "Lo que deber\xEDa estar hecho contra lo que hay", vista: true },
+              { destino: "programa", icono: "\u{1F5C2}\uFE0F", nombre: "Programa de obra", desc: "Actividades con predecesoras, camino cr\xEDtico, l\xEDnea base y Gantt", vista: true },
+              { destino: "gantt", icono: "\u{1F4C5}", nombre: "Gantt de la obra", desc: "Planificaci\xF3n y producci\xF3n mes a mes", vista: true },
+              { destino: "planSubcontrata", icono: "\u{1F4E8}", nombre: "Plan por subcontrata", desc: "Gantt para mandar a cada subcontrata: operarios, partidas, fechas del proyecto e hitos que le afectan (PDF y Excel)", vista: true },
+              { destino: "avance", icono: "\u{1F3E2}", nombre: "Avance de obra", desc: "Qu\xE9 queda por planta y por familia", vista: true },
+              { destino: "agenda", icono: "\u{1F5D3}\uFE0F", nombre: "Agenda", desc: "Qu\xE9 vence hoy y qu\xE9 lleva retraso", vista: true },
+              { destino: "calendario", icono: "\u{1F477}", nombre: "Calendario de subcontratas", desc: "Previstos frente a presentes", vista: true },
+              { destino: "tareas", icono: "\u{1F4CB}", nombre: "Tareas", desc: "Qu\xE9 hay que hacer y qui\xE9n lo tiene" },
+              { destino: "actividades", icono: "\u{1F4C6}", nombre: "Programa \u2014 actividades", desc: "Las filas del programa de obra" },
+              { destino: "ganttVersiones", icono: "\u{1F5D3}\uFE0F", nombre: "Gantt \u2014 versiones", desc: "La versi\xF3n de cada perfil y cu\xE1l es la que se sigue: solo se consulta; se cambian en \xABPrograma de obra\xBB" },
+              { destino: "ganttElecciones", icono: "\u{1F4CC}", nombre: "Gantt \u2014 registro de \xABa seguir\xBB", desc: "Qui\xE9n eligi\xF3 cada Gantt a seguir, cu\xE1ndo, cu\xE1l era antes y por qu\xE9" },
+              { destino: "subcontratas", icono: "\u{1F3D7}\uFE0F", nombre: "Subcontratas", desc: "Qui\xE9n trabaja en la obra" },
+              { destino: "tarifasSubcontrata", icono: "\u23F1\uFE0F", nombre: "Tarifas por hora", desc: "El \u20AC/h de cada categor\xEDa de cada subcontrata: valora los extras por horas" },
+              { destino: "partesSubcontrata", icono: "\u{1F4C6}", nombre: "Partes diarios", desc: "Presencia diaria de subcontratas" },
+              { destino: "papelesSubcontrata", icono: "\u{1F4D1}", nombre: "Papeles de subcontrata", desc: "Seguro, REA, Hacienda, Seguridad Social, contrato\u2026 con su caducidad" }
+            ] },
+            { id: "entrega", titulo: "Entrega", icono: "\u{1F511}", color: "var(--area-certificaciones)", hojas: [
+              { destino: "actasObra", icono: "\u2705", nombre: "Actas y reservas", desc: "Recepciones, qu\xE9 qued\xF3 abierto y si las pruebas son v\xE1lidas", vista: true },
+              { destino: "documentacion", icono: "\u{1F5C2}\uFE0F", nombre: "Documentaci\xF3n de obra", desc: "Checklist de papeles: inicial, durante y final" },
+              { destino: "actas", icono: "\u{1F4C4}", nombre: "Registro de actas", desc: "Pruebas, replanteos, recepciones" },
+              { destino: "reservas", icono: "\u{1F4CC}", nombre: "Reservas de acta", desc: "Los puntos que quedaron abiertos" }
+            ] },
+            { id: "informes", titulo: "Informes", icono: "\u{1F5D2}\uFE0F", color: "var(--area-planificacion)", hojas: [
+              { destino: "informeSemanal", icono: "\u{1F4CA}", nombre: "Informe semanal", desc: "Las obras en curso, una fila cada una: commissioning, certificado, Costs Plan, industriales, mantenimiento y NCR", vista: true },
+              { destino: "cargaSubcontratas", icono: "\u{1F477}", nombre: "Carga de subcontratas", desc: "Cada industrial en todas las obras en curso: en cu\xE1ntas est\xE1, gente comprometida, prevista y real (esta semana y las 4 anteriores) y sus NCR abiertas", vista: true },
+              { destino: "semaforoSubcontratas", icono: "\u{1F6A6}", nombre: "Papeles de subcontratas", desc: "Sem\xE1foro por subcontrata y obra: verde al d\xEDa, \xE1mbar si algo caduca en 30 d\xEDas, rojo si falta o est\xE1 caducado un papel obligatorio", vista: true },
+              { destino: "partesSemanales", icono: "\u{1F5D2}\uFE0F", nombre: "Partes semanales emitidos", desc: "Qu\xE9 semanas se han mandado ya" }
+            ] },
+            { id: "normativa", titulo: "BOE y reglamentos", icono: "\u{1F4DC}", color: "var(--area-planificacion)", hojas: [] },
+            { id: "herramientas", titulo: "Herramientas", icono: "\u{1F501}", color: "var(--area-tecnico)", hojas: [
+              { destino: "bandejasObra", icono: "\u{1F4D0}", nombre: "Bandejas: ocupaci\xF3n y medici\xF3n", desc: "\xBFCabe lo que va dentro? Y cu\xE1ntos metros hay que comprar", vista: true },
+              { destino: "solar", icono: "\u2600\uFE0F", nombre: "Dise\xF1o de string fotovoltaico", desc: "Cu\xE1ntos m\xF3dulos en serie caben entre la Voc a fr\xEDo y la ventana de MPPT", vista: true },
+              { destino: "conversiones", icono: "\u{1F501}", nombre: "Tablas de conversi\xF3n", desc: "Circular a rectangular u oval, DN a pulgadas, y de un material a otro", vista: true },
+              { destino: "bandejas", icono: "\u{1FA9C}", nombre: "Bandejas de cable", desc: "Ancho, longitud y los cables que lleva cada una" },
+              { destino: "envolventes", icono: "\u{1F5C4}\uFE0F", nombre: "Envolventes de cuadro", desc: "Filas y m\xF3dulos de cada armario, para saber si el cuadro cabe" }
+            ] }
+          ] },
+          /* Un módulo por licencia (shared/modulos.js): el que la empresa no tiene contratado no sale (destinoVetado). */
+          { id: "modulos", titulo: "M\xF3dulos", secciones: [
+            /* Management (tanda 1, 11-nov): el panel del director, las horas y el reporte a dirección. */
+            { id: "management", titulo: "Management", icono: "\u{1F9ED}", color: "var(--area-contratacion)", hojas: [
+              { destino: "departamentos", icono: "\u{1F9ED}", nombre: "Departamentos", desc: "Resumen, desv\xEDos, equipo y saturaci\xF3n y horas dedicadas de cada departamento", vista: true },
+              { destino: "reporteDireccion", icono: "\u{1F4E8}", nombre: "Reporte a direcci\xF3n", desc: "Una p\xE1gina con lo que hay que saber: la empresa, los desv\xEDos, el equipo y las subcontratas; se copia para Excel o correo", vista: true },
+              { destino: "dedicaciones", icono: "\u23F1\uFE0F", nombre: "Horas dedicadas", desc: "Las horas que cada persona apunta, por departamento y obra" }
+            ] },
+            { id: "licitaciones", titulo: "Licitaciones", icono: "\u{1F4E3}", color: "var(--area-planificacion)", hojas: [
+              { destino: "licitaciones", icono: "\u{1F4E3}", nombre: "Licitaciones p\xFAblicas", desc: "Obras de instalaciones abiertas en tu comunidad, por provincia y fecha l\xEDmite", vista: true }
+            ] },
+            { id: "calculo", titulo: "C\xE1lculo", icono: "\u{1F321}\uFE0F", color: "var(--area-tecnico)", hojas: [
+              { destino: "calculosImportados", icono: "\u{1F4E5}", nombre: "C\xE1lculos de instalaciones", desc: "Lo que devuelve la app C\xE1lculo de Instalaciones: trazados y redes de la obra", vista: true },
+              { destino: "cargasTermicas", icono: "\u{1F321}\uFE0F", nombre: "Cargas t\xE9rmicas", desc: "Cu\xE1nto fr\xEDo y calor pide cada local, y de qu\xE9 se compone", vista: true },
+              { destino: "ventilacion", icono: "\u{1F6AA}", nombre: "Caudales de ventilaci\xF3n", desc: "Cu\xE1nto aire pide cada local, y por qu\xE9 regla", vista: true },
+              { destino: "conductos", icono: "\u{1F32C}\uFE0F", nombre: "C\xE1lculo de conductos", desc: "Dimensionado y p\xE9rdida de carga", vista: true },
+              { destino: "cargasElectricas", icono: "\u26A1", nombre: "Cargas el\xE9ctricas", desc: "Lo que consume cada equipo de toda la obra, para el estudio el\xE9ctrico", vista: true },
+              { destino: "planoCalculo", icono: "\u{1F4D0}", nombre: "C\xE1lculo sobre plano", desc: "Traza la instalaci\xF3n sobre el PDF y calcula al vuelo", vista: true },
+              { destino: "locales", icono: "\u{1F6AA}", nombre: "Locales a ventilar", desc: "Uso, superficie y ocupaci\xF3n de cada local" },
+              { destino: "tramosConducto", icono: "\u{1F4CF}", nombre: "Tramos de conducto", desc: "Alta de los tramos a calcular" }
+            ] },
+            { id: "legalizaciones", titulo: "Legalizaciones", icono: "\u{1F4DC}", color: "var(--area-certificaciones)", hojas: [
+              { destino: "legalizaciones", icono: "\u{1F4DC}", nombre: "Legalizaciones", desc: "Los modelos oficiales de cada disciplina (ELEC, RITE, gas, Bombers, ICT\u2026) rellenos con los datos de la obra, listos para firmar; y las horas que se ahorran. Jefe de obra, de producci\xF3n, de grupo y director del departamento", vista: true },
+              { destino: "entregasDF", icono: "\u{1F4E4}", nombre: "Entregas a la DF", desc: "La bandeja \xABPara la DF\xBB: se suelta con un clic, sube a su portal con su versi\xF3n y les llega un aviso; aqu\xED vuelve su respuesta", vista: true },
+              { destino: "destinatariosDF", icono: "\u2709\uFE0F", nombre: "Destinatarios de la DF", desc: "A qui\xE9n se env\xEDan las entregas a la direcci\xF3n facultativa" }
+            ] },
+            /* Reclamaciones al cliente (claim), gemela de Vidaire Obras: renderer/reclamacionesPantalla.js. */
+            { id: "reclamaciones", titulo: "Reclamaciones", icono: "\u2696\uFE0F", color: "var(--area-costes)", hojas: [
+              { destino: "reclamacionesCliente", icono: "\u2696\uFE0F", nombre: "Reclamaciones al cliente", desc: "El claim: apartados con sus hechos, la cl\xE1usula que los ampara, el importe y las pruebas; expediente en PDF", vista: true },
+              { destino: "reclamaciones", icono: "\u2696\uFE0F", nombre: "Reclamaciones", desc: "Las reclamaciones de la obra, en bruto" },
+              { destino: "reclamacionApartados", icono: "\u{1F5C2}\uFE0F", nombre: "Apartados de reclamaci\xF3n", desc: "Los apartados de cada reclamaci\xF3n" },
+              { destino: "reclamacionHechos", icono: "\u{1F4CC}", nombre: "Hechos de reclamaci\xF3n", desc: "Cada hecho con su m\xE9todo de c\xE1lculo" },
+              { destino: "reclamacionPruebas", icono: "\u{1F4CE}", nombre: "Pruebas de reclamaci\xF3n", desc: "Correos, fotos y documentos de cada hecho" },
+              { destino: "reclamacionTarifas", icono: "\u{1F4B6}", nombre: "Tarifas de reclamaci\xF3n", desc: "El \u20AC/h de cada categor\xEDa" }
+            ] },
+            { id: "bms", titulo: "BMS", icono: "\u{1F5A7}", color: "var(--area-certificaciones)", hojas: [
+              { destino: "puntosBmsPrueba", icono: "\u{1F5A7}", nombre: "Puntos BMS", desc: "La prueba punto a punto del BMS, por TAG: cada se\xF1al en campo y en el SCADA", vista: true },
+              { destino: "puntosBms", icono: "\u{1F5A7}", nombre: "Puntos BMS \u2014 l\xEDneas", desc: "Cada se\xF1al del BMS, fila a fila" }
+            ] },
+            { id: "mantenimiento", titulo: "Mantenimiento", icono: "\u{1F6E0}\uFE0F", color: "var(--area-tecnico)", hojas: [
+              { destino: "mantenimiento", icono: "\u{1F6E0}\uFE0F", nombre: "Mantenimiento", desc: "Plan preventivo, F-gas, RITE, legionela, inspecciones y entrega", vista: true },
+              { destino: "ordenesMant", icono: "\u{1F9F0}", nombre: "\xD3rdenes de trabajo", desc: "Las \xF3rdenes del preventivo y del F-gas, repartidas solas a los operarios con su carn\xE9; mis tareas, cierre e informe del mes", vista: true },
+              { destino: "planMant", icono: "\u{1F4C5}", nombre: "Calendario e informes", desc: "La propuesta de visitas del preventivo y del F-gas, para mover y confirmar; PDF del mes, libro RITE y registro F-gas", vista: true },
+              { destino: "registrosMant", icono: "\u{1F6E0}\uFE0F", nombre: "Registro de mantenimiento", desc: "Lo hecho: preventivos, controles de fugas, recargas, correctivos" },
+              { destino: "inspecciones", icono: "\u{1F50E}", nombre: "Inspecciones peri\xF3dicas", desc: "OCA: RITE, baja tensi\xF3n, incendios, legionela\u2026" }
+            ] }
+          ] },
+          { id: "administracion", titulo: "Administraci\xF3n", secciones: [
+            { id: "usuarios", titulo: "Usuarios y accesos", icono: "\u{1F511}", color: "var(--area-configuracion)", hojas: [
+              { destino: "personasRoles", icono: "\u{1F511}", nombre: "Personas y roles", desc: "Qu\xE9 rol tiene cada cuenta, qu\xE9 obras ve y si ve el dinero; asignar obras a mano", vista: true, soloRoles: ["admin"] },
+              { destino: "trazabilidad", icono: "\u{1F553}", nombre: "Auditor\xEDa", desc: "Qui\xE9n hizo qu\xE9 y cu\xE1ndo: filtros, Excel/PDF y comprobaci\xF3n de la cadena", vista: true },
+              { destino: "empresas", icono: "\u{1F3E2}", nombre: "Empresas", desc: "Datos, logo, colores y condiciones" },
+              { destino: "licencias", icono: "\u{1F9FE}", nombre: "Licencias", desc: "Qu\xE9 m\xF3dulos tiene la empresa, qu\xE9 incluye cada uno (tambi\xE9n en el m\xF3vil); apagar y encender lo contratado", vista: true, soloRoles: ["admin"] }
+            ] },
+            { id: "plantilla", titulo: "Plantilla", icono: "\u{1F334}", color: "var(--area-configuracion)", hojas: [
+              { destino: "calendarioPersonal", icono: "\u{1F334}", nombre: "Calendario de personal", desc: "Vacaciones, bajas y qui\xE9n queda en obra", vista: true },
+              { destino: "vacaciones", icono: "\u{1F3D6}\uFE0F", nombre: "Saldo de vacaciones", desc: "D\xEDas de derecho, cogidos y pendientes", vista: true },
+              { destino: "personal", icono: "\u{1F464}", nombre: "Personal", desc: "Propio y de subcontrata" },
+              { destino: "ausencias", icono: "\u{1F334}", nombre: "Ausencias", desc: "Vacaciones, bajas y permisos" },
+              { destino: "festivos", icono: "\u{1F38C}", nombre: "Festivos", desc: "Calendario laboral de la empresa" }
+            ] },
+            { id: "datos", titulo: "Datos y copias", icono: "\u2601\uFE0F", color: "var(--area-configuracion)", hojas: [
+              { destino: "nube", icono: "\u2601\uFE0F", nombre: "Nube de Vidaire", desc: "La misma obra en el ordenador, el iPad y la web", vista: true },
+              { destino: "copias", icono: "\u{1F4BE}", nombre: "Copias de seguridad", desc: "Toda la obra vive en un archivo", vista: true }
+            ] },
+            /* 15-nov (JC): las presentaciones de Vidaire, solo el administrador (shared/presentaciones.js). */
+            { id: "presentaciones", titulo: "Presentaciones", icono: "\u25B6", color: "var(--area-configuracion)", hojas: [
+              { destino: "presentaciones", icono: "\u25B6", nombre: "Presentaciones", desc: "Las presentaciones de Vidaire, a pantalla completa", vista: true, soloRoles: ["admin"] }
+            ] }
+          ] }
+        ];
+        const SUELTAS = [
+          { destino: "inicio", icono: "\u{1F3E0}", nombre: "Inicio", vista: true },
+          { destino: "panel", icono: "\u{1F4C8}", nombre: "Resumen de la obra", desc: "Un vistazo a todo: econom\xEDa, compras, certificaci\xF3n y puesta en marcha", vista: true },
+          { destino: "campo", icono: "\u{1F4CB}", nombre: "En obra", desc: "Equipo a equipo con el iPad: ficha PM, checklists, balanceo, estanqueidad y NCR con fotos, con el TAG siempre arriba", vista: true },
+          { destino: "validacion", icono: "\u{1FA7A}", nombre: "Validaci\xF3n", vista: true, final: true },
+          { destino: "cuenta", icono: "\u{1F464}", nombre: "Mi cuenta", desc: "Contrase\xF1a, sesi\xF3n y baja", vista: true, final: true }
+        ];
+        const SOLO_DESDE_OTRA = ["hojasPM", "puestaEnMarcha", "controlPuntos"];
+        const SECCIONES_POR_ROL = (() => {
+          if (typeof module === "undefined" || !module.exports || typeof __require !== "function") return {};
+          const R = require_roles();
+          const fuera = {};
+          for (const c of R.cuentasGestor()) {
+            const s = R.seccionesGestor(c);
+            if (s) fuera[c] = s;
+          }
+          return fuera;
+        })();
+        function areas() {
+          const fuera = [];
+          for (const g of ARBOL_GESTOR) {
+            for (const s of g.secciones) {
+              fuera.push({
+                id: s.id,
+                // Un grupo de una sola sección sale con el nombre del grupo (Empresa, Normativa…).
+                titulo: g.secciones.length === 1 ? g.titulo : s.titulo,
+                grupo: g.id,
+                grupoTitulo: g.titulo,
+                solo: g.secciones.length === 1,
+                icono: s.icono,
+                color: s.color,
+                modulos: s.hojas.map((h) => ({ ...h, ...h.soloRoles ? { soloRoles: [...h.soloRoles] } : {} }))
+              });
+            }
+          }
+          return fuera;
+        }
+        function seccionesDelRol(rol) {
+          const lista = rol && SECCIONES_POR_ROL[rol];
+          return lista ? new Set(lista) : null;
+        }
+        function hojasDelArbol() {
+          return ARBOL_GESTOR.flatMap((g) => g.secciones.flatMap((s) => s.hojas.map((h) => ({ ...h, grupo: g.id, seccion: s.id }))));
+        }
+        function rutaHasta(destino) {
+          const h = hojasDelArbol().find((x) => x.destino === destino);
+          return h ? [h.grupo, h.seccion] : [];
+        }
+        const API = { MAX_HOJAS, ARBOL_GESTOR, SUELTAS, SOLO_DESDE_OTRA, SECCIONES_POR_ROL, areas, seccionesDelRol, hojasDelArbol, rutaHasta };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.BARRA_LATERAL_GESTOR = API;
+      })();
+    }
+  });
+
   // shared/accesos.js
   var require_accesos = __commonJS({
     "shared/accesos.js"(exports, module) {
@@ -88759,26 +89207,53 @@ ${linea}` : linea;
       var DESTINOS_MANTENIMIENTO = ["mantenimiento", "registrosMant", "inspecciones", "ordenesMant", "planMant"];
       var sinMantenimiento = (p) => p.mantenimiento === false;
       Object.assign(PERFILES, require_rolesExternos().PERFILES_EXTERNOS);
-      var ROLES = Object.keys(PERFILES);
-      var ROL_MOTOR_OBRA = Object.freeze({
-        admin: "administrador",
-        director_departamento: "jefeDepartamento",
-        jefe_grupo: "jefeGrupo",
-        jefe_obra: "jefeObra",
-        jefe_produccion: "jefeProduccion",
-        encargado: "encargadoObra",
-        encargado_mantenimiento: "encargadoMantenimiento",
-        operario_mantenimiento: "operarioMantenimiento",
-        auditor: null,
-        usuario: "jefeObra",
-        contract_support: "contractSupport",
-        /* Los de una sola obra (rolesExternos) no entran en el motor: su alcance
-           es el del Gestor (portal externo), no el de un rol de obra. */
-        mantenedora: null,
-        propiedad: null,
-        direccion_facultativa: null,
-        cliente: null
-      });
+      var R = require_roles();
+      var VERBOS_DE_ESCRITURA = ["crear", "editar", "borrar"];
+      var SECCIONES_SIEMPRE = /* @__PURE__ */ new Set(["empresa", "proyecto"]);
+      var ENTIDADES_SIEMPRE = /* @__PURE__ */ new Set(["empresas", "proyectos"]);
+      var barra = () => require_barraLateral();
+      function escribeDeRol(id, secciones) {
+        const escribe = (mods) => (mods || []).some((m) => !m.startsWith("@") && VERBOS_DE_ESCRITURA.some((v) => R.puede(id, m, v)));
+        return [...new Set(barra().hojasDelArbol().filter((h) => secciones.includes(h.seccion) && escribe(R.DESTINOS_GESTOR_PERMISOS[h.destino] || R.SECCIONES_GESTOR_PERMISOS[h.seccion])).map((h) => h.destino))];
+      }
+      function perfilDeRolObra(r) {
+        const id = r.id;
+        const dinero = !R.campoVetado(id, "precioCoste");
+        const ve = (m) => R.puede(id, m, "ver");
+        const alcance = r.alcance === "todo" || r.alcance === "departamento" ? "todas" : "suyas";
+        const secciones = R.seccionesGestor(id);
+        let inicio = "inicio";
+        if (r.departamento === "mantenimiento") inicio = "ordenesMant";
+        else if (!dinero && R.puede(id, "avanceObra", "crear")) inicio = "campo";
+        else if (alcance === "todas" && dinero && ve("obras")) inicio = "cartera";
+        return {
+          nombre: r.nombre,
+          departamento: r.departamento,
+          alcance,
+          dinero,
+          inicio,
+          ...ve("mantenimiento") || ve("ordenesMant") ? {} : { mantenimiento: false },
+          secciones,
+          escribe: escribeDeRol(id, secciones),
+          externo: false,
+          derivado: true,
+          explica: r.descripcion || r.nombre
+        };
+      }
+      for (const cuenta of R.cuentasGestor()) {
+        if (!PERFILES[cuenta] && R.rolDeCuenta(cuenta) === cuenta) {
+          Object.defineProperty(PERFILES, cuenta, { enumerable: true, configurable: true, writable: true, value: perfilDeRolObra(R.rol(cuenta)) });
+        }
+      }
+      var ROLES = R.cuentasGestor().filter((c) => PERFILES[c]);
+      var ROL_MOTOR_OBRA = Object.freeze(Object.fromEntries(ROLES.map((c) => [c, R.rolDeCuenta(c)])));
+      function entidadFueraDeSecciones(p, nombre) {
+        if (!p || !p.derivado || !Array.isArray(p.secciones)) return false;
+        if (ENTIDADES_SIEMPRE.has(nombre)) return false;
+        const [, seccion] = barra().rutaHasta(nombre);
+        if (!seccion || SECCIONES_SIEMPRE.has(seccion)) return false;
+        return !p.secciones.includes(seccion);
+      }
       function rolMotorObra(rol) {
         if (Object.prototype.hasOwnProperty.call(ROL_MOTOR_OBRA, rol)) return ROL_MOTOR_OBRA[rol];
         return typeof rol === "string" && /^[a-z]+[A-Z]?[a-zA-Z]*$/.test(rol) ? rol : null;
@@ -88967,6 +89442,9 @@ ${linea}` : linea;
         if (!p.dinero && p.venta) DESTINOS_VENTA.forEach((d) => fuera.delete(d));
         if (p.alcance !== "todas") DESTINOS_TODAS.forEach((d) => fuera.add(d));
         if (sinMantenimiento(p)) DESTINOS_MANTENIMIENTO.forEach((d) => fuera.add(d));
+        if (p.derivado && Array.isArray(p.secciones)) {
+          for (const h of barra().hojasDelArbol()) if (!SECCIONES_SIEMPRE.has(h.seccion) && !p.secciones.includes(h.seccion)) fuera.add(h.destino);
+        }
         return [...fuera];
       }
       function pantallaDeInicio(p, existe = () => true) {
@@ -88982,6 +89460,8 @@ ${linea}` : linea;
         ROLES,
         ROL_MOTOR_OBRA,
         rolMotorObra,
+        entidadFueraDeSecciones,
+        SECCIONES_SIEMPRE,
         perfil,
         listaPerfiles,
         ENTIDADES_DINERO,
@@ -90979,7 +91459,7 @@ ${linea}` : linea;
     "package.json"(exports, module) {
       module.exports = {
         name: "gestor-de-obras",
-        version: "0.29.0",
+        version: "0.31.2",
         description: "Vidaire Gestor \u2014 app de escritorio para Windows y Mac",
         main: "electron/main.js",
         license: "UNLICENSED",
@@ -95081,6 +95561,9 @@ ${fallos.join("\r\n")}\r
         const ABIERTAS = ["abierta", "enCurso", "terminada"];
         const NOMBRE_ESTADO = { abierta: "Abierta", enCurso: "En curso", terminada: "Por revisar" };
         const ORDEN_PRIORIDAD = { alta: 0, media: 1, baja: 2 };
+        const COLOR_RESUELTA = "#1f63c6";
+        const CLAVE_RESUELTA = "incResuelta";
+        const NOMBRE_RESUELTA = "Resuelta, faltan datos";
         const conjuntosCx = () => {
           try {
             if (typeof __require === "function") return require_conjuntos();
@@ -95098,8 +95581,17 @@ ${fallos.join("\r\n")}\r
           }
         };
         const estaAbierta = (i) => Boolean(i && !i.borrado && ABIERTAS.includes(i.estado));
+        const estaResuelta = (i) => Boolean(i && !i.borrado && i.estado === "cerrada");
+        const dia = (v) => {
+          const t = String(v || "").trim().slice(0, 10);
+          return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : null;
+        };
+        const diaCierre = (i) => i ? dia(i.fechaCierre) || dia(i.fechaTerminada) : null;
         const breve = (i) => ({ id: i.id, codigo: i.codigo || "", titulo: i.titulo || "", estado: i.estado, estadoNombre: NOMBRE_ESTADO[i.estado] || i.estado, prioridad: i.prioridad || null });
         function porEquipo(incidencias = [], equipos = null) {
+          return repartir(incidencias, equipos, estaAbierta, breve);
+        }
+        function repartir(incidencias, equipos, vale, resumen) {
           const mapa = /* @__PURE__ */ new Map();
           const poner = (id, x) => {
             if (!mapa.has(id)) mapa.set(id, []);
@@ -95107,9 +95599,9 @@ ${fallos.join("\r\n")}\r
           };
           const propias = [];
           for (const i of incidencias || []) {
-            if (!estaAbierta(i)) continue;
+            if (!vale(i)) continue;
             for (const id of new Set([i.equipoId, ...leerLista(i.equiposIds)].filter(Boolean))) {
-              poner(id, breve(i));
+              poner(id, resumen(i));
               propias.push([id, i]);
             }
           }
@@ -95125,33 +95617,132 @@ ${fallos.join("\r\n")}\r
               if (!unidades) continue;
               const origen = unidades.find((u) => u.id === id);
               const enUnidad = { id, tag: origen.tag || "", exterior: Boolean(CJ.esExterior(origen)) };
-              for (const u of unidades) if (u.id !== id) poner(u.id, { ...breve(i), enUnidad });
+              for (const u of unidades) if (u.id !== id) poner(u.id, { ...resumen(i), enUnidad });
             }
           }
           const peso = (x) => x.prioridad in ORDEN_PRIORIDAD ? ORDEN_PRIORIDAD[x.prioridad] : 1;
           for (const l of mapa.values()) l.sort((a, b) => peso(a) - peso(b) || String(a.codigo).localeCompare(String(b.codigo), "es", { numeric: true }));
           return mapa;
         }
+        function resueltasPorEquipo(incidencias = [], equipos = null, { tomaDe = () => null, validadoTras = () => null } = {}) {
+          const m = repartir(incidencias, equipos, estaResuelta, (i) => ({ ...breve(i), cierre: diaCierre(i) }));
+          const salida = /* @__PURE__ */ new Map();
+          for (const [id, l] of m) {
+            const toma = dia(tomaDe(id));
+            const validada = validadoTras(id);
+            const faltan = l.filter((x) => !(toma && x.cierre && toma >= x.cierre) && !(validada && validada === x.codigo));
+            if (faltan.length) salida.set(id, faltan);
+          }
+          return salida;
+        }
         function tiene(x) {
           if (typeof x === "number") return x > 0;
           if (Array.isArray(x)) return x.length > 0;
           return Boolean(x && ((Number(x.inc) || 0) > 0 || Array.isArray(x.incidencias) && x.incidencias.length > 0));
         }
-        function colorDe(estado, incidencias) {
+        function tieneResuelta(x) {
+          if (typeof x === "number") return x > 0;
+          if (Array.isArray(x)) return x.length > 0;
+          return Boolean(x && ((Number(x.incRes) || 0) > 0 || Array.isArray(x.resueltas) && x.resueltas.length > 0));
+        }
+        const pendienteDatos = (x, resueltas = x) => !tiene(x) && tieneResuelta(resueltas);
+        function colorDe(estado, incidencias, resueltas = incidencias) {
           const inc = tiene(incidencias);
-          return { clave: inc ? CLAVE : estado, estado, incidencia: inc, distintivo: inc ? DISTINTIVO : "" };
+          const res = !inc && tieneResuelta(resueltas);
+          return { clave: inc ? CLAVE : res ? CLAVE_RESUELTA : estado, estado, incidencia: inc, resuelta: res, distintivo: inc || res ? DISTINTIVO : "" };
         }
         const recuento = (lista = []) => (lista || []).filter(tiene).length;
         const filtrar = (lista = []) => (lista || []).filter(tiene);
+        const recuentoResueltas = (lista = []) => (lista || []).filter((x) => pendienteDatos(x)).length;
+        const filtrarResueltas = (lista = []) => (lista || []).filter((x) => pendienteDatos(x));
         const dondeEsta = (x) => x && x.enUnidad ? `En la ${x.enUnidad.exterior ? "exterior" : "interior"} ${x.enUnidad.tag}`.trim() : "";
         const frase = (n) => `${n} ${n === 1 ? "incidencia abierta" : "incidencias abiertas"}`;
-        function css(sel = ".marca-boca.bq-incidencia") {
-          return `${sel}{color:${COLOR};--bq:${COLOR}}${sel} .cuerpo{fill:${COLOR};fill-opacity:${RELLENO}}.bq-punto-incidencia{background:${COLOR}}`;
+        const fraseResuelta = (n) => `${n} ${n === 1 ? "incidencia resuelta" : "incidencias resueltas"}, faltan datos`;
+        function css(sel = ".marca-boca.bq-incidencia", selRes = ".marca-boca.bq-incResuelta") {
+          return `:root{--incidencia:${COLOR};--incidenciaTexto:${COLOR_TEXTO};--incResuelta:${COLOR_RESUELTA}}${selRes}{color:${COLOR_RESUELTA};--bq:${COLOR_RESUELTA}}${selRes} .cuerpo{fill:${COLOR_RESUELTA};fill-opacity:${RELLENO}}.bq-punto-incResuelta{background:${COLOR_RESUELTA}}${sel}{color:${COLOR};--bq:${COLOR}}${sel} .cuerpo{fill:${COLOR};fill-opacity:${RELLENO}}.bq-punto-incidencia{background:${COLOR}}`;
         }
-        const API = { COLOR, COLOR_TEXTO, RELLENO, DISTINTIVO, CLAVE, NOMBRE, ABIERTAS, NOMBRE_ESTADO, estaAbierta, porEquipo, tiene, colorDe, recuento, filtrar, frase, dondeEsta, css };
+        const API = {
+          COLOR,
+          COLOR_TEXTO,
+          RELLENO,
+          DISTINTIVO,
+          CLAVE,
+          NOMBRE,
+          ABIERTAS,
+          NOMBRE_ESTADO,
+          COLOR_RESUELTA,
+          CLAVE_RESUELTA,
+          NOMBRE_RESUELTA,
+          estaAbierta,
+          estaResuelta,
+          diaCierre,
+          porEquipo,
+          resueltasPorEquipo,
+          tiene,
+          tieneResuelta,
+          pendienteDatos,
+          colorDe,
+          recuento,
+          filtrar,
+          recuentoResueltas,
+          filtrarResueltas,
+          frase,
+          fraseResuelta,
+          dondeEsta,
+          css
+        };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.INCIDENCIA_PLANO = API;
       })();
+    }
+  });
+
+  // electron/obra/data/incidenciaResuelta.js
+  var require_incidenciaResuelta = __commonJS({
+    "electron/obra/data/incidenciaResuelta.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var INC = require_incidenciaPlano();
+      var llano = (v) => String(v ?? "").trim();
+      var hecha = (estado) => estado === "completa" || estado === "firmada";
+      function ultimasTomas(repo, ses, obraId) {
+        let filas = [];
+        try {
+          filas = repo.listar("fichasPM", ses, { condicion: "obraId = ? AND clase = 'fichaPM'", params: [obraId] });
+        } catch {
+          filas = [];
+        }
+        if (!filas.length) return /* @__PURE__ */ new Map();
+        let dias = /* @__PURE__ */ new Map();
+        try {
+          dias = require_fichasPM().diasDeToma(repo, filas);
+        } catch {
+          dias = /* @__PURE__ */ new Map();
+        }
+        const out = /* @__PURE__ */ new Map();
+        for (const f of filas) {
+          if (!hecha(f.estado)) continue;
+          const m = /^equipo:(.+)$/.exec(llano(f.clave));
+          const eq = llano(f.equipoId) || m && m[1];
+          const d = dias.get(f.id);
+          if (!eq || !d) continue;
+          if (!out.has(eq) || out.get(eq) < d) out.set(eq, d);
+        }
+        return out;
+      }
+      function resueltasDeObra(repo, ses, obraId, incidencias, equipos) {
+        if (!(incidencias || []).some(INC.estaResuelta)) return /* @__PURE__ */ new Map();
+        const tomas = ultimasTomas(repo, ses, obraId);
+        let validado = /* @__PURE__ */ new Map();
+        try {
+          validado = new Map(repo.db.prepare("SELECT id, revalidadoTras FROM equiposObra WHERE obraId = ? AND revalidadoTras IS NOT NULL").all(obraId).map((x) => [x.id, x.revalidadoTras]));
+        } catch {
+          validado = /* @__PURE__ */ new Map();
+        }
+        return INC.resueltasPorEquipo(incidencias, equipos, { tomaDe: (id) => tomas.get(id) || null, validadoTras: (id) => validado.get(id) || null });
+      }
+      module.exports = { ultimasTomas, resueltasDeObra };
     }
   });
 
@@ -97711,12 +98302,23 @@ ${fallos.join("\r\n")}\r
         } catch {
           equipos = [];
         }
-        let incDe = /* @__PURE__ */ new Map();
+        let incDe = /* @__PURE__ */ new Map(), resDe = /* @__PURE__ */ new Map();
         if (puede(ses.rol, "incidencias", "ver")) {
+          let regIncs = [];
           try {
-            incDe = INC.porEquipo(repo.listar("incidencias", ses, { condicion: "obraId = ?", params: [obraId] }), equipos);
+            regIncs = repo.listar("incidencias", ses, { condicion: "obraId = ?", params: [obraId] });
+          } catch {
+            regIncs = [];
+          }
+          try {
+            incDe = INC.porEquipo(regIncs, equipos);
           } catch {
             incDe = /* @__PURE__ */ new Map();
+          }
+          try {
+            resDe = require_incidenciaResuelta().resueltasDeObra(repo, ses, obraId, regIncs, equipos);
+          } catch {
+            resDe = /* @__PURE__ */ new Map();
           }
         }
         const casados = [], probables = [];
@@ -97782,12 +98384,14 @@ ${fallos.join("\r\n")}\r
             const estado = eq ? P.estadoDe(eq) : p.fuente || P.codigoPropio(m.c, niveles) ? "sinFicha" : "soloModelo";
             if (estado !== "soloModelo") tipos[m.k] = (tipos[m.k] || 0) + 1;
             const inc = eq ? (incDe.get(eq.id) || []).length : 0;
-            return { ...m, estado, ...eq ? { tag: eq.tag } : {}, ...inc ? { inc } : {} };
+            const incRes = eq && !inc ? (resDe.get(eq.id) || []).length : 0;
+            return { ...m, estado, ...eq ? { tag: eq.tag } : {}, ...inc ? { inc } : {}, ...incRes ? { incRes } : {} };
           });
           const estados = P.recuento(p.marcas);
           p.estados = estados;
           p.tipos = tipos;
           p.conIncidencia = INC.recuento(p.marcas);
+          p.incResuelta = INC.recuentoResueltas(p.marcas);
           p.svg = r.svg;
           p.salasIfc = { firmes: r.firmes, porConfirmar: r.porConfirmar, sinCodigo: r.sinCodigo };
         }
@@ -97795,7 +98399,7 @@ ${fallos.join("\r\n")}\r
         if (porPlano) cuenta.porPlano = porPlano;
         if (porTag) cuenta.porTag = porTag;
         if (enFranja) cuenta.enFranja = enFranja;
-        return { ok: true, planos, cuenta, equipos, porId, incDe };
+        return { ok: true, planos, cuenta, equipos, porId, incDe, resDe };
       }
       var sumar = (a, b) => {
         for (const [k, v] of Object.entries(b)) a[k] = (a[k] || 0) + v;
@@ -97804,11 +98408,12 @@ ${fallos.join("\r\n")}\r
       function listar(repo, ses, obraId) {
         const r = calcular(repo, ses, obraId, { porSala: true });
         if (!r.ok) return r;
-        const total = { equipos: 0, estados: {}, tipos: {}, conIncidencia: 0 };
+        const total = { equipos: 0, estados: {}, tipos: {}, conIncidencia: 0, incResuelta: 0 };
         const planos = r.planos.map(({ svg: _s, mat: _m, marcas, ...p }) => {
           const equipos = marcas.length - (p.estados.soloModelo || 0);
           total.equipos += equipos;
           total.conIncidencia += p.conIncidencia || 0;
+          total.incResuelta += p.incResuelta || 0;
           sumar(total.estados, p.estados);
           sumar(total.tipos, p.tipos);
           return { ...p, equipos };
@@ -97820,7 +98425,7 @@ ${fallos.join("\r\n")}\r
         if (!r.ok) return r;
         const p = r.planos.find((x) => x.id === id);
         if (!p || !esSvgSeguro(p.svg)) return { ok: false, error: "No se encuentra ese plano." };
-        const marcas = p.marcas.map((m) => m.e && r.porId.has(m.e) ? { ...m, ficha: P.fichaDe(r.porId.get(m.e), r.equipos), ...m.inc ? { incidencias: r.incDe.get(m.e) || [] } : {} } : m);
+        const marcas = p.marcas.map((m) => m.e && r.porId.has(m.e) ? { ...m, ficha: P.fichaDe(r.porId.get(m.e), r.equipos), ...m.inc ? { incidencias: r.incDe.get(m.e) || [] } : {}, ...m.incRes ? { resueltas: r.resDe.get(m.e) || [] } : {} } : m);
         const matPos = {};
         if (materiales !== null) {
           let mats = [];
@@ -99511,7 +100116,7 @@ ${fallos.join("\r\n")}\r
           return { ...v, entregaDF, bloques: [EE.bloqueFicha(albaranesDe.get(f.id), compraConConjunto(f.id)), balanceoDe(f.id), ...VE.bloquesFicha(v)].filter(Boolean) };
         };
         const INC = require_incidenciaPlano();
-        let incDe = /* @__PURE__ */ new Map();
+        let incDe = /* @__PURE__ */ new Map(), resDe = /* @__PURE__ */ new Map();
         if (puede(ses.rol, "incidencias", "ver")) {
           let unidades = [];
           try {
@@ -99519,14 +100124,25 @@ ${fallos.join("\r\n")}\r
           } catch {
             unidades = [];
           }
+          let regIncs = [];
           try {
-            incDe = INC.porEquipo(repo.listar("incidencias", ses, { condicion: "obraId = ?", params: [obraId] }), unidades);
+            regIncs = repo.listar("incidencias", ses, { condicion: "obraId = ?", params: [obraId] });
+          } catch {
+            regIncs = [];
+          }
+          try {
+            incDe = INC.porEquipo(regIncs, unidades);
           } catch {
             incDe = /* @__PURE__ */ new Map();
           }
+          try {
+            resDe = require_incidenciaResuelta().resueltasDeObra(repo, ses, obraId, regIncs, unidades);
+          } catch {
+            resDe = /* @__PURE__ */ new Map();
+          }
         }
         const datosDe = (f, e, entera = false) => {
-          const base = { tipo: e.tipo, icono: e.icono, miembros: e.miembros, marca: e.marca || null, modelo: e.modelo || null, puedeEditar, incidencias: incDe.get(f.id) };
+          const base = { tipo: e.tipo, icono: e.icono, miembros: e.miembros, marca: e.marca || null, modelo: e.modelo || null, puedeEditar, incidencias: incDe.get(f.id), resueltas: resDe.get(f.id) };
           if (!entera && opc.ligero && opc.soloFicha !== f.id) return base;
           return { ...base, documentos: papelesDe(f.id), acciones: botones(e), vida: vidaDe(f) };
         };
@@ -99616,7 +100232,7 @@ ${fallos.join("\r\n")}\r
               equipos.push({ id: f.id, tag: f.tag, familia: f.familia || null, papel: e.papel, conjunto: e.conjunto, color: e.color, bloque: bloqueDe(f, e), falta: e.falta, sala, salaFuente: fuente, ...datosDe(f, e), cert: certDe.get(f.id) || null, x: m.x, y: m.y, mano: Boolean(m.mano), ...simboloDe(m) });
             }
           }
-          const cuentas = { verde: 0, azul: 0, rojo: 0, sinSala: 0, enPlano: 0, sinUbicar: 0, revisar: 0, bloques: CB.recuentoBloques(equipos), conIncidencia: INC.recuento(equipos) };
+          const cuentas = { verde: 0, azul: 0, rojo: 0, sinSala: 0, enPlano: 0, sinUbicar: 0, revisar: 0, bloques: CB.recuentoBloques(equipos), conIncidencia: INC.recuento(equipos), incResuelta: INC.recuentoResueltas(equipos) };
           for (const q of equipos) {
             cuentas[q.color] += 1;
             if (!q.sala) cuentas.sinSala += 1;
@@ -119502,6 +120118,7 @@ ${reglas}`;
           ["Administraci\xF3n", "Administration", "Administraci\xF3", "Administra\xE7\xE3o", "Verwaltung", "Administration"],
           ["Usuarios y accesos", "Users and access", "Usuaris i accessos", "Utilizadores e acessos", "Benutzer und Zug\xE4nge", "Utilisateurs et acc\xE8s"],
           ["\xDAltimos accesos", "Latest sign-ins", "\xDAltims accessos", "\xDAltimos acessos", "Letzte Anmeldungen", "Derniers acc\xE8s"],
+          ["Presentaciones", "Presentations", "Presentacions", "Apresenta\xE7\xF5es", "Pr\xE4sentationen", "Pr\xE9sentations"],
           ["Plantilla", "Staff", "Plantilla", "Quadro de pessoal", "Belegschaft", "Effectif"],
           ["Personas y accesos", "People and access", "Persones i accessos", "Pessoas e acessos", "Personen und Zug\xE4nge", "Personnes et acc\xE8s"],
           ["Consulta", "Reference", "Consulta", "Consulta", "Nachschlagen", "Consultation"],
@@ -131747,7 +132364,7 @@ ${reglas}`;
         };
       }
       var r2 = (n) => Math.round(n * 100) / 100;
-      var ROLES_LEGALIZAN = ["jefe_obra", "jefe_produccion", "jefe_grupo", "director_departamento"];
+      var ROLES_LEGALIZAN = require_roles().cuentasQuePueden("legalizaciones", "ver");
       module.exports = {
         DISCIPLINAS,
         MODELOS,
@@ -164355,7 +164972,7 @@ Estado: ${ESTADO}`);
       var CARPETA_MODELOS = path.join("/app/electron/obra/data", "..", "..", "pdf", "modelos-legalizacion");
       var URL_MODELOS_WEB = "renderer/modelos-legalizacion/";
       var EMPRESA = { nombre: "", cif: "", direccion: "", telefono: "", email: "", firmante: "" };
-      var ROLES = ["jefeObra", "jefeProduccion", "jefeGrupo", "jefeDepartamento", "jefeProyectos"];
+      var ROLES = roles.ROLES.map((r) => r.id).filter((id) => id !== "administrador" && roles.puede(id, "legalizaciones", "ver"));
       function exigir(sesion, verbo = "ver") {
         const rol = sesion && sesion.rol;
         if (!rol || !roles.puede(rol, "legalizaciones", verbo)) throw new SinPermiso("legalizaciones", verbo, rol || "sin sesi\xF3n");
@@ -175804,308 +176421,6 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
     }
   });
 
-  // shared/barraLateral.js
-  var require_barraLateral = __commonJS({
-    "shared/barraLateral.js"(exports, module) {
-      "use strict";
-      init_define_CX_LICENCIAS();
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const MAX_HOJAS = 7;
-        const ARBOL_GESTOR = [
-          /* Remate 15-nov (JC, opción mixta): arriba la empresa; luego la base de la obra en el orden del 13-nov
-             (lo que define la obra y después el trabajo de presupuesto a entrega); debajo, «Módulos», uno por licencia. */
-          { id: "empresa", titulo: "Empresa", secciones: [
-            { id: "empresa", titulo: "Todas las obras", icono: "\u{1F3E2}", color: "var(--area-contratacion)", hojas: [
-              { destino: "cartera", icono: "\u{1F3E2}", nombre: "Todas las obras", desc: "La empresa entera: d\xF3nde est\xE1 el problema", vista: true },
-              { destino: "proyectos", icono: "\u{1F3D7}\uFE0F", nombre: "Proyectos", desc: "Las obras de cada empresa" }
-            ] },
-            /* Cuentas (#21): las estadísticas comerciales; facturación, forecast y gastos vendrán aquí. */
-            { id: "cuentas", titulo: "Cuentas", icono: "\u{1F4C8}", color: "var(--area-costes)", hojas: [
-              { destino: "estadisticas", icono: "\u{1F4C8}", nombre: "Estad\xEDsticas", desc: "Ofertas presentadas, adjudicadas y perdidas, tasa de \xE9xito y dinero ofertado contra adjudicado, por cliente, disciplina y periodo", vista: true }
-            ] },
-            { id: "comercial", titulo: "Comercial", icono: "\u{1F4E3}", color: "var(--area-planificacion)", hojas: [
-              { destino: "clientes", icono: "\u{1F3E2}", nombre: "Clientes", desc: "Las fichas de cliente de la empresa: contacto, condiciones de pago e idioma" }
-            ] }
-          ] },
-          { id: "obra", titulo: "La obra", secciones: [
-            /* Una sola puerta al alcance: «Ficha de alcance» (lo contratado) va en Compras. */
-            { id: "proyecto", titulo: "Proyecto", icono: "\u{1F4DC}", color: "var(--area-costes)", hojas: [
-              { destino: "alcanceProyecto", icono: "\u{1F4DC}", nombre: "Alcance del proyecto", desc: "Identificaci\xF3n, equipo, plazos, econ\xF3micas y condicionantes", vista: true },
-              { destino: "documentacionProyecto", icono: "\u{1F4DA}", nombre: "Documentaci\xF3n del proyecto", desc: "La biblioteca de modelos del proyecto: lo que pide el presupuesto, por tipo, con su estado y su PDF; y el buscador de toda la app", vista: true },
-              { destino: "planos", icono: "\u{1F5C2}\uFE0F", nombre: "Planos de obra", desc: "Los PDF: subirlos, verlos y guardarlos dentro del proyecto", vista: true },
-              { destino: "personasObra", icono: "\u{1F9D1}\u200D\u{1F4BC}", nombre: "Personas de la obra", desc: "Propiedad, direcci\xF3n facultativa, encargados\u2026 con sus tel\xE9fonos", vista: true },
-              { destino: "organigrama", icono: "\u{1F9ED}", nombre: "Organigrama", desc: "Qui\xE9n manda sobre qui\xE9n en la obra, montado solo con la ficha del proyecto y las Personas de la obra", vista: true },
-              { destino: "intervinientes", icono: "\u{1F4C7}", nombre: "Ficha de personas", desc: "Alta y edici\xF3n de las personas de la obra" }
-            ] },
-            /* Conflictos y Reclamaciones (#1 y #3) vendrán aquí en la ola 4. */
-            { id: "contrato", titulo: "Contrato y cliente", icono: "\u{1F500}", color: "var(--area-costes)", hojas: [
-              { destino: "cambios", icono: "\u{1F500}", nombre: "Cambios de proyecto", desc: "Circuito, importe y efecto en el contrato", vista: true },
-              { destino: "variaciones", icono: "\u{1F4DD}", nombre: "Registro de cambios", desc: "Alta y edici\xF3n de cada cambio" },
-              /* Partes de trabajo (ola 2, #7), gemela de Vidaire Obras: renderer/partesTrabajoPantalla.js. */
-              { destino: "partesTrabajoPantalla", icono: "\u{1F6E0}\uFE0F", nombre: "Partes de trabajo", desc: "Un trabajo fuera de contrato: qui\xE9n lo pide, horas y material, validaci\xF3n, firma y a qui\xE9n se repercute", vista: true },
-              { destino: "partesTrabajo", icono: "\u{1F6E0}\uFE0F", nombre: "Partes de trabajo (registro)", desc: "Los partes, en bruto" },
-              { destino: "parteTrabajoLineas", icono: "\u{1F9FE}", nombre: "L\xEDneas de partes de trabajo", desc: "Horas, material y otros de cada parte" },
-              { destino: "variacionLineas", icono: "\u{1F9FE}", nombre: "L\xEDneas de cambio", desc: "El detalle de cada cambio de proyecto" },
-              { destino: "ordenesCambio", icono: "\u{1F4DC}", nombre: "\xD3rdenes de cambio", desc: "Lo que el cliente autoriza por escrito" }
-            ] },
-            { id: "seguridad", titulo: "Seguridad", icono: "\u26A0\uFE0F", color: "var(--area-costes)", hojas: [
-              { destino: "perdidas", icono: "\u26A0\uFE0F", nombre: "Robos y p\xE9rdidas", desc: "Material perdido y su coste" }
-            ] }
-          ] },
-          { id: "trabajo", titulo: "El trabajo", secciones: [
-            { id: "estudios", titulo: "Proyectos y presupuestos", icono: "\u{1F4D0}", color: "var(--area-planificacion)", hojas: [
-              { destino: "estudio", icono: "\u{1F4BC}", nombre: "Estudio y oferta", desc: "Versiones del presupuesto, auditor, banco de precios, alternativas, embudo, la oferta en PDF y el traspaso a obra", vista: true },
-              { destino: "mediciones", icono: "\u{1F4CF}", nombre: "Mediciones del proyecto", desc: "L\xEDnea base, revisiones y c\xF3mo evoluciona la medici\xF3n", vista: true },
-              { destino: "partidasObra", icono: "\u{1F4CA}", nombre: "Partidas del presupuesto", desc: "Presupuesto, coste y margen por partida" },
-              { destino: "desgloseInicial", icono: "\u{1F5C2}\uFE0F", nombre: "Desglose inicial", desc: "Las tareas del desglose inicial del alcance" },
-              { destino: "plantillasPartida", icono: "\u{1F4DA}", nombre: "Plantillas de partida", desc: "La biblioteca de la empresa: partidas con su descripci\xF3n, para cualquier obra" },
-              { destino: "versionesPresupuesto", icono: "\u{1F5C3}\uFE0F", nombre: "Versiones del presupuesto", desc: "Las fotos guardadas del presupuesto, con su estado" },
-              { destino: "alternativasPresupuesto", icono: "\u{1F501}", nombre: "Alternativas", desc: "Otra marca u otra soluci\xF3n para una partida, con su precio" },
-              { destino: "revisionesMedicion", icono: "\u{1F4CF}", nombre: "Revisiones de medici\xF3n", desc: "La historia de la medici\xF3n: solo se consulta" },
-              { destino: "lineasMedicion", icono: "\u{1F4D0}", nombre: "L\xEDneas de medici\xF3n", desc: "El detalle de cada revisi\xF3n, con su traza" },
-              { destino: "cambiosMedicion", icono: "\u{1F4D0}", nombre: "Cambios de medici\xF3n", desc: "Qu\xE9 mediciones cambiaron y qu\xE9 partidas se a\xF1adieron" }
-            ] },
-            /* Contratación y Compras, juntas: paquete, comparativo, adjudicación. */
-            { id: "compras", titulo: "Compras", icono: "\u{1F91D}", color: "var(--area-contratacion)", hojas: [
-              { destino: "compras", icono: "\u23F1\uFE0F", nombre: "Planificaci\xF3n de compras", desc: "Cu\xE1ndo hay que adjudicar cada cosa", vista: true },
-              { destino: "comparativo", icono: "\u2696\uFE0F", nombre: "Comparativos", desc: "Ofertas enfrentadas por paquete", vista: true },
-              { destino: "resumenContrat", icono: "\u{1F4CA}", nombre: "Resumen de contrataciones", desc: "Con qui\xE9n se gasta y d\xF3nde se mejora", vista: true },
-              { destino: "master", icono: "\u{1F9FE}", nombre: "Master de contrataciones", desc: "Venta, estudio, contrataci\xF3n y sus porcentajes", vista: true },
-              { destino: "alcance", icono: "\u{1F4D0}", nombre: "Ficha de alcance", desc: "Qu\xE9 se contrat\xF3 y qu\xE9 papeles faltan", vista: true },
-              { destino: "ganttContratacion", icono: "\u{1F91D}", nombre: "Qui\xE9n est\xE1 en obra", desc: "Cu\xE1ndo entra y sale cada adjudicatario", vista: true },
-              { destino: "paquetesCompra", icono: "\u{1F6D2}", nombre: "Plan de compras", desc: "Paquetes, objetivo y adjudicaci\xF3n" },
-              { destino: "ofertas", icono: "\u{1F4E8}", nombre: "Peticiones de oferta", desc: "Lo pedido y lo recibido" },
-              { destino: "ofertaLineas", icono: "\u{1F4C4}", nombre: "L\xEDneas de oferta", desc: "Los precios unitarios de cada oferta, partida a partida" },
-              { destino: "contrataciones", icono: "\u{1F91D}", nombre: "Contrataciones", desc: "Adjudicado, con desglose de coste" },
-              { destino: "proveedores", icono: "\u{1F3ED}", nombre: "Proveedores (directorio)", desc: "Los proveedores de la empresa: viajan entre obras" }
-            ] },
-            { id: "almacen", titulo: "Pedidos y almac\xE9n", icono: "\u{1F4E6}", color: "var(--area-contratacion)", hojas: [
-              { destino: "pedidosEntregas", icono: "\u{1F69A}", nombre: "Pedidos y entregas", desc: "Solicitud al proveedor, plazo confirmado frente al real, albaranes parciales y puntualidad de cada proveedor", vista: true },
-              { destino: "recepciones", icono: "\u{1F4E5}", nombre: "Recepciones", desc: "Lo que ha llegado y lo que falta por dar de alta", vista: true },
-              { destino: "inventario", icono: "\u{1F4E6}", nombre: "Inventario", desc: "Stock actual y avisos de m\xEDnimo", vista: true },
-              { destino: "pedidos", icono: "\u{1F4E6}", nombre: "Pedidos", desc: "Registro y estado de entrega" },
-              { destino: "lineasPedido", icono: "\u{1F4DD}", nombre: "L\xEDneas de pedido", desc: "Qu\xE9 material trae cada pedido" },
-              { destino: "entregasPedido", icono: "\u{1F69A}", nombre: "Entregas de pedidos", desc: "Cada albar\xE1n recibido: qu\xE9 trajo y con qu\xE9 incidencia" },
-              { destino: "bolsasPedidos", icono: "\u{1F4B0}", nombre: "Bolsas de pedidos", desc: "Lo consumido y lo restante de cada bolsa" },
-              { destino: "articulos", icono: "\u{1F529}", nombre: "Art\xEDculos", desc: "Cat\xE1logo de material" },
-              { destino: "movimientos", icono: "\u{1F504}", nombre: "Movimientos", desc: "Entradas, salidas y ajustes" }
-            ] },
-            { id: "economico", titulo: "Econ\xF3mico", icono: "\u{1F9EE}", color: "var(--area-costes)", hojas: [
-              { destino: "analisis", icono: "\u{1F3AF}", nombre: "An\xE1lisis del proyecto", desc: "Margen, coste objetivo y la K que hay que sacar", vista: true },
-              { destino: "costeDirecto", icono: "\u{1F9EE}", nombre: "Costes directos", desc: "En cu\xE1nto acaba costando y qu\xE9 falta por cerrar", vista: true },
-              { destino: "indirectos", icono: "\u{1F6A7}", nombre: "Costes indirectos y provisionales", desc: "Casetas, alquileres, encargados\u2026 editable en la celda", vista: true },
-              { destino: "proyeccion", icono: "\u{1F52E}", nombre: "Proyecci\xF3n a fin de obra", desc: "En cu\xE1nto acaba si seguimos as\xED", vista: true },
-              { destino: "costsPlan", icono: "\u{1F4D2}", nombre: "Costs Plan", desc: "Por cap\xEDtulo: previsto, comprometido, gastado y a fin de obra; desv\xEDo, ahorro y cierre de mes", vista: true },
-              { destino: "certificacion", icono: "\u{1F4D1}", nombre: "Certificaciones", desc: "La obra al cliente y cada industrial: sus pedidos, sus libros y qu\xE9 queda por pagarle", vista: true },
-              { destino: "certSubcontratas", icono: "\u{1F50E}", nombre: "Revisi\xF3n de industriales", desc: "Antes de aprobarle el mes: excesos, precios contradictorios, equivalencias, extras por horas, descuentos y la proforma", vista: true },
-              { destino: "certificaciones", icono: "\u{1F4C4}", nombre: "Registro de certificaciones", desc: "Alta, edici\xF3n y PDF" },
-              { destino: "certificacionLineas", icono: "\u{1F4C3}", nombre: "L\xEDneas de certificaci\xF3n", desc: "El detalle de cada certificaci\xF3n" },
-              { destino: "certEquivalencias", icono: "\u{1F501}", nombre: "Equivalencias de c\xF3digos", desc: "Su c\xF3digo de industrial \u2192 nuestra partida" },
-              { destino: "certContradictorios", icono: "\u2696\uFE0F", nombre: "Precios contradictorios", desc: "Los precios distintos del contrato y lo decidido" },
-              { destino: "certExtras", icono: "\u{1F552}", nombre: "Extras por horas", desc: "Horas de los industriales fuera de contrato" },
-              { destino: "certDescuentos", icono: "\u2796", nombre: "Descuentos a industriales", desc: "Lo que se les deduce del mes" },
-              { destino: "medicionesConductos", icono: "\u{1F4D0}", nombre: "Mediciones de conductos", desc: "El registro de las hojas de m\xB2 de conductos" },
-              { destino: "provisionales", icono: "\u{1F5C3}\uFE0F", nombre: "Provisionales", desc: "Las l\xEDneas de indirectos y provisionales" },
-              { destino: "costsPlanCierres", icono: "\u{1F4D2}", nombre: "Cierres del Costs Plan", desc: "La foto de cada mes cerrado" }
-            ] },
-            { id: "commissioning", titulo: "Commissioning", icono: "\u2705", color: "var(--area-certificaciones)", hojas: [
-              { destino: "commissioning", icono: "\u2705", nombre: "Control de commissioning", desc: "La tabla de equipos: documentaci\xF3n, ensayos y env\xEDo a DF", vista: true },
-              { destino: "planificacionMes", icono: "\u{1F5D3}\uFE0F", nombre: "Planificaci\xF3n Cx", desc: "El listado de equipos y el mes: arrastra cada equipo a su d\xEDa con actividad, horas y qui\xE9n lo hace; PDF \xFAnico", vista: true },
-              { destino: "fichasCx", icono: "\u{1F52C}", nombre: "Fichas de puesta en marcha", desc: "La puerta \xFAnica de cada equipo: checklist, ficha PM con proyecto, fabricante y medido, y su dossier en PDF", vista: true },
-              { destino: "ensayos", icono: "\u{1F4A8}", nombre: "Ensayos \u2014 balanceo y estanqueidad", desc: "Las tablas para meter los datos: la hoja sale sola, con fotos y firma", vista: true },
-              { destino: "planoEquipos", icono: "\u{1F5FA}\uFE0F", nombre: "Plano de equipos", desc: "El plano de cada planta con los equipos de su color: rojo sin instalar, azul instalado, verde con el commissioning completo", vista: true },
-              { destino: "prepararCx", icono: "\u{1F4E5}", nombre: "Preparar commissioning", desc: "Lee la documentaci\xF3n de la obra y propone fichas, estanqueidad y balanceo: no se graba nada sin aceptarlo", vista: true },
-              /* Los equipos y sus modelos, una sola vez (antes también en Mantenimiento). */
-              { destino: "equipos", icono: "\u2699\uFE0F", nombre: "Equipos", desc: "Inventario de equipos de la obra: lo que se pone en marcha y luego se entrega para mantener" },
-              { destino: "modelosEquipo", icono: "\u{1F3F7}\uFE0F", nombre: "Modelos de equipo", desc: "Ficha t\xE9cnica, CE y manual por modelo; se heredan a sus equipos" },
-              { destino: "puntosControl", icono: "\u2611\uFE0F", nombre: "Puntos de control \u2014 l\xEDneas", desc: "Todas las l\xEDneas de checklist" },
-              { destino: "medicionesPM", icono: "\u{1F4CB}", nombre: "Mediciones de puesta en marcha", desc: "Lo que se mide en obra" },
-              { destino: "bocasMedidas", icono: "\u{1F4A8}", nombre: "Bocas medidas", desc: "Caudal por boca de cada medici\xF3n" },
-              { destino: "redesAgua", icono: "\u{1F4A7}", nombre: "Balanceo \u2014 redes de agua", desc: "Las redes de agua del balanceo: bomba y v\xE1lvulas de equilibrado" },
-              { destino: "planosEquipos", icono: "\u{1F5FA}\uFE0F", nombre: "Planos de equipos \u2014 registros", desc: "Un registro por planta con su plano" },
-              { destino: "sesionesPlanCx", icono: "\u{1F5D3}\uFE0F", nombre: "Planificaci\xF3n Cx \u2014 sesiones", desc: "Lo programado en el calendario, una sesi\xF3n por l\xEDnea" }
-            ] },
-            /* Las incidencias de los equipos, una sola vez: aquí. */
-            { id: "calidad", titulo: "Calidad", icono: "\u{1F4DD}", color: "var(--area-certificaciones)", hojas: [
-              { destino: "calidad", icono: "\u{1F4DD}", nombre: "Calidad en obra", desc: "NCR, listado de repasos e incidencias con foto y ubicaci\xF3n, como las levanta la ingenier\xEDa o la DF al recorrer la obra; filtros y salida a Excel y PDF", vista: true },
-              { destino: "ncr", icono: "\u26A0\uFE0F", nombre: "No conformidades", desc: "El registro NCR: plazos, industriales, equipos bloqueados, fichas e informe semanal", vista: true },
-              { destino: "ppiCuadro", icono: "\u2705", nombre: "PPI (puntos de inspecci\xF3n)", desc: "Cada instalaci\xF3n inspeccionada al 25, 50, 75 y 100 % con su checklist; un No OK abre la NCR. Cuadro de la obra, acta en PDF con firmas y Excel", vista: true },
-              { destino: "incidencias", icono: "\u{1F527}", nombre: "Incidencias y reparaciones", desc: "Las aver\xEDas de los equipos: contadores, planificaci\xF3n del mes con arrastre, horas por t\xE9cnico, costes y lo que se pasa al cliente", vista: true },
-              { destino: "seguimiento", icono: "\u{1F5FA}\uFE0F", nombre: "Mapa de seguimiento", desc: "Por instalaci\xF3n: doc. calidad, fabricante, comit\xE9, conductos y tuber\xEDas", vista: true },
-              { destino: "pruebas", icono: "\u{1F9EA}", nombre: "Pruebas", desc: "Presiones y fluidos de cada certificado" },
-              { destino: "ncrEquipos", icono: "\u{1F517}", nombre: "NCR \u2014 equipos afectados", desc: "Qu\xE9 equipos toca cada no conformidad" },
-              { destino: "ncrAplazamientos", icono: "\u23F1\uFE0F", nombre: "NCR \u2014 aplazamientos", desc: "Cada cambio de plazo de una NCR, con su motivo" },
-              { destino: "ppi", icono: "\u2705", nombre: "PPI \u2014 inspecciones", desc: "El registro de las inspecciones PPI" },
-              { destino: "ppiPuntos", icono: "\u2611\uFE0F", nombre: "PPI \u2014 puntos", desc: "Cada punto revisado, con su resultado y la NCR que abri\xF3" },
-              { destino: "instrumentos", icono: "\u{1F4DF}", nombre: "Instrumentos", desc: "Aparatos de medida y su calibraci\xF3n" }
-            ] },
-            { id: "planificacion", titulo: "Planificaci\xF3n y producci\xF3n", icono: "\u{1F4C5}", color: "var(--area-costes)", hojas: [
-              { destino: "plazo", icono: "\u23F3", nombre: "\xBFVamos bien de plazo?", desc: "Lo que deber\xEDa estar hecho contra lo que hay", vista: true },
-              { destino: "programa", icono: "\u{1F5C2}\uFE0F", nombre: "Programa de obra", desc: "Actividades con predecesoras, camino cr\xEDtico, l\xEDnea base y Gantt", vista: true },
-              { destino: "gantt", icono: "\u{1F4C5}", nombre: "Gantt de la obra", desc: "Planificaci\xF3n y producci\xF3n mes a mes", vista: true },
-              { destino: "planSubcontrata", icono: "\u{1F4E8}", nombre: "Plan por subcontrata", desc: "Gantt para mandar a cada subcontrata: operarios, partidas, fechas del proyecto e hitos que le afectan (PDF y Excel)", vista: true },
-              { destino: "avance", icono: "\u{1F3E2}", nombre: "Avance de obra", desc: "Qu\xE9 queda por planta y por familia", vista: true },
-              { destino: "agenda", icono: "\u{1F5D3}\uFE0F", nombre: "Agenda", desc: "Qu\xE9 vence hoy y qu\xE9 lleva retraso", vista: true },
-              { destino: "calendario", icono: "\u{1F477}", nombre: "Calendario de subcontratas", desc: "Previstos frente a presentes", vista: true },
-              { destino: "tareas", icono: "\u{1F4CB}", nombre: "Tareas", desc: "Qu\xE9 hay que hacer y qui\xE9n lo tiene" },
-              { destino: "actividades", icono: "\u{1F4C6}", nombre: "Programa \u2014 actividades", desc: "Las filas del programa de obra" },
-              { destino: "ganttVersiones", icono: "\u{1F5D3}\uFE0F", nombre: "Gantt \u2014 versiones", desc: "La versi\xF3n de cada perfil y cu\xE1l es la que se sigue: solo se consulta; se cambian en \xABPrograma de obra\xBB" },
-              { destino: "ganttElecciones", icono: "\u{1F4CC}", nombre: "Gantt \u2014 registro de \xABa seguir\xBB", desc: "Qui\xE9n eligi\xF3 cada Gantt a seguir, cu\xE1ndo, cu\xE1l era antes y por qu\xE9" },
-              { destino: "subcontratas", icono: "\u{1F3D7}\uFE0F", nombre: "Subcontratas", desc: "Qui\xE9n trabaja en la obra" },
-              { destino: "tarifasSubcontrata", icono: "\u23F1\uFE0F", nombre: "Tarifas por hora", desc: "El \u20AC/h de cada categor\xEDa de cada subcontrata: valora los extras por horas" },
-              { destino: "partesSubcontrata", icono: "\u{1F4C6}", nombre: "Partes diarios", desc: "Presencia diaria de subcontratas" },
-              { destino: "papelesSubcontrata", icono: "\u{1F4D1}", nombre: "Papeles de subcontrata", desc: "Seguro, REA, Hacienda, Seguridad Social, contrato\u2026 con su caducidad" }
-            ] },
-            { id: "entrega", titulo: "Entrega", icono: "\u{1F511}", color: "var(--area-certificaciones)", hojas: [
-              { destino: "actasObra", icono: "\u2705", nombre: "Actas y reservas", desc: "Recepciones, qu\xE9 qued\xF3 abierto y si las pruebas son v\xE1lidas", vista: true },
-              { destino: "documentacion", icono: "\u{1F5C2}\uFE0F", nombre: "Documentaci\xF3n de obra", desc: "Checklist de papeles: inicial, durante y final" },
-              { destino: "actas", icono: "\u{1F4C4}", nombre: "Registro de actas", desc: "Pruebas, replanteos, recepciones" },
-              { destino: "reservas", icono: "\u{1F4CC}", nombre: "Reservas de acta", desc: "Los puntos que quedaron abiertos" }
-            ] },
-            { id: "informes", titulo: "Informes", icono: "\u{1F5D2}\uFE0F", color: "var(--area-planificacion)", hojas: [
-              { destino: "informeSemanal", icono: "\u{1F4CA}", nombre: "Informe semanal", desc: "Las obras en curso, una fila cada una: commissioning, certificado, Costs Plan, industriales, mantenimiento y NCR", vista: true },
-              { destino: "cargaSubcontratas", icono: "\u{1F477}", nombre: "Carga de subcontratas", desc: "Cada industrial en todas las obras en curso: en cu\xE1ntas est\xE1, gente comprometida, prevista y real (esta semana y las 4 anteriores) y sus NCR abiertas", vista: true },
-              { destino: "semaforoSubcontratas", icono: "\u{1F6A6}", nombre: "Papeles de subcontratas", desc: "Sem\xE1foro por subcontrata y obra: verde al d\xEDa, \xE1mbar si algo caduca en 30 d\xEDas, rojo si falta o est\xE1 caducado un papel obligatorio", vista: true },
-              { destino: "partesSemanales", icono: "\u{1F5D2}\uFE0F", nombre: "Partes semanales emitidos", desc: "Qu\xE9 semanas se han mandado ya" }
-            ] },
-            { id: "normativa", titulo: "BOE y reglamentos", icono: "\u{1F4DC}", color: "var(--area-planificacion)", hojas: [] },
-            { id: "herramientas", titulo: "Herramientas", icono: "\u{1F501}", color: "var(--area-tecnico)", hojas: [
-              { destino: "bandejasObra", icono: "\u{1F4D0}", nombre: "Bandejas: ocupaci\xF3n y medici\xF3n", desc: "\xBFCabe lo que va dentro? Y cu\xE1ntos metros hay que comprar", vista: true },
-              { destino: "solar", icono: "\u2600\uFE0F", nombre: "Dise\xF1o de string fotovoltaico", desc: "Cu\xE1ntos m\xF3dulos en serie caben entre la Voc a fr\xEDo y la ventana de MPPT", vista: true },
-              { destino: "conversiones", icono: "\u{1F501}", nombre: "Tablas de conversi\xF3n", desc: "Circular a rectangular u oval, DN a pulgadas, y de un material a otro", vista: true },
-              { destino: "bandejas", icono: "\u{1FA9C}", nombre: "Bandejas de cable", desc: "Ancho, longitud y los cables que lleva cada una" },
-              { destino: "envolventes", icono: "\u{1F5C4}\uFE0F", nombre: "Envolventes de cuadro", desc: "Filas y m\xF3dulos de cada armario, para saber si el cuadro cabe" }
-            ] }
-          ] },
-          /* Un módulo por licencia (shared/modulos.js): el que la empresa no tiene contratado no sale (destinoVetado). */
-          { id: "modulos", titulo: "M\xF3dulos", secciones: [
-            /* Management (tanda 1, 11-nov): el panel del director, las horas y el reporte a dirección. */
-            { id: "management", titulo: "Management", icono: "\u{1F9ED}", color: "var(--area-contratacion)", hojas: [
-              { destino: "departamentos", icono: "\u{1F9ED}", nombre: "Departamentos", desc: "Resumen, desv\xEDos, equipo y saturaci\xF3n y horas dedicadas de cada departamento", vista: true },
-              { destino: "reporteDireccion", icono: "\u{1F4E8}", nombre: "Reporte a direcci\xF3n", desc: "Una p\xE1gina con lo que hay que saber: la empresa, los desv\xEDos, el equipo y las subcontratas; se copia para Excel o correo", vista: true },
-              { destino: "dedicaciones", icono: "\u23F1\uFE0F", nombre: "Horas dedicadas", desc: "Las horas que cada persona apunta, por departamento y obra" }
-            ] },
-            { id: "licitaciones", titulo: "Licitaciones", icono: "\u{1F4E3}", color: "var(--area-planificacion)", hojas: [
-              { destino: "licitaciones", icono: "\u{1F4E3}", nombre: "Licitaciones p\xFAblicas", desc: "Obras de instalaciones abiertas en tu comunidad, por provincia y fecha l\xEDmite", vista: true }
-            ] },
-            { id: "calculo", titulo: "C\xE1lculo", icono: "\u{1F321}\uFE0F", color: "var(--area-tecnico)", hojas: [
-              { destino: "calculosImportados", icono: "\u{1F4E5}", nombre: "C\xE1lculos de instalaciones", desc: "Lo que devuelve la app C\xE1lculo de Instalaciones: trazados y redes de la obra", vista: true },
-              { destino: "cargasTermicas", icono: "\u{1F321}\uFE0F", nombre: "Cargas t\xE9rmicas", desc: "Cu\xE1nto fr\xEDo y calor pide cada local, y de qu\xE9 se compone", vista: true },
-              { destino: "ventilacion", icono: "\u{1F6AA}", nombre: "Caudales de ventilaci\xF3n", desc: "Cu\xE1nto aire pide cada local, y por qu\xE9 regla", vista: true },
-              { destino: "conductos", icono: "\u{1F32C}\uFE0F", nombre: "C\xE1lculo de conductos", desc: "Dimensionado y p\xE9rdida de carga", vista: true },
-              { destino: "cargasElectricas", icono: "\u26A1", nombre: "Cargas el\xE9ctricas", desc: "Lo que consume cada equipo de toda la obra, para el estudio el\xE9ctrico", vista: true },
-              { destino: "planoCalculo", icono: "\u{1F4D0}", nombre: "C\xE1lculo sobre plano", desc: "Traza la instalaci\xF3n sobre el PDF y calcula al vuelo", vista: true },
-              { destino: "locales", icono: "\u{1F6AA}", nombre: "Locales a ventilar", desc: "Uso, superficie y ocupaci\xF3n de cada local" },
-              { destino: "tramosConducto", icono: "\u{1F4CF}", nombre: "Tramos de conducto", desc: "Alta de los tramos a calcular" }
-            ] },
-            { id: "legalizaciones", titulo: "Legalizaciones", icono: "\u{1F4DC}", color: "var(--area-certificaciones)", hojas: [
-              { destino: "legalizaciones", icono: "\u{1F4DC}", nombre: "Legalizaciones", desc: "Los modelos oficiales de cada disciplina (ELEC, RITE, gas, Bombers, ICT\u2026) rellenos con los datos de la obra, listos para firmar; y las horas que se ahorran. Jefe de obra, de producci\xF3n, de grupo y director del departamento", vista: true },
-              { destino: "entregasDF", icono: "\u{1F4E4}", nombre: "Entregas a la DF", desc: "La bandeja \xABPara la DF\xBB: se suelta con un clic, sube a su portal con su versi\xF3n y les llega un aviso; aqu\xED vuelve su respuesta", vista: true },
-              { destino: "destinatariosDF", icono: "\u2709\uFE0F", nombre: "Destinatarios de la DF", desc: "A qui\xE9n se env\xEDan las entregas a la direcci\xF3n facultativa" }
-            ] },
-            /* Reclamaciones al cliente (claim), gemela de Vidaire Obras: renderer/reclamacionesPantalla.js. */
-            { id: "reclamaciones", titulo: "Reclamaciones", icono: "\u2696\uFE0F", color: "var(--area-costes)", hojas: [
-              { destino: "reclamacionesCliente", icono: "\u2696\uFE0F", nombre: "Reclamaciones al cliente", desc: "El claim: apartados con sus hechos, la cl\xE1usula que los ampara, el importe y las pruebas; expediente en PDF", vista: true },
-              { destino: "reclamaciones", icono: "\u2696\uFE0F", nombre: "Reclamaciones", desc: "Las reclamaciones de la obra, en bruto" },
-              { destino: "reclamacionApartados", icono: "\u{1F5C2}\uFE0F", nombre: "Apartados de reclamaci\xF3n", desc: "Los apartados de cada reclamaci\xF3n" },
-              { destino: "reclamacionHechos", icono: "\u{1F4CC}", nombre: "Hechos de reclamaci\xF3n", desc: "Cada hecho con su m\xE9todo de c\xE1lculo" },
-              { destino: "reclamacionPruebas", icono: "\u{1F4CE}", nombre: "Pruebas de reclamaci\xF3n", desc: "Correos, fotos y documentos de cada hecho" },
-              { destino: "reclamacionTarifas", icono: "\u{1F4B6}", nombre: "Tarifas de reclamaci\xF3n", desc: "El \u20AC/h de cada categor\xEDa" }
-            ] },
-            { id: "bms", titulo: "BMS", icono: "\u{1F5A7}", color: "var(--area-certificaciones)", hojas: [
-              { destino: "puntosBmsPrueba", icono: "\u{1F5A7}", nombre: "Puntos BMS", desc: "La prueba punto a punto del BMS, por TAG: cada se\xF1al en campo y en el SCADA", vista: true },
-              { destino: "puntosBms", icono: "\u{1F5A7}", nombre: "Puntos BMS \u2014 l\xEDneas", desc: "Cada se\xF1al del BMS, fila a fila" }
-            ] },
-            { id: "mantenimiento", titulo: "Mantenimiento", icono: "\u{1F6E0}\uFE0F", color: "var(--area-tecnico)", hojas: [
-              { destino: "mantenimiento", icono: "\u{1F6E0}\uFE0F", nombre: "Mantenimiento", desc: "Plan preventivo, F-gas, RITE, legionela, inspecciones y entrega", vista: true },
-              { destino: "ordenesMant", icono: "\u{1F9F0}", nombre: "\xD3rdenes de trabajo", desc: "Las \xF3rdenes del preventivo y del F-gas, repartidas solas a los operarios con su carn\xE9; mis tareas, cierre e informe del mes", vista: true },
-              { destino: "planMant", icono: "\u{1F4C5}", nombre: "Calendario e informes", desc: "La propuesta de visitas del preventivo y del F-gas, para mover y confirmar; PDF del mes, libro RITE y registro F-gas", vista: true },
-              { destino: "registrosMant", icono: "\u{1F6E0}\uFE0F", nombre: "Registro de mantenimiento", desc: "Lo hecho: preventivos, controles de fugas, recargas, correctivos" },
-              { destino: "inspecciones", icono: "\u{1F50E}", nombre: "Inspecciones peri\xF3dicas", desc: "OCA: RITE, baja tensi\xF3n, incendios, legionela\u2026" }
-            ] }
-          ] },
-          { id: "administracion", titulo: "Administraci\xF3n", secciones: [
-            { id: "usuarios", titulo: "Usuarios y accesos", icono: "\u{1F511}", color: "var(--area-configuracion)", hojas: [
-              { destino: "personasRoles", icono: "\u{1F511}", nombre: "Personas y roles", desc: "Qu\xE9 rol tiene cada cuenta, qu\xE9 obras ve y si ve el dinero; asignar obras a mano", vista: true, soloRoles: ["admin"] },
-              { destino: "trazabilidad", icono: "\u{1F553}", nombre: "Auditor\xEDa", desc: "Qui\xE9n hizo qu\xE9 y cu\xE1ndo: filtros, Excel/PDF y comprobaci\xF3n de la cadena", vista: true },
-              { destino: "empresas", icono: "\u{1F3E2}", nombre: "Empresas", desc: "Datos, logo, colores y condiciones" },
-              { destino: "licencias", icono: "\u{1F9FE}", nombre: "Licencias", desc: "Qu\xE9 m\xF3dulos tiene la empresa, de d\xF3nde sale cada uno y su estado (solo lectura)", vista: true }
-            ] },
-            { id: "plantilla", titulo: "Plantilla", icono: "\u{1F334}", color: "var(--area-configuracion)", hojas: [
-              { destino: "calendarioPersonal", icono: "\u{1F334}", nombre: "Calendario de personal", desc: "Vacaciones, bajas y qui\xE9n queda en obra", vista: true },
-              { destino: "vacaciones", icono: "\u{1F3D6}\uFE0F", nombre: "Saldo de vacaciones", desc: "D\xEDas de derecho, cogidos y pendientes", vista: true },
-              { destino: "personal", icono: "\u{1F464}", nombre: "Personal", desc: "Propio y de subcontrata" },
-              { destino: "ausencias", icono: "\u{1F334}", nombre: "Ausencias", desc: "Vacaciones, bajas y permisos" },
-              { destino: "festivos", icono: "\u{1F38C}", nombre: "Festivos", desc: "Calendario laboral de la empresa" }
-            ] },
-            { id: "datos", titulo: "Datos y copias", icono: "\u2601\uFE0F", color: "var(--area-configuracion)", hojas: [
-              { destino: "nube", icono: "\u2601\uFE0F", nombre: "Nube de Vidaire", desc: "La misma obra en el ordenador, el iPad y la web", vista: true },
-              { destino: "copias", icono: "\u{1F4BE}", nombre: "Copias de seguridad", desc: "Toda la obra vive en un archivo", vista: true }
-            ] }
-          ] }
-        ];
-        const SUELTAS = [
-          { destino: "inicio", icono: "\u{1F3E0}", nombre: "Inicio", vista: true },
-          { destino: "panel", icono: "\u{1F4C8}", nombre: "Resumen de la obra", desc: "Un vistazo a todo: econom\xEDa, compras, certificaci\xF3n y puesta en marcha", vista: true },
-          { destino: "campo", icono: "\u{1F4CB}", nombre: "En obra", desc: "Equipo a equipo con el iPad: ficha PM, checklists, balanceo, estanqueidad y NCR con fotos, con el TAG siempre arriba", vista: true },
-          { destino: "validacion", icono: "\u{1FA7A}", nombre: "Validaci\xF3n", vista: true, final: true },
-          { destino: "cuenta", icono: "\u{1F464}", nombre: "Mi cuenta", desc: "Contrase\xF1a, sesi\xF3n y baja", vista: true, final: true }
-        ];
-        const SOLO_DESDE_OTRA = ["hojasPM", "puestaEnMarcha", "controlPuntos"];
-        const OBRA_COMPLETA = ["proyecto", "planificacion", "compras", "almacen", "economico", "contrato"];
-        const CALIDAD_CX = ["commissioning", "calidad", "legalizaciones", "bms"];
-        const DE_JEFE_DE_OBRA = [...OBRA_COMPLETA, ...CALIDAD_CX, "reclamaciones", "seguridad", "informes", "entrega", "calculo", "herramientas", "normativa", "plantilla", "datos"];
-        const SECCIONES_POR_ROL = {
-          jefe_obra: DE_JEFE_DE_OBRA,
-          jefe_produccion: DE_JEFE_DE_OBRA,
-          /* Sin dinero: lo de campo, el almacén y la entrega. */
-          encargado: ["proyecto", "planificacion", "compras", "almacen", "commissioning", "bms", "calidad", "seguridad", "entrega", "herramientas", "plantilla"],
-          /* Departamento de Mantenimiento: sus órdenes y el edificio entregado, nada de la obra. */
-          encargado_mantenimiento: ["mantenimiento", "commissioning", "entrega", "plantilla"],
-          operario_mantenimiento: ["mantenimiento"],
-          /* Una sola obra: el edificio entregado y lo que hace falta para mantenerlo. */
-          mantenedora: ["mantenimiento", "commissioning", "calidad", "entrega"],
-          propiedad: ["proyecto", "commissioning", "calidad", "entrega", "mantenimiento"],
-          cliente: ["proyecto", "planificacion", "commissioning", "calidad", "entrega"]
-        };
-        function areas() {
-          const fuera = [];
-          for (const g of ARBOL_GESTOR) {
-            for (const s of g.secciones) {
-              fuera.push({
-                id: s.id,
-                // Un grupo de una sola sección sale con el nombre del grupo (Empresa, Normativa…).
-                titulo: g.secciones.length === 1 ? g.titulo : s.titulo,
-                grupo: g.id,
-                grupoTitulo: g.titulo,
-                solo: g.secciones.length === 1,
-                icono: s.icono,
-                color: s.color,
-                modulos: s.hojas.map((h) => ({ ...h, ...h.soloRoles ? { soloRoles: [...h.soloRoles] } : {} }))
-              });
-            }
-          }
-          return fuera;
-        }
-        function seccionesDelRol(rol) {
-          const lista = rol && SECCIONES_POR_ROL[rol];
-          return lista ? new Set(lista) : null;
-        }
-        function hojasDelArbol() {
-          return ARBOL_GESTOR.flatMap((g) => g.secciones.flatMap((s) => s.hojas.map((h) => ({ ...h, grupo: g.id, seccion: s.id }))));
-        }
-        function rutaHasta(destino) {
-          const h = hojasDelArbol().find((x) => x.destino === destino);
-          return h ? [h.grupo, h.seccion] : [];
-        }
-        const API = { MAX_HOJAS, ARBOL_GESTOR, SUELTAS, SOLO_DESDE_OTRA, SECCIONES_POR_ROL, areas, seccionesDelRol, hojasDelArbol, rutaHasta };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.BARRA_LATERAL_GESTOR = API;
-      })();
-    }
-  });
-
   // shared/modulos.js
   var require_modulos = __commonJS({
     "shared/modulos.js"(exports, module) {
@@ -176252,11 +176567,11 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             clave: "administracion",
             nombre: "Administraci\xF3n: usuarios, plantilla, datos y copias",
             tipo: "base",
-            secciones: ["usuarios", "plantilla", "datos"],
+            secciones: ["usuarios", "plantilla", "datos", "presentaciones"],
             nombreComercial: "Administraci\xF3n",
             noIncluye: ["La app del tel\xE9fono y su sincronizaci\xF3n (App del m\xF3vil)"],
             problema: "Dar acceso a cada persona con su rol y no perder nunca los datos.",
-            funciones: ["Usuarios, roles y auditor\xEDa", "Plantilla: calendario, vacaciones, ausencias y festivos", "Empresas y licencias", "Nube y copias de seguridad"],
+            funciones: ["Usuarios, roles y auditor\xEDa", "Plantilla: calendario, vacaciones, ausencias y festivos", "Empresas y licencias", "Nube y copias de seguridad", "Las presentaciones de Vidaire (solo el administrador)"],
             /* docs/perfiles-y-licencias.md § 6: la migración 0030 (licencias_modulos) está sin aplicar. */
             enDesarrollo: ["Dar las licencias desde la nube (hoy van en el perfil de la edici\xF3n)"],
             movil: {}
@@ -176274,6 +176589,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             noIncluye: ["El econ\xF3mico y las certificaciones de cada obra (base: Gesti\xF3n de obra)"],
             problema: "Que direcci\xF3n vea de un vistazo c\xF3mo van todos los departamentos y en qu\xE9 se va el tiempo del equipo.",
             funciones: ["Panel de departamentos y desv\xEDos", "Saturaci\xF3n del equipo", "Horas dedicadas por obra", "Reporte a direcci\xF3n"],
+            modulosObra: ["dedicaciones", "horasObra", "reporteDireccion"],
             movil: {}
           },
           {
@@ -176288,6 +176604,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             noIncluye: ["Preparar la oferta de la licitaci\xF3n (base: Presupuestos)"],
             problema: "Enterarse a tiempo de las licitaciones de instalaciones que encajan con la empresa.",
             funciones: ["B\xFAsqueda de licitaciones p\xFAblicas abiertas", "Oportunidades por provincia"],
+            modulosObra: ["licitaciones"],
             movil: {}
           },
           {
@@ -176301,6 +176618,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             noIncluye: ["Calculadoras r\xE1pidas (base: Herramientas r\xE1pidas)", "Legalizar la instalaci\xF3n (Legalizaciones)"],
             problema: "Dimensionar la instalaci\xF3n y sacar la memoria de c\xE1lculo sin otro programa.",
             funciones: ["Cargas t\xE9rmicas", "Ventilaci\xF3n y conductos", "Cargas el\xE9ctricas", "C\xE1lculo sobre plano y mediciones del c\xE1lculo", "Memorias de c\xE1lculo"],
+            modulosObra: ["calculo"],
             movil: {}
           },
           {
@@ -176314,6 +176632,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             noIncluye: ["Actas de entrega de obra (base: Entrega de obra)"],
             problema: "Rellenar los impresos oficiales y entregar la documentaci\xF3n a la direcci\xF3n facultativa sin perseguir papeles.",
             funciones: ["Impresos oficiales del organismo, tal cual", "Certificados de instalaci\xF3n", "Entrega documental a la direcci\xF3n facultativa"],
+            modulosObra: ["legalizaciones"],
             movil: {}
           },
           {
@@ -176328,6 +176647,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             noIncluye: ["Certificaciones al cliente (base: Gesti\xF3n de obra)"],
             problema: "Cobrar lo que la obra ha costado de m\xE1s por causas del cliente, con pruebas.",
             funciones: ["Expediente de reclamaci\xF3n por apartados", "Hechos y pruebas fechados", "Tarifas y horas de los industriales", "Desfases y riesgo de subcontratas", "Avisos reclamables desde el tajo"],
+            modulosObra: ["reclamaciones", "avisosReclamacion"],
             movil: { secciones: ["avisos"], permisos: ["reclamaciones", "avisosReclamacion"] }
           },
           {
@@ -176349,6 +176669,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
               "Pruebas punto a punto",
               "Programaci\xF3n de PLC en texto estructurado (IEC 61131-3)"
             ],
+            modulosObra: ["puntosControl", "controlPlc"],
             movil: {}
           },
           /* 15-nov (JC): «si no pagan el módulo de commissioning, no pueden usar commissioning en el móvil tampoco». */
@@ -176372,6 +176693,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
               "Planificaci\xF3n Cx por meses y sesiones",
               "Informe a la direcci\xF3n facultativa y paquete de entrega de equipos"
             ],
+            modulosObra: ["commissioning", "entregasDF"],
             movil: { secciones: ["commissioning"], permisos: ["commissioning"] }
           },
           {
@@ -176388,6 +176710,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             noIncluye: ["Reparaciones de la obra (base: Calidad y equipos)", "Acta de mantenimiento (base: Entrega de obra)"],
             problema: "Mantener los equipos entregados con su plan, sus \xF3rdenes y sus inspecciones al d\xEDa.",
             funciones: ["Plan preventivo y calendario", "Control F-gas", "\xD3rdenes de trabajo", "Registro de mantenimiento e informes", "Inspecciones peri\xF3dicas", "Compras y contrato de mantenimiento"],
+            modulosObra: ["mantenimiento", "ordenesMant"],
             movil: { secciones: ["misTareas", "planoMant"], permisos: ["ordenesMant", "mantenimiento"] }
           },
           /* 15-nov (JC): el presupuesto base monta e importa; lo automático se vende aparte. */
@@ -176407,6 +176730,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
               "Cruzar los planos con las partidas del presupuesto",
               "Pasar del plano a la medici\xF3n y revisarla"
             ],
+            modulosObra: ["desglosePresupuesto"],
             movil: {}
           },
           /* 15-nov (JC): «en el descompuesto automático, cada tipo de material lleva sus componentes con
@@ -176545,6 +176869,14 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           }
           return null;
         }
+        function modulosObraFuera(perfil) {
+          const fuera = /* @__PURE__ */ new Set();
+          for (const m of MODULOS) {
+            if (m.tipo !== "licencia" || moduloActivo(perfil, m.clave)) continue;
+            for (const k of m.modulosObra || []) fuera.add(k);
+          }
+          return [...fuera];
+        }
         function destinoActivo(perfil, destino) {
           const m = moduloDeDestino(destino);
           return m ? moduloActivo(perfil, m) : true;
@@ -176568,7 +176900,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           return { activos, fuera };
         }
         const MAX_DIAS_SIN_NUBE = 30;
-        function licenciasEfectivas({ perfil = null, nube = null, ahora = Date.now() } = {}) {
+        function licenciasContratadas({ perfil = null, nube = null, ahora = Date.now() } = {}) {
           const respaldo = { licencias: licenciasDe(perfil), origen: "perfil" };
           if (!nube || !Array.isArray(nube.modulos)) return respaldo;
           const t = (v) => v ? Date.parse(v) : NaN;
@@ -176579,11 +176911,30 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const vivo = (c) => !Number.isFinite(t(caducan[c])) || t(caducan[c]) > ahora;
           return { licencias: conDependencias(nube.modulos.filter((c) => DE_LICENCIA.includes(c) && vivo(c))), origen: "nube" };
         }
+        function licenciasEfectivas({ perfil = null, nube = null, ahora = Date.now(), apagadas = [] } = {}) {
+          const c = licenciasContratadas({ perfil, nube, ahora });
+          const fuera = new Set(Array.isArray(apagadas) ? apagadas : []);
+          if (!fuera.size) return c;
+          return { ...c, licencias: conDependencias(c.licencias.filter((x) => !fuera.has(x))) };
+        }
         function conLicencias(perfil, licencias) {
           return { ...perfil || {}, licencias: [...licencias] };
         }
-        function estadoLicencias({ perfil = null, nube = null, ahora = Date.now() } = {}) {
-          const ef = licenciasEfectivas({ perfil, nube, ahora });
+        function fichaDeVenta(m) {
+          const paquete = PAQUETES.find((p) => p.modulos.includes(m.clave));
+          return {
+            nombreComercial: m.nombreComercial || m.nombre,
+            problema: m.problema || "",
+            funciones: m.funciones || [],
+            noIncluye: m.noIncluye || [],
+            enDesarrollo: m.enDesarrollo || [],
+            depende: (m.depende || []).map((c) => (POR_CLAVE.get(c) || {}).nombreComercial || (POR_CLAVE.get(c) || {}).nombre || c),
+            paquete: paquete ? paquete.nombreComercial : null
+          };
+        }
+        function estadoLicencias({ perfil = null, nube = null, ahora = Date.now(), apagadas = [] } = {}) {
+          const ef = licenciasContratadas({ perfil, nube, ahora });
+          const vale = licenciasEfectivas({ perfil, nube, ahora, apagadas }).licencias;
           const delPerfil = licenciasDe(perfil);
           const t = (v) => v ? Date.parse(v) : NaN;
           let motivoRespaldo = null;
@@ -176595,9 +176946,15 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const enNube = ef.origen === "nube" ? new Set(nube.modulos) : /* @__PURE__ */ new Set();
           const caducan = nube && nube.caducan && typeof nube.caducan === "object" ? nube.caducan : {};
           const modulos = MODULOS.map((m) => {
-            const fila = { clave: m.clave, nombre: m.nombre, tipo: m.tipo, enPerfil: delPerfil.includes(m.clave), caduca: null };
+            const fila = { clave: m.clave, nombre: m.nombre, tipo: m.tipo, enPerfil: delPerfil.includes(m.clave), caduca: null, venta: fichaDeVenta(m) };
             if (m.tipo === "base") return { ...fila, activo: true, origen: "base", estado: "incluido" };
-            const activo = ef.licencias.includes(m.clave);
+            const contratado = ef.licencias.includes(m.clave);
+            const ficha = { contratado, depende: m.depende || [] };
+            if (contratado && !vale.includes(m.clave)) {
+              return { ...fila, ...ficha, activo: false, origen: null, estado: "apagado", caduca: ef.origen === "nube" ? caducan[m.clave] || null : null };
+            }
+            const activo = contratado;
+            Object.assign(fila, ficha);
             if (ef.origen === "nube") {
               fila.caduca = caducan[m.clave] || null;
               if (activo) return { ...fila, activo, origen: "nube", estado: "activo" };
@@ -176612,7 +176969,9 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             leida: nube && nube.leida ? nube.leida : null,
             maxDiasSinNube: MAX_DIAS_SIN_NUBE,
             modulos,
-            activas: ef.licencias
+            activas: vale,
+            contratadas: ef.licencias,
+            apagadas: ef.licencias.filter((c) => !vale.includes(c))
           };
         }
         function movilDe(m) {
@@ -176696,10 +177055,12 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           paraIarvis,
           licenciasDe,
           licenciasEfectivas,
+          licenciasContratadas,
           conLicencias,
           estadoLicencias,
           rolEnEdicion,
-          filtrarRoles
+          filtrarRoles,
+          modulosObraFuera
         };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.MODULOS_GESTOR = API;
@@ -180079,6 +180440,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         return lineas.length ? lineas : [""];
       }
       var esJpeg = (b) => b && b.length > 3 && b[0] === 255 && b[1] === 216;
+      var propios = (b) => b && b.byteOffset === 0 && b.byteLength === b.buffer.byteLength ? b : Uint8Array.from(b);
       var esPng = (b) => b && b.length > 8 && b[0] === 137 && b[1] === 80 && b[2] === 78 && b[3] === 71;
       function fechaFirma(t) {
         const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(t || ""));
@@ -180163,8 +180525,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         const plano = async (b) => {
           let img = null;
           try {
-            if (esJpeg(b.imagen)) img = await pdf.embedJpg(b.imagen);
-            else if (esPng(b.imagen)) img = await pdf.embedPng(b.imagen);
+            if (esJpeg(b.imagen)) img = await pdf.embedJpg(propios(b.imagen));
+            else if (esPng(b.imagen)) img = await pdf.embedPng(propios(b.imagen));
           } catch {
             img = null;
           }
@@ -180301,8 +180663,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             if (metidas.has(bytes)) return metidas.get(bytes);
             let img = null;
             try {
-              if (esJpeg(bytes)) img = await pdf.embedJpg(bytes);
-              else if (esPng(bytes)) img = await pdf.embedPng(bytes);
+              if (esJpeg(bytes)) img = await pdf.embedJpg(propios(bytes));
+              else if (esPng(bytes)) img = await pdf.embedPng(propios(bytes));
             } catch {
               img = null;
             }
@@ -180398,7 +180760,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
               if (f && typeof f === "object") {
                 let img = null;
                 try {
-                  if (f.imagen && esPng(f.imagen)) img = await pdf.embedPng(f.imagen);
+                  if (f.imagen && esPng(f.imagen)) img = await pdf.embedPng(propios(f.imagen));
                 } catch {
                   img = null;
                 }
@@ -217414,9 +217776,16 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
         }
         function incidenciasHtml(d) {
           const l = (d.incidencias || []).filter(Boolean);
-          if (!l.length) return "";
+          if (!l.length) return resueltasHtml(d);
           return `<div class="pesIncEq" data-pes-incidencias role="group" aria-label="Incidencias abiertas de este equipo"><p class="pesIncEqTit"><span class="pesPunto incidencia" aria-hidden="true">!</span><b>${l.length === 1 ? "1 incidencia abierta" : `${l.length} incidencias abiertas`}</b></p>
       <table class="pesTablaFicha pesIncEqTabla"><tbody>${l.map((i) => `<tr><td><button type="button" class="pesIncEnlace" data-pes-incidencia="${esc(i.id)}" title="Abrir la incidencia ${esc(i.codigo)}">${esc(i.codigo || "Incidencia")}</button></td><td>${esc(i.titulo || "")}${i.enUnidad ? `<span class="pesIncEqDonde">${esc(`En la ${i.enUnidad.exterior ? "exterior" : "interior"} ${i.enUnidad.tag || ""}`.trim())}</span>` : ""}</td><td class="pesIncEqEstado">${esc(i.estadoNombre || i.estado || "")}</td></tr>`).join("")}</tbody></table></div>`;
+        }
+        function resueltasHtml(d) {
+          const l = (d.resueltas || []).filter(Boolean);
+          if (!l.length) return "";
+          const fecha = (t) => t ? String(t).slice(0, 10).split("-").reverse().join("/") : "";
+          return `<div class="pesIncEq resuelta" data-pes-resueltas role="group" aria-label="Incidencias resueltas a falta de la toma de datos"><p class="pesIncEqTit"><span class="pesPunto incResuelta" aria-hidden="true">!</span><b>${l.length === 1 ? "Incidencia resuelta" : `${l.length} incidencias resueltas`}: falta tomar los datos</b></p>
+      <table class="pesTablaFicha pesIncEqTabla"><tbody>${l.map((i) => `<tr><td><button type="button" class="pesIncEnlace" data-pes-incidencia="${esc(i.id)}" title="Abrir la incidencia ${esc(i.codigo)}">${esc(i.codigo || "Incidencia")}</button></td><td>${esc(i.titulo || "")}${i.enUnidad ? `<span class="pesIncEqDonde">${esc(`En la ${i.enUnidad.exterior ? "exterior" : "interior"} ${i.enUnidad.tag || ""}`.trim())}</span>` : ""}</td><td class="pesIncEqEstado">${esc(i.cierre ? `Cerrada el ${fecha(i.cierre)}` : "Cerrada")}</td></tr>`).join("")}</tbody></table></div>`;
         }
         function html(d = {}) {
           const est = d.estado || {};

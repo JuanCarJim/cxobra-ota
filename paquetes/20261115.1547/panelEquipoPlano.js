@@ -150,9 +150,18 @@
      cerrar, cada una con su enlace (shared/commissioning/incidenciaPlano.js). Sin incidencias no pinta nada. */
   function incidenciasHtml(d) {
     const l = (d.incidencias || []).filter(Boolean);
-    if (!l.length) return '';
+    if (!l.length) return resueltasHtml(d);
     return `<div class="pesIncEq" data-pes-incidencias role="group" aria-label="Incidencias abiertas de este equipo"><p class="pesIncEqTit"><span class="pesPunto incidencia" aria-hidden="true">!</span><b>${l.length === 1 ? '1 incidencia abierta' : `${l.length} incidencias abiertas`}</b></p>
       <table class="pesTablaFicha pesIncEqTabla"><tbody>${l.map((i) => `<tr><td><button type="button" class="pesIncEnlace" data-pes-incidencia="${esc(i.id)}" title="Abrir la incidencia ${esc(i.codigo)}">${esc(i.codigo || 'Incidencia')}</button></td><td>${esc(i.titulo || '')}${i.enUnidad ? `<span class="pesIncEqDonde">${esc(`En la ${i.enUnidad.exterior ? 'exterior' : 'interior'} ${i.enUnidad.tag || ''}`.trim())}</span>` : ''}</td><td class="pesIncEqEstado">${esc(i.estadoNombre || i.estado || '')}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+
+  /* 15-nov (JC): sin abiertas, las RESUELTAS (cerradas) que esperan la toma de datos, en azul (incidenciaPlano.js). */
+  function resueltasHtml(d) {
+    const l = (d.resueltas || []).filter(Boolean);
+    if (!l.length) return '';
+    const fecha = (t) => (t ? String(t).slice(0, 10).split('-').reverse().join('/') : '');
+    return `<div class="pesIncEq resuelta" data-pes-resueltas role="group" aria-label="Incidencias resueltas a falta de la toma de datos"><p class="pesIncEqTit"><span class="pesPunto incResuelta" aria-hidden="true">!</span><b>${l.length === 1 ? 'Incidencia resuelta' : `${l.length} incidencias resueltas`}: falta tomar los datos</b></p>
+      <table class="pesTablaFicha pesIncEqTabla"><tbody>${l.map((i) => `<tr><td><button type="button" class="pesIncEnlace" data-pes-incidencia="${esc(i.id)}" title="Abrir la incidencia ${esc(i.codigo)}">${esc(i.codigo || 'Incidencia')}</button></td><td>${esc(i.titulo || '')}${i.enUnidad ? `<span class="pesIncEqDonde">${esc(`En la ${i.enUnidad.exterior ? 'exterior' : 'interior'} ${i.enUnidad.tag || ''}`.trim())}</span>` : ''}</td><td class="pesIncEqEstado">${esc(i.cierre ? `Cerrada el ${fecha(i.cierre)}` : 'Cerrada')}</td></tr>`).join('')}</tbody></table></div>`;
   }
 
   /* De arriba abajo: TAG, sus incidencias abiertas, estado de Cx y sala; sus botones; documentos y toma de datos con su botón; lo demás, plegado. */
