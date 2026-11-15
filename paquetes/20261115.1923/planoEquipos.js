@@ -229,6 +229,19 @@
   .pe-hoja .pesIncEq.resuelta{border-left-color:var(--incResuelta);background:color-mix(in srgb,var(--incResuelta) 8%,var(--panel))}
   .pe-hoja .pesIncEq.resuelta .pesIncEqTit,.pe-hoja .pesIncEq.resuelta .pesIncEnlace,.pe-hoja .pesIncEq.resuelta .pesIncEqDonde{color:var(--incResuelta)}
   .pe-hoja .pesPunto.incResuelta{display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--incResuelta);color:var(--blanco);font:900 11px/16px system-ui,sans-serif;text-align:center}
+  /* Las hojas de commissioning del equipo (15-nov): filas altas, toda la fila se toca; estado con el color de siempre. */
+  .pe-hojas-cx{margin:8px 0 2px}
+  .pe-hojas-cx h4{margin:0 0 2px;font-size:13px;font-weight:600;color:var(--acento);border-bottom:1px solid var(--acento-vivo);padding-bottom:3px}
+  .pe-hojas-cx .pesTablaFicha{width:100%;border-collapse:collapse;font-size:14px}
+  .pe-hojas-cx .pesTablaFicha tr{cursor:pointer}
+  .pe-hojas-cx .pesTablaFicha th{text-align:left;font-weight:600;padding:7px 8px 7px 0;border-bottom:1px solid rgba(15,23,42,.08);vertical-align:middle}
+  .pe-hojas-cx .pesTablaFicha td{padding:7px 0;border-bottom:1px solid rgba(15,23,42,.08);vertical-align:middle;font-size:13px}
+  .pe-hojas-cx .pesTablaFicha td small,.pe-hojas-cx .pesTablaFicha th small{display:block;color:var(--textoTenue);font-size:12px;font-weight:400}
+  .pe-hojas-cx .pesAccion{width:1%;text-align:right;white-space:nowrap;padding-left:6px}
+  .pe-hojas-cx .botonMini{min-height:38px;min-width:68px;padding:0 10px;border:0;border-radius:8px;background:var(--acento-suave);color:var(--acento-fuerte);font-size:14px;font-weight:600}
+  .pe-hojas-cx .pesTono.bien{color:var(--bien);font-weight:600} .pe-hojas-cx .pesTono.info{color:var(--acento);font-weight:600} .pe-hojas-cx .pesTono.mal{color:var(--mal);font-weight:600}
+  .pe-hojas-cx .pesVacio{color:var(--textoTenue)}
+  .cx-plano .pe-hoja:has(.pe-hojas-cx){max-height:56vh}
   .pe-hoja .pe-ficha-completa{display:block;width:100%;min-height:44px;margin:8px 0 2px;font-size:15px;font-weight:700}
   /* 14-nov: con la hoja abierta el plano acaba encima de ella; el zoom con botones se esconde mientras (se pellizca). */
   .cx-plano:has([data-pe-hoja]:not([hidden])) .pe-pie,.cx-plano:has([data-pe-hoja]:not([hidden])) .pe-leyenda{display:none}
@@ -609,13 +622,14 @@
       ${incidenciasHtml(e)}
       <div class="sub">${que ? esc(que) : ''}</div>
       <div class="sub">${salaHtml(e.sala)}${p.planta ? ` <span class="tenue">· ${esc(p.planta)}</span>` : ''}</div>
+      ${falta ? `<div class="falta">${falta}</div>` : ''}
+      ${hojasCxHtml(e)}
       ${datos.conCommissioning ? '<button class="boton pe-ficha-completa" data-pe-accion="equipo">Ficha completa ›</button>' : ''}
       ${e.miembros && e.miembros.length > 1 ? conjuntoHtml(e) : (rol ? `<div class="sub">${rol}</div>` : '')}
-      ${falta ? `<div class="falta">${falta}</div>` : ''}
       ${documentosEquipoHtml(e)}
       ${p.plano && e.x === null ? '<div class="sub tenue">No está en el plano.</div>' : ''}
       ${vidaHtml(e)}
-      ${acc.length ? `<div class="pe-acciones">${acc.map((a) => `<button class="boton${a.id === 'datos' ? '' : ' secundario'}" data-pe-accion="${esc(a.id)}">${esc(a.texto)}</button>`).join('')}</div>` : ''}
+      ${acc.length && !(Array.isArray(e.tomas) && e.tomas.length) ? `<div class="pe-acciones">${acc.map((a) => `<button class="boton${a.id === 'datos' ? '' : ' secundario'}" data-pe-accion="${esc(a.id)}">${esc(a.texto)}</button>`).join('')}</div>` : ''}
       ${!datos.conCommissioning && datos.puedeEditar === false ? '<div class="sub tenue">Solo lectura.</div>' : ''}`;
   }
 
@@ -628,6 +642,22 @@
   const enlaceFicha = (e, texto) => (e && e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${texto}: ${esc(e.nombre)}${e.nivel === 'tipo' ? ' (del tipo)' : ''} ↗</a>` : '');
   /* Los documentos en tabla, la misma pieza que el panel del escritorio y la web (shared/commissioning/panelEquipoPlano.js). */
   const PEP = () => window.PANEL_EQUIPO_PLANO || null;
+  /* 15-nov (JC, nota 14ee6a75: «cuando en Cx pulso un equipo del mapa, debe salir … las hojas del check list, Toma de Datos de
+     Puesta en Marcha, Estanqueidad, Balanceo de Caudales… lo más importante del módulo»): sus hojas, las que pide su tipo, con su
+     estado y un toque para abrirla y rellenarla. La tabla es la del panel del escritorio (panelEquipoPlano.tomasHtml). */
+  function hojasCxHtml(e) {
+    const P = PEP();
+    if (!P || !datos || !datos.conCommissioning) return '';
+    if (e.tomas === undefined) return '<div class="pe-hojas-cx" data-pe-hojas><p class="tenue">Cargando sus hojas…</p></div>';
+    if (!e.tomas.length) return '';
+    return `<div class="pe-hojas-cx" data-pe-hojas>${P.tomasHtml({ pesada: { tomas: e.tomas }, abrirTomas: true }).replace('<h4>Toma de datos</h4>', '<h4>Hojas de commissioning</h4>')}</div>`;
+  }
+  function abrirTomaEquipo(i) {
+    const P = PEP(); const e = equipoElegido();
+    const t = e && Array.isArray(e.tomas) ? e.tomas[i] : null;
+    const a = P && t ? P.accionToma(t) : null;
+    if (a) irAlEquipo(a);
+  }
   function documentosEquipoHtml(e) {
     const P = PEP();
     if (!P) return (e.documentos || []).length ? `<div class="pe-enlaces">${e.documentos.map(enlaceDoc).join('')}</div>` : '';
@@ -744,12 +774,15 @@
   /* La puesta en marcha, la garantía y los botones del equipo se piden al abrir su ficha (no van en la lista). */
   function pedirFicha() {
     const e = equipoElegido();
-    if (!e || e.fichaLista || e.fichaPidiendo || !datos || !datos.ligero) return;
+    if (!e || e.fichaPidiendo || !datos) return;
+    /* Las hojas de commissioning se piden siempre al abrir (cambian al rellenarlas); lo demás, si la lista vino ligera. */
+    const faltanHojas = datos.conCommissioning && e.tomas === undefined;
+    if (!faltanHojas && (e.fichaLista || !datos.ligero)) return;
     e.fichaPidiendo = true;
     C.pedir(`api/plano-equipos/ficha?obra=${encodeURIComponent(C.obraId())}&id=${encodeURIComponent(e.id)}`)
       .then((r) => {
         if (!r || r.ok === false) return;
-        e.documentos = r.documentos; e.acciones = r.acciones; e.vida = r.vida; e.fichaLista = true;
+        e.documentos = r.documentos; e.acciones = r.acciones; e.vida = r.vida; e.tomas = Array.isArray(r.tomas) ? r.tomas : []; e.fichaLista = true;
         if (elegida === e.id) { mostrarHoja(); asomar(elegida); }
       })
       .catch(() => {})
@@ -1151,6 +1184,17 @@
     tragarClick = true;
   }
 
+  /* 15-nov: el plano captura el puntero para arrastrar (setPointerCapture), así que el «soltar» y el click llegan con el
+     MARCO de destino, no con el equipo tocado, y el toque no abría su ficha. El blanco real es lo que hay bajo el dedo. */
+  function blanco(ev) {
+    const t = ev.target;
+    if (!t || !t.closest) return t || document.body;
+    const m = t.matches && t.matches('[data-pe-marco], [data-pe-lienzo]') ? t : null;
+    if (!m || !Number.isFinite(ev.clientX) || (!ev.clientX && !ev.clientY)) return t;
+    const bajo = document.elementFromPoint(ev.clientX, ev.clientY);
+    return bajo && m.contains(bajo) ? bajo : t;
+  }
+
   document.addEventListener('pointerdown', (ev) => {
     const marco = enMarco(ev);
     if (!marco) return;
@@ -1214,7 +1258,7 @@
         return;
       }
       /* Doble toque en un hueco del plano: acerca (o, si ya está muy cerca, vuelve a entero). */
-      if (eraEspera && marco && !(ev.target.closest && ev.target.closest('[data-pe-marca],[data-pe-mat],[data-pe-zoom],[data-pe-grupo],[data-fa-ver]'))) {
+      if (eraEspera && marco && !(blanco(ev).closest && blanco(ev).closest('[data-pe-marca],[data-pe-mat],[data-pe-zoom],[data-pe-grupo],[data-fa-ver]'))) {
         const ahora = performance.now();
         const [px, py] = dentro(marco, ev);
         if (ultimoToque && ahora - ultimoToque.t < 300 && Math.hypot(px - ultimoToque.x, py - ultimoToque.y) < 40) {
@@ -1338,31 +1382,34 @@
   document.addEventListener('click', (ev) => {
     if (!$raiz || !$raiz.contains(ev.target) || !datos) return;
     if (FA.clic(ev)) return;
-    const vd = ev.target.closest('[data-pes-ver-doc]');
+    const vd = blanco(ev).closest('[data-pes-ver-doc]');
     if (vd) { abrirDocEquipo(Number(vd.dataset.pesVerDoc)); return; }
-    const dq = ev.target.closest('[data-pe-entrega-df-quitar]');
+    /* Una hoja de commissioning: el botón «Abrir» o la fila entera (el dedo no tiene que acertar un botón pequeño). */
+    const tm = blanco(ev).closest('[data-pes-toma]') || (blanco(ev).closest('[data-pe-hojas] tr') || { querySelector: () => null }).querySelector('[data-pes-toma]');
+    if (tm) { abrirTomaEquipo(Number(tm.dataset.pesToma)); return; }
+    const dq = blanco(ev).closest('[data-pe-entrega-df-quitar]');
     if (dq) { guardarEntregaDF(dq.dataset.peEntregaDfQuitar, null); return; }
-    const pl = ev.target.closest('[data-pe-planta]');
+    const pl = blanco(ev).closest('[data-pe-planta]');
     if (pl) {
       const nombre = pl.dataset.pePlanta;
       traerPlanta(nombre).then(() => { planta = nombre; elegida = null; mat = null; zoom = 1; pintar(); precargarVecinas(); }).catch((e) => C.aviso(e.message));
       return;
     }
-    if (ev.target.closest('[data-pe-solo-inc]')) { soloInc = !soloInc; repintarQuieto(); return; }
-    if (ev.target.closest('[data-pe-solo-res]')) { soloRes = !soloRes; repintarQuieto(); return; }
-    const co = ev.target.closest('[data-pe-color]');
+    if (blanco(ev).closest('[data-pe-solo-inc]')) { soloInc = !soloInc; repintarQuieto(); return; }
+    if (blanco(ev).closest('[data-pe-solo-res]')) { soloRes = !soloRes; repintarQuieto(); return; }
+    const co = blanco(ev).closest('[data-pe-color]');
     if (co) { const k = co.dataset.peColor; if (ocultos.has(k)) ocultos.delete(k); else ocultos.add(k); repintarQuieto(); return; }
-    const fo = ev.target.closest('[data-pe-fondo]');
+    const fo = blanco(ev).closest('[data-pe-fondo]');
     if (fo) {
       const k = planta || '';
       if (fo.dataset.peFondo === 'pdf') { conPdf.add(k); conModelo.delete(k); } else { conPdf.delete(k); conModelo.add(k); }
       elegida = null; mat = null; zoom = 1; pintar();
       return;
     }
-    const fr = ev.target.closest('[data-pe-franja]');
+    const fr = blanco(ev).closest('[data-pe-franja]');
     if (fr) { verFranja = !verFranja; repintarQuieto(); return; }
     /* Una píldora «+N»: acerca hacia ella hasta que sus TAG caben. */
-    const gr = ev.target.closest('[data-pe-grupo]');
+    const gr = blanco(ev).closest('[data-pe-grupo]');
     if (gr) {
       const [marco] = marcoYLienzo();
       if (!marco) return;
@@ -1370,7 +1417,7 @@
       irAZoom(Math.min(ZOOM_MAX, Math.max(zoom * 2.2, zoom + 1.5)), b.left + b.width / 2 - r.left, b.top + b.height / 2 - r.top);
       return;
     }
-    const z = ev.target.closest('[data-pe-zoom]');
+    const z = blanco(ev).closest('[data-pe-zoom]');
     if (z) {
       /* Con un equipo elegido a la vista, se acerca hacia él y no hacia el centro. */
       const v = Number(z.dataset.peZoom);
@@ -1386,12 +1433,12 @@
       irAZoom(v === 0 ? 1 : zoom * (v > 0 ? 1.6 : 1 / 1.6), cx, cy);
       return;
     }
-    if (ev.target.closest('[data-pe-cerrar]')) { elegida = null; mat = null; for (const el of $raiz.querySelectorAll('[data-pe-mat]')) el.classList.remove('elegida'); marcarElegida(); mostrarHoja(); return; }
-    const capa = ev.target.closest('[data-pe-capa]');
+    if (blanco(ev).closest('[data-pe-cerrar]')) { elegida = null; mat = null; for (const el of $raiz.querySelectorAll('[data-pe-mat]')) el.classList.remove('elegida'); marcarElegida(); mostrarHoja(); return; }
+    const capa = blanco(ev).closest('[data-pe-capa]');
     if (capa) { const k = capa.dataset.peCapa; if (capasOff.has(k)) capasOff.delete(k); else capasOff.add(k); repintarQuieto(); return; }
-    const li = ev.target.closest('[data-pe-lista]');
+    const li = blanco(ev).closest('[data-pe-lista]');
     if (li) { lista = li.dataset.peLista; repintarQuieto(); return; }
-    const gs = ev.target.closest('[data-pe-guardar-serie]');
+    const gs = blanco(ev).closest('[data-pe-guardar-serie]');
     if (gs) {
       const inp = $raiz.querySelector('[data-pe-serie]');
       gs.disabled = true;
@@ -1400,7 +1447,7 @@
         .catch((e) => { gs.disabled = false; C.aviso(e.message); });
       return;
     }
-    const mm = ev.target.closest('[data-pe-mat]') || ev.target.closest('[data-pe-fila-mat]');
+    const mm = blanco(ev).closest('[data-pe-mat]') || blanco(ev).closest('[data-pe-fila-mat]');
     if (mm) {
       const id = mm.dataset.peMat || mm.dataset.peFilaMat;
       mat = id === mat ? null : id;
@@ -1412,7 +1459,7 @@
       if (mat && mm.dataset.peFilaMat) centrarMat(mat);
       return;
     }
-    const ver = ev.target.closest('[data-pe-ver]');
+    const ver = blanco(ev).closest('[data-pe-ver]');
     if (ver) {
       const id = ver.dataset.peVer;
       /* 13-nov (JC): «ver» el otro equipo del par abre también su ficha completa. */
@@ -1424,15 +1471,15 @@
       else centrar(ver.dataset.peVer);
       return;
     }
-    const inc = ev.target.closest('[data-pes-incidencia]');
+    const inc = blanco(ev).closest('[data-pes-incidencia]');
     if (inc) { abrirIncidencia(inc.dataset.pesIncidencia); return; }
-    const ac = ev.target.closest('[data-pe-accion]');
+    const ac = blanco(ev).closest('[data-pe-accion]');
     if (ac) { irAlEquipo(ac.dataset.peAccion); return; }
     /* 13-nov (JC, en reunión): desde el plano se llega a SU FICHA COMPLETA (checklist, toma de datos, estanqueidad, balanceo…).
        14-nov (JC: «al pulsar el equipo no resalta en el plano»): el primer toque lo RESALTA en el plano y abre abajo su hoja con
        lo imprescindible (estado de Cx, sala, conjunto, documentos con «Ver PDF», puesta en marcha y garantía, sus fichas) y el
        botón «Ficha completa»; tocarlo otra vez también la abre. Al volver, el plano sigue con su planta, zoom, sitio y resaltado. */
-    const mk = ev.target.closest('[data-pe-marca]') || ev.target.closest('[data-pe-fila]');
+    const mk = blanco(ev).closest('[data-pe-marca]') || blanco(ev).closest('[data-pe-fila]');
     if (mk) {
       const id = mk.dataset.peMarca || mk.dataset.peFila;
       if (typeof window.CX_COMMISSIONING_IR === 'function' && id === elegida) { irAlEquipo('equipo'); return; }

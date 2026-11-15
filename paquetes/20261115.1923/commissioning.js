@@ -619,6 +619,18 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     if (!ficha || ficha.equipo.id !== id) return;
     const fs = (fichasEq && fichasEq.fichas) || [];
     const buscar = (clases) => fs.findIndex((x) => clases.includes(x.clase) && !x.conservada && x.plantilla);
+    /* 15-nov (JC): desde la hoja del equipo en el plano, UNA hoja concreta («hoja:plantilla|clave», panelEquipoPlano.accionToma):
+       la de este equipo y, si no está, la guardada antes en otra unidad de su conjunto. */
+    const exacta = /^hoja:([^|]+)\|(.+)$/.exec(String(accion || ''));
+    if (exacta) {
+      const [, plantilla, clave] = exacta;
+      let i = fs.findIndex((x) => x.plantilla === plantilla && x.clave === clave && !x.conservada);
+      if (i < 0) i = fs.findIndex((x) => x.plantilla === plantilla && x.clave === clave);
+      if (i >= 0) { hojaDirecta = true; abrirHoja(i); return; }
+      C.aviso('Esta hoja ya no está en el equipo: se abre su ficha.');
+      pestanaEq = 'fichas'; pintarFicha(); window.scrollTo(0, 0);
+      return;
+    }
     if (accion === 'balanceo') {
       const i = hojaUnicaBalanceo();
       if (i >= 0) { balDirecto = true; hojaDirecta = true; abrirHoja(i); return; }
@@ -1313,9 +1325,13 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     /* Lo que se mide de su familia manda (15-oct-2026): un split no enseña un
        balanceo vacío y un fan coil de conductos sí lo enseña. Un plano que ya
        tenga bocas se enseña siempre. */
-    if (f.planos.length) return true;
-    if (f.medicion) return Boolean(f.medicion.plano);
     const fs = (fichasEq && fichasEq.fichas) || [];
+    /* 15-nov-2026 (JC): las unidades de VRF y split no se balancean: llevan la estanqueidad de su conjunto. */
+    if (fs.some((x) => x.clase === 'estanqRefrigerante') && !fs.some((x) => x.clase === 'balanceo')) return false;
+    if (f.planos.length) return true;
+    /* 15-nov-2026 (JC): todo equipo que mueve aire lleva SIEMPRE su balanceo de caudales; si su familia lo pide, sale. */
+    if (fs.some((x) => x.clase === 'balanceo')) return true;
+    if (f.medicion) return Boolean(f.medicion.plano);
     const req = f.checklist ? f.checklist.ensayoRequerido : null;
     return fs.some((x) => x.clase === 'balanceo') || f.planos.length > 0 || req === 'balanceo' || req === 'ambos';
   }
@@ -2443,9 +2459,10 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     return `<i class="fe-punto ${tono}" role="img" aria-label="${esc(n)}" title="${esc(n)}"></i>`;
   }
   /* Nombres de ficha como los dice el técnico (13-nov): ni «CHECKLIST_UTA v1» ni «ESTANQ. AGUA». */
-  const TITULO_FICHA = { checklist: 'Checklist de instalación', fichaPM: 'Puesta en marcha', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo' };
+  /* Los mismos nombres de tipo que la hoja del plano (panelEquipoPlano TIPO_HOJA, 15-nov, JC). */
+  const TITULO_FICHA = { checklist: 'Checklist', fichaPM: 'Ficha de PM (toma de datos)', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo de caudales', equilibrado: 'Equilibrado hidráulico' };
   const nombreFicha = (x) => TITULO_FICHA[x.clase] || x.nombre;
-  const CLASE_FICHA = { checklist: 'Checklist', fichaPM: 'Puesta en marcha', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo' };
+  const CLASE_FICHA = { checklist: 'Checklist', fichaPM: 'Puesta en marcha', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo', equilibrado: 'Equilibrado hidráulico' };
 
   /* Lo que falta de una ficha, dicho con nombre: en la de balanceo, qué filas
      de caudal no tienen medido (y si son el total de la UTA por circuito,
@@ -2551,7 +2568,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     /* El balanceo, una fila más: abre las bocas del plano y la hoja. */
     const filaBal = pestana === 'equipo' && ficha && tieneBalanceo(ficha) ? htmlFilaBalanceo(ficha) : '';
     /* Sin plano: qué se mide y dónde (un cassette, sus 3 velocidades; un split, la Tª de impulsión). */
-    const med = pestana === 'equipo' && ficha && !filaBal && ficha.medicion && ficha.medicion.titulo ? ficha.medicion : null;
+    const med = pestana === 'equipo' && ficha && ficha.medicion && ficha.medicion.titulo && !filaBal ? ficha.medicion : null;
     const notaMed = med ? `<p class="nota">Medición de aire: ${esc(med.texto.charAt(0).toLowerCase() + med.texto.slice(1))}.</p>` : '';
     const vacio = pestana === 'equipo' && !(fichasEq.fichas || []).length
       ? 'Este equipo no tiene familia asignada: se le pone en el ordenador (Puesta en marcha).' : 'Sin fichas.';
@@ -2564,7 +2581,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
         </div></li>` : `
         <li class="fila-ficha"><button class="fila-ios" data-cx="hoja" data-i="${i}">
           ${puntoFicha(x)}
-          <div class="fila-principal"><strong>${esc(nombreFicha(x))}</strong><span class="sub">${esc([x.motivo, textoMedidos(x), x.fotos ? `${x.fotos} foto${x.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · ') || estadoFichaTexto(x))}</span></div>
+          <div class="fila-principal"><strong>${esc(nombreFicha(x))}</strong><span class="sub">${esc([x.deConjunto ? `del conjunto ${x.deConjunto}` : null, x.clase === 'equilibrado' ? 'todo el sistema de clima, por plantas' : null, x.motivo, textoMedidos(x), x.fotos ? `${x.fotos} foto${x.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · ') || estadoFichaTexto(x))}</span></div>
           ${x.resultado && RESULTADO[x.resultado] ? `<span class="chip ${RESULTADO[x.resultado][0]}">${esc(RESULTADO[x.resultado][1])}</span>` : ''}
           <span class="fe-ir" aria-hidden="true">›</span>
         </button>${htmlVerHoja(x, i)}</li>`)).join('')}${filaBal}</ul>` : `<p class="vacio">${esc(vacio)}</p>`}
@@ -2620,7 +2637,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     return `
         <li class="fila-ficha"><button class="fila-ios" data-cx="ver-balanceo">
           ${puntoBalanceo(chip)}
-          <div class="fila-principal"><strong>Balanceo</strong><span class="sub">${esc([sub, extra].filter(Boolean).join(' · '))}</span></div>
+          <div class="fila-principal"><strong>${esc(TITULO_FICHA.balanceo)}</strong><span class="sub">${esc([sub, extra].filter(Boolean).join(' · '))}</span></div>
           <span class="fe-ir" aria-hidden="true">›</span>
         </button></li>`;
   }
@@ -2892,14 +2909,16 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     return p.desv !== null && p.desv !== undefined ? `<span class="desv ${cr}">${cifra(p.desv * 100, 1)} %${nr ? ` · ${esc(nr)}` : ''}</span>` : (nr ? `<span class="desv ${cr}">${esc(nr)}</span>` : '');
   }
 
-  function filaParametro(p, ed) {
+  function filaParametro(p, ed, sinColFab = false) {
     const dis = ed ? '' : 'disabled';
     const casilla = (k, n) => casillaParametro(p, k, n, dis);
     const desv = desvParametro(p);
     /* Caudal de aire: de dónde sale el medido (lo tecleado ahora es del equipo). */
     const tecleado = hoja.valores[p.codigo] && hoja.valores[p.codigo].m !== undefined;
     const origen = p.origen ? ` <span class="tenue">· ${esc(tecleado ? 'medido en equipo' : p.origen)}</span>` : '';
-    return `<div class="pp"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${origen}${desv}</span>${casilla('p', 'Proyecto')}${casilla('f', 'Fabricante')}${casilla('m', 'Medido')}</div>${notaFoto(p, ed, tecleado)}`;
+    /* El caudal de agua de un terminal (equilibrado hidráulico) no tiene dato de fabricante: proyecto frente a medido. */
+    const fab = sinColFab ? '' : p.sinFabricante ? `<input class="cifra" disabled aria-label="${esc(`${p.etiqueta} · Fabricante (no aplica)`)}" value="">` : casilla('f', 'Fabricante');
+    return `<div class="pp"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${origen}${desv}</span>${casilla('p', 'Proyecto')}${fab}${casilla('m', 'Medido')}</div>${notaFoto(p, ed, tecleado)}`;
   }
   /* LA Tª DEL TERMÓMETRO, TECLEADA POR EL TÉCNICO (5-nov-2026, JC eligió la D: el
      móvil no lee la pantalla de siete segmentos —Tesseract falla, docs/ocr-termometro-prueba-1105.md—).
@@ -2922,10 +2941,12 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   /* Una sección: banda fina con su título y las filas debajo. */
   function htmlSeccion(s, ed) {
     if (s.tipo === 'parametros') {
+      /* Sin ningún dato de fabricante en la sección (el caudal de agua de cada terminal): sin esa columna. */
+      const sinFab = s.puntos.length > 0 && s.puntos.every((p) => p.sinFabricante);
       return `<h3 class="banda">${esc(enFrase(s.titulo))}</h3>
-        <section class="hoja-tabla param">
-          <div class="pp cab"><span></span><span>Proyecto</span><span>Fabric.</span><span>Medido</span></div>
-          ${s.puntos.map((p) => filaParametro(p, ed)).join('')}
+        <section class="hoja-tabla param${sinFab ? ' sin-fab' : ''}">
+          <div class="pp cab"><span></span><span>Proyecto</span>${sinFab ? '' : '<span>Fabric.</span>'}<span>Medido</span></div>
+          ${s.puntos.map((p) => filaParametro(p, ed, sinFab)).join('')}
         </section>`;
     }
     const resp = s.puntos.every((p) => BOTONES_RESP[p.tipo]);
@@ -3033,11 +3054,14 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       else trozos.push({ secs: [s], html: htmlSeccion(s, ed) });
     }
     const pasos = [];
+    /* Equilibrado hidráulico (15-nov): un paso por PLANTA (caudales y válvulas juntos, «Planta P1»); no se mezcla con otra. */
+    const plantaDe = (t) => t.secs[0].planta || null;
     for (const t of trozos) {
       const n = t.secs.reduce((a, s) => a + s.puntos.length, 0);
       const ult = pasos[pasos.length - 1];
-      if (ult && !t.solo && !ult.solo && ult.n + n <= PUNTOS_POR_PASO) { ult.secs.push(...t.secs); ult.html += t.html; ult.n += n; }
-      else pasos.push({ ...t, secs: [...t.secs], n, titulo: t.secs[0].tipo === 'checklist' && t.secs[0].numero ? tituloSeccion(t.secs[0]) : (LADO_RE.exec(t.secs[0].titulo || '') || [null, t.secs[0].titulo])[1] });
+      const pl = plantaDe(t);
+      if (ult && !t.solo && !ult.solo && pl === ult.planta && (pl || ult.n + n <= PUNTOS_POR_PASO)) { ult.secs.push(...t.secs); ult.html += t.html; ult.n += n; }
+      else pasos.push({ ...t, secs: [...t.secs], n, planta: pl, titulo: pl ? (/^planta\b/i.test(pl) ? pl : `Planta ${pl}`) : t.secs[0].tipo === 'checklist' && t.secs[0].numero ? tituloSeccion(t.secs[0]) : (LADO_RE.exec(t.secs[0].titulo || '') || [null, t.secs[0].titulo])[1] });
     }
     return pasos;
   }

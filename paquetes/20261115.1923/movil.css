@@ -938,6 +938,7 @@ input.mal { box-shadow: 0 0 0 2px var(--mal-fondo) !important; }
 .pp { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 68px); gap: 6px; align-items: center; padding: 3px 10px; min-height: 40px; border-top: 1px solid var(--rejillaSuave); }
 .pp.cab { min-height: 0; padding: 4px 10px; border-top: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--acento-fuerte); background: none; border-bottom: 1.5px solid var(--acento); }
 .pp.cab span { text-align: right; }
+.sin-fab .pp { grid-template-columns: minmax(0, 1fr) repeat(2, 88px); }
 .pp .et { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px; }
 .pp input { padding: 4px 6px; }
 .pp input.medido { border-color: var(--acento); border-width: 1.5px; }
@@ -979,6 +980,7 @@ input.mal { box-shadow: 0 0 0 2px var(--mal-fondo) !important; }
   .lista-resp > .fd:nth-child(2) { border-top: 0; }
   .lista-resp > .fd:nth-child(odd) { border-right: 1px solid var(--rejillaSuave); }
   .pp { grid-template-columns: minmax(0, 1fr) repeat(3, 110px); }
+  .sin-fab .pp { grid-template-columns: minmax(0, 1fr) repeat(2, 110px); }
   .densa .barra-hoja { grid-template-columns: repeat(3, 1fr); }
   .tag-fijo strong { font-size: 19px; }
 }
