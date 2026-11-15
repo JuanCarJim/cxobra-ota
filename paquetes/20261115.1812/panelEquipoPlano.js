@@ -109,6 +109,37 @@
       } });
   }
 
+  /* 15-nov (JC: «al pulsar un equipo del mapa en Cx tienen que salir sus hojas: check list, toma de datos de puesta en marcha,
+     estanqueidad, balanceo…»): a qué pantalla lleva cada hoja en Vidaire Cx. La hoja de balanceo va a SU pantalla (bocas del
+     plano); las demás, a su ficha exacta por plantilla y clave («hoja:plantilla|clave»); sin plantilla, a la pestaña que toca. */
+  function accionToma(t) {
+    if (!t) return null;
+    if (t.clase === 'balanceo') return 'balanceo';
+    if (t.plantilla && t.clave) return `hoja:${t.plantilla}|${t.clave}`;
+    if (t.pestana === 'estanqueidad') return 'estanqueidad';
+    if (t.clase === 'checklist') return 'checklist';
+    return 'datos';
+  }
+  /** «hoja:plantilla|clave» → { plantilla, clave }; cualquier otra cosa → null. */
+  function leerAccionHoja(a) {
+    const m = /^hoja:([^|]+)\|(.+)$/.exec(String(a || ''));
+    return m ? { plantilla: m[1], clave: m[2] } : null;
+  }
+
+  /* 15-nov (JC: «tiene checklist, tiene ficha de PM (toma de datos), balanceo de caudales…»): cada hoja con el nombre de su
+     TIPO, siempre igual; el modelo de la plantilla («Ventilador-extractor») va debajo como detalle. */
+  const TIPO_HOJA = { checklist: 'Checklist', fichaPM: 'Ficha de PM (toma de datos)', balanceo: 'Balanceo de caudales', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad' };
+  const nombreHoja = (x) => (x && TIPO_HOJA[x.clase]) || (x && x.nombre) || 'Hoja';
+  function detalleHoja(x) {
+    if (!x || !TIPO_HOJA[x.clase] || !x.nombre) return '';
+    const n = String(x.nombre).trim();
+    const llano = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    /* Si el nombre solo repite el tipo («Checklist ventilador», «Hoja de balanceo»), se queda lo que añade. */
+    const sobra = { checklist: /^check\s*-?\s*list( de instalacion)?\s*/, balanceo: /^(hoja de )?balanceo( de caudales)?\s*/, estanqAgua: /^(prueba de )?estanqueidad\s*/, estanqRefrigerante: /^(prueba de )?estanqueidad\s*/, fichaPM: /^(toma de datos|ficha de pm|puesta en marcha)( de puesta en marcha)?\s*/ }[x.clase];
+    const resto = n.slice(llano(n).match(sobra) ? llano(n).match(sobra)[0].length : 0).trim();
+    return resto ? resto.charAt(0).toUpperCase() + resto.slice(1) : '';
+  }
+
   function tomasHtml(d) {
     const ts = d.pesada && Array.isArray(d.pesada.tomas) ? d.pesada.tomas : [];
     if (!ts.length) return '';
@@ -117,7 +148,8 @@
       const res = RESULTADO_BALANCEO[x.resultado];
       const cuenta = x.obligatorios ? `${x.rellenos} de ${x.obligatorios}${x.hoja ? ' bocas' : ''}` : '';
       const fotos = x.fotos ? `${cuenta ? ' · ' : ''}${x.fotos} foto${x.fotos === 1 ? '' : 's'}` : '';
-      return `<tr><th>${esc(x.nombre)}${x.unidadTag ? ` · ${esc(x.unidadTag)}` : ''}</th><td>${estado}${res ? ` · ${tono(res[0], res[1])}` : ''}${cuenta || fotos ? `<small>${esc(cuenta)}${esc(fotos)}</small>` : ''}</td><td class="pesAccion">${d.abrirTomas ? `<button type="button" class="botonMini" data-pes-toma="${i}">Abrir</button>` : ''}</td></tr>`;
+      const det = detalleHoja(x);
+      return `<tr><th>${esc(nombreHoja(x))}${x.unidadTag ? ` · ${esc(x.unidadTag)}` : ''}${det ? `<small>${esc(det)}</small>` : ''}</th><td>${estado}${res ? ` · ${tono(res[0], res[1])}` : ''}${cuenta || fotos ? `<small>${esc(cuenta)}${esc(fotos)}</small>` : ''}</td><td class="pesAccion">${d.abrirTomas ? `<button type="button" class="botonMini" data-pes-toma="${i}">Abrir</button>` : ''}</td></tr>`;
     }).join('');
     return bloque('Toma de datos', `<table class="pesTablaFicha conAccion"><tbody>${filas}</tbody></table>`, 'data-pes-tomas');
   }
@@ -184,5 +216,5 @@
       ${(d.notas || []).filter(Boolean).map((t) => `<p class="pesNota">${esc(t)}</p>`).join('')}`;
   }
 
-  return { html, incidenciasHtml, documentosHtml, documentosDe, filasDocumentos, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA };
+  return { html, incidenciasHtml, documentosHtml, tomasHtml, accionToma, leerAccionHoja, documentosDe, filasDocumentos, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA, TIPO_HOJA, nombreHoja, detalleHoja };
 });

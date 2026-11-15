@@ -619,6 +619,18 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     if (!ficha || ficha.equipo.id !== id) return;
     const fs = (fichasEq && fichasEq.fichas) || [];
     const buscar = (clases) => fs.findIndex((x) => clases.includes(x.clase) && !x.conservada && x.plantilla);
+    /* 15-nov (JC): desde la hoja del equipo en el plano, UNA hoja concreta («hoja:plantilla|clave», panelEquipoPlano.accionToma):
+       la de este equipo y, si no está, la guardada antes en otra unidad de su conjunto. */
+    const exacta = /^hoja:([^|]+)\|(.+)$/.exec(String(accion || ''));
+    if (exacta) {
+      const [, plantilla, clave] = exacta;
+      let i = fs.findIndex((x) => x.plantilla === plantilla && x.clave === clave && !x.conservada);
+      if (i < 0) i = fs.findIndex((x) => x.plantilla === plantilla && x.clave === clave);
+      if (i >= 0) { hojaDirecta = true; abrirHoja(i); return; }
+      C.aviso('Esta hoja ya no está en el equipo: se abre su ficha.');
+      pestanaEq = 'fichas'; pintarFicha(); window.scrollTo(0, 0);
+      return;
+    }
     if (accion === 'balanceo') {
       const i = hojaUnicaBalanceo();
       if (i >= 0) { balDirecto = true; hojaDirecta = true; abrirHoja(i); return; }
@@ -1314,8 +1326,10 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
        balanceo vacío y un fan coil de conductos sí lo enseña. Un plano que ya
        tenga bocas se enseña siempre. */
     if (f.planos.length) return true;
-    if (f.medicion) return Boolean(f.medicion.plano);
+    /* 15-nov-2026 (JC): todo equipo que mueve aire lleva SIEMPRE su balanceo de caudales; si su familia lo pide, sale. */
     const fs = (fichasEq && fichasEq.fichas) || [];
+    if (fs.some((x) => x.clase === 'balanceo')) return true;
+    if (f.medicion) return Boolean(f.medicion.plano);
     const req = f.checklist ? f.checklist.ensayoRequerido : null;
     return fs.some((x) => x.clase === 'balanceo') || f.planos.length > 0 || req === 'balanceo' || req === 'ambos';
   }
@@ -2443,7 +2457,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     return `<i class="fe-punto ${tono}" role="img" aria-label="${esc(n)}" title="${esc(n)}"></i>`;
   }
   /* Nombres de ficha como los dice el técnico (13-nov): ni «CHECKLIST_UTA v1» ni «ESTANQ. AGUA». */
-  const TITULO_FICHA = { checklist: 'Checklist de instalación', fichaPM: 'Puesta en marcha', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo' };
+  /* Los mismos nombres de tipo que la hoja del plano (panelEquipoPlano TIPO_HOJA, 15-nov, JC). */
+  const TITULO_FICHA = { checklist: 'Checklist', fichaPM: 'Ficha de PM (toma de datos)', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo de caudales' };
   const nombreFicha = (x) => TITULO_FICHA[x.clase] || x.nombre;
   const CLASE_FICHA = { checklist: 'Checklist', fichaPM: 'Puesta en marcha', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo' };
 
@@ -2551,7 +2566,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     /* El balanceo, una fila más: abre las bocas del plano y la hoja. */
     const filaBal = pestana === 'equipo' && ficha && tieneBalanceo(ficha) ? htmlFilaBalanceo(ficha) : '';
     /* Sin plano: qué se mide y dónde (un cassette, sus 3 velocidades; un split, la Tª de impulsión). */
-    const med = pestana === 'equipo' && ficha && !filaBal && ficha.medicion && ficha.medicion.titulo ? ficha.medicion : null;
+    const med = pestana === 'equipo' && ficha && ficha.medicion && ficha.medicion.titulo && !filaBal ? ficha.medicion : null;
     const notaMed = med ? `<p class="nota">Medición de aire: ${esc(med.texto.charAt(0).toLowerCase() + med.texto.slice(1))}.</p>` : '';
     const vacio = pestana === 'equipo' && !(fichasEq.fichas || []).length
       ? 'Este equipo no tiene familia asignada: se le pone en el ordenador (Puesta en marcha).' : 'Sin fichas.';
@@ -2620,7 +2635,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     return `
         <li class="fila-ficha"><button class="fila-ios" data-cx="ver-balanceo">
           ${puntoBalanceo(chip)}
-          <div class="fila-principal"><strong>Balanceo</strong><span class="sub">${esc([sub, extra].filter(Boolean).join(' · '))}</span></div>
+          <div class="fila-principal"><strong>${esc(TITULO_FICHA.balanceo)}</strong><span class="sub">${esc([sub, extra].filter(Boolean).join(' · '))}</span></div>
           <span class="fe-ir" aria-hidden="true">›</span>
         </button></li>`;
   }

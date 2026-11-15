@@ -7071,6 +7071,12 @@ globalThis.CX_VARIANTE="cxobra";
         return contratoEnUso;
       }
       var contratoFijado = () => contratoEnUso;
+      var fueraDeLicencia = /* @__PURE__ */ new Set();
+      function fijarFueraDeLicencia(lista) {
+        fueraDeLicencia = new Set(Array.isArray(lista) ? lista : []);
+        return [...fueraDeLicencia];
+      }
+      var conLicenciaObra = (m) => !fueraDeLicencia.has(m);
       var TODO = ["ver", "crear", "editar", "borrar", "exportar"];
       var SOLO_VER = ["ver"];
       var ROLES = [
@@ -8584,7 +8590,7 @@ globalThis.CX_VARIANTE="cxobra";
       function modulosVisibles(idRol, contrato = contratoEnUso) {
         const r = porId.get(idRol);
         if (!r) return [];
-        const ve = (m) => (r.permisos[m] || []).includes("ver") && contratoPermite(contrato, m);
+        const ve = (m) => (r.permisos[m] || []).includes("ver") && contratoPermite(contrato, m) && conLicenciaObra(m);
         return Object.keys(MODULOS).filter((m) => !SIN_PANTALLA.has(m)).filter((m) => ve(m) && (!PANTALLA_NECESITA[m] || ve(PANTALLA_NECESITA[m])));
       }
       function campoVetado(idRol, campo) {
@@ -8865,12 +8871,17 @@ globalThis.CX_VARIANTE="cxobra";
       }
       function barraDeRol(idRol, contrato = contratoEnUso) {
         const visibles = modulosVisibles(idRol, contrato);
+        const fuera = fueraDeLicencia;
+        fueraDeLicencia = /* @__PURE__ */ new Set();
+        const visiblesPorRol = modulosVisibles(idRol, contrato);
+        fueraDeLicencia = fuera;
         const ve = (m) => {
           const a = ATAJOS_OBRA[m];
           if (!contratoPermite(contrato, m)) return false;
+          if (!conLicenciaObra(m)) return false;
           if (a && a.solo === "veAhorroApp" && !veAhorroApp(idRol)) return false;
-          if (a && a.tambienCon && (visibles.includes(a.tambienCon) || ((porId.get(idRol) || { permisos: {} }).permisos[a.tambienCon] || []).includes("ver"))) return true;
-          return visibles.includes(a ? a.modulo : m);
+          if (a && a.tambienCon && (visiblesPorRol.includes(a.tambienCon) || ((porId.get(idRol) || { permisos: {} }).permisos[a.tambienCon] || []).includes("ver"))) return true;
+          return (a ? visiblesPorRol : visibles).includes(a ? a.modulo : m);
         };
         const b = BARRAS_POR_ROL[idRol] || { trabajo: [], consulta: "*" };
         const trabajo = b.trabajo.filter(ve);
@@ -8890,8 +8901,8 @@ globalThis.CX_VARIANTE="cxobra";
           })).filter((s) => s.modulos.length);
           const enSecciones = new Set(secciones.flatMap((s) => s.modulos));
           const cubierto = (m) => (CUBIERTO_POR_ATAJOS[m] || []).some((a) => enSecciones.has(a));
-          const fuera = [...FUERA_DE_OBRA, ...b.trabajo, ...b.consulta === "*" ? [] : b.consulta].filter((m, i, l) => l.indexOf(m) === i && ve(m) && !enSecciones.has(m) && !cubierto(m));
-          return { trabajo: [], consulta: fuera, secciones };
+          const fuera2 = [...FUERA_DE_OBRA, ...b.trabajo, ...b.consulta === "*" ? [] : b.consulta].filter((m, i, l) => l.indexOf(m) === i && ve(m) && !enSecciones.has(m) && !cubierto(m));
+          return { trabajo: [], consulta: fuera2, secciones };
         }
         if (!b.empresa) return { trabajo, consulta, ...b.nombreTrabajo ? { nombreTrabajo: b.nombreTrabajo } : {} };
         const departamentos = Object.entries(DEPARTAMENTOS_EN_BARRA).map(([id, mods]) => ({
@@ -9101,6 +9112,7 @@ globalThis.CX_VARIANTE="cxobra";
         contratoPermite,
         fijarContrato,
         contratoFijado,
+        fijarFueraDeLicencia,
         rol,
         puede,
         planifica,
@@ -10833,7 +10845,7 @@ globalThis.CX_VARIANTE="cxobra";
       init_define_CX_LICENCIAS();
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261115.1500" : "0";
+      var VERSION = true ? "20261115.1812" : "0";
       var URL_OTA = "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main" ? "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -15253,8 +15265,8 @@ globalThis.CX_VARIANTE="cxobra";
   var require_sync_publico = __commonJS({
     "cxobra/generado/sync-publico.json"(exports, module) {
       module.exports = {
-        url: "",
-        publishableKey: ""
+        url: "https://dgwqczsbzwblbhbhqkjd.supabase.co",
+        publishableKey: "sb_publishable_yi72T-CIiextCBGIEynNlQ_ChIlMNXB"
       };
     }
   });
@@ -20397,6 +20409,127 @@ globalThis.CX_VARIANTE="cxobra";
             ]
           ]
         ]),
+        /* CRAC, GRUPOS DE PRESIÓN Y BOMBAS (15-nov-2026, JC: «TODOS LOS EQUIPOS TIENEN QUE TENER AHÍ PARA HACER EL CHECKLIST»).
+           Los tenía Vidaire Obras en su libro (CHECKLIST CRAC, CHECKLIST BOMBAS) y se perdieron al pasar el Cx al Gestor. */
+        checklist("CHECKLIST_CRAC", "Checklist CRAC", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 CRAC (CLIMATIZACI\xD3N DE PRECISI\xD3N)", [
+          ["02", "Verificaciones f\xEDsicas", [
+            "02.01 La unidad interior y la condensadora est\xE1n libres de da\xF1os",
+            "02.02 Todos los componentes presentes y en orden",
+            "02.03 Manual de instalaci\xF3n y encendido provisto",
+            "02.04 Placa de caracter\xEDsticas correctamente colocada",
+            "02.05 Filtros instalados, limpios y de la clase de proyecto"
+          ]],
+          ["03", "Ajuste al proyecto o memoria t\xE9cnica", [
+            "03.01 Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica",
+            "03.02 La ubicaci\xF3n de los equipos instalados se corresponde con el Proyecto o Memoria T\xE9cnica",
+            "03.03 N\xBA de unidades y reserva (N+1) seg\xFAn proyecto"
+          ]],
+          ["04", "Instalaci\xF3n del equipo", [
+            "04.01 Unidad interior apoyada en bancada o soporte de suelo t\xE9cnico, nivelada",
+            "04.02 Condensadora apoyada, con antivibratorios y nivelada",
+            "04.03 Espacio libre de mantenimiento delante y detr\xE1s de las unidades",
+            "04.04 Plenum / rejillas de suelo t\xE9cnico colocados seg\xFAn proyecto, sin bypass de aire",
+            "04.05 Unidades interior y exterior etiquetadas y emparejadas"
+          ]],
+          ["05", "Circuito frigor\xEDfico y desag\xFCes", [
+            "05.01 L\xEDnea frigor\xEDfica con el di\xE1metro y recorrido de proyecto, soportada y aislada",
+            "05.02 Prueba de estanqueidad y vac\xEDo del circuito realizadas (ver hoja de estanqueidad)",
+            "05.03 Carga de refrigerante adicional anotada en la unidad",
+            "05.04 Desag\xFCe de condensados con sif\xF3n y pendiente; funciona",
+            "05.05 Alimentaci\xF3n de agua al humidificador conectada (si lleva)",
+            "05.06 Detector de fuga de agua bajo la unidad instalado"
+          ]],
+          ["06", "El\xE9ctrico", B06_ELECTRICO("06")],
+          ["07", "Controles - instalaci\xF3n", [
+            "07.01 Sondas de temperatura y humedad de sala colocadas",
+            "07.02 Cableado de control entre unidad interior y condensadora",
+            "07.03 Red de rotaci\xF3n / reserva entre unidades (N+1) cableada",
+            "07.04 Alarmas y estados integrados en BMS"
+          ]],
+          ["08", "Controles - puesta en marcha", [
+            "08.01 Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos",
+            "08.02 Consignas de temperatura y humedad ajustadas seg\xFAn proyecto",
+            "08.03 Rotaci\xF3n y entrada de la reserva al fallar una unidad verificadas",
+            "08.04 Rearranque autom\xE1tico tras corte de tensi\xF3n verificado",
+            "08.05 Alarmas probadas (alta temperatura, fuga de agua, filtro sucio, fallo) y recibidas en BMS",
+            "08.06 El sistema funciona sin ruido ni vibraci\xF3n anormal",
+            `08.07 ${INFORME_FABRICANTE}`
+          ]],
+          [
+            "09",
+            "Mantenimiento",
+            [
+              "09.01 Espacio libre adecuado alrededor de la unidad para su servicio",
+              "09.02 Todos los componentes son accesibles para mantenimiento",
+              "09.03 Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad",
+              `09.04 ${MANTENIMIENTO_DISPOSITIVOS}`
+            ]
+          ]
+        ]),
+        checklist("CHECKLIST_BOMBAS", "Checklist bombas", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 BOMBAS Y GRUPOS DE PRESI\xD3N", [
+          ["02", "Verificaciones f\xEDsicas", [
+            "02.01 La unidad est\xE1 libre de da\xF1os",
+            "02.02 Todos los componentes presentes y en orden (bombas, cuadro, calder\xEDn, presostatos, man\xF3metros)",
+            "02.03 Las aperturas de la l\xEDnea de agua est\xE1n selladas hasta su conexi\xF3n",
+            "02.04 Manual de instalaci\xF3n y encendido provisto",
+            "02.05 Placa de caracter\xEDsticas correctamente colocada"
+          ]],
+          ["03", "Ajuste al proyecto o memoria t\xE9cnica", [
+            "03.01 Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica (caudal, altura, n\xBA de bombas)",
+            "03.02 La ubicaci\xF3n de los equipos instalados se corresponde con el Proyecto o Memoria T\xE9cnica"
+          ]],
+          ["04", "Instalaci\xF3n del equipo", [
+            "04.01 Unidad perfectamente apoyada sobre bancada usando el tama\xF1o adecuado de anclajes de montaje",
+            "04.02 Antivibratorios correctamente instalados y unidad convenientemente nivelada",
+            "04.03 Bomba y motor alineados (en bombas con acoplamiento)",
+            "04.04 Unidad etiquetada y f\xE1cil de identificar, con el circuito al que sirve",
+            "04.05 La unidad se puede retirar del edificio"
+          ]],
+          ["05", "Conexi\xF3n hidr\xE1ulica", [
+            "05.01 Todos los componentes de las tuber\xEDas han sido instalados",
+            "05.02 Los soportes de las tuber\xEDas est\xE1n como se requieren y no cargan peso sobre la bomba",
+            "05.03 Las tuber\xEDas est\xE1n conectadas a la bomba con manguitos antivibratorios",
+            "05.04 Existen v\xE1lvulas de corte en aspiraci\xF3n e impulsi\xF3n para la independencia de cada bomba",
+            "05.05 Existe v\xE1lvula de retenci\xF3n en la impulsi\xF3n de cada bomba",
+            "05.06 Filtro en la aspiraci\xF3n instalado y limpio",
+            "05.07 Existen man\xF3metros o tomas de presi\xF3n en aspiraci\xF3n e impulsi\xF3n",
+            "05.08 Tuber\xEDas limpias, sin fugas y aisladas seg\xFAn las especificaciones de Proyecto",
+            "05.09 Vaso de expansi\xF3n o calder\xEDn instalado y precargado a la presi\xF3n de Proyecto",
+            "05.10 Instalaci\xF3n llena y purgada; la bomba no trabaja en seco",
+            "05.11 Etiquetas de v\xE1lvulas y sentido del flujo fijadas"
+          ]],
+          ["06", "El\xE9ctrico", [
+            "06.01 Desconexi\xF3n local instalada en un lugar accesible",
+            "06.02 Rotaci\xF3n del motor de la bomba en la direcci\xF3n correcta",
+            "06.03 Todas las conexiones el\xE9ctricas bien fijadas",
+            "06.04 Todas las conexiones el\xE9ctricas est\xE1n conectadas a tierra",
+            "06.05 Las protecciones del cuadro se corresponden con la intensidad de consumo"
+          ]],
+          ["07", "Controles - instalaci\xF3n", [
+            "07.01 Variador de frecuencia instalado, conectado y configurado (si lo hay)",
+            "07.02 Transductor o presostato de presi\xF3n instalado, conectado y funciona",
+            "07.03 Protecci\xF3n contra marcha en seco (presostato de m\xEDnima, nivel o interruptor de flujo) instalada y funciona",
+            "07.04 El cableado de control y la se\xF1al al sistema de gesti\xF3n (marcha, aver\xEDa, alarma) est\xE1n conectados"
+          ]],
+          ["08", "Controles - puesta en marcha", [
+            "08.01 Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos",
+            "08.02 Presi\xF3n de consigna, de arranque y de paro ajustadas seg\xFAn el Proyecto",
+            "08.03 Alternancia de bombas y entrada de la reserva verificadas",
+            "08.04 El sistema se enciende sin ning\xFAn ruido, vibraci\xF3n ni cavitaci\xF3n anormal",
+            "08.05 Verificaci\xF3n del arranque y paro por sistema de control",
+            `08.06 ${INFORME_FABRICANTE}`
+          ]],
+          [
+            "09",
+            "Mantenimiento",
+            [
+              "09.01 Espacio libre adecuado alrededor de la unidad para su servicio",
+              "09.02 Todos los componentes son accesibles para mantenimiento",
+              "09.03 Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad",
+              `09.04 ${MANTENIMIENTO_DISPOSITIVOS}`
+            ]
+          ]
+        ]),
         checklist(
           "CHECKLIST_CONDUCTOS",
           "Checklist red de conductos",
@@ -20543,8 +20676,9 @@ globalThis.CX_VARIANTE="cxobra";
           patron: /FAN\s*-?\s*COIL|CASSETTE\s*\(?\s*(DE\s+)?AGUA/i,
           fichas: ["FAN_COIL_AGUA", "CASSETTE_AGUA"],
           fichaPorDefecto: "FAN_COIL_AGUA",
-          anexos: [{ plantilla: "CHECKLIST_FANCOIL" }, { plantilla: "ESTANQ_AGUA", enlace: "circuito" }],
-          requiereBalanceo: false,
+          /* 15-nov (JC): todo equipo que mueve aire lleva su balanceo de caudales. */
+          anexos: [{ plantilla: "CHECKLIST_FANCOIL" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }, { plantilla: "ESTANQ_AGUA", enlace: "circuito" }],
+          requiereBalanceo: true,
           requiereEstanqueidad: "agua",
           medicion: "unidad"
         },
@@ -20584,7 +20718,7 @@ globalThis.CX_VARIANTE="cxobra";
           patron: /\bCRACS?\b|PRECISI[OÓ]N/i,
           fichas: ["CRAC_UD_INTERIOR", "CRAC_UD_EXTERIOR"],
           fichaPorDefecto: "CRAC_UD_INTERIOR",
-          anexos: [{ plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante", soloSi: "EXTERIOR" }],
+          anexos: [{ plantilla: "CHECKLIST_CRAC" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante", soloSi: "EXTERIOR" }],
           requiereBalanceo: false,
           requiereEstanqueidad: "refrigerante",
           medicion: "ninguna"
@@ -20595,7 +20729,7 @@ globalThis.CX_VARIANTE="cxobra";
           patron: /GRUPO\s+(DE\s+)?(PRESI[OÓ]N|BOMBEO)|\bGP\b/i,
           fichas: ["GRUPO_DE_BOMBEO"],
           fichaPorDefecto: "GRUPO_DE_BOMBEO",
-          anexos: [],
+          anexos: [{ plantilla: "CHECKLIST_BOMBAS" }],
           requiereBalanceo: false,
           requiereEstanqueidad: "no",
           medicion: "ninguna"
@@ -20607,7 +20741,7 @@ globalThis.CX_VARIANTE="cxobra";
           fichas: ["GRUPO_DE_BOMBEO"],
           fichaPorDefecto: "GRUPO_DE_BOMBEO",
           /* Las bombas no se balancean: llevan prueba de estanqueidad de su circuito (JC, 28-oct). */
-          anexos: [{ plantilla: "ESTANQ_AGUA", enlace: "circuito" }],
+          anexos: [{ plantilla: "CHECKLIST_BOMBAS" }, { plantilla: "ESTANQ_AGUA", enlace: "circuito" }],
           requiereBalanceo: false,
           requiereEstanqueidad: "agua",
           medicion: "ninguna"
@@ -20618,8 +20752,8 @@ globalThis.CX_VARIANTE="cxobra";
           patron: /PARKING|APARCAMIENTO|GARAJE/i,
           fichas: ["VENTILADOR_AXIAL", "VENTILADOR_EXTRACTOR", "VENT_COMPLETO"],
           fichaPorDefecto: "VENTILADOR_AXIAL",
-          anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
-          requiereBalanceo: false,
+          anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
+          requiereBalanceo: true,
           requiereEstanqueidad: "no",
           medicion: "extraccion"
         },
@@ -20629,8 +20763,8 @@ globalThis.CX_VARIANTE="cxobra";
           patron: /PRESURIZACI[OÓ]N|PRESSURI[SZ]ATION|SOBREPRESI[OÓ]N/i,
           fichas: ["VENTILADOR_AXIAL", "VENTILADOR_EXTRACTOR", "VENT_COMPLETO"],
           fichaPorDefecto: "VENTILADOR_AXIAL",
-          anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
-          requiereBalanceo: false,
+          anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
+          requiereBalanceo: true,
           requiereEstanqueidad: "no",
           medicion: "extraccion",
           tituloMedicion: "Caudales de presurizaci\xF3n"
@@ -20638,11 +20772,11 @@ globalThis.CX_VARIANTE="cxobra";
         {
           codigo: "VENTILACION",
           nombre: "Ventilaci\xF3n / extracci\xF3n",
-          patron: /VENTILACI[OÓ]N|VENTILADOR|EXTRACTOR|EXTRACCI[OÓ]N|S&P/i,
+          patron: /VENTILACI[OÓ]N|VENTILADOR|EXTRACTOR|EXTRACCI[OÓ]N|S&P|SOLER\s*&\s*PALAU/i,
           fichas: ["VENTILADOR_EXTRACTOR", "VENT_COMPLETO", "VENTILADOR_AXIAL"],
           fichaPorDefecto: "VENTILADOR_EXTRACTOR",
-          anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
-          requiereBalanceo: false,
+          anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
+          requiereBalanceo: true,
           requiereEstanqueidad: "no",
           medicion: "extraccion"
         }
@@ -20796,9 +20930,9 @@ globalThis.CX_VARIANTE="cxobra";
         console.log(
           `  ficha_pm ${porClase.ficha_pm || 0} \xB7 checklist ${porClase.checklist || 0} \xB7 balanceo ${porClase.balanceo || 0} \xB7 estanqueidad ${estanq} (agua ${porClase.estanqueidad_agua || 0}, refrigerante ${porClase.estanqueidad_refrigerante || 0})`
         );
-        if (PLANTILLAS.length !== 77) fallo(`Se esperaban 77 plantillas y hay ${PLANTILLAS.length}`);
+        if (PLANTILLAS.length !== 79) fallo(`Se esperaban 79 plantillas y hay ${PLANTILLAS.length}`);
         if (porClase.ficha_pm !== 43) fallo("Se esperaban 43 fichas PM (20 de clima, 8 de electricidad y 15 de sistemas)");
-        if (porClase.checklist !== 31) fallo("Se esperaban 31 checklists");
+        if (porClase.checklist !== 33) fallo("Se esperaban 33 checklists (con CRAC y bombas, 15-nov)");
         if (porClase.balanceo !== 1) fallo("Se esperaba 1 balanceo");
         if (estanq !== 2) fallo("Se esperaban 2 certificados de estanqueidad");
         for (const pl of PLANTILLAS) {
@@ -20844,6 +20978,8 @@ globalThis.CX_VARIANTE="cxobra";
           CHECKLIST_BOMBA_CALOR: 36,
           CHECKLIST_RECUPERADOR: 34,
           CHECKLIST_VENTILADOR: 31,
+          CHECKLIST_CRAC: 38,
+          CHECKLIST_BOMBAS: 42,
           CHECKLIST_CONDUCTOS: 19,
           CHECKLIST_DIFUSORES: 9,
           CHECKLIST_CUADRO_BT: 33,
@@ -22231,7 +22367,17 @@ Familias: ${FAMILIAS.length}`);
               }
             }
           }
-          return mejor || familiaPorPistas(equipo, lista);
+          return mejor || familiaPorPistas(equipo, lista) || familiaPorPatron(equipo, lista);
+        }
+        function familiaPorPatron(equipo, lista) {
+          const campos = [equipo.familia, equipo.grupo, equipo.denominacion, equipo.tipoPM, equipo.instalacion, equipo.tag];
+          for (const campo of campos) {
+            const texto = sinAcentosFx(campo).replace(/_/g, " ").trim();
+            if (!texto) continue;
+            const f = lista.find((x) => x.patron instanceof RegExp && x.patron.test(texto));
+            if (f) return f;
+          }
+          return null;
         }
         const PISTAS_CACHE = /* @__PURE__ */ new Map();
         function expresionPistas(pistas) {
@@ -22288,6 +22434,7 @@ Familias: ${FAMILIAS.length}`);
             }
           }
           if (!mejor && familia.plantillas.includes("UTA")) return "UTA";
+          if (!mejor && familia.fichaPorDefecto && familia.plantillas.includes(familia.fichaPorDefecto)) return familia.fichaPorDefecto;
           return mejor;
         }
         function requeridas(equipo = {}, familia, plantillas, { unidades = null, buscar = null } = {}) {
@@ -24486,7 +24633,21 @@ ${obsO}` : obsO).slice(0, 4e3);
         WILO_PUMPS: "Bombas",
         SP_VENTILACION: "Ventiladores",
         SP_PARKING: "Ventiladores",
-        SP_PRESURIZACION: "Ventiladores"
+        SP_PRESURIZACION: "Ventiladores",
+        /* Las del catálogo genérico por tipo del Gestor (15-nov): el mismo nombre de carpeta que las del libro. */
+        UTA: "UTAs",
+        ROOFTOP: "Rooftops",
+        ENFRIADORA: "Enfriadoras / bombas de calor",
+        FANCOIL: "Fan coils",
+        RECUPERADOR: "Recuperadores",
+        VRF: "VRF",
+        SPLIT: "Splits",
+        CRAC: "CRAC",
+        GRUPO_PRESION: "Grupos de presi\xF3n",
+        BOMBAS: "Bombas",
+        VENTILACION: "Ventiladores",
+        VENTILACION_PARKING: "Ventiladores",
+        PRESURIZACION: "Ventiladores"
       };
       function tipologiaDeEquipo(f) {
         const fam = String(f && f.familia || "").trim();
@@ -28329,6 +28490,22 @@ ${obsO}` : obsO).slice(0, 4e3);
          * que el técnico ha elegido a mano para su obra (sin fila: las deduce el
          * presupuesto).
          */
+        /*
+         * LA FOTO DE LAS LICENCIAS DE LA EMPRESA (electron/licencias.js › escribirFoto): lo
+         * contratado en la nube de Vidaire (licencias_modulos), su caducidad y lo que el jefe ha
+         * apagado (licencias_apagadas), en JSON. Una sola fila, id 'empresa'. La escribe el
+         * escritorio al leer la nube; viaja a la web y al iPad de obra por el espejo
+         * (espejoPersona › COMUNES; la web no la puede escribir) y allí la lee web/licenciasWeb.js
+         * con la misma regla que el escritorio.
+         */
+        `CREATE TABLE IF NOT EXISTS licenciasEmpresa (
+     id              TEXT PRIMARY KEY,
+     modulos         TEXT NOT NULL,
+     apagadas        TEXT NOT NULL DEFAULT '[]',
+     caducan         TEXT,
+     leidaEn         TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL
+   )`,
         `CREATE TABLE IF NOT EXISTS normativaBoeDias (
      fecha           TEXT PRIMARY KEY,
      estado          TEXT NOT NULL CHECK (estado IN ('leido','sinBoe')),
@@ -63696,6 +63873,1025 @@ ${subtitulo}`, c[5]] : c.slice())]);
     }
   });
 
+  // shared/barraLateral.js
+  var require_barraLateral = __commonJS({
+    "shared/barraLateral.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const MAX_HOJAS = 7;
+        const ARBOL_GESTOR = [
+          /* Remate 15-nov (JC, opción mixta): arriba la empresa; luego la base de la obra en el orden del 13-nov
+             (lo que define la obra y después el trabajo de presupuesto a entrega); debajo, «Módulos», uno por licencia. */
+          { id: "empresa", titulo: "Empresa", secciones: [
+            { id: "empresa", titulo: "Todas las obras", icono: "\u{1F3E2}", color: "var(--area-contratacion)", hojas: [
+              { destino: "cartera", icono: "\u{1F3E2}", nombre: "Todas las obras", desc: "La empresa entera: d\xF3nde est\xE1 el problema", vista: true },
+              { destino: "proyectos", icono: "\u{1F3D7}\uFE0F", nombre: "Proyectos", desc: "Las obras de cada empresa" }
+            ] },
+            /* Cuentas (#21): las estadísticas comerciales; facturación, forecast y gastos vendrán aquí. */
+            { id: "cuentas", titulo: "Cuentas", icono: "\u{1F4C8}", color: "var(--area-costes)", hojas: [
+              { destino: "estadisticas", icono: "\u{1F4C8}", nombre: "Estad\xEDsticas", desc: "Ofertas presentadas, adjudicadas y perdidas, tasa de \xE9xito y dinero ofertado contra adjudicado, por cliente, disciplina y periodo", vista: true }
+            ] },
+            { id: "comercial", titulo: "Comercial", icono: "\u{1F4E3}", color: "var(--area-planificacion)", hojas: [
+              { destino: "clientes", icono: "\u{1F3E2}", nombre: "Clientes", desc: "Las fichas de cliente de la empresa: contacto, condiciones de pago e idioma" }
+            ] }
+          ] },
+          { id: "obra", titulo: "La obra", secciones: [
+            /* Una sola puerta al alcance: «Ficha de alcance» (lo contratado) va en Compras. */
+            { id: "proyecto", titulo: "Proyecto", icono: "\u{1F4DC}", color: "var(--area-costes)", hojas: [
+              { destino: "alcanceProyecto", icono: "\u{1F4DC}", nombre: "Alcance del proyecto", desc: "Identificaci\xF3n, equipo, plazos, econ\xF3micas y condicionantes", vista: true },
+              { destino: "documentacionProyecto", icono: "\u{1F4DA}", nombre: "Documentaci\xF3n del proyecto", desc: "La biblioteca de modelos del proyecto: lo que pide el presupuesto, por tipo, con su estado y su PDF; y el buscador de toda la app", vista: true },
+              { destino: "planos", icono: "\u{1F5C2}\uFE0F", nombre: "Planos de obra", desc: "Los PDF: subirlos, verlos y guardarlos dentro del proyecto", vista: true },
+              { destino: "personasObra", icono: "\u{1F9D1}\u200D\u{1F4BC}", nombre: "Personas de la obra", desc: "Propiedad, direcci\xF3n facultativa, encargados\u2026 con sus tel\xE9fonos", vista: true },
+              { destino: "organigrama", icono: "\u{1F9ED}", nombre: "Organigrama", desc: "Qui\xE9n manda sobre qui\xE9n en la obra, montado solo con la ficha del proyecto y las Personas de la obra", vista: true },
+              { destino: "intervinientes", icono: "\u{1F4C7}", nombre: "Ficha de personas", desc: "Alta y edici\xF3n de las personas de la obra" }
+            ] },
+            /* Conflictos y Reclamaciones (#1 y #3) vendrán aquí en la ola 4. */
+            { id: "contrato", titulo: "Contrato y cliente", icono: "\u{1F500}", color: "var(--area-costes)", hojas: [
+              { destino: "cambios", icono: "\u{1F500}", nombre: "Cambios de proyecto", desc: "Circuito, importe y efecto en el contrato", vista: true },
+              { destino: "variaciones", icono: "\u{1F4DD}", nombre: "Registro de cambios", desc: "Alta y edici\xF3n de cada cambio" },
+              /* Partes de trabajo (ola 2, #7), gemela de Vidaire Obras: renderer/partesTrabajoPantalla.js. */
+              { destino: "partesTrabajoPantalla", icono: "\u{1F6E0}\uFE0F", nombre: "Partes de trabajo", desc: "Un trabajo fuera de contrato: qui\xE9n lo pide, horas y material, validaci\xF3n, firma y a qui\xE9n se repercute", vista: true },
+              { destino: "partesTrabajo", icono: "\u{1F6E0}\uFE0F", nombre: "Partes de trabajo (registro)", desc: "Los partes, en bruto" },
+              { destino: "parteTrabajoLineas", icono: "\u{1F9FE}", nombre: "L\xEDneas de partes de trabajo", desc: "Horas, material y otros de cada parte" },
+              { destino: "variacionLineas", icono: "\u{1F9FE}", nombre: "L\xEDneas de cambio", desc: "El detalle de cada cambio de proyecto" },
+              { destino: "ordenesCambio", icono: "\u{1F4DC}", nombre: "\xD3rdenes de cambio", desc: "Lo que el cliente autoriza por escrito" }
+            ] },
+            { id: "seguridad", titulo: "Seguridad", icono: "\u26A0\uFE0F", color: "var(--area-costes)", hojas: [
+              { destino: "perdidas", icono: "\u26A0\uFE0F", nombre: "Robos y p\xE9rdidas", desc: "Material perdido y su coste" }
+            ] }
+          ] },
+          { id: "trabajo", titulo: "El trabajo", secciones: [
+            { id: "estudios", titulo: "Proyectos y presupuestos", icono: "\u{1F4D0}", color: "var(--area-planificacion)", hojas: [
+              { destino: "estudio", icono: "\u{1F4BC}", nombre: "Estudio y oferta", desc: "Versiones del presupuesto, auditor, banco de precios, alternativas, embudo, la oferta en PDF y el traspaso a obra", vista: true },
+              { destino: "mediciones", icono: "\u{1F4CF}", nombre: "Mediciones del proyecto", desc: "L\xEDnea base, revisiones y c\xF3mo evoluciona la medici\xF3n", vista: true },
+              { destino: "partidasObra", icono: "\u{1F4CA}", nombre: "Partidas del presupuesto", desc: "Presupuesto, coste y margen por partida" },
+              { destino: "desgloseInicial", icono: "\u{1F5C2}\uFE0F", nombre: "Desglose inicial", desc: "Las tareas del desglose inicial del alcance" },
+              { destino: "plantillasPartida", icono: "\u{1F4DA}", nombre: "Plantillas de partida", desc: "La biblioteca de la empresa: partidas con su descripci\xF3n, para cualquier obra" },
+              { destino: "versionesPresupuesto", icono: "\u{1F5C3}\uFE0F", nombre: "Versiones del presupuesto", desc: "Las fotos guardadas del presupuesto, con su estado" },
+              { destino: "alternativasPresupuesto", icono: "\u{1F501}", nombre: "Alternativas", desc: "Otra marca u otra soluci\xF3n para una partida, con su precio" },
+              { destino: "revisionesMedicion", icono: "\u{1F4CF}", nombre: "Revisiones de medici\xF3n", desc: "La historia de la medici\xF3n: solo se consulta" },
+              { destino: "lineasMedicion", icono: "\u{1F4D0}", nombre: "L\xEDneas de medici\xF3n", desc: "El detalle de cada revisi\xF3n, con su traza" },
+              { destino: "cambiosMedicion", icono: "\u{1F4D0}", nombre: "Cambios de medici\xF3n", desc: "Qu\xE9 mediciones cambiaron y qu\xE9 partidas se a\xF1adieron" }
+            ] },
+            /* Contratación y Compras, juntas: paquete, comparativo, adjudicación. */
+            { id: "compras", titulo: "Compras", icono: "\u{1F91D}", color: "var(--area-contratacion)", hojas: [
+              { destino: "compras", icono: "\u23F1\uFE0F", nombre: "Planificaci\xF3n de compras", desc: "Cu\xE1ndo hay que adjudicar cada cosa", vista: true },
+              { destino: "comparativo", icono: "\u2696\uFE0F", nombre: "Comparativos", desc: "Ofertas enfrentadas por paquete", vista: true },
+              { destino: "resumenContrat", icono: "\u{1F4CA}", nombre: "Resumen de contrataciones", desc: "Con qui\xE9n se gasta y d\xF3nde se mejora", vista: true },
+              { destino: "master", icono: "\u{1F9FE}", nombre: "Master de contrataciones", desc: "Venta, estudio, contrataci\xF3n y sus porcentajes", vista: true },
+              { destino: "alcance", icono: "\u{1F4D0}", nombre: "Ficha de alcance", desc: "Qu\xE9 se contrat\xF3 y qu\xE9 papeles faltan", vista: true },
+              { destino: "ganttContratacion", icono: "\u{1F91D}", nombre: "Qui\xE9n est\xE1 en obra", desc: "Cu\xE1ndo entra y sale cada adjudicatario", vista: true },
+              { destino: "paquetesCompra", icono: "\u{1F6D2}", nombre: "Plan de compras", desc: "Paquetes, objetivo y adjudicaci\xF3n" },
+              { destino: "ofertas", icono: "\u{1F4E8}", nombre: "Peticiones de oferta", desc: "Lo pedido y lo recibido" },
+              { destino: "ofertaLineas", icono: "\u{1F4C4}", nombre: "L\xEDneas de oferta", desc: "Los precios unitarios de cada oferta, partida a partida" },
+              { destino: "contrataciones", icono: "\u{1F91D}", nombre: "Contrataciones", desc: "Adjudicado, con desglose de coste" },
+              { destino: "proveedores", icono: "\u{1F3ED}", nombre: "Proveedores (directorio)", desc: "Los proveedores de la empresa: viajan entre obras" }
+            ] },
+            { id: "almacen", titulo: "Pedidos y almac\xE9n", icono: "\u{1F4E6}", color: "var(--area-contratacion)", hojas: [
+              { destino: "pedidosEntregas", icono: "\u{1F69A}", nombre: "Pedidos y entregas", desc: "Solicitud al proveedor, plazo confirmado frente al real, albaranes parciales y puntualidad de cada proveedor", vista: true },
+              { destino: "recepciones", icono: "\u{1F4E5}", nombre: "Recepciones", desc: "Lo que ha llegado y lo que falta por dar de alta", vista: true },
+              { destino: "inventario", icono: "\u{1F4E6}", nombre: "Inventario", desc: "Stock actual y avisos de m\xEDnimo", vista: true },
+              { destino: "pedidos", icono: "\u{1F4E6}", nombre: "Pedidos", desc: "Registro y estado de entrega" },
+              { destino: "lineasPedido", icono: "\u{1F4DD}", nombre: "L\xEDneas de pedido", desc: "Qu\xE9 material trae cada pedido" },
+              { destino: "entregasPedido", icono: "\u{1F69A}", nombre: "Entregas de pedidos", desc: "Cada albar\xE1n recibido: qu\xE9 trajo y con qu\xE9 incidencia" },
+              { destino: "bolsasPedidos", icono: "\u{1F4B0}", nombre: "Bolsas de pedidos", desc: "Lo consumido y lo restante de cada bolsa" },
+              { destino: "articulos", icono: "\u{1F529}", nombre: "Art\xEDculos", desc: "Cat\xE1logo de material" },
+              { destino: "movimientos", icono: "\u{1F504}", nombre: "Movimientos", desc: "Entradas, salidas y ajustes" }
+            ] },
+            { id: "economico", titulo: "Econ\xF3mico", icono: "\u{1F9EE}", color: "var(--area-costes)", hojas: [
+              { destino: "analisis", icono: "\u{1F3AF}", nombre: "An\xE1lisis del proyecto", desc: "Margen, coste objetivo y la K que hay que sacar", vista: true },
+              { destino: "costeDirecto", icono: "\u{1F9EE}", nombre: "Costes directos", desc: "En cu\xE1nto acaba costando y qu\xE9 falta por cerrar", vista: true },
+              { destino: "indirectos", icono: "\u{1F6A7}", nombre: "Costes indirectos y provisionales", desc: "Casetas, alquileres, encargados\u2026 editable en la celda", vista: true },
+              { destino: "proyeccion", icono: "\u{1F52E}", nombre: "Proyecci\xF3n a fin de obra", desc: "En cu\xE1nto acaba si seguimos as\xED", vista: true },
+              { destino: "costsPlan", icono: "\u{1F4D2}", nombre: "Costs Plan", desc: "Por cap\xEDtulo: previsto, comprometido, gastado y a fin de obra; desv\xEDo, ahorro y cierre de mes", vista: true },
+              { destino: "certificacion", icono: "\u{1F4D1}", nombre: "Certificaciones", desc: "La obra al cliente y cada industrial: sus pedidos, sus libros y qu\xE9 queda por pagarle", vista: true },
+              { destino: "certSubcontratas", icono: "\u{1F50E}", nombre: "Revisi\xF3n de industriales", desc: "Antes de aprobarle el mes: excesos, precios contradictorios, equivalencias, extras por horas, descuentos y la proforma", vista: true },
+              { destino: "certificaciones", icono: "\u{1F4C4}", nombre: "Registro de certificaciones", desc: "Alta, edici\xF3n y PDF" },
+              { destino: "certificacionLineas", icono: "\u{1F4C3}", nombre: "L\xEDneas de certificaci\xF3n", desc: "El detalle de cada certificaci\xF3n" },
+              { destino: "certEquivalencias", icono: "\u{1F501}", nombre: "Equivalencias de c\xF3digos", desc: "Su c\xF3digo de industrial \u2192 nuestra partida" },
+              { destino: "certContradictorios", icono: "\u2696\uFE0F", nombre: "Precios contradictorios", desc: "Los precios distintos del contrato y lo decidido" },
+              { destino: "certExtras", icono: "\u{1F552}", nombre: "Extras por horas", desc: "Horas de los industriales fuera de contrato" },
+              { destino: "certDescuentos", icono: "\u2796", nombre: "Descuentos a industriales", desc: "Lo que se les deduce del mes" },
+              { destino: "medicionesConductos", icono: "\u{1F4D0}", nombre: "Mediciones de conductos", desc: "El registro de las hojas de m\xB2 de conductos" },
+              { destino: "provisionales", icono: "\u{1F5C3}\uFE0F", nombre: "Provisionales", desc: "Las l\xEDneas de indirectos y provisionales" },
+              { destino: "costsPlanCierres", icono: "\u{1F4D2}", nombre: "Cierres del Costs Plan", desc: "La foto de cada mes cerrado" }
+            ] },
+            { id: "commissioning", titulo: "Commissioning", icono: "\u2705", color: "var(--area-certificaciones)", hojas: [
+              { destino: "commissioning", icono: "\u2705", nombre: "Control de commissioning", desc: "La tabla de equipos: documentaci\xF3n, ensayos y env\xEDo a DF", vista: true },
+              { destino: "planificacionMes", icono: "\u{1F5D3}\uFE0F", nombre: "Planificaci\xF3n Cx", desc: "El listado de equipos y el mes: arrastra cada equipo a su d\xEDa con actividad, horas y qui\xE9n lo hace; PDF \xFAnico", vista: true },
+              { destino: "fichasCx", icono: "\u{1F52C}", nombre: "Fichas de puesta en marcha", desc: "La puerta \xFAnica de cada equipo: checklist, ficha PM con proyecto, fabricante y medido, y su dossier en PDF", vista: true },
+              { destino: "ensayos", icono: "\u{1F4A8}", nombre: "Ensayos \u2014 balanceo y estanqueidad", desc: "Las tablas para meter los datos: la hoja sale sola, con fotos y firma", vista: true },
+              { destino: "planoEquipos", icono: "\u{1F5FA}\uFE0F", nombre: "Plano de equipos", desc: "El plano de cada planta con los equipos de su color: rojo sin instalar, azul instalado, verde con el commissioning completo", vista: true },
+              { destino: "prepararCx", icono: "\u{1F4E5}", nombre: "Preparar commissioning", desc: "Lee la documentaci\xF3n de la obra y propone fichas, estanqueidad y balanceo: no se graba nada sin aceptarlo", vista: true },
+              /* Los equipos y sus modelos, una sola vez (antes también en Mantenimiento). */
+              { destino: "equipos", icono: "\u2699\uFE0F", nombre: "Equipos", desc: "Inventario de equipos de la obra: lo que se pone en marcha y luego se entrega para mantener" },
+              { destino: "modelosEquipo", icono: "\u{1F3F7}\uFE0F", nombre: "Modelos de equipo", desc: "Ficha t\xE9cnica, CE y manual por modelo; se heredan a sus equipos" },
+              { destino: "puntosControl", icono: "\u2611\uFE0F", nombre: "Puntos de control \u2014 l\xEDneas", desc: "Todas las l\xEDneas de checklist" },
+              { destino: "medicionesPM", icono: "\u{1F4CB}", nombre: "Mediciones de puesta en marcha", desc: "Lo que se mide en obra" },
+              { destino: "bocasMedidas", icono: "\u{1F4A8}", nombre: "Bocas medidas", desc: "Caudal por boca de cada medici\xF3n" },
+              { destino: "redesAgua", icono: "\u{1F4A7}", nombre: "Balanceo \u2014 redes de agua", desc: "Las redes de agua del balanceo: bomba y v\xE1lvulas de equilibrado" },
+              { destino: "planosEquipos", icono: "\u{1F5FA}\uFE0F", nombre: "Planos de equipos \u2014 registros", desc: "Un registro por planta con su plano" },
+              { destino: "sesionesPlanCx", icono: "\u{1F5D3}\uFE0F", nombre: "Planificaci\xF3n Cx \u2014 sesiones", desc: "Lo programado en el calendario, una sesi\xF3n por l\xEDnea" }
+            ] },
+            /* Las incidencias de los equipos, una sola vez: aquí. */
+            { id: "calidad", titulo: "Calidad", icono: "\u{1F4DD}", color: "var(--area-certificaciones)", hojas: [
+              { destino: "calidad", icono: "\u{1F4DD}", nombre: "Calidad en obra", desc: "NCR, listado de repasos e incidencias con foto y ubicaci\xF3n, como las levanta la ingenier\xEDa o la DF al recorrer la obra; filtros y salida a Excel y PDF", vista: true },
+              { destino: "ncr", icono: "\u26A0\uFE0F", nombre: "No conformidades", desc: "El registro NCR: plazos, industriales, equipos bloqueados, fichas e informe semanal", vista: true },
+              { destino: "ppiCuadro", icono: "\u2705", nombre: "PPI (puntos de inspecci\xF3n)", desc: "Cada instalaci\xF3n inspeccionada al 25, 50, 75 y 100 % con su checklist; un No OK abre la NCR. Cuadro de la obra, acta en PDF con firmas y Excel", vista: true },
+              { destino: "incidencias", icono: "\u{1F527}", nombre: "Incidencias y reparaciones", desc: "Las aver\xEDas de los equipos: contadores, planificaci\xF3n del mes con arrastre, horas por t\xE9cnico, costes y lo que se pasa al cliente", vista: true },
+              { destino: "seguimiento", icono: "\u{1F5FA}\uFE0F", nombre: "Mapa de seguimiento", desc: "Por instalaci\xF3n: doc. calidad, fabricante, comit\xE9, conductos y tuber\xEDas", vista: true },
+              { destino: "pruebas", icono: "\u{1F9EA}", nombre: "Pruebas", desc: "Presiones y fluidos de cada certificado" },
+              { destino: "ncrEquipos", icono: "\u{1F517}", nombre: "NCR \u2014 equipos afectados", desc: "Qu\xE9 equipos toca cada no conformidad" },
+              { destino: "ncrAplazamientos", icono: "\u23F1\uFE0F", nombre: "NCR \u2014 aplazamientos", desc: "Cada cambio de plazo de una NCR, con su motivo" },
+              { destino: "ppi", icono: "\u2705", nombre: "PPI \u2014 inspecciones", desc: "El registro de las inspecciones PPI" },
+              { destino: "ppiPuntos", icono: "\u2611\uFE0F", nombre: "PPI \u2014 puntos", desc: "Cada punto revisado, con su resultado y la NCR que abri\xF3" },
+              { destino: "instrumentos", icono: "\u{1F4DF}", nombre: "Instrumentos", desc: "Aparatos de medida y su calibraci\xF3n" }
+            ] },
+            { id: "planificacion", titulo: "Planificaci\xF3n y producci\xF3n", icono: "\u{1F4C5}", color: "var(--area-costes)", hojas: [
+              { destino: "plazo", icono: "\u23F3", nombre: "\xBFVamos bien de plazo?", desc: "Lo que deber\xEDa estar hecho contra lo que hay", vista: true },
+              { destino: "programa", icono: "\u{1F5C2}\uFE0F", nombre: "Programa de obra", desc: "Actividades con predecesoras, camino cr\xEDtico, l\xEDnea base y Gantt", vista: true },
+              { destino: "gantt", icono: "\u{1F4C5}", nombre: "Gantt de la obra", desc: "Planificaci\xF3n y producci\xF3n mes a mes", vista: true },
+              { destino: "planSubcontrata", icono: "\u{1F4E8}", nombre: "Plan por subcontrata", desc: "Gantt para mandar a cada subcontrata: operarios, partidas, fechas del proyecto e hitos que le afectan (PDF y Excel)", vista: true },
+              { destino: "avance", icono: "\u{1F3E2}", nombre: "Avance de obra", desc: "Qu\xE9 queda por planta y por familia", vista: true },
+              { destino: "agenda", icono: "\u{1F5D3}\uFE0F", nombre: "Agenda", desc: "Qu\xE9 vence hoy y qu\xE9 lleva retraso", vista: true },
+              { destino: "calendario", icono: "\u{1F477}", nombre: "Calendario de subcontratas", desc: "Previstos frente a presentes", vista: true },
+              { destino: "tareas", icono: "\u{1F4CB}", nombre: "Tareas", desc: "Qu\xE9 hay que hacer y qui\xE9n lo tiene" },
+              { destino: "actividades", icono: "\u{1F4C6}", nombre: "Programa \u2014 actividades", desc: "Las filas del programa de obra" },
+              { destino: "ganttVersiones", icono: "\u{1F5D3}\uFE0F", nombre: "Gantt \u2014 versiones", desc: "La versi\xF3n de cada perfil y cu\xE1l es la que se sigue: solo se consulta; se cambian en \xABPrograma de obra\xBB" },
+              { destino: "ganttElecciones", icono: "\u{1F4CC}", nombre: "Gantt \u2014 registro de \xABa seguir\xBB", desc: "Qui\xE9n eligi\xF3 cada Gantt a seguir, cu\xE1ndo, cu\xE1l era antes y por qu\xE9" },
+              { destino: "subcontratas", icono: "\u{1F3D7}\uFE0F", nombre: "Subcontratas", desc: "Qui\xE9n trabaja en la obra" },
+              { destino: "tarifasSubcontrata", icono: "\u23F1\uFE0F", nombre: "Tarifas por hora", desc: "El \u20AC/h de cada categor\xEDa de cada subcontrata: valora los extras por horas" },
+              { destino: "partesSubcontrata", icono: "\u{1F4C6}", nombre: "Partes diarios", desc: "Presencia diaria de subcontratas" },
+              { destino: "papelesSubcontrata", icono: "\u{1F4D1}", nombre: "Papeles de subcontrata", desc: "Seguro, REA, Hacienda, Seguridad Social, contrato\u2026 con su caducidad" }
+            ] },
+            { id: "entrega", titulo: "Entrega", icono: "\u{1F511}", color: "var(--area-certificaciones)", hojas: [
+              { destino: "actasObra", icono: "\u2705", nombre: "Actas y reservas", desc: "Recepciones, qu\xE9 qued\xF3 abierto y si las pruebas son v\xE1lidas", vista: true },
+              { destino: "documentacion", icono: "\u{1F5C2}\uFE0F", nombre: "Documentaci\xF3n de obra", desc: "Checklist de papeles: inicial, durante y final" },
+              { destino: "actas", icono: "\u{1F4C4}", nombre: "Registro de actas", desc: "Pruebas, replanteos, recepciones" },
+              { destino: "reservas", icono: "\u{1F4CC}", nombre: "Reservas de acta", desc: "Los puntos que quedaron abiertos" }
+            ] },
+            { id: "informes", titulo: "Informes", icono: "\u{1F5D2}\uFE0F", color: "var(--area-planificacion)", hojas: [
+              { destino: "informeSemanal", icono: "\u{1F4CA}", nombre: "Informe semanal", desc: "Las obras en curso, una fila cada una: commissioning, certificado, Costs Plan, industriales, mantenimiento y NCR", vista: true },
+              { destino: "cargaSubcontratas", icono: "\u{1F477}", nombre: "Carga de subcontratas", desc: "Cada industrial en todas las obras en curso: en cu\xE1ntas est\xE1, gente comprometida, prevista y real (esta semana y las 4 anteriores) y sus NCR abiertas", vista: true },
+              { destino: "semaforoSubcontratas", icono: "\u{1F6A6}", nombre: "Papeles de subcontratas", desc: "Sem\xE1foro por subcontrata y obra: verde al d\xEDa, \xE1mbar si algo caduca en 30 d\xEDas, rojo si falta o est\xE1 caducado un papel obligatorio", vista: true },
+              { destino: "partesSemanales", icono: "\u{1F5D2}\uFE0F", nombre: "Partes semanales emitidos", desc: "Qu\xE9 semanas se han mandado ya" }
+            ] },
+            { id: "normativa", titulo: "BOE y reglamentos", icono: "\u{1F4DC}", color: "var(--area-planificacion)", hojas: [] },
+            { id: "herramientas", titulo: "Herramientas", icono: "\u{1F501}", color: "var(--area-tecnico)", hojas: [
+              { destino: "bandejasObra", icono: "\u{1F4D0}", nombre: "Bandejas: ocupaci\xF3n y medici\xF3n", desc: "\xBFCabe lo que va dentro? Y cu\xE1ntos metros hay que comprar", vista: true },
+              { destino: "solar", icono: "\u2600\uFE0F", nombre: "Dise\xF1o de string fotovoltaico", desc: "Cu\xE1ntos m\xF3dulos en serie caben entre la Voc a fr\xEDo y la ventana de MPPT", vista: true },
+              { destino: "conversiones", icono: "\u{1F501}", nombre: "Tablas de conversi\xF3n", desc: "Circular a rectangular u oval, DN a pulgadas, y de un material a otro", vista: true },
+              { destino: "bandejas", icono: "\u{1FA9C}", nombre: "Bandejas de cable", desc: "Ancho, longitud y los cables que lleva cada una" },
+              { destino: "envolventes", icono: "\u{1F5C4}\uFE0F", nombre: "Envolventes de cuadro", desc: "Filas y m\xF3dulos de cada armario, para saber si el cuadro cabe" }
+            ] }
+          ] },
+          /* Un módulo por licencia (shared/modulos.js): el que la empresa no tiene contratado no sale (destinoVetado). */
+          { id: "modulos", titulo: "M\xF3dulos", secciones: [
+            /* Management (tanda 1, 11-nov): el panel del director, las horas y el reporte a dirección. */
+            { id: "management", titulo: "Management", icono: "\u{1F9ED}", color: "var(--area-contratacion)", hojas: [
+              { destino: "departamentos", icono: "\u{1F9ED}", nombre: "Departamentos", desc: "Resumen, desv\xEDos, equipo y saturaci\xF3n y horas dedicadas de cada departamento", vista: true },
+              { destino: "reporteDireccion", icono: "\u{1F4E8}", nombre: "Reporte a direcci\xF3n", desc: "Una p\xE1gina con lo que hay que saber: la empresa, los desv\xEDos, el equipo y las subcontratas; se copia para Excel o correo", vista: true },
+              { destino: "dedicaciones", icono: "\u23F1\uFE0F", nombre: "Horas dedicadas", desc: "Las horas que cada persona apunta, por departamento y obra" }
+            ] },
+            { id: "licitaciones", titulo: "Licitaciones", icono: "\u{1F4E3}", color: "var(--area-planificacion)", hojas: [
+              { destino: "licitaciones", icono: "\u{1F4E3}", nombre: "Licitaciones p\xFAblicas", desc: "Obras de instalaciones abiertas en tu comunidad, por provincia y fecha l\xEDmite", vista: true }
+            ] },
+            { id: "calculo", titulo: "C\xE1lculo", icono: "\u{1F321}\uFE0F", color: "var(--area-tecnico)", hojas: [
+              { destino: "calculosImportados", icono: "\u{1F4E5}", nombre: "C\xE1lculos de instalaciones", desc: "Lo que devuelve la app C\xE1lculo de Instalaciones: trazados y redes de la obra", vista: true },
+              { destino: "cargasTermicas", icono: "\u{1F321}\uFE0F", nombre: "Cargas t\xE9rmicas", desc: "Cu\xE1nto fr\xEDo y calor pide cada local, y de qu\xE9 se compone", vista: true },
+              { destino: "ventilacion", icono: "\u{1F6AA}", nombre: "Caudales de ventilaci\xF3n", desc: "Cu\xE1nto aire pide cada local, y por qu\xE9 regla", vista: true },
+              { destino: "conductos", icono: "\u{1F32C}\uFE0F", nombre: "C\xE1lculo de conductos", desc: "Dimensionado y p\xE9rdida de carga", vista: true },
+              { destino: "cargasElectricas", icono: "\u26A1", nombre: "Cargas el\xE9ctricas", desc: "Lo que consume cada equipo de toda la obra, para el estudio el\xE9ctrico", vista: true },
+              { destino: "planoCalculo", icono: "\u{1F4D0}", nombre: "C\xE1lculo sobre plano", desc: "Traza la instalaci\xF3n sobre el PDF y calcula al vuelo", vista: true },
+              { destino: "locales", icono: "\u{1F6AA}", nombre: "Locales a ventilar", desc: "Uso, superficie y ocupaci\xF3n de cada local" },
+              { destino: "tramosConducto", icono: "\u{1F4CF}", nombre: "Tramos de conducto", desc: "Alta de los tramos a calcular" }
+            ] },
+            { id: "legalizaciones", titulo: "Legalizaciones", icono: "\u{1F4DC}", color: "var(--area-certificaciones)", hojas: [
+              { destino: "legalizaciones", icono: "\u{1F4DC}", nombre: "Legalizaciones", desc: "Los modelos oficiales de cada disciplina (ELEC, RITE, gas, Bombers, ICT\u2026) rellenos con los datos de la obra, listos para firmar; y las horas que se ahorran. Jefe de obra, de producci\xF3n, de grupo y director del departamento", vista: true },
+              { destino: "entregasDF", icono: "\u{1F4E4}", nombre: "Entregas a la DF", desc: "La bandeja \xABPara la DF\xBB: se suelta con un clic, sube a su portal con su versi\xF3n y les llega un aviso; aqu\xED vuelve su respuesta", vista: true },
+              { destino: "destinatariosDF", icono: "\u2709\uFE0F", nombre: "Destinatarios de la DF", desc: "A qui\xE9n se env\xEDan las entregas a la direcci\xF3n facultativa" }
+            ] },
+            /* Reclamaciones al cliente (claim), gemela de Vidaire Obras: renderer/reclamacionesPantalla.js. */
+            { id: "reclamaciones", titulo: "Reclamaciones", icono: "\u2696\uFE0F", color: "var(--area-costes)", hojas: [
+              { destino: "reclamacionesCliente", icono: "\u2696\uFE0F", nombre: "Reclamaciones al cliente", desc: "El claim: apartados con sus hechos, la cl\xE1usula que los ampara, el importe y las pruebas; expediente en PDF", vista: true },
+              { destino: "reclamaciones", icono: "\u2696\uFE0F", nombre: "Reclamaciones", desc: "Las reclamaciones de la obra, en bruto" },
+              { destino: "reclamacionApartados", icono: "\u{1F5C2}\uFE0F", nombre: "Apartados de reclamaci\xF3n", desc: "Los apartados de cada reclamaci\xF3n" },
+              { destino: "reclamacionHechos", icono: "\u{1F4CC}", nombre: "Hechos de reclamaci\xF3n", desc: "Cada hecho con su m\xE9todo de c\xE1lculo" },
+              { destino: "reclamacionPruebas", icono: "\u{1F4CE}", nombre: "Pruebas de reclamaci\xF3n", desc: "Correos, fotos y documentos de cada hecho" },
+              { destino: "reclamacionTarifas", icono: "\u{1F4B6}", nombre: "Tarifas de reclamaci\xF3n", desc: "El \u20AC/h de cada categor\xEDa" }
+            ] },
+            { id: "bms", titulo: "BMS", icono: "\u{1F5A7}", color: "var(--area-certificaciones)", hojas: [
+              { destino: "puntosBmsPrueba", icono: "\u{1F5A7}", nombre: "Puntos BMS", desc: "La prueba punto a punto del BMS, por TAG: cada se\xF1al en campo y en el SCADA", vista: true },
+              { destino: "puntosBms", icono: "\u{1F5A7}", nombre: "Puntos BMS \u2014 l\xEDneas", desc: "Cada se\xF1al del BMS, fila a fila" }
+            ] },
+            { id: "mantenimiento", titulo: "Mantenimiento", icono: "\u{1F6E0}\uFE0F", color: "var(--area-tecnico)", hojas: [
+              { destino: "mantenimiento", icono: "\u{1F6E0}\uFE0F", nombre: "Mantenimiento", desc: "Plan preventivo, F-gas, RITE, legionela, inspecciones y entrega", vista: true },
+              { destino: "ordenesMant", icono: "\u{1F9F0}", nombre: "\xD3rdenes de trabajo", desc: "Las \xF3rdenes del preventivo y del F-gas, repartidas solas a los operarios con su carn\xE9; mis tareas, cierre e informe del mes", vista: true },
+              { destino: "planMant", icono: "\u{1F4C5}", nombre: "Calendario e informes", desc: "La propuesta de visitas del preventivo y del F-gas, para mover y confirmar; PDF del mes, libro RITE y registro F-gas", vista: true },
+              { destino: "registrosMant", icono: "\u{1F6E0}\uFE0F", nombre: "Registro de mantenimiento", desc: "Lo hecho: preventivos, controles de fugas, recargas, correctivos" },
+              { destino: "inspecciones", icono: "\u{1F50E}", nombre: "Inspecciones peri\xF3dicas", desc: "OCA: RITE, baja tensi\xF3n, incendios, legionela\u2026" }
+            ] }
+          ] },
+          { id: "administracion", titulo: "Administraci\xF3n", secciones: [
+            { id: "usuarios", titulo: "Usuarios y accesos", icono: "\u{1F511}", color: "var(--area-configuracion)", hojas: [
+              { destino: "personasRoles", icono: "\u{1F511}", nombre: "Personas y roles", desc: "Qu\xE9 rol tiene cada cuenta, qu\xE9 obras ve y si ve el dinero; asignar obras a mano", vista: true, soloRoles: ["admin"] },
+              { destino: "trazabilidad", icono: "\u{1F553}", nombre: "Auditor\xEDa", desc: "Qui\xE9n hizo qu\xE9 y cu\xE1ndo: filtros, Excel/PDF y comprobaci\xF3n de la cadena", vista: true },
+              { destino: "empresas", icono: "\u{1F3E2}", nombre: "Empresas", desc: "Datos, logo, colores y condiciones" },
+              { destino: "licencias", icono: "\u{1F9FE}", nombre: "Licencias", desc: "Qu\xE9 m\xF3dulos tiene la empresa, qu\xE9 incluye cada uno (tambi\xE9n en el m\xF3vil); apagar y encender lo contratado", vista: true, soloRoles: ["admin"] }
+            ] },
+            { id: "plantilla", titulo: "Plantilla", icono: "\u{1F334}", color: "var(--area-configuracion)", hojas: [
+              { destino: "calendarioPersonal", icono: "\u{1F334}", nombre: "Calendario de personal", desc: "Vacaciones, bajas y qui\xE9n queda en obra", vista: true },
+              { destino: "vacaciones", icono: "\u{1F3D6}\uFE0F", nombre: "Saldo de vacaciones", desc: "D\xEDas de derecho, cogidos y pendientes", vista: true },
+              { destino: "personal", icono: "\u{1F464}", nombre: "Personal", desc: "Propio y de subcontrata" },
+              { destino: "ausencias", icono: "\u{1F334}", nombre: "Ausencias", desc: "Vacaciones, bajas y permisos" },
+              { destino: "festivos", icono: "\u{1F38C}", nombre: "Festivos", desc: "Calendario laboral de la empresa" }
+            ] },
+            { id: "datos", titulo: "Datos y copias", icono: "\u2601\uFE0F", color: "var(--area-configuracion)", hojas: [
+              { destino: "nube", icono: "\u2601\uFE0F", nombre: "Nube de Vidaire", desc: "La misma obra en el ordenador, el iPad y la web", vista: true },
+              { destino: "copias", icono: "\u{1F4BE}", nombre: "Copias de seguridad", desc: "Toda la obra vive en un archivo", vista: true }
+            ] },
+            /* 15-nov (JC): las presentaciones de Vidaire, solo el administrador (shared/presentaciones.js). */
+            { id: "presentaciones", titulo: "Presentaciones", icono: "\u25B6", color: "var(--area-configuracion)", hojas: [
+              { destino: "presentaciones", icono: "\u25B6", nombre: "Presentaciones", desc: "Las presentaciones de Vidaire, a pantalla completa", vista: true, soloRoles: ["admin"] }
+            ] }
+          ] }
+        ];
+        const SUELTAS = [
+          { destino: "inicio", icono: "\u{1F3E0}", nombre: "Inicio", vista: true },
+          { destino: "panel", icono: "\u{1F4C8}", nombre: "Resumen de la obra", desc: "Un vistazo a todo: econom\xEDa, compras, certificaci\xF3n y puesta en marcha", vista: true },
+          { destino: "campo", icono: "\u{1F4CB}", nombre: "En obra", desc: "Equipo a equipo con el iPad: ficha PM, checklists, balanceo, estanqueidad y NCR con fotos, con el TAG siempre arriba", vista: true },
+          { destino: "validacion", icono: "\u{1FA7A}", nombre: "Validaci\xF3n", vista: true, final: true },
+          { destino: "cuenta", icono: "\u{1F464}", nombre: "Mi cuenta", desc: "Contrase\xF1a, sesi\xF3n y baja", vista: true, final: true }
+        ];
+        const SOLO_DESDE_OTRA = ["hojasPM", "puestaEnMarcha", "controlPuntos"];
+        const SECCIONES_POR_ROL = (() => {
+          if (typeof module === "undefined" || !module.exports || typeof __require !== "function") return {};
+          const R = require_roles();
+          const fuera = {};
+          for (const c of R.cuentasGestor()) {
+            const s = R.seccionesGestor(c);
+            if (s) fuera[c] = s;
+          }
+          return fuera;
+        })();
+        function areas() {
+          const fuera = [];
+          for (const g of ARBOL_GESTOR) {
+            for (const s of g.secciones) {
+              fuera.push({
+                id: s.id,
+                // Un grupo de una sola sección sale con el nombre del grupo (Empresa, Normativa…).
+                titulo: g.secciones.length === 1 ? g.titulo : s.titulo,
+                grupo: g.id,
+                grupoTitulo: g.titulo,
+                solo: g.secciones.length === 1,
+                icono: s.icono,
+                color: s.color,
+                modulos: s.hojas.map((h) => ({ ...h, ...h.soloRoles ? { soloRoles: [...h.soloRoles] } : {} }))
+              });
+            }
+          }
+          return fuera;
+        }
+        function seccionesDelRol(rol) {
+          const lista = rol && SECCIONES_POR_ROL[rol];
+          return lista ? new Set(lista) : null;
+        }
+        function hojasDelArbol() {
+          return ARBOL_GESTOR.flatMap((g) => g.secciones.flatMap((s) => s.hojas.map((h) => ({ ...h, grupo: g.id, seccion: s.id }))));
+        }
+        function rutaHasta(destino) {
+          const h = hojasDelArbol().find((x) => x.destino === destino);
+          return h ? [h.grupo, h.seccion] : [];
+        }
+        const API = { MAX_HOJAS, ARBOL_GESTOR, SUELTAS, SOLO_DESDE_OTRA, SECCIONES_POR_ROL, areas, seccionesDelRol, hojasDelArbol, rutaHasta };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.BARRA_LATERAL_GESTOR = API;
+      })();
+    }
+  });
+
+  // shared/modulos.js
+  var require_modulos = __commonJS({
+    "shared/modulos.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const MODULOS = [
+          /* ── Base: lo que tiene cualquier edición. ── */
+          {
+            clave: "empresa",
+            nombre: "Empresa y cartera de obras",
+            tipo: "base",
+            secciones: ["empresa", "cuentas"],
+            nombreComercial: "Empresa y cartera",
+            noIncluye: ["Llevar cada obra por dentro (Gesti\xF3n de obra)", "Panel de departamentos y reporte a direcci\xF3n (Management)"],
+            problema: "Tener en un solo sitio los clientes, las obras en curso y las cuentas de la empresa.",
+            funciones: ["Cartera de obras y su estado", "Clientes y contactos", "Cuentas y bandejas de la empresa", "Estad\xEDsticas de la empresa"],
+            movil: {}
+          },
+          {
+            clave: "estudios",
+            nombre: "Estudios y presupuestos",
+            tipo: "base",
+            secciones: ["estudios", "comercial"],
+            nombreComercial: "Presupuestos",
+            noIncluye: ["Rellenar solas las descripciones de las partidas (Presupuesto inteligente)", "Descompuestos autom\xE1ticos por variante de material (Descompuestos autom\xE1ticos)", "Generar el listado de puntos BMS (BMS y control)", "Cruzar los planos con las mediciones (Presupuesto inteligente)", "Cruzar los planos con las partidas del presupuesto (Presupuesto inteligente)", "C\xE1lculo de instalaciones y memorias (C\xE1lculo de instalaciones)"],
+            problema: "Montar el presupuesto de una oferta a partir de lo que manda el cliente, sin volver a teclearlo.",
+            funciones: [
+              "Importar el presupuesto desde Excel (.xlsx, .xls, .ods, .csv) y BC3 (FIEBDC-3)",
+              "Importar lo que viene de Presto: su exportaci\xF3n a BC3 entra entera (cap\xEDtulos, descompuestos, mediciones y textos)",
+              "Pegar las filas copiadas de un PDF o de cualquier tabla",
+              "\xC1rbol cap\xEDtulo \u2192 partida \u2192 descompuesto \u2192 medici\xF3n, con edici\xF3n a mano",
+              "Alta a mano de cap\xEDtulos, subcap\xEDtulos, sub-subcap\xEDtulos y partidas (c\xF3digo, unidad, medici\xF3n y precio)",
+              "Precios, descompuestos y plantillas de partida de la casa",
+              "Biblioteca de descripciones fijadas a mano por la empresa",
+              "Versiones, alternativas y revisiones de medici\xF3n",
+              "Cierre econ\xF3mico (PEM, gastos generales, beneficio, baja, IVA) y oferta en PDF"
+            ],
+            /* 15-nov: shared/importacion/abrirPresupuesto.js rechaza el PDF y el fichero propio de Presto con el paso para sacarlo bien. */
+            enDesarrollo: [
+              "Leer directamente un presupuesto en PDF y convertirlo en partidas (hoy: pegar sus filas)",
+              "Abrir el fichero propio de Presto (.presto, .pzh) sin exportarlo antes a BC3 o a Excel"
+            ],
+            movil: {}
+          },
+          {
+            clave: "herramientas",
+            nombre: "Herramientas de c\xE1lculo r\xE1pido",
+            tipo: "base",
+            secciones: ["herramientas"],
+            nombreComercial: "Herramientas r\xE1pidas",
+            noIncluye: ["C\xE1lculos de proyecto con memoria (C\xE1lculo de instalaciones)"],
+            problema: "Resolver en obra las cuentas de todos los d\xEDas sin abrir una hoja de c\xE1lculo.",
+            funciones: ["Bandejas de cable: ocupaci\xF3n y medici\xF3n", "Dise\xF1o de string fotovoltaico", "Envolventes de cuadro", "Tablas de conversi\xF3n"],
+            movil: {}
+          },
+          {
+            clave: "obra",
+            nombre: "Obra: proyecto, planificaci\xF3n, compras, almac\xE9n, econ\xF3mico y contrato",
+            tipo: "base",
+            secciones: ["proyecto", "planificacion", "compras", "almacen", "economico", "contrato"],
+            nombreComercial: "Gesti\xF3n de obra",
+            noIncluye: ["Reclamaciones al cliente (Reclamaciones)", "Commissioning y mantenimiento (Commissioning, Mantenimiento)", "Horas dedicadas y reporte a direcci\xF3n (Management)"],
+            problema: "Llevar la obra d\xEDa a d\xEDa: documentaci\xF3n, plazos, compras, almac\xE9n, dinero y contrato.",
+            funciones: [
+              "Documentaci\xF3n, planos y personas de la obra",
+              "Planificaci\xF3n y Gantt",
+              "Compras, comparativos de ofertas, pedidos y albaranes",
+              "Almac\xE9n e inventario",
+              "Seguimiento econ\xF3mico, certificaciones y subcontratas",
+              "Contrato y variaciones"
+            ],
+            /* permisos en un módulo base: solo dicen de quién es la ruta del móvil (test/modulosFicha.test.js); no cortan nada. */
+            movil: {
+              secciones: ["partes", "avance", "albaranes", "inventario", "bloc", "jornada", "personal"],
+              permisos: ["obras", "tareas", "partes", "partesIncidencia", "partesTrabajo", "avanceObra", "pedidos", "inventarioCampo", "notas", "jornada"]
+            }
+          },
+          {
+            clave: "calidadCx",
+            nombre: "Calidad, equipos y ensayos",
+            tipo: "base",
+            secciones: ["commissioning", "calidad"],
+            nombreComercial: "Calidad y equipos",
+            noIncluye: ["Fichas de puesta en marcha, mediciones Cx e informe a la DF (Commissioning)", "Plan preventivo, F-gas y \xF3rdenes de trabajo (Mantenimiento)"],
+            problema: "Saber qu\xE9 equipos hay en la obra, d\xF3nde est\xE1n y qu\xE9 calidad se ha comprobado.",
+            funciones: [
+              "Inventario de equipos y modelos",
+              "Plano de equipos (lo ve todo el enrolado en la obra) y mapa de seguimiento",
+              "Ensayos obligatorios: balanceo y pruebas de estanqueidad",
+              "No conformidades (NCR), PPI e incidencias y reparaciones",
+              "Instrumentos de medida"
+            ],
+            movil: { secciones: ["plano", "ncr", "reparaciones", "estanqueidad"], permisos: ["planoEquipos", "ncr", "incidencias", "pruebasEstanqueidad"] }
+          },
+          {
+            clave: "seguridad",
+            nombre: "Seguridad",
+            tipo: "base",
+            secciones: ["seguridad"],
+            nombreComercial: "Seguridad y QHSE",
+            noIncluye: ["Avisos reclamables al cliente por esperas o accesos (Reclamaciones)"],
+            problema: "Cumplir la coordinaci\xF3n de seguridad y dejar constancia de cada inspecci\xF3n.",
+            funciones: ["Plan QHSE: inspecciones del sitio, control de subcontratas y reuni\xF3n CAE", "Reportes QHSE r\xE1pidos", "Robos y p\xE9rdidas"],
+            movil: { secciones: ["qhse", "reportesQhse"], permisos: ["qhse", "reportesQhse"] }
+          },
+          {
+            clave: "informes",
+            nombre: "Informes",
+            tipo: "base",
+            secciones: ["informes"],
+            nombreComercial: "Informes",
+            noIncluye: ["Reporte a direcci\xF3n y saturaci\xF3n del equipo (Management)", "Informe de commissioning a la DF (Commissioning)"],
+            problema: "Sacar el estado de la obra en un documento sin rehacerlo a mano.",
+            funciones: ["Informe semanal y estad\xEDsticas de la obra", "Carga de subcontratas", "Papeles de subcontratas", "Partes semanales emitidos"],
+            movil: {}
+          },
+          {
+            clave: "entrega",
+            nombre: "Entrega de obra",
+            tipo: "base",
+            secciones: ["entrega"],
+            nombreComercial: "Entrega de obra",
+            noIncluye: ["Impresos de legalizaci\xF3n y entrega documental a la DF (Legalizaciones)", "Informe y paquete de entrega de equipos (Commissioning)", "Plan de mantenimiento despu\xE9s de la entrega (Mantenimiento)"],
+            problema: "Cerrar la obra con las actas y la documentaci\xF3n que exige la propiedad.",
+            funciones: ["Actas de entrega y de mantenimiento", "Registro y reservas de acta", "Documentaci\xF3n final de obra"],
+            movil: {}
+          },
+          {
+            clave: "normativa",
+            nombre: "Normativa",
+            tipo: "base",
+            secciones: ["normativa"],
+            nombreComercial: "Normativa",
+            noIncluye: ["Impresos oficiales de legalizaci\xF3n (Legalizaciones)", "Control F-gas de los equipos (Mantenimiento)"],
+            problema: "Tener a mano la norma que aplica a cada instalaci\xF3n.",
+            /* La sección no tiene hojas en la barra: abre su propia pantalla (renderer/obra/normativaPantalla.js). */
+            pantallasObra: ["Normativa (BOE): avisos de mis obras, el BOE del d\xEDa, disposiciones y normas vigiladas"],
+            funciones: ["Avisos de las normas nuevas que tocan a cada obra", "El BOE del d\xEDa, con lo que toca a una norma vigilada arriba", "Disposiciones por norma y diario de lectura", "Normas vigiladas con su texto consolidado"],
+            movil: {}
+          },
+          {
+            clave: "administracion",
+            nombre: "Administraci\xF3n: usuarios, plantilla, datos y copias",
+            tipo: "base",
+            secciones: ["usuarios", "plantilla", "datos", "presentaciones"],
+            nombreComercial: "Administraci\xF3n",
+            noIncluye: ["La app del tel\xE9fono y su sincronizaci\xF3n (App del m\xF3vil)"],
+            problema: "Dar acceso a cada persona con su rol y no perder nunca los datos.",
+            funciones: ["Usuarios, roles y auditor\xEDa", "Plantilla: calendario, vacaciones, ausencias y festivos", "Empresas y licencias: el jefe apaga lo contratado y pide a Vidaire lo que no tiene", "Nube y copias de seguridad", "Las presentaciones de Vidaire (solo el administrador)"],
+            /* docs/perfiles-y-licencias.md § 6: licencias desde la nube (0030 y 0031, aplicadas el 15-nov). */
+            enDesarrollo: ["Aviso a Vidaire cuando un jefe pide un m\xF3dulo (hoy se ve al abrir su consola)"],
+            movil: {}
+          },
+          /* ── De licencia: se venden aparte. ── */
+          {
+            clave: "management",
+            nombre: "Management (departamentos, horas y reporte a direcci\xF3n)",
+            tipo: "licencia",
+            secciones: ["management"],
+            canales: ["management:"],
+            canalesMotor: ["dedicaciones:", "horasObra:", "reporteDireccion:"],
+            iarvis: "Panel de departamentos, desv\xEDos, saturaci\xF3n del equipo, horas dedicadas y reporte a direcci\xF3n",
+            nombreComercial: "Management",
+            titular: "C\xF3mo va cada departamento, de un *vistazo*.",
+            paraQuien: "Direcci\xF3n y jefes de departamento que llevan varias obras a la vez.",
+            ahorra: "Preparar a mano el reporte a direcci\xF3n y preguntar obra por obra en qu\xE9 se va el tiempo.",
+            movilQueHace: [],
+            noIncluye: ["El econ\xF3mico y las certificaciones de cada obra (base: Gesti\xF3n de obra)"],
+            problema: "Que direcci\xF3n vea de un vistazo c\xF3mo van todos los departamentos y en qu\xE9 se va el tiempo del equipo.",
+            funciones: ["Panel de departamentos y desv\xEDos", "Saturaci\xF3n del equipo", "Horas dedicadas por obra", "Reporte a direcci\xF3n"],
+            modulosObra: ["dedicaciones", "horasObra", "reporteDireccion"],
+            movil: {}
+          },
+          {
+            clave: "licitaciones",
+            nombre: "Licitaciones p\xFAblicas y oportunidades",
+            tipo: "licencia",
+            secciones: ["licitaciones"],
+            destinos: ["licitaciones"],
+            canales: ["licitaciones:", "oportunidades:"],
+            iarvis: "Buscar licitaciones de instalaciones abiertas y oportunidades por provincia",
+            nombreComercial: "Licitaciones",
+            titular: "Las licitaciones que te encajan, *a tiempo*.",
+            paraQuien: "El departamento comercial y de estudios.",
+            ahorra: "Revisar a mano las plataformas de contrataci\xF3n cada semana.",
+            movilQueHace: [],
+            noIncluye: ["Preparar la oferta de la licitaci\xF3n (base: Presupuestos)"],
+            problema: "Enterarse a tiempo de las licitaciones de instalaciones que encajan con la empresa.",
+            funciones: ["B\xFAsqueda de licitaciones p\xFAblicas abiertas", "Oportunidades por provincia"],
+            modulosObra: ["licitaciones"],
+            movil: {}
+          },
+          {
+            clave: "calculo",
+            nombre: "C\xE1lculo de instalaciones",
+            tipo: "licencia",
+            secciones: ["calculo"],
+            canales: ["calculos:", "instalaciones:", "memoria:"],
+            iarvis: "Cargas t\xE9rmicas, ventilaci\xF3n, conductos, cargas el\xE9ctricas, c\xE1lculo sobre plano y memorias de c\xE1lculo",
+            nombreComercial: "C\xE1lculo de instalaciones",
+            titular: "Dimensionar y sacar la memoria *sin* otro programa.",
+            paraQuien: "Ingenier\xEDa y oficina t\xE9cnica que dimensionan la instalaci\xF3n.",
+            ahorra: "Pasar datos entre programas y redactar a mano la memoria de c\xE1lculo.",
+            movilQueHace: [],
+            noIncluye: ["Calculadoras r\xE1pidas (base: Herramientas r\xE1pidas)", "Legalizar la instalaci\xF3n (Legalizaciones)"],
+            problema: "Dimensionar la instalaci\xF3n y sacar la memoria de c\xE1lculo sin otro programa.",
+            funciones: ["Cargas t\xE9rmicas", "Ventilaci\xF3n y conductos", "Cargas el\xE9ctricas", "C\xE1lculo sobre plano y mediciones del c\xE1lculo", "Memorias de c\xE1lculo"],
+            modulosObra: ["calculo"],
+            movil: {}
+          },
+          {
+            clave: "legalizaciones",
+            nombre: "Legalizaciones y entrega a la DF",
+            tipo: "licencia",
+            secciones: ["legalizaciones"],
+            canales: ["legalizaciones:", "entregasDF:"],
+            iarvis: "Impresos oficiales de legalizaci\xF3n, certificados y entrega documental a la direcci\xF3n facultativa",
+            nombreComercial: "Legalizaciones",
+            titular: "Los impresos oficiales, *sin* perseguir papeles.",
+            paraQuien: "Jefes de obra y oficina t\xE9cnica que cierran la legalizaci\xF3n.",
+            ahorra: "Rellenar uno a uno los impresos y perseguir qui\xE9n tiene cada certificado.",
+            movilQueHace: [],
+            noIncluye: ["Actas de entrega de obra (base: Entrega de obra)"],
+            problema: "Rellenar los impresos oficiales y entregar la documentaci\xF3n a la direcci\xF3n facultativa sin perseguir papeles.",
+            funciones: ["Impresos oficiales del organismo, tal cual", "Certificados de instalaci\xF3n", "Entrega documental a la direcci\xF3n facultativa"],
+            modulosObra: ["legalizaciones"],
+            movil: {}
+          },
+          {
+            clave: "reclamaciones",
+            nombre: "Reclamaciones al cliente",
+            tipo: "licencia",
+            secciones: ["reclamaciones"],
+            destinos: ["reclamacionesCliente", "reclamaciones", "reclamacionApartados", "reclamacionHechos", "reclamacionPruebas", "reclamacionTarifas"],
+            canalesMotor: ["reclamaciones:", "avisosRec:", "riesgoSub:", "desfase:", "gapDisciplina:", "horasIndustriales:"],
+            iarvis: "Preparar y documentar reclamaciones econ\xF3micas al cliente",
+            nombreComercial: "Reclamaciones",
+            titular: "Cobrar lo que la obra cost\xF3 de m\xE1s, *con* pruebas.",
+            paraQuien: "Jefes de obra, de producci\xF3n y direcci\xF3n que negocian con el cliente.",
+            ahorra: "Reconstruir al final hechos y pruebas que nadie apunt\xF3 en su d\xEDa.",
+            movilQueHace: ["Avisos reclamables con foto desde el tajo", "Consultar los hechos y a\xF1adirles pruebas"],
+            noIncluye: ["Certificaciones al cliente (base: Gesti\xF3n de obra)"],
+            problema: "Cobrar lo que la obra ha costado de m\xE1s por causas del cliente, con pruebas.",
+            funciones: ["Expediente de reclamaci\xF3n por apartados", "Hechos y pruebas fechados", "Tarifas y horas de los industriales", "Desfases y riesgo de subcontratas", "Avisos reclamables desde el tajo"],
+            modulosObra: ["reclamaciones", "avisosReclamacion"],
+            movil: { secciones: ["avisos"], permisos: ["reclamaciones", "avisosReclamacion"] }
+          },
+          {
+            clave: "bms",
+            nombre: "Puntos BMS",
+            tipo: "licencia",
+            secciones: ["bms"],
+            destinos: ["puntosBms", "puntosBmsPrueba"],
+            canales: ["puntosBms:"],
+            /* 15-nov (JC): el listado de puntos BMS no es del presupuesto base: lo genera este módulo. */
+            canalesMotor: ["pruebasBms:", "plc:", "puntos:", "puntosObra:"],
+            iarvis: "Listado de puntos BMS, pruebas punto a punto y sincronizaci\xF3n",
+            nombreComercial: "BMS y control",
+            titular: "El listado de puntos, *generado* y probado punto a punto.",
+            paraQuien: "Ingenier\xEDa de control, integradores de BMS y t\xE9cnicos de puesta en marcha.",
+            ahorra: "Montar a mano el listado de puntos equipo por equipo y llevar las pruebas en papel.",
+            movilQueHace: [],
+            noIncluye: ["Inventario y plano de equipos (base: Calidad y equipos)", "Puesta en marcha de los equipos (Commissioning)"],
+            problema: "Sacar el listado de puntos de control de la obra y probarlo punto a punto.",
+            funciones: [
+              "Generar el listado de puntos BMS desde los equipos y desde la carpeta del proyecto",
+              "Propuesta de puntos en PDF y Excel",
+              "Pruebas punto a punto",
+              "Programaci\xF3n de PLC en texto estructurado (IEC 61131-3)"
+            ],
+            /* 15-nov (JC): BMS va aparte de Commissioning; con los dos, las pruebas de Cx usan los puntos. */
+            conOtros: [{ con: "commissioning", texto: "Con Commissioning: la puesta en marcha prueba los puntos BMS de cada equipo y la ficha BMS se rellena sola con la prueba punto a punto" }],
+            modulosObra: ["puntosControl", "controlPlc"],
+            movil: {}
+          },
+          /* 15-nov (JC): «si no pagan el módulo de commissioning, no pueden usar commissioning en el móvil tampoco». */
+          {
+            clave: "commissioning",
+            nombre: "Commissioning (puesta en marcha y fichas)",
+            tipo: "licencia",
+            destinos: ["commissioning", "planificacionMes", "sesionesPlanCx", "fichasCx", "prepararCx", "puntosControl", "medicionesPM", "bocasMedidas"],
+            canales: ["commissioning:", "fichasCx:", "prepararCx:", "pm:", "planificacionMes:"],
+            canalesMotor: ["commissioning:", "puestaMarcha:", "archivosPreparados:"],
+            iarvis: "Control de commissioning, fichas de puesta en marcha, mediciones, planificaci\xF3n Cx e informe a la DF",
+            nombreComercial: "Commissioning",
+            titular: "Cada equipo montado, medido y documentado *antes* de entregarlo.",
+            paraQuien: "T\xE9cnicos de commissioning y jefes de obra que entregan los equipos a la direcci\xF3n facultativa.",
+            ahorra: "Pasar a limpio fichas y mediciones, y montar el informe de entrega al final de cada obra.",
+            movilQueHace: ["Fichas del equipo con fotos, placa y n\xFAmero de serie", "Mediciones de bocas y toma de datos", "Firma y entrega a la DF desde el plano", "Mi planificaci\xF3n de commissioning"],
+            noIncluye: ["Balanceo y pruebas de estanqueidad (base: Calidad y equipos)", "Plan preventivo, F-gas y \xF3rdenes (Mantenimiento)", "Listado de puntos BMS y sus pruebas punto a punto (BMS y control)"],
+            conOtros: [{ con: "bms", texto: "Con BMS y control: las pruebas de puesta en marcha usan los puntos BMS de cada equipo; sin \xE9l, no se ve el listado de puntos" }],
+            problema: "Demostrar que cada equipo est\xE1 montado, medido y documentado antes de entregarlo.",
+            pantallasObra: ["Commissioning de la obra (tabla de equipos, documentaci\xF3n, entrega a la DF)", "Puesta en marcha"],
+            funciones: [
+              "Control de commissioning equipo a equipo",
+              "Preparar el commissioning desde la documentaci\xF3n del proyecto",
+              "Fichas de puesta en marcha y toma de datos",
+              "Mediciones de puesta en marcha y bocas medidas",
+              "Planificaci\xF3n Cx por meses y sesiones",
+              "Informe a la direcci\xF3n facultativa y paquete de entrega de equipos"
+            ],
+            modulosObra: ["commissioning", "entregasDF"],
+            movil: { secciones: ["commissioning"], permisos: ["commissioning"] }
+          },
+          {
+            clave: "mantenimiento",
+            nombre: "Mantenimiento (preventivo, F-gas, \xF3rdenes e inspecciones)",
+            tipo: "licencia",
+            secciones: ["mantenimiento"],
+            depende: ["commissioning"],
+            // Las reparaciones son de Incidencias (base) y el acta de mantenimiento, de Entrega (base).
+            canales: ["obra:mantenimiento", "obra:mantenimientoOT*", "obra:mantenimientoCal*", "obra:mantenimientoPdf*", "obra:mantenimientoApuntar"],
+            canalesMotor: ["mantenimiento:", "ordenesMant:", "comprasMant:", "contratoMant:"],
+            iarvis: "Plan preventivo, F-gas, \xF3rdenes de trabajo, reparaciones e inspecciones peri\xF3dicas",
+            nombreComercial: "Mantenimiento",
+            titular: "Los equipos entregados, con su plan *al d\xEDa*.",
+            paraQuien: "El responsable de mantenimiento y sus t\xE9cnicos, despu\xE9s de entregar la obra.",
+            ahorra: "Perseguir revisiones y controles F-gas en hojas sueltas.",
+            movilQueHace: ["Mis tareas: empezar, avanzar con fotos y terminar la orden", "Plano de mantenimiento con la ficha del equipo"],
+            noIncluye: ["Reparaciones de la obra (base: Calidad y equipos)", "Acta de mantenimiento (base: Entrega de obra)"],
+            problema: "Mantener los equipos entregados con su plan, sus \xF3rdenes y sus inspecciones al d\xEDa.",
+            funciones: ["Plan preventivo y calendario", "Control F-gas", "\xD3rdenes de trabajo", "Registro de mantenimiento e informes", "Inspecciones peri\xF3dicas", "Compras y contrato de mantenimiento"],
+            modulosObra: ["mantenimiento", "ordenesMant"],
+            movil: { secciones: ["misTareas", "planoMant"], permisos: ["ordenesMant", "mantenimiento"] }
+          },
+          /* 15-nov (JC): el presupuesto base monta e importa; lo automático se vende aparte. */
+          {
+            clave: "presupuestoInteligente",
+            nombre: "Presupuesto inteligente (descripciones autom\xE1ticas y cruce con planos)",
+            tipo: "licencia",
+            canalesMotor: ["presupuestos:contextoDescripciones", "planoVsPresupuesto:", "planoAMedicion:", "medicionIfc:", "medComp:"],
+            iarvis: "Rellenar las descripciones de las partidas, cruzar los planos con las mediciones y con las partidas del presupuesto",
+            nombreComercial: "Presupuesto inteligente",
+            titular: "Las descripciones y el cruce con planos, *autom\xE1ticos*.",
+            paraQuien: "El departamento de estudios y la oficina t\xE9cnica que preparan y revisan ofertas.",
+            ahorra: "Las horas de escribir descripciones y de comprobar sobre plano que no falta nada en el presupuesto.",
+            movilQueHace: [],
+            noIncluye: ["Montar e importar el presupuesto (base: Presupuestos)", "Descompuestos por variante de material (Descompuestos autom\xE1ticos)", "Listado de puntos BMS (BMS y control)"],
+            problema: "Ahorrar las horas de rellenar descripciones y de comprobar el presupuesto contra los planos.",
+            pantallasObra: ["Desglose: plano frente a presupuesto y medici\xF3n IFC", "Planos: mediciones comparadas"],
+            funciones: [
+              "Rellenar autom\xE1ticamente las descripciones de las partidas",
+              "Cruzar los planos con las mediciones (incluido el modelo IFC)",
+              "Cruzar los planos con las partidas del presupuesto",
+              "Pasar del plano a la medici\xF3n y revisarla"
+            ],
+            modulosObra: ["desglosePresupuesto"],
+            movil: {}
+          },
+          /* 15-nov (JC): «en el descompuesto automático, cada tipo de material lleva sus componentes con
+             variantes». Elegir la variante en la partida (shared/presupuesto/variantesPartida.js) y ver su
+             descompuesto sin precio, por confirmar. Sin canales propios: va en el árbol del presupuesto. */
+          {
+            clave: "descompuestoAutomatico",
+            nombre: "Descompuestos autom\xE1ticos (variantes por tipo de material)",
+            tipo: "licencia",
+            canales: [],
+            /* No tiene canal propio: lo corta la pantalla con la licencia del perfil (VARIANTES_PARTIDA.conLicencia). */
+            cortaEnPantalla: ["shared/presupuesto/variantesPartida.js"],
+            iarvis: "Elegir la variante del material de una partida (conducto, tuber\xEDa, aislamiento, difusi\xF3n) y ense\xF1ar los componentes que trae",
+            nombreComercial: "Descompuestos autom\xE1ticos",
+            titular: "Ninguna partida sin sus accesorios ni su *mano de obra*.",
+            paraQuien: "Estudios y jefes de obra que montan descompuestos de conductos, tuber\xEDas, aislamiento y difusi\xF3n.",
+            ahorra: "Olvidarse de una compuerta, de la elevaci\xF3n o de las horas de montaje en la oferta.",
+            movilQueHace: [],
+            noIncluye: ["Poner precio a los componentes: salen sin precio y por confirmar", "Rellenar las descripciones (Presupuesto inteligente)"],
+            problema: "Que ninguna partida de conducto, tuber\xEDa, aislamiento o difusi\xF3n se quede sin sus accesorios, su elevaci\xF3n y su mano de obra.",
+            pantallasObra: ["Presupuesto: variante del material en el descompuesto desplegado"],
+            funciones: [
+              "Reconocer el material de la partida (conducto, tuber\xEDa, aislamiento, difusi\xF3n)",
+              "Elegir la variante y las opciones de cada componente (plenum, compuerta\u2026)",
+              "Descompuesto de la variante: material, accesorios, elevaci\xF3n y mano de obra por equipo, sin precio y por confirmar"
+            ],
+            movil: {}
+          },
+          {
+            clave: "iarvis",
+            nombre: "Iarvis, el asistente",
+            tipo: "licencia",
+            canales: ["iarvis:"],
+            nombreComercial: "Iarvis",
+            titular: "Pedir las cosas *hablando*.",
+            paraQuien: "Todo el equipo, cada uno dentro de lo que su puesto puede hacer.",
+            ahorra: "Buscar la pantalla y los pasos de lo que ya sabes pedir.",
+            movilQueHace: ["El bot\xF3n de Iarvis en el tel\xE9fono: pedirle las cosas desde la obra"],
+            noIncluye: ["Hacer lo que tu rol no puede hacer", "Ofrecer m\xF3dulos que la empresa no tiene contratados"],
+            problema: "Pedir las cosas hablando, en el ordenador y en el m\xF3vil, dentro de lo que tu puesto puede hacer.",
+            pantallasObra: ["Panel de Iarvis (bot\xF3n abajo a la derecha, en todas las pantallas)"],
+            funciones: ["Asistente en el ordenador", "Asistente en el m\xF3vil (bot\xF3n Iarvis)", "Hace por ti lo que tu rol puede hacer, con trazabilidad"],
+            movil: { secciones: ["iarvis"], rutas: ["api/iarvis/"] }
+          },
+          /* Fase 6: la app del teléfono (app Cx) y su sincronización con la nube que da el perfil. */
+          {
+            clave: "movilCx",
+            nombre: "App del m\xF3vil (Cx) y sincronizaci\xF3n",
+            tipo: "licencia",
+            /* Los canales movil: los registra el motor de obra (electron/obra/ipc/canales.js) y
+               motor/sync:estado su arranque (electron/obra/arranque.js, fase 9). */
+            canales: [],
+            canalesMotor: ["movil:", "sync:"],
+            iarvis: "Encender el m\xF3vil de obra, el QR para el tel\xE9fono, el paquete de la app Cx y el estado de la sincronizaci\xF3n",
+            nombreComercial: "App del m\xF3vil",
+            titular: "La obra en el *bolsillo*, con o sin cobertura.",
+            paraQuien: "Encargados, t\xE9cnicos y jefes de obra que trabajan en el tajo.",
+            ahorra: "Pasar a limpio en la oficina lo que se apunt\xF3 en obra.",
+            movilQueHace: ["La app del tel\xE9fono entera, tambi\xE9n sin cobertura", "Abre en el tel\xE9fono las secciones de los m\xF3dulos contratados", "Alta del tel\xE9fono con un QR"],
+            noIncluye: ["Las secciones de los m\xF3dulos no contratados: cada m\xF3dulo trae lo suyo en el tel\xE9fono"],
+            problema: "Llevar la obra en el bolsillo, con o sin cobertura, y que todo llegue a la oficina.",
+            pantallasObra: ["Personas de la obra \u203A La app del m\xF3vil (encender, QR y paquete del tel\xE9fono)"],
+            funciones: ["App del tel\xE9fono para la obra", "Sincronizaci\xF3n con la nube", "Paquete y QR para dar de alta el tel\xE9fono"],
+            /* Sin esta, el teléfono no abre nada: todas las secciones y rutas fuera. */
+            movil: { app: true }
+          }
+        ];
+        const PAQUETES = [
+          {
+            clave: "cxMantenimiento",
+            nombreComercial: "Commissioning y mantenimiento",
+            modulos: ["commissioning", "mantenimiento"],
+            porque: "El mantenimiento nace de los equipos que entrega el commissioning; quien solo pone en marcha puede comprar solo commissioning."
+          }
+        ];
+        const CANALES_POR_TABLA = /* @__PURE__ */ new Set(["datos:list", "datos:get", "datos:create", "datos:update", "datos:remove"]);
+        const POR_CLAVE = new Map(MODULOS.map((m) => [m.clave, m]));
+        const DE_LICENCIA = MODULOS.filter((m) => m.tipo === "licencia").map((m) => m.clave);
+        const POR_SECCION = /* @__PURE__ */ new Map();
+        const POR_DESTINO = /* @__PURE__ */ new Map();
+        for (const m of MODULOS) {
+          for (const s of m.secciones || []) POR_SECCION.set(s, m.clave);
+          for (const d of m.destinos || []) POR_DESTINO.set(d, m.clave);
+        }
+        let seccionDeDestino = null;
+        function secciones() {
+          if (seccionDeDestino) return seccionDeDestino;
+          let barra = null;
+          if (typeof window !== "undefined" && window.BARRA_LATERAL_GESTOR) barra = window.BARRA_LATERAL_GESTOR;
+          else if (typeof __require === "function") {
+            try {
+              barra = require_barraLateral();
+            } catch {
+              barra = null;
+            }
+          }
+          if (!barra) return /* @__PURE__ */ new Map();
+          seccionDeDestino = new Map(barra.hojasDelArbol().map((h) => [h.destino, h.seccion]));
+          return seccionDeDestino;
+        }
+        function licenciasDe(perfil) {
+          const l = perfil && Array.isArray(perfil.licencias) ? perfil.licencias : [];
+          return conDependencias(l.filter((c) => DE_LICENCIA.includes(c)));
+        }
+        function conDependencias(lista) {
+          let l = [...new Set(lista)];
+          for (let cambio = true; cambio; ) {
+            cambio = false;
+            const fuera = l.filter((c) => ((POR_CLAVE.get(c) || {}).depende || []).some((d) => !l.includes(d)));
+            if (fuera.length) {
+              l = l.filter((c) => !fuera.includes(c));
+              cambio = true;
+            }
+          }
+          return l;
+        }
+        function moduloActivo(perfil, clave) {
+          const m = POR_CLAVE.get(clave);
+          if (!m) return false;
+          if (m.tipo === "base") return true;
+          return licenciasDe(perfil).includes(clave);
+        }
+        function moduloDeDestino(destino) {
+          if (POR_DESTINO.has(destino)) return POR_DESTINO.get(destino);
+          const s = secciones().get(destino);
+          return s && POR_SECCION.get(s) || null;
+        }
+        function coincide(patron, canal) {
+          if (patron.endsWith(":")) return canal.startsWith(patron);
+          if (patron.endsWith("*")) return canal.startsWith(patron.slice(0, -1));
+          return canal === patron;
+        }
+        const PREFIJO_MOTOR = "motor/";
+        function moduloDeCanal(canal, args = []) {
+          const c = String(canal || "");
+          if (CANALES_POR_TABLA.has(c)) {
+            const tabla = args && args[0];
+            const m = typeof tabla === "string" ? moduloDeDestino(tabla) : null;
+            return m && POR_CLAVE.get(m).tipo === "licencia" ? m : null;
+          }
+          const motor = c.startsWith(PREFIJO_MOTOR);
+          const nombre = motor ? c.slice(PREFIJO_MOTOR.length) : c;
+          for (const m of MODULOS) {
+            if (m.tipo !== "licencia") continue;
+            for (const p of motor ? [...m.canales || [], ...m.canalesMotor || []] : m.canales || []) {
+              if (coincide(p, nombre)) return m.clave;
+            }
+          }
+          return null;
+        }
+        function modulosObraFuera(perfil) {
+          const fuera = /* @__PURE__ */ new Set();
+          for (const m of MODULOS) {
+            if (m.tipo !== "licencia" || moduloActivo(perfil, m.clave)) continue;
+            for (const k of m.modulosObra || []) fuera.add(k);
+          }
+          return [...fuera];
+        }
+        function destinoActivo(perfil, destino) {
+          const m = moduloDeDestino(destino);
+          return m ? moduloActivo(perfil, m) : true;
+        }
+        function canalSinLicencia(perfil, canal, args) {
+          const m = moduloDeCanal(canal, args);
+          return m && !moduloActivo(perfil, m) ? POR_CLAVE.get(m) : null;
+        }
+        function mensajeSinLicencia(modulo) {
+          const nombre = modulo && modulo.nombre ? modulo.nombre : "este m\xF3dulo";
+          return `Sin licencia: ${nombre} no est\xE1 contratado en esta empresa.`;
+        }
+        function paraIarvis(perfil) {
+          const activos = [];
+          const fuera = [];
+          for (const m of MODULOS) {
+            if (m.tipo !== "licencia") continue;
+            if (moduloActivo(perfil, m.clave)) activos.push(m.iarvis ? `${m.nombre}: ${m.iarvis}` : m.nombre);
+            else fuera.push(m.nombre);
+          }
+          return { activos, fuera };
+        }
+        const MAX_DIAS_SIN_NUBE = 30;
+        function licenciasContratadas({ perfil = null, nube = null, ahora = Date.now() } = {}) {
+          const respaldo = { licencias: licenciasDe(perfil), origen: "perfil" };
+          if (!nube || !Array.isArray(nube.modulos)) return respaldo;
+          const t = (v) => v ? Date.parse(v) : NaN;
+          const leida = t(nube.leida);
+          if (!Number.isFinite(leida) || ahora - leida > MAX_DIAS_SIN_NUBE * 864e5) return respaldo;
+          if (Number.isFinite(t(nube.caduca)) && t(nube.caduca) <= ahora) return respaldo;
+          const caducan = nube.caducan && typeof nube.caducan === "object" ? nube.caducan : {};
+          const vivo = (c) => !Number.isFinite(t(caducan[c])) || t(caducan[c]) > ahora;
+          return { licencias: conDependencias(nube.modulos.filter((c) => DE_LICENCIA.includes(c) && vivo(c))), origen: "nube" };
+        }
+        function licenciasEfectivas({ perfil = null, nube = null, ahora = Date.now(), apagadas = [] } = {}) {
+          const c = licenciasContratadas({ perfil, nube, ahora });
+          const fuera = new Set(Array.isArray(apagadas) ? apagadas : []);
+          if (!fuera.size) return c;
+          return { ...c, licencias: conDependencias(c.licencias.filter((x) => !fuera.has(x))) };
+        }
+        function conLicencias(perfil, licencias) {
+          return { ...perfil || {}, licencias: [...licencias] };
+        }
+        function fichaDeVenta(m) {
+          const paquete = PAQUETES.find((p) => p.modulos.includes(m.clave));
+          return {
+            nombreComercial: m.nombreComercial || m.nombre,
+            problema: m.problema || "",
+            titular: m.titular || "",
+            paraQuien: m.paraQuien || "",
+            ahorra: m.ahorra || "",
+            movilQueHace: m.movilQueHace || null,
+            funciones: m.funciones || [],
+            noIncluye: m.noIncluye || [],
+            enDesarrollo: m.enDesarrollo || [],
+            depende: (m.depende || []).map((c) => (POR_CLAVE.get(c) || {}).nombreComercial || (POR_CLAVE.get(c) || {}).nombre || c),
+            /* Lo que da junto a otro módulo (BMS con Commissioning). */
+            conOtros: (m.conOtros || []).map((x) => x.texto),
+            paquete: paquete ? paquete.nombreComercial : null
+          };
+        }
+        function estadoLicencias({ perfil = null, nube = null, ahora = Date.now(), apagadas = [] } = {}) {
+          const ef = licenciasContratadas({ perfil, nube, ahora });
+          const vale = licenciasEfectivas({ perfil, nube, ahora, apagadas }).licencias;
+          const delPerfil = licenciasDe(perfil);
+          const t = (v) => v ? Date.parse(v) : NaN;
+          let motivoRespaldo = null;
+          if (ef.origen === "perfil") {
+            if (!nube || !Array.isArray(nube.modulos)) motivoRespaldo = "sin_lectura";
+            else if (!Number.isFinite(t(nube.leida)) || ahora - t(nube.leida) > MAX_DIAS_SIN_NUBE * 864e5) motivoRespaldo = "lectura_vieja";
+            else motivoRespaldo = "caducada";
+          }
+          const enNube = ef.origen === "nube" ? new Set(nube.modulos) : /* @__PURE__ */ new Set();
+          const caducan = nube && nube.caducan && typeof nube.caducan === "object" ? nube.caducan : {};
+          const modulos = MODULOS.map((m) => {
+            const fila = { clave: m.clave, nombre: m.nombre, tipo: m.tipo, enPerfil: delPerfil.includes(m.clave), caduca: null, venta: fichaDeVenta(m) };
+            if (m.tipo === "base") return { ...fila, activo: true, origen: "base", estado: "incluido" };
+            const contratado = ef.licencias.includes(m.clave);
+            const ficha = { contratado, depende: m.depende || [] };
+            if (contratado && !vale.includes(m.clave)) {
+              return { ...fila, ...ficha, activo: false, origen: null, estado: "apagado", caduca: ef.origen === "nube" ? caducan[m.clave] || null : null };
+            }
+            const activo = contratado;
+            Object.assign(fila, ficha);
+            if (ef.origen === "nube") {
+              fila.caduca = caducan[m.clave] || null;
+              if (activo) return { ...fila, activo, origen: "nube", estado: "activo" };
+              if (enNube.has(m.clave)) return { ...fila, activo, origen: null, estado: "caducado" };
+              return { ...fila, activo, origen: null, estado: fila.enPerfil ? "quitado" : "sin_licencia" };
+            }
+            return { ...fila, activo, origen: activo ? "perfil" : null, estado: activo ? "activo" : "sin_licencia" };
+          });
+          return {
+            origen: ef.origen,
+            motivoRespaldo,
+            leida: nube && nube.leida ? nube.leida : null,
+            maxDiasSinNube: MAX_DIAS_SIN_NUBE,
+            modulos,
+            activas: vale,
+            contratadas: ef.licencias,
+            apagadas: ef.licencias.filter((c) => !vale.includes(c))
+          };
+        }
+        function movilDe(m) {
+          return m && m.movil || {};
+        }
+        function sinApp(perfil) {
+          return !moduloActivo(perfil, "movilCx");
+        }
+        function seccionesMovilFuera(perfil) {
+          const fuera = /* @__PURE__ */ new Set();
+          for (const m of MODULOS) {
+            if (m.tipo === "base" ? !sinApp(perfil) : moduloActivo(perfil, m.clave) && !sinApp(perfil)) continue;
+            for (const s of movilDe(m).secciones || []) fuera.add(s);
+          }
+          return [...fuera];
+        }
+        function iarvisEnMovil(perfil) {
+          return !sinApp(perfil) && moduloActivo(perfil, "iarvis");
+        }
+        function rutaMovilConLicencia(perfil, ruta, pares) {
+          if (sinApp(perfil)) return { pares: [], falta: POR_CLAVE.get("movilCx") };
+          const r = String(ruta || "");
+          for (const m of MODULOS) {
+            if (m.tipo !== "licencia" || moduloActivo(perfil, m.clave)) continue;
+            if ((movilDe(m).rutas || []).some((p) => r.startsWith(p))) return { pares: [], falta: m };
+          }
+          const lista = Array.isArray(pares) ? pares : [];
+          let falta = null;
+          const quedan = lista.filter(([mod]) => {
+            if (mod === "*") return true;
+            const m = MODULOS.find((x) => x.tipo === "licencia" && (movilDe(x).permisos || []).includes(mod));
+            if (m && !moduloActivo(perfil, m.clave)) {
+              falta = falta || m;
+              return false;
+            }
+            return true;
+          });
+          return { pares: quedan, falta: quedan.length ? null : falta };
+        }
+        function pantallasDe(clave) {
+          let barra = null;
+          if (typeof window !== "undefined" && window.BARRA_LATERAL_GESTOR) barra = window.BARRA_LATERAL_GESTOR;
+          else if (typeof __require === "function") {
+            try {
+              barra = require_barraLateral();
+            } catch {
+              barra = null;
+            }
+          }
+          if (!barra) return [];
+          return barra.hojasDelArbol().filter((h) => moduloDeDestino(h.destino) === clave).map((h) => ({ destino: h.destino, nombre: h.nombre, seccion: h.seccion }));
+        }
+        function rolEnEdicion(perfil, rol) {
+          const r = perfil && Array.isArray(perfil.roles) ? perfil.roles : null;
+          return !r || r.includes(rol);
+        }
+        function filtrarRoles(perfil, lista, conservar = []) {
+          if (!Array.isArray(lista)) return lista;
+          const guardar = new Set(conservar);
+          return lista.filter((p) => p && (rolEnEdicion(perfil, p.rol) || guardar.has(p.rol)));
+        }
+        let perfilVigente = null;
+        function fijarPerfilVigente(fn) {
+          perfilVigente = typeof fn === "function" ? fn : null;
+        }
+        function activoAhora(clave) {
+          if (!perfilVigente) return true;
+          try {
+            return moduloActivo(perfilVigente(), clave);
+          } catch {
+            return true;
+          }
+        }
+        const API = {
+          MODULOS,
+          PAQUETES,
+          DE_LICENCIA,
+          CANALES_POR_TABLA,
+          MAX_DIAS_SIN_NUBE,
+          conDependencias,
+          seccionesMovilFuera,
+          iarvisEnMovil,
+          rutaMovilConLicencia,
+          pantallasDe,
+          moduloActivo,
+          moduloDeDestino,
+          coincide,
+          moduloDeCanal,
+          PREFIJO_MOTOR,
+          destinoActivo,
+          canalSinLicencia,
+          mensajeSinLicencia,
+          paraIarvis,
+          licenciasDe,
+          licenciasEfectivas,
+          licenciasContratadas,
+          conLicencias,
+          estadoLicencias,
+          fichaDeVenta,
+          rolEnEdicion,
+          filtrarRoles,
+          modulosObraFuera,
+          fijarPerfilVigente,
+          activoAhora
+        };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.MODULOS_GESTOR = API;
+      })();
+    }
+  });
+
   // shared/commissioning/puntosBms.js
   var require_puntosBms = __commonJS({
     "shared/commissioning/puntosBms.js"(exports, module) {
@@ -88796,306 +89992,6 @@ ${linea}` : linea;
     }
   });
 
-  // shared/barraLateral.js
-  var require_barraLateral = __commonJS({
-    "shared/barraLateral.js"(exports, module) {
-      "use strict";
-      init_define_CX_LICENCIAS();
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const MAX_HOJAS = 7;
-        const ARBOL_GESTOR = [
-          /* Remate 15-nov (JC, opción mixta): arriba la empresa; luego la base de la obra en el orden del 13-nov
-             (lo que define la obra y después el trabajo de presupuesto a entrega); debajo, «Módulos», uno por licencia. */
-          { id: "empresa", titulo: "Empresa", secciones: [
-            { id: "empresa", titulo: "Todas las obras", icono: "\u{1F3E2}", color: "var(--area-contratacion)", hojas: [
-              { destino: "cartera", icono: "\u{1F3E2}", nombre: "Todas las obras", desc: "La empresa entera: d\xF3nde est\xE1 el problema", vista: true },
-              { destino: "proyectos", icono: "\u{1F3D7}\uFE0F", nombre: "Proyectos", desc: "Las obras de cada empresa" }
-            ] },
-            /* Cuentas (#21): las estadísticas comerciales; facturación, forecast y gastos vendrán aquí. */
-            { id: "cuentas", titulo: "Cuentas", icono: "\u{1F4C8}", color: "var(--area-costes)", hojas: [
-              { destino: "estadisticas", icono: "\u{1F4C8}", nombre: "Estad\xEDsticas", desc: "Ofertas presentadas, adjudicadas y perdidas, tasa de \xE9xito y dinero ofertado contra adjudicado, por cliente, disciplina y periodo", vista: true }
-            ] },
-            { id: "comercial", titulo: "Comercial", icono: "\u{1F4E3}", color: "var(--area-planificacion)", hojas: [
-              { destino: "clientes", icono: "\u{1F3E2}", nombre: "Clientes", desc: "Las fichas de cliente de la empresa: contacto, condiciones de pago e idioma" }
-            ] }
-          ] },
-          { id: "obra", titulo: "La obra", secciones: [
-            /* Una sola puerta al alcance: «Ficha de alcance» (lo contratado) va en Compras. */
-            { id: "proyecto", titulo: "Proyecto", icono: "\u{1F4DC}", color: "var(--area-costes)", hojas: [
-              { destino: "alcanceProyecto", icono: "\u{1F4DC}", nombre: "Alcance del proyecto", desc: "Identificaci\xF3n, equipo, plazos, econ\xF3micas y condicionantes", vista: true },
-              { destino: "documentacionProyecto", icono: "\u{1F4DA}", nombre: "Documentaci\xF3n del proyecto", desc: "La biblioteca de modelos del proyecto: lo que pide el presupuesto, por tipo, con su estado y su PDF; y el buscador de toda la app", vista: true },
-              { destino: "planos", icono: "\u{1F5C2}\uFE0F", nombre: "Planos de obra", desc: "Los PDF: subirlos, verlos y guardarlos dentro del proyecto", vista: true },
-              { destino: "personasObra", icono: "\u{1F9D1}\u200D\u{1F4BC}", nombre: "Personas de la obra", desc: "Propiedad, direcci\xF3n facultativa, encargados\u2026 con sus tel\xE9fonos", vista: true },
-              { destino: "organigrama", icono: "\u{1F9ED}", nombre: "Organigrama", desc: "Qui\xE9n manda sobre qui\xE9n en la obra, montado solo con la ficha del proyecto y las Personas de la obra", vista: true },
-              { destino: "intervinientes", icono: "\u{1F4C7}", nombre: "Ficha de personas", desc: "Alta y edici\xF3n de las personas de la obra" }
-            ] },
-            /* Conflictos y Reclamaciones (#1 y #3) vendrán aquí en la ola 4. */
-            { id: "contrato", titulo: "Contrato y cliente", icono: "\u{1F500}", color: "var(--area-costes)", hojas: [
-              { destino: "cambios", icono: "\u{1F500}", nombre: "Cambios de proyecto", desc: "Circuito, importe y efecto en el contrato", vista: true },
-              { destino: "variaciones", icono: "\u{1F4DD}", nombre: "Registro de cambios", desc: "Alta y edici\xF3n de cada cambio" },
-              /* Partes de trabajo (ola 2, #7), gemela de Vidaire Obras: renderer/partesTrabajoPantalla.js. */
-              { destino: "partesTrabajoPantalla", icono: "\u{1F6E0}\uFE0F", nombre: "Partes de trabajo", desc: "Un trabajo fuera de contrato: qui\xE9n lo pide, horas y material, validaci\xF3n, firma y a qui\xE9n se repercute", vista: true },
-              { destino: "partesTrabajo", icono: "\u{1F6E0}\uFE0F", nombre: "Partes de trabajo (registro)", desc: "Los partes, en bruto" },
-              { destino: "parteTrabajoLineas", icono: "\u{1F9FE}", nombre: "L\xEDneas de partes de trabajo", desc: "Horas, material y otros de cada parte" },
-              { destino: "variacionLineas", icono: "\u{1F9FE}", nombre: "L\xEDneas de cambio", desc: "El detalle de cada cambio de proyecto" },
-              { destino: "ordenesCambio", icono: "\u{1F4DC}", nombre: "\xD3rdenes de cambio", desc: "Lo que el cliente autoriza por escrito" }
-            ] },
-            { id: "seguridad", titulo: "Seguridad", icono: "\u26A0\uFE0F", color: "var(--area-costes)", hojas: [
-              { destino: "perdidas", icono: "\u26A0\uFE0F", nombre: "Robos y p\xE9rdidas", desc: "Material perdido y su coste" }
-            ] }
-          ] },
-          { id: "trabajo", titulo: "El trabajo", secciones: [
-            { id: "estudios", titulo: "Proyectos y presupuestos", icono: "\u{1F4D0}", color: "var(--area-planificacion)", hojas: [
-              { destino: "estudio", icono: "\u{1F4BC}", nombre: "Estudio y oferta", desc: "Versiones del presupuesto, auditor, banco de precios, alternativas, embudo, la oferta en PDF y el traspaso a obra", vista: true },
-              { destino: "mediciones", icono: "\u{1F4CF}", nombre: "Mediciones del proyecto", desc: "L\xEDnea base, revisiones y c\xF3mo evoluciona la medici\xF3n", vista: true },
-              { destino: "partidasObra", icono: "\u{1F4CA}", nombre: "Partidas del presupuesto", desc: "Presupuesto, coste y margen por partida" },
-              { destino: "desgloseInicial", icono: "\u{1F5C2}\uFE0F", nombre: "Desglose inicial", desc: "Las tareas del desglose inicial del alcance" },
-              { destino: "plantillasPartida", icono: "\u{1F4DA}", nombre: "Plantillas de partida", desc: "La biblioteca de la empresa: partidas con su descripci\xF3n, para cualquier obra" },
-              { destino: "versionesPresupuesto", icono: "\u{1F5C3}\uFE0F", nombre: "Versiones del presupuesto", desc: "Las fotos guardadas del presupuesto, con su estado" },
-              { destino: "alternativasPresupuesto", icono: "\u{1F501}", nombre: "Alternativas", desc: "Otra marca u otra soluci\xF3n para una partida, con su precio" },
-              { destino: "revisionesMedicion", icono: "\u{1F4CF}", nombre: "Revisiones de medici\xF3n", desc: "La historia de la medici\xF3n: solo se consulta" },
-              { destino: "lineasMedicion", icono: "\u{1F4D0}", nombre: "L\xEDneas de medici\xF3n", desc: "El detalle de cada revisi\xF3n, con su traza" },
-              { destino: "cambiosMedicion", icono: "\u{1F4D0}", nombre: "Cambios de medici\xF3n", desc: "Qu\xE9 mediciones cambiaron y qu\xE9 partidas se a\xF1adieron" }
-            ] },
-            /* Contratación y Compras, juntas: paquete, comparativo, adjudicación. */
-            { id: "compras", titulo: "Compras", icono: "\u{1F91D}", color: "var(--area-contratacion)", hojas: [
-              { destino: "compras", icono: "\u23F1\uFE0F", nombre: "Planificaci\xF3n de compras", desc: "Cu\xE1ndo hay que adjudicar cada cosa", vista: true },
-              { destino: "comparativo", icono: "\u2696\uFE0F", nombre: "Comparativos", desc: "Ofertas enfrentadas por paquete", vista: true },
-              { destino: "resumenContrat", icono: "\u{1F4CA}", nombre: "Resumen de contrataciones", desc: "Con qui\xE9n se gasta y d\xF3nde se mejora", vista: true },
-              { destino: "master", icono: "\u{1F9FE}", nombre: "Master de contrataciones", desc: "Venta, estudio, contrataci\xF3n y sus porcentajes", vista: true },
-              { destino: "alcance", icono: "\u{1F4D0}", nombre: "Ficha de alcance", desc: "Qu\xE9 se contrat\xF3 y qu\xE9 papeles faltan", vista: true },
-              { destino: "ganttContratacion", icono: "\u{1F91D}", nombre: "Qui\xE9n est\xE1 en obra", desc: "Cu\xE1ndo entra y sale cada adjudicatario", vista: true },
-              { destino: "paquetesCompra", icono: "\u{1F6D2}", nombre: "Plan de compras", desc: "Paquetes, objetivo y adjudicaci\xF3n" },
-              { destino: "ofertas", icono: "\u{1F4E8}", nombre: "Peticiones de oferta", desc: "Lo pedido y lo recibido" },
-              { destino: "ofertaLineas", icono: "\u{1F4C4}", nombre: "L\xEDneas de oferta", desc: "Los precios unitarios de cada oferta, partida a partida" },
-              { destino: "contrataciones", icono: "\u{1F91D}", nombre: "Contrataciones", desc: "Adjudicado, con desglose de coste" },
-              { destino: "proveedores", icono: "\u{1F3ED}", nombre: "Proveedores (directorio)", desc: "Los proveedores de la empresa: viajan entre obras" }
-            ] },
-            { id: "almacen", titulo: "Pedidos y almac\xE9n", icono: "\u{1F4E6}", color: "var(--area-contratacion)", hojas: [
-              { destino: "pedidosEntregas", icono: "\u{1F69A}", nombre: "Pedidos y entregas", desc: "Solicitud al proveedor, plazo confirmado frente al real, albaranes parciales y puntualidad de cada proveedor", vista: true },
-              { destino: "recepciones", icono: "\u{1F4E5}", nombre: "Recepciones", desc: "Lo que ha llegado y lo que falta por dar de alta", vista: true },
-              { destino: "inventario", icono: "\u{1F4E6}", nombre: "Inventario", desc: "Stock actual y avisos de m\xEDnimo", vista: true },
-              { destino: "pedidos", icono: "\u{1F4E6}", nombre: "Pedidos", desc: "Registro y estado de entrega" },
-              { destino: "lineasPedido", icono: "\u{1F4DD}", nombre: "L\xEDneas de pedido", desc: "Qu\xE9 material trae cada pedido" },
-              { destino: "entregasPedido", icono: "\u{1F69A}", nombre: "Entregas de pedidos", desc: "Cada albar\xE1n recibido: qu\xE9 trajo y con qu\xE9 incidencia" },
-              { destino: "bolsasPedidos", icono: "\u{1F4B0}", nombre: "Bolsas de pedidos", desc: "Lo consumido y lo restante de cada bolsa" },
-              { destino: "articulos", icono: "\u{1F529}", nombre: "Art\xEDculos", desc: "Cat\xE1logo de material" },
-              { destino: "movimientos", icono: "\u{1F504}", nombre: "Movimientos", desc: "Entradas, salidas y ajustes" }
-            ] },
-            { id: "economico", titulo: "Econ\xF3mico", icono: "\u{1F9EE}", color: "var(--area-costes)", hojas: [
-              { destino: "analisis", icono: "\u{1F3AF}", nombre: "An\xE1lisis del proyecto", desc: "Margen, coste objetivo y la K que hay que sacar", vista: true },
-              { destino: "costeDirecto", icono: "\u{1F9EE}", nombre: "Costes directos", desc: "En cu\xE1nto acaba costando y qu\xE9 falta por cerrar", vista: true },
-              { destino: "indirectos", icono: "\u{1F6A7}", nombre: "Costes indirectos y provisionales", desc: "Casetas, alquileres, encargados\u2026 editable en la celda", vista: true },
-              { destino: "proyeccion", icono: "\u{1F52E}", nombre: "Proyecci\xF3n a fin de obra", desc: "En cu\xE1nto acaba si seguimos as\xED", vista: true },
-              { destino: "costsPlan", icono: "\u{1F4D2}", nombre: "Costs Plan", desc: "Por cap\xEDtulo: previsto, comprometido, gastado y a fin de obra; desv\xEDo, ahorro y cierre de mes", vista: true },
-              { destino: "certificacion", icono: "\u{1F4D1}", nombre: "Certificaciones", desc: "La obra al cliente y cada industrial: sus pedidos, sus libros y qu\xE9 queda por pagarle", vista: true },
-              { destino: "certSubcontratas", icono: "\u{1F50E}", nombre: "Revisi\xF3n de industriales", desc: "Antes de aprobarle el mes: excesos, precios contradictorios, equivalencias, extras por horas, descuentos y la proforma", vista: true },
-              { destino: "certificaciones", icono: "\u{1F4C4}", nombre: "Registro de certificaciones", desc: "Alta, edici\xF3n y PDF" },
-              { destino: "certificacionLineas", icono: "\u{1F4C3}", nombre: "L\xEDneas de certificaci\xF3n", desc: "El detalle de cada certificaci\xF3n" },
-              { destino: "certEquivalencias", icono: "\u{1F501}", nombre: "Equivalencias de c\xF3digos", desc: "Su c\xF3digo de industrial \u2192 nuestra partida" },
-              { destino: "certContradictorios", icono: "\u2696\uFE0F", nombre: "Precios contradictorios", desc: "Los precios distintos del contrato y lo decidido" },
-              { destino: "certExtras", icono: "\u{1F552}", nombre: "Extras por horas", desc: "Horas de los industriales fuera de contrato" },
-              { destino: "certDescuentos", icono: "\u2796", nombre: "Descuentos a industriales", desc: "Lo que se les deduce del mes" },
-              { destino: "medicionesConductos", icono: "\u{1F4D0}", nombre: "Mediciones de conductos", desc: "El registro de las hojas de m\xB2 de conductos" },
-              { destino: "provisionales", icono: "\u{1F5C3}\uFE0F", nombre: "Provisionales", desc: "Las l\xEDneas de indirectos y provisionales" },
-              { destino: "costsPlanCierres", icono: "\u{1F4D2}", nombre: "Cierres del Costs Plan", desc: "La foto de cada mes cerrado" }
-            ] },
-            { id: "commissioning", titulo: "Commissioning", icono: "\u2705", color: "var(--area-certificaciones)", hojas: [
-              { destino: "commissioning", icono: "\u2705", nombre: "Control de commissioning", desc: "La tabla de equipos: documentaci\xF3n, ensayos y env\xEDo a DF", vista: true },
-              { destino: "planificacionMes", icono: "\u{1F5D3}\uFE0F", nombre: "Planificaci\xF3n Cx", desc: "El listado de equipos y el mes: arrastra cada equipo a su d\xEDa con actividad, horas y qui\xE9n lo hace; PDF \xFAnico", vista: true },
-              { destino: "fichasCx", icono: "\u{1F52C}", nombre: "Fichas de puesta en marcha", desc: "La puerta \xFAnica de cada equipo: checklist, ficha PM con proyecto, fabricante y medido, y su dossier en PDF", vista: true },
-              { destino: "ensayos", icono: "\u{1F4A8}", nombre: "Ensayos \u2014 balanceo y estanqueidad", desc: "Las tablas para meter los datos: la hoja sale sola, con fotos y firma", vista: true },
-              { destino: "planoEquipos", icono: "\u{1F5FA}\uFE0F", nombre: "Plano de equipos", desc: "El plano de cada planta con los equipos de su color: rojo sin instalar, azul instalado, verde con el commissioning completo", vista: true },
-              { destino: "prepararCx", icono: "\u{1F4E5}", nombre: "Preparar commissioning", desc: "Lee la documentaci\xF3n de la obra y propone fichas, estanqueidad y balanceo: no se graba nada sin aceptarlo", vista: true },
-              /* Los equipos y sus modelos, una sola vez (antes también en Mantenimiento). */
-              { destino: "equipos", icono: "\u2699\uFE0F", nombre: "Equipos", desc: "Inventario de equipos de la obra: lo que se pone en marcha y luego se entrega para mantener" },
-              { destino: "modelosEquipo", icono: "\u{1F3F7}\uFE0F", nombre: "Modelos de equipo", desc: "Ficha t\xE9cnica, CE y manual por modelo; se heredan a sus equipos" },
-              { destino: "puntosControl", icono: "\u2611\uFE0F", nombre: "Puntos de control \u2014 l\xEDneas", desc: "Todas las l\xEDneas de checklist" },
-              { destino: "medicionesPM", icono: "\u{1F4CB}", nombre: "Mediciones de puesta en marcha", desc: "Lo que se mide en obra" },
-              { destino: "bocasMedidas", icono: "\u{1F4A8}", nombre: "Bocas medidas", desc: "Caudal por boca de cada medici\xF3n" },
-              { destino: "redesAgua", icono: "\u{1F4A7}", nombre: "Balanceo \u2014 redes de agua", desc: "Las redes de agua del balanceo: bomba y v\xE1lvulas de equilibrado" },
-              { destino: "planosEquipos", icono: "\u{1F5FA}\uFE0F", nombre: "Planos de equipos \u2014 registros", desc: "Un registro por planta con su plano" },
-              { destino: "sesionesPlanCx", icono: "\u{1F5D3}\uFE0F", nombre: "Planificaci\xF3n Cx \u2014 sesiones", desc: "Lo programado en el calendario, una sesi\xF3n por l\xEDnea" }
-            ] },
-            /* Las incidencias de los equipos, una sola vez: aquí. */
-            { id: "calidad", titulo: "Calidad", icono: "\u{1F4DD}", color: "var(--area-certificaciones)", hojas: [
-              { destino: "calidad", icono: "\u{1F4DD}", nombre: "Calidad en obra", desc: "NCR, listado de repasos e incidencias con foto y ubicaci\xF3n, como las levanta la ingenier\xEDa o la DF al recorrer la obra; filtros y salida a Excel y PDF", vista: true },
-              { destino: "ncr", icono: "\u26A0\uFE0F", nombre: "No conformidades", desc: "El registro NCR: plazos, industriales, equipos bloqueados, fichas e informe semanal", vista: true },
-              { destino: "ppiCuadro", icono: "\u2705", nombre: "PPI (puntos de inspecci\xF3n)", desc: "Cada instalaci\xF3n inspeccionada al 25, 50, 75 y 100 % con su checklist; un No OK abre la NCR. Cuadro de la obra, acta en PDF con firmas y Excel", vista: true },
-              { destino: "incidencias", icono: "\u{1F527}", nombre: "Incidencias y reparaciones", desc: "Las aver\xEDas de los equipos: contadores, planificaci\xF3n del mes con arrastre, horas por t\xE9cnico, costes y lo que se pasa al cliente", vista: true },
-              { destino: "seguimiento", icono: "\u{1F5FA}\uFE0F", nombre: "Mapa de seguimiento", desc: "Por instalaci\xF3n: doc. calidad, fabricante, comit\xE9, conductos y tuber\xEDas", vista: true },
-              { destino: "pruebas", icono: "\u{1F9EA}", nombre: "Pruebas", desc: "Presiones y fluidos de cada certificado" },
-              { destino: "ncrEquipos", icono: "\u{1F517}", nombre: "NCR \u2014 equipos afectados", desc: "Qu\xE9 equipos toca cada no conformidad" },
-              { destino: "ncrAplazamientos", icono: "\u23F1\uFE0F", nombre: "NCR \u2014 aplazamientos", desc: "Cada cambio de plazo de una NCR, con su motivo" },
-              { destino: "ppi", icono: "\u2705", nombre: "PPI \u2014 inspecciones", desc: "El registro de las inspecciones PPI" },
-              { destino: "ppiPuntos", icono: "\u2611\uFE0F", nombre: "PPI \u2014 puntos", desc: "Cada punto revisado, con su resultado y la NCR que abri\xF3" },
-              { destino: "instrumentos", icono: "\u{1F4DF}", nombre: "Instrumentos", desc: "Aparatos de medida y su calibraci\xF3n" }
-            ] },
-            { id: "planificacion", titulo: "Planificaci\xF3n y producci\xF3n", icono: "\u{1F4C5}", color: "var(--area-costes)", hojas: [
-              { destino: "plazo", icono: "\u23F3", nombre: "\xBFVamos bien de plazo?", desc: "Lo que deber\xEDa estar hecho contra lo que hay", vista: true },
-              { destino: "programa", icono: "\u{1F5C2}\uFE0F", nombre: "Programa de obra", desc: "Actividades con predecesoras, camino cr\xEDtico, l\xEDnea base y Gantt", vista: true },
-              { destino: "gantt", icono: "\u{1F4C5}", nombre: "Gantt de la obra", desc: "Planificaci\xF3n y producci\xF3n mes a mes", vista: true },
-              { destino: "planSubcontrata", icono: "\u{1F4E8}", nombre: "Plan por subcontrata", desc: "Gantt para mandar a cada subcontrata: operarios, partidas, fechas del proyecto e hitos que le afectan (PDF y Excel)", vista: true },
-              { destino: "avance", icono: "\u{1F3E2}", nombre: "Avance de obra", desc: "Qu\xE9 queda por planta y por familia", vista: true },
-              { destino: "agenda", icono: "\u{1F5D3}\uFE0F", nombre: "Agenda", desc: "Qu\xE9 vence hoy y qu\xE9 lleva retraso", vista: true },
-              { destino: "calendario", icono: "\u{1F477}", nombre: "Calendario de subcontratas", desc: "Previstos frente a presentes", vista: true },
-              { destino: "tareas", icono: "\u{1F4CB}", nombre: "Tareas", desc: "Qu\xE9 hay que hacer y qui\xE9n lo tiene" },
-              { destino: "actividades", icono: "\u{1F4C6}", nombre: "Programa \u2014 actividades", desc: "Las filas del programa de obra" },
-              { destino: "ganttVersiones", icono: "\u{1F5D3}\uFE0F", nombre: "Gantt \u2014 versiones", desc: "La versi\xF3n de cada perfil y cu\xE1l es la que se sigue: solo se consulta; se cambian en \xABPrograma de obra\xBB" },
-              { destino: "ganttElecciones", icono: "\u{1F4CC}", nombre: "Gantt \u2014 registro de \xABa seguir\xBB", desc: "Qui\xE9n eligi\xF3 cada Gantt a seguir, cu\xE1ndo, cu\xE1l era antes y por qu\xE9" },
-              { destino: "subcontratas", icono: "\u{1F3D7}\uFE0F", nombre: "Subcontratas", desc: "Qui\xE9n trabaja en la obra" },
-              { destino: "tarifasSubcontrata", icono: "\u23F1\uFE0F", nombre: "Tarifas por hora", desc: "El \u20AC/h de cada categor\xEDa de cada subcontrata: valora los extras por horas" },
-              { destino: "partesSubcontrata", icono: "\u{1F4C6}", nombre: "Partes diarios", desc: "Presencia diaria de subcontratas" },
-              { destino: "papelesSubcontrata", icono: "\u{1F4D1}", nombre: "Papeles de subcontrata", desc: "Seguro, REA, Hacienda, Seguridad Social, contrato\u2026 con su caducidad" }
-            ] },
-            { id: "entrega", titulo: "Entrega", icono: "\u{1F511}", color: "var(--area-certificaciones)", hojas: [
-              { destino: "actasObra", icono: "\u2705", nombre: "Actas y reservas", desc: "Recepciones, qu\xE9 qued\xF3 abierto y si las pruebas son v\xE1lidas", vista: true },
-              { destino: "documentacion", icono: "\u{1F5C2}\uFE0F", nombre: "Documentaci\xF3n de obra", desc: "Checklist de papeles: inicial, durante y final" },
-              { destino: "actas", icono: "\u{1F4C4}", nombre: "Registro de actas", desc: "Pruebas, replanteos, recepciones" },
-              { destino: "reservas", icono: "\u{1F4CC}", nombre: "Reservas de acta", desc: "Los puntos que quedaron abiertos" }
-            ] },
-            { id: "informes", titulo: "Informes", icono: "\u{1F5D2}\uFE0F", color: "var(--area-planificacion)", hojas: [
-              { destino: "informeSemanal", icono: "\u{1F4CA}", nombre: "Informe semanal", desc: "Las obras en curso, una fila cada una: commissioning, certificado, Costs Plan, industriales, mantenimiento y NCR", vista: true },
-              { destino: "cargaSubcontratas", icono: "\u{1F477}", nombre: "Carga de subcontratas", desc: "Cada industrial en todas las obras en curso: en cu\xE1ntas est\xE1, gente comprometida, prevista y real (esta semana y las 4 anteriores) y sus NCR abiertas", vista: true },
-              { destino: "semaforoSubcontratas", icono: "\u{1F6A6}", nombre: "Papeles de subcontratas", desc: "Sem\xE1foro por subcontrata y obra: verde al d\xEDa, \xE1mbar si algo caduca en 30 d\xEDas, rojo si falta o est\xE1 caducado un papel obligatorio", vista: true },
-              { destino: "partesSemanales", icono: "\u{1F5D2}\uFE0F", nombre: "Partes semanales emitidos", desc: "Qu\xE9 semanas se han mandado ya" }
-            ] },
-            { id: "normativa", titulo: "BOE y reglamentos", icono: "\u{1F4DC}", color: "var(--area-planificacion)", hojas: [] },
-            { id: "herramientas", titulo: "Herramientas", icono: "\u{1F501}", color: "var(--area-tecnico)", hojas: [
-              { destino: "bandejasObra", icono: "\u{1F4D0}", nombre: "Bandejas: ocupaci\xF3n y medici\xF3n", desc: "\xBFCabe lo que va dentro? Y cu\xE1ntos metros hay que comprar", vista: true },
-              { destino: "solar", icono: "\u2600\uFE0F", nombre: "Dise\xF1o de string fotovoltaico", desc: "Cu\xE1ntos m\xF3dulos en serie caben entre la Voc a fr\xEDo y la ventana de MPPT", vista: true },
-              { destino: "conversiones", icono: "\u{1F501}", nombre: "Tablas de conversi\xF3n", desc: "Circular a rectangular u oval, DN a pulgadas, y de un material a otro", vista: true },
-              { destino: "bandejas", icono: "\u{1FA9C}", nombre: "Bandejas de cable", desc: "Ancho, longitud y los cables que lleva cada una" },
-              { destino: "envolventes", icono: "\u{1F5C4}\uFE0F", nombre: "Envolventes de cuadro", desc: "Filas y m\xF3dulos de cada armario, para saber si el cuadro cabe" }
-            ] }
-          ] },
-          /* Un módulo por licencia (shared/modulos.js): el que la empresa no tiene contratado no sale (destinoVetado). */
-          { id: "modulos", titulo: "M\xF3dulos", secciones: [
-            /* Management (tanda 1, 11-nov): el panel del director, las horas y el reporte a dirección. */
-            { id: "management", titulo: "Management", icono: "\u{1F9ED}", color: "var(--area-contratacion)", hojas: [
-              { destino: "departamentos", icono: "\u{1F9ED}", nombre: "Departamentos", desc: "Resumen, desv\xEDos, equipo y saturaci\xF3n y horas dedicadas de cada departamento", vista: true },
-              { destino: "reporteDireccion", icono: "\u{1F4E8}", nombre: "Reporte a direcci\xF3n", desc: "Una p\xE1gina con lo que hay que saber: la empresa, los desv\xEDos, el equipo y las subcontratas; se copia para Excel o correo", vista: true },
-              { destino: "dedicaciones", icono: "\u23F1\uFE0F", nombre: "Horas dedicadas", desc: "Las horas que cada persona apunta, por departamento y obra" }
-            ] },
-            { id: "licitaciones", titulo: "Licitaciones", icono: "\u{1F4E3}", color: "var(--area-planificacion)", hojas: [
-              { destino: "licitaciones", icono: "\u{1F4E3}", nombre: "Licitaciones p\xFAblicas", desc: "Obras de instalaciones abiertas en tu comunidad, por provincia y fecha l\xEDmite", vista: true }
-            ] },
-            { id: "calculo", titulo: "C\xE1lculo", icono: "\u{1F321}\uFE0F", color: "var(--area-tecnico)", hojas: [
-              { destino: "calculosImportados", icono: "\u{1F4E5}", nombre: "C\xE1lculos de instalaciones", desc: "Lo que devuelve la app C\xE1lculo de Instalaciones: trazados y redes de la obra", vista: true },
-              { destino: "cargasTermicas", icono: "\u{1F321}\uFE0F", nombre: "Cargas t\xE9rmicas", desc: "Cu\xE1nto fr\xEDo y calor pide cada local, y de qu\xE9 se compone", vista: true },
-              { destino: "ventilacion", icono: "\u{1F6AA}", nombre: "Caudales de ventilaci\xF3n", desc: "Cu\xE1nto aire pide cada local, y por qu\xE9 regla", vista: true },
-              { destino: "conductos", icono: "\u{1F32C}\uFE0F", nombre: "C\xE1lculo de conductos", desc: "Dimensionado y p\xE9rdida de carga", vista: true },
-              { destino: "cargasElectricas", icono: "\u26A1", nombre: "Cargas el\xE9ctricas", desc: "Lo que consume cada equipo de toda la obra, para el estudio el\xE9ctrico", vista: true },
-              { destino: "planoCalculo", icono: "\u{1F4D0}", nombre: "C\xE1lculo sobre plano", desc: "Traza la instalaci\xF3n sobre el PDF y calcula al vuelo", vista: true },
-              { destino: "locales", icono: "\u{1F6AA}", nombre: "Locales a ventilar", desc: "Uso, superficie y ocupaci\xF3n de cada local" },
-              { destino: "tramosConducto", icono: "\u{1F4CF}", nombre: "Tramos de conducto", desc: "Alta de los tramos a calcular" }
-            ] },
-            { id: "legalizaciones", titulo: "Legalizaciones", icono: "\u{1F4DC}", color: "var(--area-certificaciones)", hojas: [
-              { destino: "legalizaciones", icono: "\u{1F4DC}", nombre: "Legalizaciones", desc: "Los modelos oficiales de cada disciplina (ELEC, RITE, gas, Bombers, ICT\u2026) rellenos con los datos de la obra, listos para firmar; y las horas que se ahorran. Jefe de obra, de producci\xF3n, de grupo y director del departamento", vista: true },
-              { destino: "entregasDF", icono: "\u{1F4E4}", nombre: "Entregas a la DF", desc: "La bandeja \xABPara la DF\xBB: se suelta con un clic, sube a su portal con su versi\xF3n y les llega un aviso; aqu\xED vuelve su respuesta", vista: true },
-              { destino: "destinatariosDF", icono: "\u2709\uFE0F", nombre: "Destinatarios de la DF", desc: "A qui\xE9n se env\xEDan las entregas a la direcci\xF3n facultativa" }
-            ] },
-            /* Reclamaciones al cliente (claim), gemela de Vidaire Obras: renderer/reclamacionesPantalla.js. */
-            { id: "reclamaciones", titulo: "Reclamaciones", icono: "\u2696\uFE0F", color: "var(--area-costes)", hojas: [
-              { destino: "reclamacionesCliente", icono: "\u2696\uFE0F", nombre: "Reclamaciones al cliente", desc: "El claim: apartados con sus hechos, la cl\xE1usula que los ampara, el importe y las pruebas; expediente en PDF", vista: true },
-              { destino: "reclamaciones", icono: "\u2696\uFE0F", nombre: "Reclamaciones", desc: "Las reclamaciones de la obra, en bruto" },
-              { destino: "reclamacionApartados", icono: "\u{1F5C2}\uFE0F", nombre: "Apartados de reclamaci\xF3n", desc: "Los apartados de cada reclamaci\xF3n" },
-              { destino: "reclamacionHechos", icono: "\u{1F4CC}", nombre: "Hechos de reclamaci\xF3n", desc: "Cada hecho con su m\xE9todo de c\xE1lculo" },
-              { destino: "reclamacionPruebas", icono: "\u{1F4CE}", nombre: "Pruebas de reclamaci\xF3n", desc: "Correos, fotos y documentos de cada hecho" },
-              { destino: "reclamacionTarifas", icono: "\u{1F4B6}", nombre: "Tarifas de reclamaci\xF3n", desc: "El \u20AC/h de cada categor\xEDa" }
-            ] },
-            { id: "bms", titulo: "BMS", icono: "\u{1F5A7}", color: "var(--area-certificaciones)", hojas: [
-              { destino: "puntosBmsPrueba", icono: "\u{1F5A7}", nombre: "Puntos BMS", desc: "La prueba punto a punto del BMS, por TAG: cada se\xF1al en campo y en el SCADA", vista: true },
-              { destino: "puntosBms", icono: "\u{1F5A7}", nombre: "Puntos BMS \u2014 l\xEDneas", desc: "Cada se\xF1al del BMS, fila a fila" }
-            ] },
-            { id: "mantenimiento", titulo: "Mantenimiento", icono: "\u{1F6E0}\uFE0F", color: "var(--area-tecnico)", hojas: [
-              { destino: "mantenimiento", icono: "\u{1F6E0}\uFE0F", nombre: "Mantenimiento", desc: "Plan preventivo, F-gas, RITE, legionela, inspecciones y entrega", vista: true },
-              { destino: "ordenesMant", icono: "\u{1F9F0}", nombre: "\xD3rdenes de trabajo", desc: "Las \xF3rdenes del preventivo y del F-gas, repartidas solas a los operarios con su carn\xE9; mis tareas, cierre e informe del mes", vista: true },
-              { destino: "planMant", icono: "\u{1F4C5}", nombre: "Calendario e informes", desc: "La propuesta de visitas del preventivo y del F-gas, para mover y confirmar; PDF del mes, libro RITE y registro F-gas", vista: true },
-              { destino: "registrosMant", icono: "\u{1F6E0}\uFE0F", nombre: "Registro de mantenimiento", desc: "Lo hecho: preventivos, controles de fugas, recargas, correctivos" },
-              { destino: "inspecciones", icono: "\u{1F50E}", nombre: "Inspecciones peri\xF3dicas", desc: "OCA: RITE, baja tensi\xF3n, incendios, legionela\u2026" }
-            ] }
-          ] },
-          { id: "administracion", titulo: "Administraci\xF3n", secciones: [
-            { id: "usuarios", titulo: "Usuarios y accesos", icono: "\u{1F511}", color: "var(--area-configuracion)", hojas: [
-              { destino: "personasRoles", icono: "\u{1F511}", nombre: "Personas y roles", desc: "Qu\xE9 rol tiene cada cuenta, qu\xE9 obras ve y si ve el dinero; asignar obras a mano", vista: true, soloRoles: ["admin"] },
-              { destino: "trazabilidad", icono: "\u{1F553}", nombre: "Auditor\xEDa", desc: "Qui\xE9n hizo qu\xE9 y cu\xE1ndo: filtros, Excel/PDF y comprobaci\xF3n de la cadena", vista: true },
-              { destino: "empresas", icono: "\u{1F3E2}", nombre: "Empresas", desc: "Datos, logo, colores y condiciones" },
-              { destino: "licencias", icono: "\u{1F9FE}", nombre: "Licencias", desc: "Qu\xE9 m\xF3dulos tiene la empresa, de d\xF3nde sale cada uno y su estado (solo lectura)", vista: true }
-            ] },
-            { id: "plantilla", titulo: "Plantilla", icono: "\u{1F334}", color: "var(--area-configuracion)", hojas: [
-              { destino: "calendarioPersonal", icono: "\u{1F334}", nombre: "Calendario de personal", desc: "Vacaciones, bajas y qui\xE9n queda en obra", vista: true },
-              { destino: "vacaciones", icono: "\u{1F3D6}\uFE0F", nombre: "Saldo de vacaciones", desc: "D\xEDas de derecho, cogidos y pendientes", vista: true },
-              { destino: "personal", icono: "\u{1F464}", nombre: "Personal", desc: "Propio y de subcontrata" },
-              { destino: "ausencias", icono: "\u{1F334}", nombre: "Ausencias", desc: "Vacaciones, bajas y permisos" },
-              { destino: "festivos", icono: "\u{1F38C}", nombre: "Festivos", desc: "Calendario laboral de la empresa" }
-            ] },
-            { id: "datos", titulo: "Datos y copias", icono: "\u2601\uFE0F", color: "var(--area-configuracion)", hojas: [
-              { destino: "nube", icono: "\u2601\uFE0F", nombre: "Nube de Vidaire", desc: "La misma obra en el ordenador, el iPad y la web", vista: true },
-              { destino: "copias", icono: "\u{1F4BE}", nombre: "Copias de seguridad", desc: "Toda la obra vive en un archivo", vista: true }
-            ] },
-            /* 15-nov (JC): las presentaciones de Vidaire, solo el administrador (shared/presentaciones.js). */
-            { id: "presentaciones", titulo: "Presentaciones", icono: "\u25B6", color: "var(--area-configuracion)", hojas: [
-              { destino: "presentaciones", icono: "\u25B6", nombre: "Presentaciones", desc: "Las presentaciones de Vidaire, a pantalla completa", vista: true, soloRoles: ["admin"] }
-            ] }
-          ] }
-        ];
-        const SUELTAS = [
-          { destino: "inicio", icono: "\u{1F3E0}", nombre: "Inicio", vista: true },
-          { destino: "panel", icono: "\u{1F4C8}", nombre: "Resumen de la obra", desc: "Un vistazo a todo: econom\xEDa, compras, certificaci\xF3n y puesta en marcha", vista: true },
-          { destino: "campo", icono: "\u{1F4CB}", nombre: "En obra", desc: "Equipo a equipo con el iPad: ficha PM, checklists, balanceo, estanqueidad y NCR con fotos, con el TAG siempre arriba", vista: true },
-          { destino: "validacion", icono: "\u{1FA7A}", nombre: "Validaci\xF3n", vista: true, final: true },
-          { destino: "cuenta", icono: "\u{1F464}", nombre: "Mi cuenta", desc: "Contrase\xF1a, sesi\xF3n y baja", vista: true, final: true }
-        ];
-        const SOLO_DESDE_OTRA = ["hojasPM", "puestaEnMarcha", "controlPuntos"];
-        const SECCIONES_POR_ROL = (() => {
-          if (typeof module === "undefined" || !module.exports || typeof __require !== "function") return {};
-          const R = require_roles();
-          const fuera = {};
-          for (const c of R.cuentasGestor()) {
-            const s = R.seccionesGestor(c);
-            if (s) fuera[c] = s;
-          }
-          return fuera;
-        })();
-        function areas() {
-          const fuera = [];
-          for (const g of ARBOL_GESTOR) {
-            for (const s of g.secciones) {
-              fuera.push({
-                id: s.id,
-                // Un grupo de una sola sección sale con el nombre del grupo (Empresa, Normativa…).
-                titulo: g.secciones.length === 1 ? g.titulo : s.titulo,
-                grupo: g.id,
-                grupoTitulo: g.titulo,
-                solo: g.secciones.length === 1,
-                icono: s.icono,
-                color: s.color,
-                modulos: s.hojas.map((h) => ({ ...h, ...h.soloRoles ? { soloRoles: [...h.soloRoles] } : {} }))
-              });
-            }
-          }
-          return fuera;
-        }
-        function seccionesDelRol(rol) {
-          const lista = rol && SECCIONES_POR_ROL[rol];
-          return lista ? new Set(lista) : null;
-        }
-        function hojasDelArbol() {
-          return ARBOL_GESTOR.flatMap((g) => g.secciones.flatMap((s) => s.hojas.map((h) => ({ ...h, grupo: g.id, seccion: s.id }))));
-        }
-        function rutaHasta(destino) {
-          const h = hojasDelArbol().find((x) => x.destino === destino);
-          return h ? [h.grupo, h.seccion] : [];
-        }
-        const API = { MAX_HOJAS, ARBOL_GESTOR, SUELTAS, SOLO_DESDE_OTRA, SECCIONES_POR_ROL, areas, seccionesDelRol, hojasDelArbol, rutaHasta };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.BARRA_LATERAL_GESTOR = API;
-      })();
-    }
-  });
-
   // shared/accesos.js
   var require_accesos = __commonJS({
     "shared/accesos.js"(exports, module) {
@@ -91447,7 +92343,7 @@ ${linea}` : linea;
     "package.json"(exports, module) {
       module.exports = {
         name: "gestor-de-obras",
-        version: "0.31.0",
+        version: "0.31.3",
         description: "Vidaire Gestor \u2014 app de escritorio para Windows y Mac",
         main: "electron/main.js",
         license: "UNLICENSED",
@@ -170622,6 +171518,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       }
       function conPuntosBms(repo, sesion, def, datos, obraId) {
         if (!def || def.codigo !== "BMS" || !obraId) return datos;
+        if (!require_modulos().activoAhora("bms")) return datos;
         const med = require_pruebasBms().medidosFicha(repo, sesion, obraId);
         if (!Object.keys(med).length) return datos;
         const valores = { ...datos && datos.valores || {} };
@@ -176341,7 +177238,13 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const eq = d.plantas.flatMap((p) => p.equipos || []).find((x) => x.id === id);
           if (!eq) return { ok: false, error: "No se encuentra el equipo." };
           await certificacionDeLaNube(ses, obra, { plantas: [{ equipos: [eq] }] }, { clave: `|${id}` });
-          return { ok: true, id, documentos: eq.documentos || [], acciones: eq.acciones || [], vida: eq.vida || null };
+          let tomas = [];
+          try {
+            tomas = PE.tomasDelEquipo(repo, ses, id) || [];
+          } catch {
+            tomas = [];
+          }
+          return { ok: true, id, documentos: eq.documentos || [], acciones: eq.acciones || [], vida: eq.vida || null, tomas };
         }
         function imagen({ ses, query }) {
           if (require_planoEquiposIfc().esIfc(query.id)) {
@@ -176406,607 +177309,6 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         };
       }
       module.exports = { crearRutasPlanoEquipos, PERMISOS_PLANO_EQUIPOS, localizacionDe, planoEquipoDe, usarNubeCertificacion, certificacionDeLaNube };
-    }
-  });
-
-  // shared/modulos.js
-  var require_modulos = __commonJS({
-    "shared/modulos.js"(exports, module) {
-      "use strict";
-      init_define_CX_LICENCIAS();
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const MODULOS = [
-          /* ── Base: lo que tiene cualquier edición. ── */
-          {
-            clave: "empresa",
-            nombre: "Empresa y cartera de obras",
-            tipo: "base",
-            secciones: ["empresa", "cuentas"],
-            nombreComercial: "Empresa y cartera",
-            noIncluye: ["Llevar cada obra por dentro (Gesti\xF3n de obra)", "Panel de departamentos y reporte a direcci\xF3n (Management)"],
-            problema: "Tener en un solo sitio los clientes, las obras en curso y las cuentas de la empresa.",
-            funciones: ["Cartera de obras y su estado", "Clientes y contactos", "Cuentas y bandejas de la empresa", "Estad\xEDsticas de la empresa"],
-            movil: {}
-          },
-          {
-            clave: "estudios",
-            nombre: "Estudios y presupuestos",
-            tipo: "base",
-            secciones: ["estudios", "comercial"],
-            nombreComercial: "Presupuestos",
-            noIncluye: ["Rellenar solas las descripciones de las partidas (Presupuesto inteligente)", "Descompuestos autom\xE1ticos por variante de material (Descompuestos autom\xE1ticos)", "Generar el listado de puntos BMS (BMS y control)", "Cruzar los planos con las mediciones (Presupuesto inteligente)", "Cruzar los planos con las partidas del presupuesto (Presupuesto inteligente)", "C\xE1lculo de instalaciones y memorias (C\xE1lculo de instalaciones)"],
-            problema: "Montar el presupuesto de una oferta a partir de lo que manda el cliente, sin volver a teclearlo.",
-            funciones: [
-              "Importar el presupuesto desde Excel (.xlsx, .xls, .ods, .csv) y BC3 (FIEBDC-3)",
-              "Importar lo que viene de Presto: su exportaci\xF3n a BC3 entra entera (cap\xEDtulos, descompuestos, mediciones y textos)",
-              "Pegar las filas copiadas de un PDF o de cualquier tabla",
-              "\xC1rbol cap\xEDtulo \u2192 partida \u2192 descompuesto \u2192 medici\xF3n, con edici\xF3n a mano",
-              "Alta a mano de cap\xEDtulos, subcap\xEDtulos, sub-subcap\xEDtulos y partidas (c\xF3digo, unidad, medici\xF3n y precio)",
-              "Precios, descompuestos y plantillas de partida de la casa",
-              "Biblioteca de descripciones fijadas a mano por la empresa",
-              "Versiones, alternativas y revisiones de medici\xF3n",
-              "Cierre econ\xF3mico (PEM, gastos generales, beneficio, baja, IVA) y oferta en PDF"
-            ],
-            /* 15-nov: shared/importacion/abrirPresupuesto.js rechaza el PDF y el fichero propio de Presto con el paso para sacarlo bien. */
-            enDesarrollo: [
-              "Leer directamente un presupuesto en PDF y convertirlo en partidas (hoy: pegar sus filas)",
-              "Abrir el fichero propio de Presto (.presto, .pzh) sin exportarlo antes a BC3 o a Excel"
-            ],
-            movil: {}
-          },
-          {
-            clave: "herramientas",
-            nombre: "Herramientas de c\xE1lculo r\xE1pido",
-            tipo: "base",
-            secciones: ["herramientas"],
-            nombreComercial: "Herramientas r\xE1pidas",
-            noIncluye: ["C\xE1lculos de proyecto con memoria (C\xE1lculo de instalaciones)"],
-            problema: "Resolver en obra las cuentas de todos los d\xEDas sin abrir una hoja de c\xE1lculo.",
-            funciones: ["Bandejas de cable: ocupaci\xF3n y medici\xF3n", "Dise\xF1o de string fotovoltaico", "Envolventes de cuadro", "Tablas de conversi\xF3n"],
-            movil: {}
-          },
-          {
-            clave: "obra",
-            nombre: "Obra: proyecto, planificaci\xF3n, compras, almac\xE9n, econ\xF3mico y contrato",
-            tipo: "base",
-            secciones: ["proyecto", "planificacion", "compras", "almacen", "economico", "contrato"],
-            nombreComercial: "Gesti\xF3n de obra",
-            noIncluye: ["Reclamaciones al cliente (Reclamaciones)", "Commissioning y mantenimiento (Commissioning, Mantenimiento)", "Horas dedicadas y reporte a direcci\xF3n (Management)"],
-            problema: "Llevar la obra d\xEDa a d\xEDa: documentaci\xF3n, plazos, compras, almac\xE9n, dinero y contrato.",
-            funciones: [
-              "Documentaci\xF3n, planos y personas de la obra",
-              "Planificaci\xF3n y Gantt",
-              "Compras, comparativos de ofertas, pedidos y albaranes",
-              "Almac\xE9n e inventario",
-              "Seguimiento econ\xF3mico, certificaciones y subcontratas",
-              "Contrato y variaciones"
-            ],
-            /* permisos en un módulo base: solo dicen de quién es la ruta del móvil (test/modulosFicha.test.js); no cortan nada. */
-            movil: {
-              secciones: ["partes", "avance", "albaranes", "inventario", "bloc", "jornada", "personal"],
-              permisos: ["obras", "tareas", "partes", "partesIncidencia", "partesTrabajo", "avanceObra", "pedidos", "inventarioCampo", "notas", "jornada"]
-            }
-          },
-          {
-            clave: "calidadCx",
-            nombre: "Calidad, equipos y ensayos",
-            tipo: "base",
-            secciones: ["commissioning", "calidad"],
-            nombreComercial: "Calidad y equipos",
-            noIncluye: ["Fichas de puesta en marcha, mediciones Cx e informe a la DF (Commissioning)", "Plan preventivo, F-gas y \xF3rdenes de trabajo (Mantenimiento)"],
-            problema: "Saber qu\xE9 equipos hay en la obra, d\xF3nde est\xE1n y qu\xE9 calidad se ha comprobado.",
-            funciones: [
-              "Inventario de equipos y modelos",
-              "Plano de equipos (lo ve todo el enrolado en la obra) y mapa de seguimiento",
-              "Ensayos obligatorios: balanceo y pruebas de estanqueidad",
-              "No conformidades (NCR), PPI e incidencias y reparaciones",
-              "Instrumentos de medida"
-            ],
-            movil: { secciones: ["plano", "ncr", "reparaciones", "estanqueidad"], permisos: ["planoEquipos", "ncr", "incidencias", "pruebasEstanqueidad"] }
-          },
-          {
-            clave: "seguridad",
-            nombre: "Seguridad",
-            tipo: "base",
-            secciones: ["seguridad"],
-            nombreComercial: "Seguridad y QHSE",
-            noIncluye: ["Avisos reclamables al cliente por esperas o accesos (Reclamaciones)"],
-            problema: "Cumplir la coordinaci\xF3n de seguridad y dejar constancia de cada inspecci\xF3n.",
-            funciones: ["Plan QHSE: inspecciones del sitio, control de subcontratas y reuni\xF3n CAE", "Reportes QHSE r\xE1pidos", "Robos y p\xE9rdidas"],
-            movil: { secciones: ["qhse", "reportesQhse"], permisos: ["qhse", "reportesQhse"] }
-          },
-          {
-            clave: "informes",
-            nombre: "Informes",
-            tipo: "base",
-            secciones: ["informes"],
-            nombreComercial: "Informes",
-            noIncluye: ["Reporte a direcci\xF3n y saturaci\xF3n del equipo (Management)", "Informe de commissioning a la DF (Commissioning)"],
-            problema: "Sacar el estado de la obra en un documento sin rehacerlo a mano.",
-            funciones: ["Informe semanal y estad\xEDsticas de la obra", "Carga de subcontratas", "Papeles de subcontratas", "Partes semanales emitidos"],
-            movil: {}
-          },
-          {
-            clave: "entrega",
-            nombre: "Entrega de obra",
-            tipo: "base",
-            secciones: ["entrega"],
-            nombreComercial: "Entrega de obra",
-            noIncluye: ["Impresos de legalizaci\xF3n y entrega documental a la DF (Legalizaciones)", "Informe y paquete de entrega de equipos (Commissioning)", "Plan de mantenimiento despu\xE9s de la entrega (Mantenimiento)"],
-            problema: "Cerrar la obra con las actas y la documentaci\xF3n que exige la propiedad.",
-            funciones: ["Actas de entrega y de mantenimiento", "Registro y reservas de acta", "Documentaci\xF3n final de obra"],
-            movil: {}
-          },
-          {
-            clave: "normativa",
-            nombre: "Normativa",
-            tipo: "base",
-            secciones: ["normativa"],
-            nombreComercial: "Normativa",
-            noIncluye: ["Impresos oficiales de legalizaci\xF3n (Legalizaciones)", "Control F-gas de los equipos (Mantenimiento)"],
-            problema: "Tener a mano la norma que aplica a cada instalaci\xF3n.",
-            /* La sección no tiene hojas en la barra: abre su propia pantalla (renderer/obra/normativaPantalla.js). */
-            pantallasObra: ["Normativa (BOE): avisos de mis obras, el BOE del d\xEDa, disposiciones y normas vigiladas"],
-            funciones: ["Avisos de las normas nuevas que tocan a cada obra", "El BOE del d\xEDa, con lo que toca a una norma vigilada arriba", "Disposiciones por norma y diario de lectura", "Normas vigiladas con su texto consolidado"],
-            movil: {}
-          },
-          {
-            clave: "administracion",
-            nombre: "Administraci\xF3n: usuarios, plantilla, datos y copias",
-            tipo: "base",
-            secciones: ["usuarios", "plantilla", "datos", "presentaciones"],
-            nombreComercial: "Administraci\xF3n",
-            noIncluye: ["La app del tel\xE9fono y su sincronizaci\xF3n (App del m\xF3vil)"],
-            problema: "Dar acceso a cada persona con su rol y no perder nunca los datos.",
-            funciones: ["Usuarios, roles y auditor\xEDa", "Plantilla: calendario, vacaciones, ausencias y festivos", "Empresas y licencias", "Nube y copias de seguridad", "Las presentaciones de Vidaire (solo el administrador)"],
-            /* docs/perfiles-y-licencias.md § 6: la migración 0030 (licencias_modulos) está sin aplicar. */
-            enDesarrollo: ["Dar las licencias desde la nube (hoy van en el perfil de la edici\xF3n)"],
-            movil: {}
-          },
-          /* ── De licencia: se venden aparte. ── */
-          {
-            clave: "management",
-            nombre: "Management (departamentos, horas y reporte a direcci\xF3n)",
-            tipo: "licencia",
-            secciones: ["management"],
-            canales: ["management:"],
-            canalesMotor: ["dedicaciones:", "horasObra:", "reporteDireccion:"],
-            iarvis: "Panel de departamentos, desv\xEDos, saturaci\xF3n del equipo, horas dedicadas y reporte a direcci\xF3n",
-            nombreComercial: "Management",
-            noIncluye: ["El econ\xF3mico y las certificaciones de cada obra (base: Gesti\xF3n de obra)"],
-            problema: "Que direcci\xF3n vea de un vistazo c\xF3mo van todos los departamentos y en qu\xE9 se va el tiempo del equipo.",
-            funciones: ["Panel de departamentos y desv\xEDos", "Saturaci\xF3n del equipo", "Horas dedicadas por obra", "Reporte a direcci\xF3n"],
-            movil: {}
-          },
-          {
-            clave: "licitaciones",
-            nombre: "Licitaciones p\xFAblicas y oportunidades",
-            tipo: "licencia",
-            secciones: ["licitaciones"],
-            destinos: ["licitaciones"],
-            canales: ["licitaciones:", "oportunidades:"],
-            iarvis: "Buscar licitaciones de instalaciones abiertas y oportunidades por provincia",
-            nombreComercial: "Licitaciones",
-            noIncluye: ["Preparar la oferta de la licitaci\xF3n (base: Presupuestos)"],
-            problema: "Enterarse a tiempo de las licitaciones de instalaciones que encajan con la empresa.",
-            funciones: ["B\xFAsqueda de licitaciones p\xFAblicas abiertas", "Oportunidades por provincia"],
-            movil: {}
-          },
-          {
-            clave: "calculo",
-            nombre: "C\xE1lculo de instalaciones",
-            tipo: "licencia",
-            secciones: ["calculo"],
-            canales: ["calculos:", "instalaciones:", "memoria:"],
-            iarvis: "Cargas t\xE9rmicas, ventilaci\xF3n, conductos, cargas el\xE9ctricas, c\xE1lculo sobre plano y memorias de c\xE1lculo",
-            nombreComercial: "C\xE1lculo de instalaciones",
-            noIncluye: ["Calculadoras r\xE1pidas (base: Herramientas r\xE1pidas)", "Legalizar la instalaci\xF3n (Legalizaciones)"],
-            problema: "Dimensionar la instalaci\xF3n y sacar la memoria de c\xE1lculo sin otro programa.",
-            funciones: ["Cargas t\xE9rmicas", "Ventilaci\xF3n y conductos", "Cargas el\xE9ctricas", "C\xE1lculo sobre plano y mediciones del c\xE1lculo", "Memorias de c\xE1lculo"],
-            movil: {}
-          },
-          {
-            clave: "legalizaciones",
-            nombre: "Legalizaciones y entrega a la DF",
-            tipo: "licencia",
-            secciones: ["legalizaciones"],
-            canales: ["legalizaciones:", "entregasDF:"],
-            iarvis: "Impresos oficiales de legalizaci\xF3n, certificados y entrega documental a la direcci\xF3n facultativa",
-            nombreComercial: "Legalizaciones",
-            noIncluye: ["Actas de entrega de obra (base: Entrega de obra)"],
-            problema: "Rellenar los impresos oficiales y entregar la documentaci\xF3n a la direcci\xF3n facultativa sin perseguir papeles.",
-            funciones: ["Impresos oficiales del organismo, tal cual", "Certificados de instalaci\xF3n", "Entrega documental a la direcci\xF3n facultativa"],
-            movil: {}
-          },
-          {
-            clave: "reclamaciones",
-            nombre: "Reclamaciones al cliente",
-            tipo: "licencia",
-            secciones: ["reclamaciones"],
-            destinos: ["reclamacionesCliente", "reclamaciones", "reclamacionApartados", "reclamacionHechos", "reclamacionPruebas", "reclamacionTarifas"],
-            canalesMotor: ["reclamaciones:", "avisosRec:", "riesgoSub:", "desfase:", "gapDisciplina:", "horasIndustriales:"],
-            iarvis: "Preparar y documentar reclamaciones econ\xF3micas al cliente",
-            nombreComercial: "Reclamaciones",
-            noIncluye: ["Certificaciones al cliente (base: Gesti\xF3n de obra)"],
-            problema: "Cobrar lo que la obra ha costado de m\xE1s por causas del cliente, con pruebas.",
-            funciones: ["Expediente de reclamaci\xF3n por apartados", "Hechos y pruebas fechados", "Tarifas y horas de los industriales", "Desfases y riesgo de subcontratas", "Avisos reclamables desde el tajo"],
-            movil: { secciones: ["avisos"], permisos: ["reclamaciones", "avisosReclamacion"] }
-          },
-          {
-            clave: "bms",
-            nombre: "Puntos BMS",
-            tipo: "licencia",
-            secciones: ["bms"],
-            destinos: ["puntosBms", "puntosBmsPrueba"],
-            canales: ["puntosBms:"],
-            /* 15-nov (JC): el listado de puntos BMS no es del presupuesto base: lo genera este módulo. */
-            canalesMotor: ["pruebasBms:", "plc:", "puntos:", "puntosObra:"],
-            iarvis: "Listado de puntos BMS, pruebas punto a punto y sincronizaci\xF3n",
-            nombreComercial: "BMS y control",
-            noIncluye: ["Inventario y plano de equipos (base: Calidad y equipos)", "Puesta en marcha de los equipos (Commissioning)"],
-            problema: "Sacar el listado de puntos de control de la obra y probarlo punto a punto.",
-            funciones: [
-              "Generar el listado de puntos BMS desde los equipos y desde la carpeta del proyecto",
-              "Propuesta de puntos en PDF y Excel",
-              "Pruebas punto a punto",
-              "Programaci\xF3n de PLC en texto estructurado (IEC 61131-3)"
-            ],
-            movil: {}
-          },
-          /* 15-nov (JC): «si no pagan el módulo de commissioning, no pueden usar commissioning en el móvil tampoco». */
-          {
-            clave: "commissioning",
-            nombre: "Commissioning (puesta en marcha y fichas)",
-            tipo: "licencia",
-            destinos: ["commissioning", "planificacionMes", "sesionesPlanCx", "fichasCx", "prepararCx", "puntosControl", "medicionesPM", "bocasMedidas"],
-            canales: ["commissioning:", "fichasCx:", "prepararCx:", "pm:", "planificacionMes:"],
-            canalesMotor: ["commissioning:", "puestaMarcha:", "archivosPreparados:"],
-            iarvis: "Control de commissioning, fichas de puesta en marcha, mediciones, planificaci\xF3n Cx e informe a la DF",
-            nombreComercial: "Commissioning",
-            noIncluye: ["Balanceo y pruebas de estanqueidad (base: Calidad y equipos)", "Plan preventivo, F-gas y \xF3rdenes (Mantenimiento)", "Listado de puntos BMS (BMS y control)"],
-            problema: "Demostrar que cada equipo est\xE1 montado, medido y documentado antes de entregarlo.",
-            pantallasObra: ["Commissioning de la obra (tabla de equipos, documentaci\xF3n, entrega a la DF)", "Puesta en marcha"],
-            funciones: [
-              "Control de commissioning equipo a equipo",
-              "Preparar el commissioning desde la documentaci\xF3n del proyecto",
-              "Fichas de puesta en marcha y toma de datos",
-              "Mediciones de puesta en marcha y bocas medidas",
-              "Planificaci\xF3n Cx por meses y sesiones",
-              "Informe a la direcci\xF3n facultativa y paquete de entrega de equipos"
-            ],
-            movil: { secciones: ["commissioning"], permisos: ["commissioning"] }
-          },
-          {
-            clave: "mantenimiento",
-            nombre: "Mantenimiento (preventivo, F-gas, \xF3rdenes e inspecciones)",
-            tipo: "licencia",
-            secciones: ["mantenimiento"],
-            depende: ["commissioning"],
-            // Las reparaciones son de Incidencias (base) y el acta de mantenimiento, de Entrega (base).
-            canales: ["obra:mantenimiento", "obra:mantenimientoOT*", "obra:mantenimientoCal*", "obra:mantenimientoPdf*", "obra:mantenimientoApuntar"],
-            canalesMotor: ["mantenimiento:", "ordenesMant:", "comprasMant:", "contratoMant:"],
-            iarvis: "Plan preventivo, F-gas, \xF3rdenes de trabajo, reparaciones e inspecciones peri\xF3dicas",
-            nombreComercial: "Mantenimiento",
-            noIncluye: ["Reparaciones de la obra (base: Calidad y equipos)", "Acta de mantenimiento (base: Entrega de obra)"],
-            problema: "Mantener los equipos entregados con su plan, sus \xF3rdenes y sus inspecciones al d\xEDa.",
-            funciones: ["Plan preventivo y calendario", "Control F-gas", "\xD3rdenes de trabajo", "Registro de mantenimiento e informes", "Inspecciones peri\xF3dicas", "Compras y contrato de mantenimiento"],
-            movil: { secciones: ["misTareas", "planoMant"], permisos: ["ordenesMant", "mantenimiento"] }
-          },
-          /* 15-nov (JC): el presupuesto base monta e importa; lo automático se vende aparte. */
-          {
-            clave: "presupuestoInteligente",
-            nombre: "Presupuesto inteligente (descripciones autom\xE1ticas y cruce con planos)",
-            tipo: "licencia",
-            canalesMotor: ["presupuestos:contextoDescripciones", "planoVsPresupuesto:", "planoAMedicion:", "medicionIfc:", "medComp:"],
-            iarvis: "Rellenar las descripciones de las partidas, cruzar los planos con las mediciones y con las partidas del presupuesto",
-            nombreComercial: "Presupuesto inteligente",
-            noIncluye: ["Montar e importar el presupuesto (base: Presupuestos)", "Descompuestos por variante de material (Descompuestos autom\xE1ticos)", "Listado de puntos BMS (BMS y control)"],
-            problema: "Ahorrar las horas de rellenar descripciones y de comprobar el presupuesto contra los planos.",
-            pantallasObra: ["Desglose: plano frente a presupuesto y medici\xF3n IFC", "Planos: mediciones comparadas"],
-            funciones: [
-              "Rellenar autom\xE1ticamente las descripciones de las partidas",
-              "Cruzar los planos con las mediciones (incluido el modelo IFC)",
-              "Cruzar los planos con las partidas del presupuesto",
-              "Pasar del plano a la medici\xF3n y revisarla"
-            ],
-            movil: {}
-          },
-          /* 15-nov (JC): «en el descompuesto automático, cada tipo de material lleva sus componentes con
-             variantes». Elegir la variante en la partida (shared/presupuesto/variantesPartida.js) y ver su
-             descompuesto sin precio, por confirmar. Sin canales propios: va en el árbol del presupuesto. */
-          {
-            clave: "descompuestoAutomatico",
-            nombre: "Descompuestos autom\xE1ticos (variantes por tipo de material)",
-            tipo: "licencia",
-            canales: [],
-            /* No tiene canal propio: lo corta la pantalla con la licencia del perfil (VARIANTES_PARTIDA.conLicencia). */
-            cortaEnPantalla: ["shared/presupuesto/variantesPartida.js"],
-            iarvis: "Elegir la variante del material de una partida (conducto, tuber\xEDa, aislamiento, difusi\xF3n) y ense\xF1ar los componentes que trae",
-            nombreComercial: "Descompuestos autom\xE1ticos",
-            noIncluye: ["Poner precio a los componentes: salen sin precio y por confirmar", "Rellenar las descripciones (Presupuesto inteligente)"],
-            problema: "Que ninguna partida de conducto, tuber\xEDa, aislamiento o difusi\xF3n se quede sin sus accesorios, su elevaci\xF3n y su mano de obra.",
-            pantallasObra: ["Presupuesto: variante del material en el descompuesto desplegado"],
-            funciones: [
-              "Reconocer el material de la partida (conducto, tuber\xEDa, aislamiento, difusi\xF3n)",
-              "Elegir la variante y las opciones de cada componente (plenum, compuerta\u2026)",
-              "Descompuesto de la variante: material, accesorios, elevaci\xF3n y mano de obra por equipo, sin precio y por confirmar"
-            ],
-            movil: {}
-          },
-          {
-            clave: "iarvis",
-            nombre: "Iarvis, el asistente",
-            tipo: "licencia",
-            canales: ["iarvis:"],
-            nombreComercial: "Iarvis",
-            noIncluye: ["Hacer lo que tu rol no puede hacer", "Ofrecer m\xF3dulos que la empresa no tiene contratados"],
-            problema: "Pedir las cosas hablando, en el ordenador y en el m\xF3vil, dentro de lo que tu puesto puede hacer.",
-            pantallasObra: ["Panel de Iarvis (bot\xF3n abajo a la derecha, en todas las pantallas)"],
-            funciones: ["Asistente en el ordenador", "Asistente en el m\xF3vil (bot\xF3n Iarvis)", "Hace por ti lo que tu rol puede hacer, con trazabilidad"],
-            movil: { secciones: ["iarvis"], rutas: ["api/iarvis/"] }
-          },
-          /* Fase 6: la app del teléfono (app Cx) y su sincronización con la nube que da el perfil. */
-          {
-            clave: "movilCx",
-            nombre: "App del m\xF3vil (Cx) y sincronizaci\xF3n",
-            tipo: "licencia",
-            /* Los canales movil: los registra el motor de obra (electron/obra/ipc/canales.js) y
-               motor/sync:estado su arranque (electron/obra/arranque.js, fase 9). */
-            canales: [],
-            canalesMotor: ["movil:", "sync:"],
-            iarvis: "Encender el m\xF3vil de obra, el QR para el tel\xE9fono, el paquete de la app Cx y el estado de la sincronizaci\xF3n",
-            nombreComercial: "App del m\xF3vil",
-            noIncluye: ["Las secciones de los m\xF3dulos no contratados: cada m\xF3dulo trae lo suyo en el tel\xE9fono"],
-            problema: "Llevar la obra en el bolsillo, con o sin cobertura, y que todo llegue a la oficina.",
-            pantallasObra: ["Personas de la obra \u203A La app del m\xF3vil (encender, QR y paquete del tel\xE9fono)"],
-            funciones: ["App del tel\xE9fono para la obra", "Sincronizaci\xF3n con la nube", "Paquete y QR para dar de alta el tel\xE9fono"],
-            /* Sin esta, el teléfono no abre nada: todas las secciones y rutas fuera. */
-            movil: { app: true }
-          }
-        ];
-        const PAQUETES = [
-          {
-            clave: "cxMantenimiento",
-            nombreComercial: "Commissioning y mantenimiento",
-            modulos: ["commissioning", "mantenimiento"],
-            porque: "El mantenimiento nace de los equipos que entrega el commissioning; quien solo pone en marcha puede comprar solo commissioning."
-          }
-        ];
-        const CANALES_POR_TABLA = /* @__PURE__ */ new Set(["datos:list", "datos:get", "datos:create", "datos:update", "datos:remove"]);
-        const POR_CLAVE = new Map(MODULOS.map((m) => [m.clave, m]));
-        const DE_LICENCIA = MODULOS.filter((m) => m.tipo === "licencia").map((m) => m.clave);
-        const POR_SECCION = /* @__PURE__ */ new Map();
-        const POR_DESTINO = /* @__PURE__ */ new Map();
-        for (const m of MODULOS) {
-          for (const s of m.secciones || []) POR_SECCION.set(s, m.clave);
-          for (const d of m.destinos || []) POR_DESTINO.set(d, m.clave);
-        }
-        let seccionDeDestino = null;
-        function secciones() {
-          if (seccionDeDestino) return seccionDeDestino;
-          let barra = null;
-          if (typeof window !== "undefined" && window.BARRA_LATERAL_GESTOR) barra = window.BARRA_LATERAL_GESTOR;
-          else if (typeof __require === "function") {
-            try {
-              barra = require_barraLateral();
-            } catch {
-              barra = null;
-            }
-          }
-          if (!barra) return /* @__PURE__ */ new Map();
-          seccionDeDestino = new Map(barra.hojasDelArbol().map((h) => [h.destino, h.seccion]));
-          return seccionDeDestino;
-        }
-        function licenciasDe(perfil) {
-          const l = perfil && Array.isArray(perfil.licencias) ? perfil.licencias : [];
-          return conDependencias(l.filter((c) => DE_LICENCIA.includes(c)));
-        }
-        function conDependencias(lista) {
-          let l = [...new Set(lista)];
-          for (let cambio = true; cambio; ) {
-            cambio = false;
-            const fuera = l.filter((c) => ((POR_CLAVE.get(c) || {}).depende || []).some((d) => !l.includes(d)));
-            if (fuera.length) {
-              l = l.filter((c) => !fuera.includes(c));
-              cambio = true;
-            }
-          }
-          return l;
-        }
-        function moduloActivo(perfil, clave) {
-          const m = POR_CLAVE.get(clave);
-          if (!m) return false;
-          if (m.tipo === "base") return true;
-          return licenciasDe(perfil).includes(clave);
-        }
-        function moduloDeDestino(destino) {
-          if (POR_DESTINO.has(destino)) return POR_DESTINO.get(destino);
-          const s = secciones().get(destino);
-          return s && POR_SECCION.get(s) || null;
-        }
-        function coincide(patron, canal) {
-          if (patron.endsWith(":")) return canal.startsWith(patron);
-          if (patron.endsWith("*")) return canal.startsWith(patron.slice(0, -1));
-          return canal === patron;
-        }
-        const PREFIJO_MOTOR = "motor/";
-        function moduloDeCanal(canal, args = []) {
-          const c = String(canal || "");
-          if (CANALES_POR_TABLA.has(c)) {
-            const tabla = args && args[0];
-            const m = typeof tabla === "string" ? moduloDeDestino(tabla) : null;
-            return m && POR_CLAVE.get(m).tipo === "licencia" ? m : null;
-          }
-          const motor = c.startsWith(PREFIJO_MOTOR);
-          const nombre = motor ? c.slice(PREFIJO_MOTOR.length) : c;
-          for (const m of MODULOS) {
-            if (m.tipo !== "licencia") continue;
-            for (const p of motor ? [...m.canales || [], ...m.canalesMotor || []] : m.canales || []) {
-              if (coincide(p, nombre)) return m.clave;
-            }
-          }
-          return null;
-        }
-        function destinoActivo(perfil, destino) {
-          const m = moduloDeDestino(destino);
-          return m ? moduloActivo(perfil, m) : true;
-        }
-        function canalSinLicencia(perfil, canal, args) {
-          const m = moduloDeCanal(canal, args);
-          return m && !moduloActivo(perfil, m) ? POR_CLAVE.get(m) : null;
-        }
-        function mensajeSinLicencia(modulo) {
-          const nombre = modulo && modulo.nombre ? modulo.nombre : "este m\xF3dulo";
-          return `Sin licencia: ${nombre} no est\xE1 contratado en esta empresa.`;
-        }
-        function paraIarvis(perfil) {
-          const activos = [];
-          const fuera = [];
-          for (const m of MODULOS) {
-            if (m.tipo !== "licencia") continue;
-            if (moduloActivo(perfil, m.clave)) activos.push(m.iarvis ? `${m.nombre}: ${m.iarvis}` : m.nombre);
-            else fuera.push(m.nombre);
-          }
-          return { activos, fuera };
-        }
-        const MAX_DIAS_SIN_NUBE = 30;
-        function licenciasEfectivas({ perfil = null, nube = null, ahora = Date.now() } = {}) {
-          const respaldo = { licencias: licenciasDe(perfil), origen: "perfil" };
-          if (!nube || !Array.isArray(nube.modulos)) return respaldo;
-          const t = (v) => v ? Date.parse(v) : NaN;
-          const leida = t(nube.leida);
-          if (!Number.isFinite(leida) || ahora - leida > MAX_DIAS_SIN_NUBE * 864e5) return respaldo;
-          if (Number.isFinite(t(nube.caduca)) && t(nube.caduca) <= ahora) return respaldo;
-          const caducan = nube.caducan && typeof nube.caducan === "object" ? nube.caducan : {};
-          const vivo = (c) => !Number.isFinite(t(caducan[c])) || t(caducan[c]) > ahora;
-          return { licencias: conDependencias(nube.modulos.filter((c) => DE_LICENCIA.includes(c) && vivo(c))), origen: "nube" };
-        }
-        function conLicencias(perfil, licencias) {
-          return { ...perfil || {}, licencias: [...licencias] };
-        }
-        function estadoLicencias({ perfil = null, nube = null, ahora = Date.now() } = {}) {
-          const ef = licenciasEfectivas({ perfil, nube, ahora });
-          const delPerfil = licenciasDe(perfil);
-          const t = (v) => v ? Date.parse(v) : NaN;
-          let motivoRespaldo = null;
-          if (ef.origen === "perfil") {
-            if (!nube || !Array.isArray(nube.modulos)) motivoRespaldo = "sin_lectura";
-            else if (!Number.isFinite(t(nube.leida)) || ahora - t(nube.leida) > MAX_DIAS_SIN_NUBE * 864e5) motivoRespaldo = "lectura_vieja";
-            else motivoRespaldo = "caducada";
-          }
-          const enNube = ef.origen === "nube" ? new Set(nube.modulos) : /* @__PURE__ */ new Set();
-          const caducan = nube && nube.caducan && typeof nube.caducan === "object" ? nube.caducan : {};
-          const modulos = MODULOS.map((m) => {
-            const fila = { clave: m.clave, nombre: m.nombre, tipo: m.tipo, enPerfil: delPerfil.includes(m.clave), caduca: null };
-            if (m.tipo === "base") return { ...fila, activo: true, origen: "base", estado: "incluido" };
-            const activo = ef.licencias.includes(m.clave);
-            if (ef.origen === "nube") {
-              fila.caduca = caducan[m.clave] || null;
-              if (activo) return { ...fila, activo, origen: "nube", estado: "activo" };
-              if (enNube.has(m.clave)) return { ...fila, activo, origen: null, estado: "caducado" };
-              return { ...fila, activo, origen: null, estado: fila.enPerfil ? "quitado" : "sin_licencia" };
-            }
-            return { ...fila, activo, origen: activo ? "perfil" : null, estado: activo ? "activo" : "sin_licencia" };
-          });
-          return {
-            origen: ef.origen,
-            motivoRespaldo,
-            leida: nube && nube.leida ? nube.leida : null,
-            maxDiasSinNube: MAX_DIAS_SIN_NUBE,
-            modulos,
-            activas: ef.licencias
-          };
-        }
-        function movilDe(m) {
-          return m && m.movil || {};
-        }
-        function sinApp(perfil) {
-          return !moduloActivo(perfil, "movilCx");
-        }
-        function seccionesMovilFuera(perfil) {
-          const fuera = /* @__PURE__ */ new Set();
-          for (const m of MODULOS) {
-            if (m.tipo === "base" ? !sinApp(perfil) : moduloActivo(perfil, m.clave) && !sinApp(perfil)) continue;
-            for (const s of movilDe(m).secciones || []) fuera.add(s);
-          }
-          return [...fuera];
-        }
-        function iarvisEnMovil(perfil) {
-          return !sinApp(perfil) && moduloActivo(perfil, "iarvis");
-        }
-        function rutaMovilConLicencia(perfil, ruta, pares) {
-          if (sinApp(perfil)) return { pares: [], falta: POR_CLAVE.get("movilCx") };
-          const r = String(ruta || "");
-          for (const m of MODULOS) {
-            if (m.tipo !== "licencia" || moduloActivo(perfil, m.clave)) continue;
-            if ((movilDe(m).rutas || []).some((p) => r.startsWith(p))) return { pares: [], falta: m };
-          }
-          const lista = Array.isArray(pares) ? pares : [];
-          let falta = null;
-          const quedan = lista.filter(([mod]) => {
-            if (mod === "*") return true;
-            const m = MODULOS.find((x) => x.tipo === "licencia" && (movilDe(x).permisos || []).includes(mod));
-            if (m && !moduloActivo(perfil, m.clave)) {
-              falta = falta || m;
-              return false;
-            }
-            return true;
-          });
-          return { pares: quedan, falta: quedan.length ? null : falta };
-        }
-        function pantallasDe(clave) {
-          let barra = null;
-          if (typeof window !== "undefined" && window.BARRA_LATERAL_GESTOR) barra = window.BARRA_LATERAL_GESTOR;
-          else if (typeof __require === "function") {
-            try {
-              barra = require_barraLateral();
-            } catch {
-              barra = null;
-            }
-          }
-          if (!barra) return [];
-          return barra.hojasDelArbol().filter((h) => moduloDeDestino(h.destino) === clave).map((h) => ({ destino: h.destino, nombre: h.nombre, seccion: h.seccion }));
-        }
-        function rolEnEdicion(perfil, rol) {
-          const r = perfil && Array.isArray(perfil.roles) ? perfil.roles : null;
-          return !r || r.includes(rol);
-        }
-        function filtrarRoles(perfil, lista, conservar = []) {
-          if (!Array.isArray(lista)) return lista;
-          const guardar = new Set(conservar);
-          return lista.filter((p) => p && (rolEnEdicion(perfil, p.rol) || guardar.has(p.rol)));
-        }
-        const API = {
-          MODULOS,
-          PAQUETES,
-          DE_LICENCIA,
-          CANALES_POR_TABLA,
-          MAX_DIAS_SIN_NUBE,
-          conDependencias,
-          seccionesMovilFuera,
-          iarvisEnMovil,
-          rutaMovilConLicencia,
-          pantallasDe,
-          moduloActivo,
-          moduloDeDestino,
-          coincide,
-          moduloDeCanal,
-          PREFIJO_MOTOR,
-          destinoActivo,
-          canalSinLicencia,
-          mensajeSinLicencia,
-          paraIarvis,
-          licenciasDe,
-          licenciasEfectivas,
-          conLicencias,
-          estadoLicencias,
-          rolEnEdicion,
-          filtrarRoles
-        };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.MODULOS_GESTOR = API;
-      })();
     }
   });
 
@@ -217688,6 +217990,28 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
             }
           });
         }
+        function accionToma(t) {
+          if (!t) return null;
+          if (t.clase === "balanceo") return "balanceo";
+          if (t.plantilla && t.clave) return `hoja:${t.plantilla}|${t.clave}`;
+          if (t.pestana === "estanqueidad") return "estanqueidad";
+          if (t.clase === "checklist") return "checklist";
+          return "datos";
+        }
+        function leerAccionHoja(a) {
+          const m = /^hoja:([^|]+)\|(.+)$/.exec(String(a || ""));
+          return m ? { plantilla: m[1], clave: m[2] } : null;
+        }
+        const TIPO_HOJA = { checklist: "Checklist", fichaPM: "Ficha de PM (toma de datos)", balanceo: "Balanceo de caudales", estanqAgua: "Estanqueidad", estanqRefrigerante: "Estanqueidad" };
+        const nombreHoja = (x) => x && TIPO_HOJA[x.clase] || x && x.nombre || "Hoja";
+        function detalleHoja(x) {
+          if (!x || !TIPO_HOJA[x.clase] || !x.nombre) return "";
+          const n = String(x.nombre).trim();
+          const llano = (t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          const sobra = { checklist: /^check\s*-?\s*list( de instalacion)?\s*/, balanceo: /^(hoja de )?balanceo( de caudales)?\s*/, estanqAgua: /^(prueba de )?estanqueidad\s*/, estanqRefrigerante: /^(prueba de )?estanqueidad\s*/, fichaPM: /^(toma de datos|ficha de pm|puesta en marcha)( de puesta en marcha)?\s*/ }[x.clase];
+          const resto = n.slice(llano(n).match(sobra) ? llano(n).match(sobra)[0].length : 0).trim();
+          return resto ? resto.charAt(0).toUpperCase() + resto.slice(1) : "";
+        }
         function tomasHtml(d) {
           const ts = d.pesada && Array.isArray(d.pesada.tomas) ? d.pesada.tomas : [];
           if (!ts.length) return "";
@@ -217696,7 +218020,8 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
             const res = RESULTADO_BALANCEO[x.resultado];
             const cuenta = x.obligatorios ? `${x.rellenos} de ${x.obligatorios}${x.hoja ? " bocas" : ""}` : "";
             const fotos = x.fotos ? `${cuenta ? " \xB7 " : ""}${x.fotos} foto${x.fotos === 1 ? "" : "s"}` : "";
-            return `<tr><th>${esc(x.nombre)}${x.unidadTag ? ` \xB7 ${esc(x.unidadTag)}` : ""}</th><td>${estado}${res ? ` \xB7 ${tono(res[0], res[1])}` : ""}${cuenta || fotos ? `<small>${esc(cuenta)}${esc(fotos)}</small>` : ""}</td><td class="pesAccion">${d.abrirTomas ? `<button type="button" class="botonMini" data-pes-toma="${i}">Abrir</button>` : ""}</td></tr>`;
+            const det = detalleHoja(x);
+            return `<tr><th>${esc(nombreHoja(x))}${x.unidadTag ? ` \xB7 ${esc(x.unidadTag)}` : ""}${det ? `<small>${esc(det)}</small>` : ""}</th><td>${estado}${res ? ` \xB7 ${tono(res[0], res[1])}` : ""}${cuenta || fotos ? `<small>${esc(cuenta)}${esc(fotos)}</small>` : ""}</td><td class="pesAccion">${d.abrirTomas ? `<button type="button" class="botonMini" data-pes-toma="${i}">Abrir</button>` : ""}</td></tr>`;
           }).join("");
           return bloque("Toma de datos", `<table class="pesTablaFicha conAccion"><tbody>${filas}</tbody></table>`, "data-pes-tomas");
         }
@@ -217747,7 +218072,7 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
       ${d.red ? plegado("Su red", d.red, "", "data-pes-sured") : ""}
       ${(d.notas || []).filter(Boolean).map((t) => `<p class="pesNota">${esc(t)}</p>`).join("")}`;
         }
-        return { html, incidenciasHtml, documentosHtml, documentosDe, filasDocumentos, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA };
+        return { html, incidenciasHtml, documentosHtml, tomasHtml, accionToma, leerAccionHoja, documentosDe, filasDocumentos, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA, TIPO_HOJA, nombreHoja, detalleHoja };
       });
     }
   });
