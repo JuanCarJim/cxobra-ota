@@ -23,7 +23,7 @@
      Y al revés: «2 de 2 datos» y «A medias» se contradicen: entera, «Completa». */
   const estadoVisible = (estado, medidos, bocasSinMedir) => {
     if (estado !== 'pendiente' || !medidos) return estado;
-    if (!medidos.rellenos) return 'sinEmpezar';
+    if (!medidos.rellenos) return medidos.escrito ? estado : 'sinEmpezar'; /* algo escrito y guardado: «A medias» (15-nov) */
     return medidos.obligatorios && medidos.rellenos >= medidos.obligatorios && !(bocasSinMedir || []).length ? 'completa' : estado;
   };
   const esDefinitiva = (x) => Boolean(x) && ['completa', 'firmada'].includes(estadoVisible(x.estado, x.medidos, x.bocasSinMedir));

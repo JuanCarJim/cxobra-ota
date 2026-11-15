@@ -9063,17 +9063,19 @@ globalThis.CX_VARIANTE="cxobra";
         "datos"
       ];
       var SECCIONES_CUENTA_GESTOR = Object.freeze({
+        /* 'bms' (Puntos BMS y su prueba) va donde iba antes de 9817d8c, cuando era parte de
+           «Commissioning»: quien veía aquella sección sigue viendo estas dos hojas. */
         jefe_obra: SECCIONES_JEFE_OBRA_GESTOR,
         jefe_produccion: SECCIONES_JEFE_OBRA_GESTOR,
         /* Sin dinero: lo de campo, el almacén y la entrega. */
         encargado: ["proyecto", "planificacion", "compras", "almacen", "commissioning", "bms", "calidad", "seguridad", "entrega", "herramientas", "plantilla"],
         /* Departamento de Mantenimiento: sus órdenes y el edificio entregado, nada de la obra. */
-        encargado_mantenimiento: ["mantenimiento", "commissioning", "entrega", "plantilla"],
+        encargado_mantenimiento: ["mantenimiento", "commissioning", "bms", "entrega", "plantilla"],
         operario_mantenimiento: ["mantenimiento"],
         /* Una sola obra: el edificio entregado y lo que hace falta para mantenerlo. */
-        mantenedora: ["mantenimiento", "commissioning", "calidad", "entrega"],
-        propiedad: ["proyecto", "commissioning", "calidad", "entrega", "mantenimiento"],
-        cliente: ["proyecto", "planificacion", "commissioning", "calidad", "entrega"]
+        mantenedora: ["mantenimiento", "commissioning", "bms", "calidad", "entrega"],
+        propiedad: ["proyecto", "commissioning", "bms", "calidad", "entrega", "mantenimiento"],
+        cliente: ["proyecto", "planificacion", "commissioning", "bms", "calidad", "entrega"]
       });
       function rolVeSeccionGestor(idRol, seccion) {
         const r = porId.get(idRol);
@@ -10845,8 +10847,8 @@ globalThis.CX_VARIANTE="cxobra";
       init_define_CX_LICENCIAS();
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261115.1600" : "0";
-      var URL_OTA = "" ? "" : CONFIG.url;
+      var VERSION = true ? "20261115.2201" : "0";
+      var URL_OTA = "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main" ? "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -19826,7 +19828,7 @@ globalThis.CX_VARIANTE="cxobra";
             }
           ]
         },
-        /* ── Ensayos (3) ── */
+        /* ── Ensayos (4) ── */
         {
           codigo: "BALANCEO_CAUDALES",
           clase: "balanceo",
@@ -19862,6 +19864,41 @@ globalThis.CX_VARIANTE="cxobra";
             }
           ],
           bocas: { IMP: 20, RET: 12 }
+        },
+        /*
+         * EQUILIBRADO HIDRÁULICO DEL SISTEMA DE CLIMA (JC, 15-nov-2026): «hoja de
+         * balanceo hidráulico del sistema con regulación de cada TA que haya por cada
+         * planta; si hay fan coils y si hay UTAs, el caudal que le llega a cada uno».
+         * UNA hoja por obra (enlace 'hidraulico'), no una por equipo. Aquí solo va lo
+         * fijo (datos de la bomba y fotos); las secciones de cada planta, con cada
+         * terminal (`terminales`: familias), su válvula y su caudal de agua, las pone
+         * shared/commissioning/equilibradoHidraulico.js con los equipos de la obra.
+         * Una obra que no la usa la oculta en sus parámetros (hojasOcultas).
+         */
+        {
+          codigo: "EQUILIBRADO_HIDRAULICO",
+          clase: "equilibrado",
+          nombre: "Equilibrado hidr\xE1ulico",
+          titulo: "FICHA DE EQUILIBRADO HIDR\xC1ULICO DEL SISTEMA DE CLIMA",
+          norma: "RITE IT 2.3.2 / UNE-EN 14336",
+          criterio: "Cada terminal recibe su caudal de agua de proyecto dentro de la tolerancia de caudales \u2192 APTO. Medido id\xE9ntico a proyecto \u2192 A REVISAR (posible valor copiado).",
+          porPlanta: true,
+          terminales: ["UTA", "FANCOIL"],
+          secciones: [
+            {
+              titulo: "Datos del sistema",
+              tipo: "datos",
+              puntos: [
+                d("sistema", "Sistema / circuito"),
+                d("bomba_tag", "Bomba (TAG)"),
+                d("bomba_modelo", "Bomba (modelo)"),
+                d("bomba_dp", "\u0394p de la bomba", { unidad: "kPa", tipo: "numero" }),
+                d("bomba_consumo", "Consumo de la bomba", { unidad: "kW", tipo: "numero" }),
+                d("metodo_medida", "M\xE9todo / instrumento de medida")
+              ]
+            },
+            { titulo: "Fotograf\xEDas", tipo: "fotos", fotos: 4 }
+          ]
         },
         {
           codigo: "ESTANQ_REFRIGERANTE",
@@ -20409,6 +20446,127 @@ globalThis.CX_VARIANTE="cxobra";
             ]
           ]
         ]),
+        /* CRAC, GRUPOS DE PRESIÓN Y BOMBAS (15-nov-2026, JC: «TODOS LOS EQUIPOS TIENEN QUE TENER AHÍ PARA HACER EL CHECKLIST»).
+           Los tenía Vidaire Obras en su libro (CHECKLIST CRAC, CHECKLIST BOMBAS) y se perdieron al pasar el Cx al Gestor. */
+        checklist("CHECKLIST_CRAC", "Checklist CRAC", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 CRAC (CLIMATIZACI\xD3N DE PRECISI\xD3N)", [
+          ["02", "Verificaciones f\xEDsicas", [
+            "02.01 La unidad interior y la condensadora est\xE1n libres de da\xF1os",
+            "02.02 Todos los componentes presentes y en orden",
+            "02.03 Manual de instalaci\xF3n y encendido provisto",
+            "02.04 Placa de caracter\xEDsticas correctamente colocada",
+            "02.05 Filtros instalados, limpios y de la clase de proyecto"
+          ]],
+          ["03", "Ajuste al proyecto o memoria t\xE9cnica", [
+            "03.01 Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica",
+            "03.02 La ubicaci\xF3n de los equipos instalados se corresponde con el Proyecto o Memoria T\xE9cnica",
+            "03.03 N\xBA de unidades y reserva (N+1) seg\xFAn proyecto"
+          ]],
+          ["04", "Instalaci\xF3n del equipo", [
+            "04.01 Unidad interior apoyada en bancada o soporte de suelo t\xE9cnico, nivelada",
+            "04.02 Condensadora apoyada, con antivibratorios y nivelada",
+            "04.03 Espacio libre de mantenimiento delante y detr\xE1s de las unidades",
+            "04.04 Plenum / rejillas de suelo t\xE9cnico colocados seg\xFAn proyecto, sin bypass de aire",
+            "04.05 Unidades interior y exterior etiquetadas y emparejadas"
+          ]],
+          ["05", "Circuito frigor\xEDfico y desag\xFCes", [
+            "05.01 L\xEDnea frigor\xEDfica con el di\xE1metro y recorrido de proyecto, soportada y aislada",
+            "05.02 Prueba de estanqueidad y vac\xEDo del circuito realizadas (ver hoja de estanqueidad)",
+            "05.03 Carga de refrigerante adicional anotada en la unidad",
+            "05.04 Desag\xFCe de condensados con sif\xF3n y pendiente; funciona",
+            "05.05 Alimentaci\xF3n de agua al humidificador conectada (si lleva)",
+            "05.06 Detector de fuga de agua bajo la unidad instalado"
+          ]],
+          ["06", "El\xE9ctrico", B06_ELECTRICO("06")],
+          ["07", "Controles - instalaci\xF3n", [
+            "07.01 Sondas de temperatura y humedad de sala colocadas",
+            "07.02 Cableado de control entre unidad interior y condensadora",
+            "07.03 Red de rotaci\xF3n / reserva entre unidades (N+1) cableada",
+            "07.04 Alarmas y estados integrados en BMS"
+          ]],
+          ["08", "Controles - puesta en marcha", [
+            "08.01 Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos",
+            "08.02 Consignas de temperatura y humedad ajustadas seg\xFAn proyecto",
+            "08.03 Rotaci\xF3n y entrada de la reserva al fallar una unidad verificadas",
+            "08.04 Rearranque autom\xE1tico tras corte de tensi\xF3n verificado",
+            "08.05 Alarmas probadas (alta temperatura, fuga de agua, filtro sucio, fallo) y recibidas en BMS",
+            "08.06 El sistema funciona sin ruido ni vibraci\xF3n anormal",
+            `08.07 ${INFORME_FABRICANTE}`
+          ]],
+          [
+            "09",
+            "Mantenimiento",
+            [
+              "09.01 Espacio libre adecuado alrededor de la unidad para su servicio",
+              "09.02 Todos los componentes son accesibles para mantenimiento",
+              "09.03 Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad",
+              `09.04 ${MANTENIMIENTO_DISPOSITIVOS}`
+            ]
+          ]
+        ]),
+        checklist("CHECKLIST_BOMBAS", "Checklist bombas", "RECEPCI\xD3N Y PUESTA EN OBRA \xB7 BOMBAS Y GRUPOS DE PRESI\xD3N", [
+          ["02", "Verificaciones f\xEDsicas", [
+            "02.01 La unidad est\xE1 libre de da\xF1os",
+            "02.02 Todos los componentes presentes y en orden (bombas, cuadro, calder\xEDn, presostatos, man\xF3metros)",
+            "02.03 Las aperturas de la l\xEDnea de agua est\xE1n selladas hasta su conexi\xF3n",
+            "02.04 Manual de instalaci\xF3n y encendido provisto",
+            "02.05 Placa de caracter\xEDsticas correctamente colocada"
+          ]],
+          ["03", "Ajuste al proyecto o memoria t\xE9cnica", [
+            "03.01 Los equipos instalados se corresponden con el Proyecto o Memoria T\xE9cnica (caudal, altura, n\xBA de bombas)",
+            "03.02 La ubicaci\xF3n de los equipos instalados se corresponde con el Proyecto o Memoria T\xE9cnica"
+          ]],
+          ["04", "Instalaci\xF3n del equipo", [
+            "04.01 Unidad perfectamente apoyada sobre bancada usando el tama\xF1o adecuado de anclajes de montaje",
+            "04.02 Antivibratorios correctamente instalados y unidad convenientemente nivelada",
+            "04.03 Bomba y motor alineados (en bombas con acoplamiento)",
+            "04.04 Unidad etiquetada y f\xE1cil de identificar, con el circuito al que sirve",
+            "04.05 La unidad se puede retirar del edificio"
+          ]],
+          ["05", "Conexi\xF3n hidr\xE1ulica", [
+            "05.01 Todos los componentes de las tuber\xEDas han sido instalados",
+            "05.02 Los soportes de las tuber\xEDas est\xE1n como se requieren y no cargan peso sobre la bomba",
+            "05.03 Las tuber\xEDas est\xE1n conectadas a la bomba con manguitos antivibratorios",
+            "05.04 Existen v\xE1lvulas de corte en aspiraci\xF3n e impulsi\xF3n para la independencia de cada bomba",
+            "05.05 Existe v\xE1lvula de retenci\xF3n en la impulsi\xF3n de cada bomba",
+            "05.06 Filtro en la aspiraci\xF3n instalado y limpio",
+            "05.07 Existen man\xF3metros o tomas de presi\xF3n en aspiraci\xF3n e impulsi\xF3n",
+            "05.08 Tuber\xEDas limpias, sin fugas y aisladas seg\xFAn las especificaciones de Proyecto",
+            "05.09 Vaso de expansi\xF3n o calder\xEDn instalado y precargado a la presi\xF3n de Proyecto",
+            "05.10 Instalaci\xF3n llena y purgada; la bomba no trabaja en seco",
+            "05.11 Etiquetas de v\xE1lvulas y sentido del flujo fijadas"
+          ]],
+          ["06", "El\xE9ctrico", [
+            "06.01 Desconexi\xF3n local instalada en un lugar accesible",
+            "06.02 Rotaci\xF3n del motor de la bomba en la direcci\xF3n correcta",
+            "06.03 Todas las conexiones el\xE9ctricas bien fijadas",
+            "06.04 Todas las conexiones el\xE9ctricas est\xE1n conectadas a tierra",
+            "06.05 Las protecciones del cuadro se corresponden con la intensidad de consumo"
+          ]],
+          ["07", "Controles - instalaci\xF3n", [
+            "07.01 Variador de frecuencia instalado, conectado y configurado (si lo hay)",
+            "07.02 Transductor o presostato de presi\xF3n instalado, conectado y funciona",
+            "07.03 Protecci\xF3n contra marcha en seco (presostato de m\xEDnima, nivel o interruptor de flujo) instalada y funciona",
+            "07.04 El cableado de control y la se\xF1al al sistema de gesti\xF3n (marcha, aver\xEDa, alarma) est\xE1n conectados"
+          ]],
+          ["08", "Controles - puesta en marcha", [
+            "08.01 Tensi\xF3n de alimentaci\xF3n (RSTN) y sentido de rotaci\xF3n correctos",
+            "08.02 Presi\xF3n de consigna, de arranque y de paro ajustadas seg\xFAn el Proyecto",
+            "08.03 Alternancia de bombas y entrada de la reserva verificadas",
+            "08.04 El sistema se enciende sin ning\xFAn ruido, vibraci\xF3n ni cavitaci\xF3n anormal",
+            "08.05 Verificaci\xF3n del arranque y paro por sistema de control",
+            `08.06 ${INFORME_FABRICANTE}`
+          ]],
+          [
+            "09",
+            "Mantenimiento",
+            [
+              "09.01 Espacio libre adecuado alrededor de la unidad para su servicio",
+              "09.02 Todos los componentes son accesibles para mantenimiento",
+              "09.03 Las tuber\xEDas est\xE1n dispuestas para la retirada f\xE1cil de la unidad",
+              `09.04 ${MANTENIMIENTO_DISPOSITIVOS}`
+            ]
+          ]
+        ]),
         checklist(
           "CHECKLIST_CONDUCTOS",
           "Checklist red de conductos",
@@ -20502,7 +20660,7 @@ globalThis.CX_VARIANTE="cxobra";
           patron: /CHILLER|ENFRIADORA|BOMBA DE CALOR/i,
           fichas: ["BOMBA_DE_CALOR"],
           fichaPorDefecto: "BOMBA_DE_CALOR",
-          anexos: [{ plantilla: "CHECKLIST_ENFRIADORA" }, { plantilla: "ESTANQ_AGUA", enlace: "circuito" }],
+          anexos: [{ plantilla: "CHECKLIST_ENFRIADORA" }, { plantilla: "ESTANQ_AGUA", enlace: "circuito" }, { plantilla: "EQUILIBRADO_HIDRAULICO", enlace: "hidraulico" }],
           requiereBalanceo: false,
           requiereEstanqueidad: "agua",
           medicion: "ninguna"
@@ -20538,11 +20696,11 @@ globalThis.CX_VARIANTE="cxobra";
           fichas: ["UTA", "CLIMATIZADOR_REC_ESTATICO", "CLIMATIZADOR_REC_ROTATIVO"],
           fichaPorDefecto: "UTA",
           anexos: [
+            /* 15-nov (JC): UN solo checklist, el de la UTA (sin conductos ni difusores). */
             { plantilla: "CHECKLIST_UTA" },
-            { plantilla: "CHECKLIST_CONDUCTOS" },
-            { plantilla: "CHECKLIST_DIFUSORES" },
             { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" },
-            { plantilla: "ESTANQ_AGUA", enlace: "circuito" }
+            { plantilla: "ESTANQ_AGUA", enlace: "circuito" },
+            { plantilla: "EQUILIBRADO_HIDRAULICO", enlace: "hidraulico" }
           ],
           requiereBalanceo: true,
           requiereEstanqueidad: "agua",
@@ -20555,8 +20713,14 @@ globalThis.CX_VARIANTE="cxobra";
           patron: /FAN\s*-?\s*COIL|CASSETTE\s*\(?\s*(DE\s+)?AGUA/i,
           fichas: ["FAN_COIL_AGUA", "CASSETTE_AGUA"],
           fichaPorDefecto: "FAN_COIL_AGUA",
-          anexos: [{ plantilla: "CHECKLIST_FANCOIL" }, { plantilla: "ESTANQ_AGUA", enlace: "circuito" }],
-          requiereBalanceo: false,
+          /* 15-nov (JC): todo equipo que mueve aire lleva su balanceo de caudales. */
+          anexos: [
+            { plantilla: "CHECKLIST_FANCOIL" },
+            { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" },
+            { plantilla: "ESTANQ_AGUA", enlace: "circuito" },
+            { plantilla: "EQUILIBRADO_HIDRAULICO", enlace: "hidraulico" }
+          ],
+          requiereBalanceo: true,
           requiereEstanqueidad: "agua",
           medicion: "unidad"
         },
@@ -20573,7 +20737,8 @@ globalThis.CX_VARIANTE="cxobra";
           requiereBalanceo: false,
           requiereEstanqueidad: "refrigerante",
           medicion: "ninguna",
-          medicionPlantilla: { VRF_UI_CONDUCTOS: "bocas", VRF_UI_CASSETTE: "unidad" }
+          /* 15-nov (JC): las interiores de VRF no se balancean (ni las de conductos): llevan la estanqueidad de su conjunto. */
+          medicionPlantilla: { VRF_UI_CONDUCTOS: "unidad", VRF_UI_CASSETTE: "unidad" }
         },
         {
           codigo: "SPLIT",
@@ -20596,7 +20761,7 @@ globalThis.CX_VARIANTE="cxobra";
           patron: /\bCRACS?\b|PRECISI[OÓ]N/i,
           fichas: ["CRAC_UD_INTERIOR", "CRAC_UD_EXTERIOR"],
           fichaPorDefecto: "CRAC_UD_INTERIOR",
-          anexos: [{ plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante", soloSi: "EXTERIOR" }],
+          anexos: [{ plantilla: "CHECKLIST_CRAC" }, { plantilla: "ESTANQ_REFRIGERANTE", enlace: "refrigerante", soloSi: "EXTERIOR" }],
           requiereBalanceo: false,
           requiereEstanqueidad: "refrigerante",
           medicion: "ninguna"
@@ -20607,7 +20772,7 @@ globalThis.CX_VARIANTE="cxobra";
           patron: /GRUPO\s+(DE\s+)?(PRESI[OÓ]N|BOMBEO)|\bGP\b/i,
           fichas: ["GRUPO_DE_BOMBEO"],
           fichaPorDefecto: "GRUPO_DE_BOMBEO",
-          anexos: [],
+          anexos: [{ plantilla: "CHECKLIST_BOMBAS" }],
           requiereBalanceo: false,
           requiereEstanqueidad: "no",
           medicion: "ninguna"
@@ -20619,7 +20784,7 @@ globalThis.CX_VARIANTE="cxobra";
           fichas: ["GRUPO_DE_BOMBEO"],
           fichaPorDefecto: "GRUPO_DE_BOMBEO",
           /* Las bombas no se balancean: llevan prueba de estanqueidad de su circuito (JC, 28-oct). */
-          anexos: [{ plantilla: "ESTANQ_AGUA", enlace: "circuito" }],
+          anexos: [{ plantilla: "CHECKLIST_BOMBAS" }, { plantilla: "ESTANQ_AGUA", enlace: "circuito" }, { plantilla: "EQUILIBRADO_HIDRAULICO", enlace: "hidraulico" }],
           requiereBalanceo: false,
           requiereEstanqueidad: "agua",
           medicion: "ninguna"
@@ -20630,8 +20795,8 @@ globalThis.CX_VARIANTE="cxobra";
           patron: /PARKING|APARCAMIENTO|GARAJE/i,
           fichas: ["VENTILADOR_AXIAL", "VENTILADOR_EXTRACTOR", "VENT_COMPLETO"],
           fichaPorDefecto: "VENTILADOR_AXIAL",
-          anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
-          requiereBalanceo: false,
+          anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
+          requiereBalanceo: true,
           requiereEstanqueidad: "no",
           medicion: "extraccion"
         },
@@ -20641,8 +20806,8 @@ globalThis.CX_VARIANTE="cxobra";
           patron: /PRESURIZACI[OÓ]N|PRESSURI[SZ]ATION|SOBREPRESI[OÓ]N/i,
           fichas: ["VENTILADOR_AXIAL", "VENTILADOR_EXTRACTOR", "VENT_COMPLETO"],
           fichaPorDefecto: "VENTILADOR_AXIAL",
-          anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
-          requiereBalanceo: false,
+          anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
+          requiereBalanceo: true,
           requiereEstanqueidad: "no",
           medicion: "extraccion",
           tituloMedicion: "Caudales de presurizaci\xF3n"
@@ -20650,11 +20815,11 @@ globalThis.CX_VARIANTE="cxobra";
         {
           codigo: "VENTILACION",
           nombre: "Ventilaci\xF3n / extracci\xF3n",
-          patron: /VENTILACI[OÓ]N|VENTILADOR|EXTRACTOR|EXTRACCI[OÓ]N|S&P/i,
+          patron: /VENTILACI[OÓ]N|VENTILADOR|EXTRACTOR|EXTRACCI[OÓ]N|S&P|SOLER\s*&\s*PALAU/i,
           fichas: ["VENTILADOR_EXTRACTOR", "VENT_COMPLETO", "VENTILADOR_AXIAL"],
           fichaPorDefecto: "VENTILADOR_EXTRACTOR",
-          anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }],
-          requiereBalanceo: false,
+          anexos: [{ plantilla: "CHECKLIST_VENTILADOR" }, { plantilla: "BALANCEO_CAUDALES", enlace: "sistema" }],
+          requiereBalanceo: true,
           requiereEstanqueidad: "no",
           medicion: "extraccion"
         }
@@ -20808,10 +20973,11 @@ globalThis.CX_VARIANTE="cxobra";
         console.log(
           `  ficha_pm ${porClase.ficha_pm || 0} \xB7 checklist ${porClase.checklist || 0} \xB7 balanceo ${porClase.balanceo || 0} \xB7 estanqueidad ${estanq} (agua ${porClase.estanqueidad_agua || 0}, refrigerante ${porClase.estanqueidad_refrigerante || 0})`
         );
-        if (PLANTILLAS.length !== 77) fallo(`Se esperaban 77 plantillas y hay ${PLANTILLAS.length}`);
+        if (PLANTILLAS.length !== 80) fallo(`Se esperaban 80 plantillas y hay ${PLANTILLAS.length}`);
         if (porClase.ficha_pm !== 43) fallo("Se esperaban 43 fichas PM (20 de clima, 8 de electricidad y 15 de sistemas)");
-        if (porClase.checklist !== 31) fallo("Se esperaban 31 checklists");
+        if (porClase.checklist !== 33) fallo("Se esperaban 33 checklists (con CRAC y bombas, 15-nov)");
         if (porClase.balanceo !== 1) fallo("Se esperaba 1 balanceo");
+        if (porClase.equilibrado !== 1) fallo("Se esperaba 1 equilibrado hidr\xE1ulico");
         if (estanq !== 2) fallo("Se esperaban 2 certificados de estanqueidad");
         for (const pl of PLANTILLAS) {
           if (normalizarCodigo(pl.codigo) !== pl.codigo) fallo(`${pl.codigo}: el c\xF3digo no est\xE1 en MAY\xDASCULAS_CON_GUIONES`);
@@ -20856,6 +21022,8 @@ globalThis.CX_VARIANTE="cxobra";
           CHECKLIST_BOMBA_CALOR: 36,
           CHECKLIST_RECUPERADOR: 34,
           CHECKLIST_VENTILADOR: 31,
+          CHECKLIST_CRAC: 38,
+          CHECKLIST_BOMBAS: 42,
           CHECKLIST_CONDUCTOS: 19,
           CHECKLIST_DIFUSORES: 9,
           CHECKLIST_CUADRO_BT: 33,
@@ -20962,7 +21130,7 @@ Familias: ${FAMILIAS.length}`);
           if (!f.fichas.includes(f.fichaPorDefecto)) fallo(`${f.codigo}: fichaPorDefecto fuera de sus fichas`);
           for (const a of f.anexos) {
             if (!plantilla(a.plantilla)) fallo(`${f.codigo}: anexo \xAB${a.plantilla}\xBB no existe`);
-            if (a.enlace && !["equipo", "circuito", "refrigerante", "sistema"].includes(a.enlace)) {
+            if (a.enlace && !["equipo", "circuito", "refrigerante", "sistema", "hidraulico"].includes(a.enlace)) {
               fallo(`${f.codigo}: enlace desconocido \xAB${a.enlace}\xBB`);
             }
           }
@@ -21063,7 +21231,7 @@ Familias: ${FAMILIAS.length}`);
           [{ familia: "Fancoil", tipoPM: "Cassette de agua" }, null, "unidad"],
           [{ familia: "Split" }, null, "temperatura"],
           [{ familia: "Split", descripcion: "Unidad exterior" }, null, "ninguna"],
-          [{ familia: "VRF" }, "VRF_UI_CONDUCTOS", "bocas"],
+          [{ familia: "VRF" }, "VRF_UI_CONDUCTOS", "unidad"],
           [{ familia: "VRF" }, "VRF_UI_CASSETTE", "unidad"],
           [{ familia: "VRF" }, "VRF_UD_EXTERIOR", "ninguna"],
           [{ familia: "Extractor" }, null, "extraccion"],
@@ -21137,8 +21305,36 @@ Familias: ${FAMILIAS.length}`);
           }
           return q;
         }
+        const TIPO_PUNTO = { si_no: "siNo", ok_nook: "okNoOk" };
+        function tipoDeRespuestas(respuestas) {
+          const r = (Array.isArray(respuestas) ? respuestas : []).map((x) => String(x).toUpperCase().replace(/[\s_/]/g, ""));
+          if (r.includes("OK") || r.includes("NOOK")) return "okNoOk";
+          if (r.length && !r.includes("NA")) return "siNo";
+          return "siNoNa";
+        }
+        function conTiposRespuesta(pl) {
+          if (!pl || !Array.isArray(pl.secciones)) return pl;
+          let cambia = false;
+          const secciones = pl.secciones.map((s) => {
+            if (!Array.isArray(s.puntos)) return s;
+            if (s.tipo === "pruebaPresion") return s;
+            let cambiaSec = false;
+            const puntos = s.puntos.map((p) => {
+              let tipo = p && p.tipo;
+              if (TIPO_PUNTO[tipo]) tipo = TIPO_PUNTO[tipo];
+              else if (s.tipo === "checklist" && !tipo) tipo = tipoDeRespuestas(pl.respuestas);
+              if (!p || tipo === p.tipo) return p;
+              cambiaSec = true;
+              return { ...p, tipo };
+            });
+            if (!cambiaSec) return s;
+            cambia = true;
+            return { ...s, puntos };
+          });
+          return cambia ? { ...pl, secciones } : pl;
+        }
         function plantilla(pl) {
-          return {
+          return conTiposRespuesta({
             ...pl,
             clase: CLASE[pl.clase] || pl.clase,
             version: pl.version || 1,
@@ -21149,7 +21345,7 @@ Familias: ${FAMILIAS.length}`);
               if (Array.isArray(s.puntos)) t.puntos = s.puntos.map((p) => punto(p, s));
               return t;
             })
-          };
+          });
         }
         function familia(f) {
           const g = { ...f };
@@ -21211,7 +21407,7 @@ Familias: ${FAMILIAS.length}`);
         function configurar(catalogo) {
           propio = catalogo || null;
         }
-        const API = { actual, maquetas, configurar, formato, rotulos, esGenerico: () => Boolean(actual().generico) };
+        const API = { actual, maquetas, configurar, formato, rotulos, conTiposRespuesta, esGenerico: () => Boolean(actual().generico) };
         for (const k of [
           "PLANTILLAS",
           "FAMILIAS",
@@ -21542,6 +21738,8 @@ Familias: ${FAMILIAS.length}`);
           checklist: { nombre: "Checklist", orden: 1 },
           fichaPM: { nombre: "Ficha de puesta en marcha", orden: 2 },
           balanceo: { nombre: "Balanceo de caudales", orden: 3 },
+          /* Una hoja por obra: el equilibrado hidráulico del sistema de clima, por plantas (JC, 15-nov-2026). */
+          equilibrado: { nombre: "Equilibrado hidr\xE1ulico", orden: 3.5 },
           estanqAgua: { nombre: "Estanqueidad \xB7 agua", orden: 4 },
           estanqRefrigerante: { nombre: "Estanqueidad \xB7 refrigerante", orden: 5 }
         };
@@ -21598,7 +21796,8 @@ Familias: ${FAMILIAS.length}`);
         function toleranciasAplicadas(config = {}) {
           return reglasFx.toleranciasAplicadas(tolerancias(config));
         }
-        function numerarChecklist(plantilla) {
+        function numerarChecklist(plantillaLeida) {
+          const plantilla = catalogoFx && catalogoFx.conTiposRespuesta ? catalogoFx.conTiposRespuesta(plantillaLeida) : plantillaLeida;
           if (!plantilla || !(plantilla.secciones || []).some((s) => s.tipo === "checklist")) return plantilla;
           let k = 0;
           const secciones = plantilla.secciones.map((s) => {
@@ -21730,6 +21929,16 @@ Familias: ${FAMILIAS.length}`);
           if (t === "NO OK" || t === "NOOK" || t === "NO_OK") return "noOk";
           return null;
         }
+        const CODIGOS_RESP = ["si", "no", "na", "ok", "noOk"];
+        function respuestaDelPunto(tipo, v) {
+          const r = respuesta(v);
+          if (r === null) return hayValorFx(v) ? llanoFx(v) : null;
+          if (tipo === "siNoNa" && !CODIGOS_RESP.includes(v)) {
+            if (r === "ok") return "si";
+            if (r === "noOk") return "no";
+          }
+          return r;
+        }
         function evaluarBocasFicha(filas = [], tol = TOLERANCIAS_DEFECTO, proyectoSistema = null) {
           const puntoBoca = { resultado: true, tolerancia: "boca", caudal: true };
           const evaluadas = (filas || []).map((b) => ({
@@ -21852,7 +22061,7 @@ Familias: ${FAMILIAS.length}`);
             } else {
               let val = v.v;
               if (punto.tipo === "numero") val = numFx(val);
-              else if (["siNoNa", "okNoOk", "siNo"].includes(punto.tipo)) val = respuesta(val);
+              else if (["siNoNa", "okNoOk", "siNo"].includes(punto.tipo)) val = respuestaDelPunto(punto.tipo, val);
               else if (punto.tipo === "fecha") val = /^\d{4}-\d{2}-\d{2}/.test(llanoFx(val)) ? llanoFx(val).slice(0, 16) : null;
               else val = hayValorFx(val) ? llanoFx(val) : null;
               if (val === null) continue;
@@ -22191,7 +22400,10 @@ Familias: ${FAMILIAS.length}`);
             plantilla: { codigo: plantilla.codigo, version: plantilla.version || 1, clase: plantilla.clase, titulo: plantilla.titulo },
             datos: d,
             secciones,
-            medidos: { obligatorios, rellenos },
+            /* «escrito» (15-nov-2026): se ha escrito algo más que la placa del equipo (un dato, una
+               foto, un anexo, las observaciones) aunque no haya ningún medido obligatorio relleno.
+               Con él la hoja guardada ya no sale «Sin empezar» (estadoVisible). Solo se pone si es cierto. */
+            medidos: masQuePlaca || d.fotos.length || d.anexosPdf.length || llanoFx(d.observaciones) ? { obligatorios, rellenos, escrito: true } : { obligatorios, rellenos },
             faltan,
             faltanDatos,
             avisos,
@@ -22243,7 +22455,17 @@ Familias: ${FAMILIAS.length}`);
               }
             }
           }
-          return mejor || familiaPorPistas(equipo, lista);
+          return mejor || familiaPorPistas(equipo, lista) || familiaPorPatron(equipo, lista);
+        }
+        function familiaPorPatron(equipo, lista) {
+          const campos = [equipo.familia, equipo.grupo, equipo.denominacion, equipo.tipoPM, equipo.instalacion, equipo.tag];
+          for (const campo of campos) {
+            const texto = sinAcentosFx(campo).replace(/_/g, " ").trim();
+            if (!texto) continue;
+            const f = lista.find((x) => x.patron instanceof RegExp && x.patron.test(texto));
+            if (f) return f;
+          }
+          return null;
         }
         const PISTAS_CACHE = /* @__PURE__ */ new Map();
         function expresionPistas(pistas) {
@@ -22300,6 +22522,7 @@ Familias: ${FAMILIAS.length}`);
             }
           }
           if (!mejor && familia.plantillas.includes("UTA")) return "UTA";
+          if (!mejor && familia.fichaPorDefecto && familia.plantillas.includes(familia.fichaPorDefecto)) return familia.fichaPorDefecto;
           return mejor;
         }
         function requeridas(equipo = {}, familia, plantillas, { unidades = null, buscar = null } = {}) {
@@ -22315,11 +22538,14 @@ Familias: ${FAMILIAS.length}`);
           const anexo = (a) => {
             const pl = indice.get(a.plantilla);
             if (!pl) return null;
-            if (a.soloSi && !nombrePM.includes(sinAcentosFx(a.soloSi))) return null;
             const enlace = a.enlace || "equipo";
+            const vinculada = Boolean(a.soloSi && !nombrePM.includes(sinAcentosFx(a.soloSi)));
+            if (vinculada && !(enlace === "refrigerante" && llanoFx(equipo.equipoAsociado))) return null;
             let clave = `equipo:${equipo.id}`;
             let motivo = null;
-            if (enlace === "circuito") {
+            if (enlace === "hidraulico") {
+              clave = "hidraulico:clima";
+            } else if (enlace === "circuito") {
               const c = llanoFx(equipo.circuito);
               clave = c ? `circuito:${sinAcentosFx(c)}` : null;
               if (!c) motivo = "El equipo no tiene circuito asignado.";
@@ -22328,7 +22554,9 @@ Familias: ${FAMILIAS.length}`);
               clave = tagUE ? `refrigerante:${sinAcentosFx(tagUE)}` : null;
               if (!tagUE) motivo = "Unidad interior sin exterior asociada.";
             }
-            return { plantilla: pl.codigo, clase: pl.clase, nombre: a.nombre || pl.nombre, enlace, clave, motivo };
+            const r = { plantilla: pl.codigo, clase: pl.clase, nombre: a.nombre || pl.nombre, enlace, clave, motivo };
+            if (vinculada) r.deConjunto = llanoFx(equipo.equipoAsociado);
+            return r;
           };
           const anexos = (familia.anexos || []).map(anexo).filter(Boolean);
           fuera.push(...anexos.filter((a) => a.clase === "checklist"));
@@ -22611,7 +22839,7 @@ ${obsO}` : obsO).slice(0, 4e3);
         }
         function estadoVisible(estado, medidos, bocasSinMedirLista) {
           if (estado !== "pendiente" || !medidos) return estado;
-          if (!medidos.rellenos) return "sinEmpezar";
+          if (!medidos.rellenos) return medidos.escrito ? estado : "sinEmpezar";
           return medidos.obligatorios && medidos.rellenos >= medidos.obligatorios && !(bocasSinMedirLista || []).length ? "completa" : estado;
         }
         function estadoEquipo(equipo, familia, plantillas, buscar, unidades = null) {
@@ -23342,6 +23570,9 @@ ${obsO}` : obsO).slice(0, 4e3);
               conjunto: enConjunto ? l.tag || null : null,
               lineaId: l.id || u.id,
               falta: l.completo ? [] : faltaSinRepetir((l.falta || []).map(textoFalta)),
+              /* 15-nov (JC, NCN: «Commissioning completo» con la ficha PM y la estanqueidad pendientes): el verde también es «en marcha»
+                 (KPI En marcha); «completo» solo cuando lo es de verdad —la línea completa o la entrega a la DF dice «completo»—. */
+              completo: Boolean(l.completo || l.veredictoEntrega === "completo"),
               tipo: tipoLlano(u),
               icono: iconoDe({ familia: u.familia, tag: u.tag, modelo: u.modelo, denominacion: u.denominacion, papel: enConjunto ? l.exterior && l.exterior.id === u.id ? "UE" : "UI" : null }),
               miembros: enConjunto && Array.isArray(l.miembros) && l.miembros.length > 1 ? l.miembros.map((m) => ({ id: m.id, tag: m.tag, papel: l.exterior && l.exterior.id === m.id || esExteriorTag(m.tag) ? "UE" : "UI" })) : null,
@@ -24498,7 +24729,21 @@ ${obsO}` : obsO).slice(0, 4e3);
         WILO_PUMPS: "Bombas",
         SP_VENTILACION: "Ventiladores",
         SP_PARKING: "Ventiladores",
-        SP_PRESURIZACION: "Ventiladores"
+        SP_PRESURIZACION: "Ventiladores",
+        /* Las del catálogo genérico por tipo del Gestor (15-nov): el mismo nombre de carpeta que las del libro. */
+        UTA: "UTAs",
+        ROOFTOP: "Rooftops",
+        ENFRIADORA: "Enfriadoras / bombas de calor",
+        FANCOIL: "Fan coils",
+        RECUPERADOR: "Recuperadores",
+        VRF: "VRF",
+        SPLIT: "Splits",
+        CRAC: "CRAC",
+        GRUPO_PRESION: "Grupos de presi\xF3n",
+        BOMBAS: "Bombas",
+        VENTILACION: "Ventiladores",
+        VENTILACION_PARKING: "Ventiladores",
+        PRESURIZACION: "Ventiladores"
       };
       function tipologiaDeEquipo(f) {
         const fam = String(f && f.familia || "").trim();
@@ -26425,7 +26670,7 @@ ${obsO}` : obsO).slice(0, 4e3);
      codigo             TEXT NOT NULL,
      version            INTEGER NOT NULL,
      nombre             TEXT NOT NULL,
-     clase              TEXT NOT NULL CHECK (clase IN ('fichaPM','checklist','balanceo','estanqAgua','estanqRefrigerante')),
+     clase              TEXT NOT NULL CHECK (clase IN ('fichaPM','checklist','balanceo','estanqAgua','estanqRefrigerante','equilibrado')),
      definicion         TEXT NOT NULL,
      origen             TEXT NOT NULL DEFAULT 'libro',
      notas              TEXT,
@@ -30575,6 +30820,9 @@ ${obsO}` : obsO).slice(0, 4e3);
            bloqueada) para no volver a leer la misma foto y para que Iarvis diga qué queda. electron/data/estanqueidadLectura.js */
         ["configCommissioning", "estanqMinimoBar", "REAL"],
         ["configCommissioning", "lecturasEstanq", "TEXT"],
+        /* LAS HOJAS QUE ESTA OBRA NO USA (15-nov, JC): lista JSON de códigos de plantilla (el equilibrado hidráulico
+           «de momento no» en alguna obra). Se marca en Puesta en marcha › Parámetros de la obra. electron/obra/data/fichasPM.js › vigentesDeObra */
+        ["configCommissioning", "hojasOcultas", "TEXT"],
         /* EL GAS DEL EQUIPO, para el control de fugas F-gas (24-oct). Vacíos, se
            leen de las notas («R-410A 12,5 kg»), como en las legalizaciones. */
         ["equiposObra", "refrigerante", "TEXT"],
@@ -31177,7 +31425,7 @@ ${obsO}` : obsO).slice(0, 4e3);
           reconstruirTabla(db, tabla, sql);
         }
       }
-      var CHECKS_AMPLIADOS = [["ncr", "'enviadaRevision'"], ["firmasEquipo", "'mantenimiento'"]];
+      var CHECKS_AMPLIADOS = [["ncr", "'enviadaRevision'"], ["firmasEquipo", "'mantenimiento'"], ["plantillasPM", "'equilibrado'"]];
       function ampliarChecks(db) {
         for (const [tabla, valor] of CHECKS_AMPLIADOS) {
           const fila = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?").get(tabla);
@@ -58712,6 +58960,79 @@ ${subtitulo}`, c[5]] : c.slice())]);
     }
   });
 
+  // shared/commissioning/equilibradoHidraulico.js
+  var require_equilibradoHidraulico = __commonJS({
+    "shared/commissioning/equilibradoHidraulico.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarEquilibradoHidraulico() {
+        const llano = (v) => String(v ?? "").trim();
+        const ordenNatural = (a, b) => llano(a).localeCompare(llano(b), "es", { numeric: true });
+        function esTerminal(familia, terminales) {
+          const cod = llano(familia && typeof familia === "object" ? familia.codigo : familia).toUpperCase();
+          if (!cod) return false;
+          return (terminales || []).some((t) => cod === t || cod.endsWith(`_${t}`));
+        }
+        function terminalesPorPlanta(def, equipos = [], familiaDe = () => null) {
+          const terminales = def && def.terminales || ["UTA", "FANCOIL"];
+          const plantas = /* @__PURE__ */ new Map();
+          for (const e of equipos || []) {
+            if (!e || !e.id || !esTerminal(familiaDe(e), terminales)) continue;
+            const planta = llano(e.planta) || "Sin planta";
+            if (!plantas.has(planta)) plantas.set(planta, []);
+            plantas.get(planta).push(e);
+          }
+          return [...plantas.entries()].sort((a, b) => (a[0] === "Sin planta") - (b[0] === "Sin planta") || ordenNatural(a[0], b[0])).map(([planta, eqs]) => ({ planta, equipos: eqs.sort((a, b) => ordenNatural(a.tag, b.tag)) }));
+        }
+        function conPlantas(def, equipos = [], familiaDe = () => null) {
+          if (!def || !def.porPlanta) return def;
+          const fijas = (def.secciones || []).filter((s) => !s.planta);
+          const plantas = terminalesPorPlanta(def, equipos, familiaDe);
+          const dePlanta = [];
+          for (const { planta, equipos: eqs } of plantas) {
+            const nombre = /^planta\b/i.test(planta) ? planta : `Planta ${planta}`;
+            dePlanta.push({
+              titulo: `${nombre} \xB7 caudal de agua`,
+              tipo: "parametros",
+              planta,
+              puntos: eqs.map((e) => ({
+                codigo: `qa_${e.id}`,
+                etiqueta: `${llano(e.tag) || e.id} \xB7 caudal de agua`,
+                unidad: "m\xB3/h",
+                medido: "obligatorio",
+                resultado: true,
+                caudal: true,
+                proyecto: true,
+                fabricante: false,
+                sinFabricante: true,
+                equipoId: e.id
+              }))
+            });
+            const va = (e, k, etiqueta, extra = {}) => ({ codigo: `va_${e.id}_${k}`, etiqueta: `${llano(e.tag) || e.id} \xB7 ${etiqueta}`, equipoId: e.id, ...extra });
+            dePlanta.push({
+              titulo: `${nombre} \xB7 v\xE1lvulas de equilibrado`,
+              tipo: "datos",
+              planta,
+              puntos: eqs.flatMap((e) => [
+                va(e, "modelo", "v\xE1lvula (modelo)"),
+                va(e, "posicion", "posici\xF3n / vueltas"),
+                va(e, "kv", "Kv", { tipo: "numero" }),
+                va(e, "dp", "\u0394p medida", { unidad: "kPa", tipo: "numero" })
+              ])
+            });
+          }
+          const i = fijas.findIndex((s) => s.tipo === "fotos");
+          const secciones = i < 0 ? [...fijas, ...dePlanta] : [...fijas.slice(0, i), ...dePlanta, ...fijas.slice(i)];
+          return { ...def, secciones, plantas: plantas.map((p) => ({ planta: p.planta, terminales: p.equipos.length })) };
+        }
+        const api = { esTerminal, terminalesPorPlanta, conPlantas };
+        if (typeof module !== "undefined" && module.exports) module.exports = api;
+        if (typeof window !== "undefined") window.EquilibradoHidraulico = api;
+      })();
+    }
+  });
+
   // shared/ncr/motor.js
   var require_motor3 = __commonJS({
     "shared/ncr/motor.js"(exports, module) {
@@ -64189,6 +64510,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
             canalesMotor: ["dedicaciones:", "horasObra:", "reporteDireccion:"],
             iarvis: "Panel de departamentos, desv\xEDos, saturaci\xF3n del equipo, horas dedicadas y reporte a direcci\xF3n",
             nombreComercial: "Management",
+            titular: "C\xF3mo va cada departamento, de un *vistazo*.",
+            paraQuien: "Direcci\xF3n y jefes de departamento que llevan varias obras a la vez.",
+            ahorra: "Preparar a mano el reporte a direcci\xF3n y preguntar obra por obra en qu\xE9 se va el tiempo.",
+            movilQueHace: [],
             noIncluye: ["El econ\xF3mico y las certificaciones de cada obra (base: Gesti\xF3n de obra)"],
             problema: "Que direcci\xF3n vea de un vistazo c\xF3mo van todos los departamentos y en qu\xE9 se va el tiempo del equipo.",
             funciones: ["Panel de departamentos y desv\xEDos", "Saturaci\xF3n del equipo", "Horas dedicadas por obra", "Reporte a direcci\xF3n"],
@@ -64204,6 +64529,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
             canales: ["licitaciones:", "oportunidades:"],
             iarvis: "Buscar licitaciones de instalaciones abiertas y oportunidades por provincia",
             nombreComercial: "Licitaciones",
+            titular: "Las licitaciones que te encajan, *a tiempo*.",
+            paraQuien: "El departamento comercial y de estudios.",
+            ahorra: "Revisar a mano las plataformas de contrataci\xF3n cada semana.",
+            movilQueHace: [],
             noIncluye: ["Preparar la oferta de la licitaci\xF3n (base: Presupuestos)"],
             problema: "Enterarse a tiempo de las licitaciones de instalaciones que encajan con la empresa.",
             funciones: ["B\xFAsqueda de licitaciones p\xFAblicas abiertas", "Oportunidades por provincia"],
@@ -64218,6 +64547,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
             canales: ["calculos:", "instalaciones:", "memoria:"],
             iarvis: "Cargas t\xE9rmicas, ventilaci\xF3n, conductos, cargas el\xE9ctricas, c\xE1lculo sobre plano y memorias de c\xE1lculo",
             nombreComercial: "C\xE1lculo de instalaciones",
+            titular: "Dimensionar y sacar la memoria *sin* otro programa.",
+            paraQuien: "Ingenier\xEDa y oficina t\xE9cnica que dimensionan la instalaci\xF3n.",
+            ahorra: "Pasar datos entre programas y redactar a mano la memoria de c\xE1lculo.",
+            movilQueHace: [],
             noIncluye: ["Calculadoras r\xE1pidas (base: Herramientas r\xE1pidas)", "Legalizar la instalaci\xF3n (Legalizaciones)"],
             problema: "Dimensionar la instalaci\xF3n y sacar la memoria de c\xE1lculo sin otro programa.",
             funciones: ["Cargas t\xE9rmicas", "Ventilaci\xF3n y conductos", "Cargas el\xE9ctricas", "C\xE1lculo sobre plano y mediciones del c\xE1lculo", "Memorias de c\xE1lculo"],
@@ -64232,6 +64565,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
             canales: ["legalizaciones:", "entregasDF:"],
             iarvis: "Impresos oficiales de legalizaci\xF3n, certificados y entrega documental a la direcci\xF3n facultativa",
             nombreComercial: "Legalizaciones",
+            titular: "Los impresos oficiales, *sin* perseguir papeles.",
+            paraQuien: "Jefes de obra y oficina t\xE9cnica que cierran la legalizaci\xF3n.",
+            ahorra: "Rellenar uno a uno los impresos y perseguir qui\xE9n tiene cada certificado.",
+            movilQueHace: [],
             noIncluye: ["Actas de entrega de obra (base: Entrega de obra)"],
             problema: "Rellenar los impresos oficiales y entregar la documentaci\xF3n a la direcci\xF3n facultativa sin perseguir papeles.",
             funciones: ["Impresos oficiales del organismo, tal cual", "Certificados de instalaci\xF3n", "Entrega documental a la direcci\xF3n facultativa"],
@@ -64247,6 +64584,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
             canalesMotor: ["reclamaciones:", "avisosRec:", "riesgoSub:", "desfase:", "gapDisciplina:", "horasIndustriales:"],
             iarvis: "Preparar y documentar reclamaciones econ\xF3micas al cliente",
             nombreComercial: "Reclamaciones",
+            titular: "Cobrar lo que la obra cost\xF3 de m\xE1s, *con* pruebas.",
+            paraQuien: "Jefes de obra, de producci\xF3n y direcci\xF3n que negocian con el cliente.",
+            ahorra: "Reconstruir al final hechos y pruebas que nadie apunt\xF3 en su d\xEDa.",
+            movilQueHace: ["Avisos reclamables con foto desde el tajo", "Consultar los hechos y a\xF1adirles pruebas"],
             noIncluye: ["Certificaciones al cliente (base: Gesti\xF3n de obra)"],
             problema: "Cobrar lo que la obra ha costado de m\xE1s por causas del cliente, con pruebas.",
             funciones: ["Expediente de reclamaci\xF3n por apartados", "Hechos y pruebas fechados", "Tarifas y horas de los industriales", "Desfases y riesgo de subcontratas", "Avisos reclamables desde el tajo"],
@@ -64264,6 +64605,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
             canalesMotor: ["pruebasBms:", "plc:", "puntos:", "puntosObra:"],
             iarvis: "Listado de puntos BMS, pruebas punto a punto y sincronizaci\xF3n",
             nombreComercial: "BMS y control",
+            titular: "El listado de puntos, *generado* y probado punto a punto.",
+            paraQuien: "Ingenier\xEDa de control, integradores de BMS y t\xE9cnicos de puesta en marcha.",
+            ahorra: "Montar a mano el listado de puntos equipo por equipo y llevar las pruebas en papel.",
+            movilQueHace: [],
             noIncluye: ["Inventario y plano de equipos (base: Calidad y equipos)", "Puesta en marcha de los equipos (Commissioning)"],
             problema: "Sacar el listado de puntos de control de la obra y probarlo punto a punto.",
             funciones: [
@@ -64287,6 +64632,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
             canalesMotor: ["commissioning:", "puestaMarcha:", "archivosPreparados:"],
             iarvis: "Control de commissioning, fichas de puesta en marcha, mediciones, planificaci\xF3n Cx e informe a la DF",
             nombreComercial: "Commissioning",
+            titular: "Cada equipo montado, medido y documentado *antes* de entregarlo.",
+            paraQuien: "T\xE9cnicos de commissioning y jefes de obra que entregan los equipos a la direcci\xF3n facultativa.",
+            ahorra: "Pasar a limpio fichas y mediciones, y montar el informe de entrega al final de cada obra.",
+            movilQueHace: ["Fichas del equipo con fotos, placa y n\xFAmero de serie", "Mediciones de bocas y toma de datos", "Firma y entrega a la DF desde el plano", "Mi planificaci\xF3n de commissioning"],
             noIncluye: ["Balanceo y pruebas de estanqueidad (base: Calidad y equipos)", "Plan preventivo, F-gas y \xF3rdenes (Mantenimiento)", "Listado de puntos BMS y sus pruebas punto a punto (BMS y control)"],
             conOtros: [{ con: "bms", texto: "Con BMS y control: las pruebas de puesta en marcha usan los puntos BMS de cada equipo; sin \xE9l, no se ve el listado de puntos" }],
             problema: "Demostrar que cada equipo est\xE1 montado, medido y documentado antes de entregarlo.",
@@ -64313,6 +64662,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
             canalesMotor: ["mantenimiento:", "ordenesMant:", "comprasMant:", "contratoMant:"],
             iarvis: "Plan preventivo, F-gas, \xF3rdenes de trabajo, reparaciones e inspecciones peri\xF3dicas",
             nombreComercial: "Mantenimiento",
+            titular: "Los equipos entregados, con su plan *al d\xEDa*.",
+            paraQuien: "El responsable de mantenimiento y sus t\xE9cnicos, despu\xE9s de entregar la obra.",
+            ahorra: "Perseguir revisiones y controles F-gas en hojas sueltas.",
+            movilQueHace: ["Mis tareas: empezar, avanzar con fotos y terminar la orden", "Plano de mantenimiento con la ficha del equipo"],
             noIncluye: ["Reparaciones de la obra (base: Calidad y equipos)", "Acta de mantenimiento (base: Entrega de obra)"],
             problema: "Mantener los equipos entregados con su plan, sus \xF3rdenes y sus inspecciones al d\xEDa.",
             funciones: ["Plan preventivo y calendario", "Control F-gas", "\xD3rdenes de trabajo", "Registro de mantenimiento e informes", "Inspecciones peri\xF3dicas", "Compras y contrato de mantenimiento"],
@@ -64327,6 +64680,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
             canalesMotor: ["presupuestos:contextoDescripciones", "planoVsPresupuesto:", "planoAMedicion:", "medicionIfc:", "medComp:"],
             iarvis: "Rellenar las descripciones de las partidas, cruzar los planos con las mediciones y con las partidas del presupuesto",
             nombreComercial: "Presupuesto inteligente",
+            titular: "Las descripciones y el cruce con planos, *autom\xE1ticos*.",
+            paraQuien: "El departamento de estudios y la oficina t\xE9cnica que preparan y revisan ofertas.",
+            ahorra: "Las horas de escribir descripciones y de comprobar sobre plano que no falta nada en el presupuesto.",
+            movilQueHace: [],
             noIncluye: ["Montar e importar el presupuesto (base: Presupuestos)", "Descompuestos por variante de material (Descompuestos autom\xE1ticos)", "Listado de puntos BMS (BMS y control)"],
             problema: "Ahorrar las horas de rellenar descripciones y de comprobar el presupuesto contra los planos.",
             pantallasObra: ["Desglose: plano frente a presupuesto y medici\xF3n IFC", "Planos: mediciones comparadas"],
@@ -64351,6 +64708,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
             cortaEnPantalla: ["shared/presupuesto/variantesPartida.js"],
             iarvis: "Elegir la variante del material de una partida (conducto, tuber\xEDa, aislamiento, difusi\xF3n) y ense\xF1ar los componentes que trae",
             nombreComercial: "Descompuestos autom\xE1ticos",
+            titular: "Ninguna partida sin sus accesorios ni su *mano de obra*.",
+            paraQuien: "Estudios y jefes de obra que montan descompuestos de conductos, tuber\xEDas, aislamiento y difusi\xF3n.",
+            ahorra: "Olvidarse de una compuerta, de la elevaci\xF3n o de las horas de montaje en la oferta.",
+            movilQueHace: [],
             noIncluye: ["Poner precio a los componentes: salen sin precio y por confirmar", "Rellenar las descripciones (Presupuesto inteligente)"],
             problema: "Que ninguna partida de conducto, tuber\xEDa, aislamiento o difusi\xF3n se quede sin sus accesorios, su elevaci\xF3n y su mano de obra.",
             pantallasObra: ["Presupuesto: variante del material en el descompuesto desplegado"],
@@ -64367,6 +64728,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
             tipo: "licencia",
             canales: ["iarvis:"],
             nombreComercial: "Iarvis",
+            titular: "Pedir las cosas *hablando*.",
+            paraQuien: "Todo el equipo, cada uno dentro de lo que su puesto puede hacer.",
+            ahorra: "Buscar la pantalla y los pasos de lo que ya sabes pedir.",
+            movilQueHace: ["El bot\xF3n de Iarvis en el tel\xE9fono: pedirle las cosas desde la obra"],
             noIncluye: ["Hacer lo que tu rol no puede hacer", "Ofrecer m\xF3dulos que la empresa no tiene contratados"],
             problema: "Pedir las cosas hablando, en el ordenador y en el m\xF3vil, dentro de lo que tu puesto puede hacer.",
             pantallasObra: ["Panel de Iarvis (bot\xF3n abajo a la derecha, en todas las pantallas)"],
@@ -64384,6 +64749,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
             canalesMotor: ["movil:", "sync:"],
             iarvis: "Encender el m\xF3vil de obra, el QR para el tel\xE9fono, el paquete de la app Cx y el estado de la sincronizaci\xF3n",
             nombreComercial: "App del m\xF3vil",
+            titular: "La obra en el *bolsillo*, con o sin cobertura.",
+            paraQuien: "Encargados, t\xE9cnicos y jefes de obra que trabajan en el tajo.",
+            ahorra: "Pasar a limpio en la oficina lo que se apunt\xF3 en obra.",
+            movilQueHace: ["La app del tel\xE9fono entera, tambi\xE9n sin cobertura", "Abre en el tel\xE9fono las secciones de los m\xF3dulos contratados", "Alta del tel\xE9fono con un QR"],
             noIncluye: ["Las secciones de los m\xF3dulos no contratados: cada m\xF3dulo trae lo suyo en el tel\xE9fono"],
             problema: "Llevar la obra en el bolsillo, con o sin cobertura, y que todo llegue a la oficina.",
             pantallasObra: ["Personas de la obra \u203A La app del m\xF3vil (encender, QR y paquete del tel\xE9fono)"],
@@ -64531,6 +64900,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
           return {
             nombreComercial: m.nombreComercial || m.nombre,
             problema: m.problema || "",
+            titular: m.titular || "",
+            paraQuien: m.paraQuien || "",
+            ahorra: m.ahorra || "",
+            movilQueHace: m.movilQueHace || null,
             funciones: m.funciones || [],
             noIncluye: m.noIncluye || [],
             enDesarrollo: m.enDesarrollo || [],
@@ -64678,6 +65051,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
           licenciasContratadas,
           conLicencias,
           estadoLicencias,
+          fichaDeVenta,
           rolEnEdicion,
           filtrarRoles,
           modulosObraFuera,
@@ -92141,7 +92515,7 @@ ${linea}` : linea;
     "package.json"(exports, module) {
       module.exports = {
         name: "gestor-de-obras",
-        version: "0.31.2",
+        version: "0.31.3",
         description: "Vidaire Gestor \u2014 app de escritorio para Windows y Mac",
         main: "electron/main.js",
         license: "UNLICENSED",
@@ -93938,7 +94312,9 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
         }
         const LETRA_PX = { tag: 6, elegido: 7.4, sala: 6.2, codigo: 5.4 };
         const ALTO_SALA = 14;
-        function colocarRotulos2({ lw, lh, equipos = [], materiales = [], salas = [], huecos = null, ancho = null, sitios = false, grupos = false } = {}) {
+        function colocarRotulos2({ lw, lh, equipos = [], materiales = [], salas = [], huecos = null, ancho = null, sitios = false, grupos = false, fijos = [] } = {}) {
+          const normaTexto = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+          const yaEnFondo = new Set((fijos || []).map((f) => normaTexto(f && f.t)).filter(Boolean));
           const ALTO_SALA_1 = ALTO_SALA;
           const ALTO_COD = 11;
           const codigoSala = (r) => {
@@ -93973,12 +94349,20 @@ En el escritorio lo hace Electron; aqu\xED tiene que hacerlo la app.`
             }
             tags.push({ id, x: pri0.x, izq: pri0.izq, alt, y: cy - (el ? 8 : 6), w, h, pri: el ? 0 : q.pri !== void 0 ? q.pri : priDef });
           };
+          for (const f of fijos || []) {
+            if (!f || !f.t || !Number.isFinite(f.x) || !Number.isFinite(f.y)) continue;
+            const n = String(f.t).length;
+            const w = Math.max(mide(f.t, "sala") * 0.8, n * 65e-4 * lw) + 4;
+            const h = Math.max(10, w / Math.max(1, n) * 1.7);
+            obstaculos.push({ x: f.x * lw - w / 2, y: f.y * lh - h, w, h: h + 3 });
+          }
           for (const e of equipos) mete(e, `eq:${e.id}`, 1.5);
           for (const m of materiales) mete(m, m.id, 3);
           const hueco = huecos || huecoSalas(salas, lh / (lw || 1));
           const cajasSala = [];
           salas.forEach((r, i) => {
             if (!r || !r.t || r.x === null || r.x === void 0) return;
+            if (yaEnFondo.has(normaTexto(r.t))) return;
             const cod = codigoSala(r);
             const w = Math.max(mide(r.t, "sala"), cod ? mide(cod, "codigo") : 0) + 4;
             const ALTO_SALA2 = cod ? ALTO_SALA_1 + ALTO_COD : ALTO_SALA_1;
@@ -100856,7 +101240,8 @@ ${fallos.join("\r\n")}\r
               cert = null;
             }
           }
-          return CB.estadoBloque(montaje.get(f.id) || f, { cxHecho: e.color === "verde", cxEmpezado: e.color === "azul", cert });
+          const hecho = e.color === "verde" && e.completo !== false;
+          return CB.estadoBloque(montaje.get(f.id) || f, { cxHecho: hecho, cxEmpezado: e.color === "azul" || e.color === "verde" && !hecho, cert });
         };
         const planoDe = new Map(filas.map((p) => [p.planta || "", p]));
         const marcaDe = /* @__PURE__ */ new Map();
@@ -100894,6 +101279,7 @@ ${fallos.join("\r\n")}\r
               color: e.color,
               bloque: bloqueDe(f, e),
               falta: e.falta,
+              completo: e.completo !== false,
               sala,
               salaFuente: fuente,
               ...datosDe(f, e),
@@ -100911,7 +101297,7 @@ ${fallos.join("\r\n")}\r
               if (!f || ya.has(f.id)) continue;
               const e = est.get(f.id);
               const { sala, fuente } = salaDe(f, m);
-              equipos.push({ id: f.id, tag: f.tag, familia: f.familia || null, papel: e.papel, conjunto: e.conjunto, color: e.color, bloque: bloqueDe(f, e), falta: e.falta, sala, salaFuente: fuente, ...datosDe(f, e), cert: certDe.get(f.id) || null, x: m.x, y: m.y, mano: Boolean(m.mano), ...simboloDe(m) });
+              equipos.push({ id: f.id, tag: f.tag, familia: f.familia || null, papel: e.papel, conjunto: e.conjunto, color: e.color, bloque: bloqueDe(f, e), falta: e.falta, completo: e.completo !== false, sala, salaFuente: fuente, ...datosDe(f, e), cert: certDe.get(f.id) || null, x: m.x, y: m.y, mano: Boolean(m.mano), ...simboloDe(m) });
             }
           }
           const cuentas = { verde: 0, azul: 0, rojo: 0, sinSala: 0, enPlano: 0, sinUbicar: 0, revisar: 0, bloques: CB.recuentoBloques(equipos), conIncidencia: INC.recuento(equipos), incResuelta: INC.recuentoResueltas(equipos) };
@@ -101045,6 +101431,8 @@ ${fallos.join("\r\n")}\r
             estado: ev ? ev.estado : "sinFicha",
             rellenos: Number(m.rellenos) || 0,
             obligatorios: Number(m.obligatorios) || 0,
+            /* 15-nov (JC: ficha PM «pendiente» con 3/3 medidos): lo que le falta de verdad para estar completa. */
+            faltan: ev && ev.estado === "pendiente" && Array.isArray(ev.faltan) ? ev.faltan.slice(0, 3).map(String) : [],
             fotos: ev && ev.datos && Array.isArray(ev.datos.fotos) ? ev.datos.fotos.length : 0,
             firmada: Boolean(ev && Array.isArray(ev.firmas) && ev.firmas.length),
             unidadTag: p.conservada || p.porUnidad ? p.unidadTag || null : null,
@@ -101056,6 +101444,7 @@ ${fallos.join("\r\n")}\r
           const i = fuera.findIndex((x) => x.clase === "balanceo");
           const base = i >= 0 ? fuera[i] : { plantilla: null, clave: null, clase: "balanceo", nombre: "Hoja de balanceo", fotos: 0, firmada: false, unidadTag: null, pestana: "balanceo" };
           const fila = { ...base, ...hb, hoja: true };
+          if (fila.estado === "sinEmpezar" && base.estado === "pendiente") fila.estado = "pendiente";
           if (i >= 0) fuera[i] = fila;
           else fuera.push(fila);
         }
@@ -171083,6 +171472,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       var catalogo = require_catalogoCx();
       var INS = require_instrumentos();
       var ERP = require_estanqRefrigerantePrevio();
+      var EH = require_equilibradoHidraulico();
       var { puede } = require_roles();
       var { nuevoId } = require_repositorio();
       var NO_EDITA = "Tu rol puede ver el commissioning de esta obra, pero no cambiarlo.";
@@ -171141,7 +171531,26 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           lista.push(p);
         }
         const instrumentos2 = repo.listar("instrumentosMedida", sesion, { orden: "nombre" });
-        return { porVersion, vigentes: F.indicePlantillas(lista), lista, instrumentos: instrumentos2, fechas };
+        const equiposPorObra = /* @__PURE__ */ new Map();
+        const conPlantas = (def, obraId) => {
+          if (!def || !def.porPlanta || !obraId) return def;
+          if (!equiposPorObra.has(obraId)) equiposPorObra.set(obraId, repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] }));
+          return EH.conPlantas(def, equiposPorObra.get(obraId), (e) => F.familiaDe(e, catalogo.FAMILIAS));
+        };
+        return { porVersion, vigentes: F.indicePlantillas(lista), lista, instrumentos: instrumentos2, fechas, conPlantas };
+      }
+      function hojasOcultas(cfg) {
+        try {
+          const v = cfg && cfg.hojasOcultas ? JSON.parse(cfg.hojasOcultas) : [];
+          return new Set((Array.isArray(v) ? v : []).map((x) => llano(x)).filter(Boolean));
+        } catch {
+          return /* @__PURE__ */ new Set();
+        }
+      }
+      function vigentesDeObra(cat, cfg) {
+        const ocultas = hojasOcultas(cfg);
+        if (!ocultas.size) return cat.vigentes;
+        return new Map([...cat.vigentes].filter(([cod]) => !ocultas.has(cod)));
       }
       function plantillas(repo, sesion) {
         const { vigentes, lista, fechas } = catalogoDe(repo, sesion);
@@ -171248,6 +171657,10 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         return ok;
       }
       function defDeFila(cat, fila, firmada = leerJson(fila.firmas, []).length > 0) {
+        const def = defDeFilaSola(cat, fila, firmada);
+        return cat.conPlantas ? cat.conPlantas(def, fila.obraId) : def;
+      }
+      function defDeFilaSola(cat, fila, firmada) {
         const vigente = cat.vigentes.get(fila.plantilla);
         const guardada = cat.porVersion.get(`${fila.plantilla}@${fila.version}`);
         if (!guardada) return vigente;
@@ -171404,7 +171817,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const unidades = unidadesPorEquipo(deLaObra);
         const out = /* @__PURE__ */ new Map();
         for (const e of lista) {
-          const pm = F.estadoEquipo(e, F.familiaDe(e, catalogo.FAMILIAS), cat.vigentes, buscar, unidades.get(e.id));
+          const pm = F.estadoEquipo(e, F.familiaDe(e, catalogo.FAMILIAS), vigentesDeObra(cat, cfg), buscar, unidades.get(e.id));
           out.set(e.id, {
             total: pm.total,
             completas: pm.completas,
@@ -171497,7 +171910,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const unidades = unidadesPorEquipo(equipos);
         const filas = equipos.map((e) => {
           const fam = F.familiaDe(e, catalogo.FAMILIAS);
-          const pm = F.estadoEquipo(e, fam, cat.vigentes, buscar, unidades.get(e.id));
+          const pm = F.estadoEquipo(e, fam, vigentesDeObra(cat, cfg), buscar, unidades.get(e.id));
           return {
             id: e.id,
             tag: e.tag,
@@ -171573,15 +171986,25 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           tolerancias: F.tolerancias(cfg || {}),
           /* 12-nov: el mínimo de obra de la estanqueidad leída de las fotos (bar), o null. */
           estanqMinimoBar: cfg && Number(cfg.estanqMinimoBar) > 0 ? Number(cfg.estanqMinimoBar) : null,
+          /* 15-nov: las hojas que la obra puede no usar (las de toda la obra, como el equilibrado hidráulico) y las que oculta. */
+          hojasOptativas: [...cat.vigentes.values()].filter((p) => p.porPlanta).map((p) => ({ codigo: p.codigo, nombre: p.nombre })),
+          hojasOcultas: [...hojasOcultas(cfg)],
           cabecera: cabeceraDe(cfg),
           /* Firma y tolerancias: solo el jefe de obra de esta obra. */
           esJefeDeObra: esJefeDeObra(repo, sesion, obraId)
         };
       }
       function resolverClave(repo, sesion, obraId, clave, deLaObra = null) {
-        const m = /^(equipo|circuito|refrigerante):(.+)$/.exec(llano(clave));
+        const m = /^(equipo|circuito|refrigerante|hidraulico):(.+)$/.exec(llano(clave));
         if (!m) return { error: "Ficha sin clave v\xE1lida." };
         const equipos = deLaObra || repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+        if (m[1] === "hidraulico") {
+          const afectados2 = equipos.filter((e) => {
+            const fam = F.familiaDe(e, catalogo.FAMILIAS);
+            return fam && (fam.anexos || []).some((a) => a.enlace === "hidraulico");
+          });
+          return { dueno: null, afectados: afectados2, titulo: "Sistema de clima por agua", hidraulico: m[2] };
+        }
         if (m[1] === "equipo") {
           const e = equipos.find((x) => x.id === m[2]);
           if (!e) return { error: "No se encuentra el equipo." };
@@ -171619,7 +172042,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           firmas = leerJson(fila.firmas, []);
           if (def && def.clase === "estanqRefrigerante" && !firmas.length) datos = ERP.conMinimoDeObra(datos, ERP.obraDeConfig(cfg));
         } else {
-          def = cat.vigentes.get(plantilla);
+          def = cat.conPlantas(cat.vigentes.get(plantilla), obraId);
           if (!def) return { ok: false, error: `No existe la plantilla ${plantilla}.` };
           datos = F.rellenarDesdeEquipo(def, F.fichaVacia(cabeceraDe(cfg)), r.dueno || (r.circuito ? { circuito: r.circuito } : {}));
           datos = conPuntosBms(repo, sesion, def, datos, obraId);
@@ -171694,11 +172117,17 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const b = require_incidencias().bloqueoParaTomar(repo, obraId, ids);
           if (b) return b;
         }
-        const def = fila ? defDeFila(cat, fila, false) || cat.vigentes.get(plantilla) : cat.vigentes.get(plantilla);
+        const def = fila ? defDeFila(cat, fila, false) || cat.vigentes.get(plantilla) : cat.conPlantas ? cat.conPlantas(cat.vigentes.get(plantilla), obraId) : cat.vigentes.get(plantilla);
         if (!def) return { ok: false, error: `No existe la plantilla ${plantilla}.` };
         const { ficha: limpio, descartados } = F.quitarPrueba(
           F.normalizar(def, sellarRevisados(sinMedidoDelBalanceo(datos || {}), sesion, nombreDe(repo, sesion)))
         );
+        const conocidos = new Set(F.puntosDe(def).map((p) => p.codigo));
+        const ajenos = { ...fila && leerJson(fila.datos, {}).valores || {}, ...datos && datos.valores || {} };
+        limpio.valores = limpio.valores || {};
+        for (const [k, v] of Object.entries(ajenos)) {
+          if (!conocidos.has(k) && limpio.valores[k] === void 0 && v !== void 0 && v !== null) limpio.valores[k] = v;
+        }
         limpio.copias = F.normalizar(def, {
           copias: Array.isArray(interno.copias) ? interno.copias : fila ? leerJson(fila.datos, {}).copias : []
         }).copias;
@@ -171910,14 +172339,15 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const unidades = porUnidades.get(equipo.id) || [equipo];
         const filas = delLote(`filas|${quien(sesion)}|${equipo.obraId}`, () => new Map(filasFichas(repo, sesion, equipo.obraId).map((f) => [`${f.clave}|${f.plantilla}`, f])));
         const buscar = (clave, plantilla) => filas.get(`${clave}|${plantilla}`) || null;
-        const cj = fam && F.esConjuntoUnico(fam) && unidades.length > 1 ? F.requeridasConjunto(unidades, fam, cat.vigentes, buscar) : null;
+        const vigentes = vigentesDeObra(cat, cfg);
+        const cj = fam && F.esConjuntoUnico(fam) && unidades.length > 1 ? F.requeridasConjunto(unidades, fam, vigentes, buscar) : null;
         const leer = (req) => {
           const fila = req.clave && req.plantilla ? buscar(req.clave, req.plantilla) : null;
           const r = fila ? evaluarFila(fila, cat, cfg, { repo, sesion }) : null;
           const ev = r ? { ...r.ev, estado: F.estadoVisible(r.ev.estado, r.ev.medidos, F.bocasSinMedir(r.ev)) } : null;
-          return { ...req, plantillaDef: r ? r.def : req.plantilla ? cat.vigentes.get(req.plantilla) : null, evaluacion: ev, fichaId: fila ? fila.id : null };
+          return { ...req, plantillaDef: r ? r.def : req.plantilla ? cat.conPlantas(cat.vigentes.get(req.plantilla), equipo.obraId) : null, evaluacion: ev, fichaId: fila ? fila.id : null };
         };
-        const partes = (cj ? cj.reqs : F.requeridas(equipo, fam, cat.vigentes)).map(leer);
+        const partes = (cj ? cj.reqs : F.requeridas(equipo, fam, vigentes)).map(leer);
         const conservadas = cj ? cj.conservadas.map(leer) : [];
         return { equipo, obra, familia: fam, partes, conservadas, cabeceraObra: cabeceraDe(cfg), tolerancias: F.tolerancias(cfg || {}) };
       }
@@ -175130,6 +175560,12 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           }
           cambios.cabeceraPM = JSON.stringify(limpia);
         }
+        if (datos.hojasOcultas !== void 0) {
+          if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: "Tu rol no puede cambiar las hojas de la obra." };
+          const lista = Array.isArray(datos.hojasOcultas) ? datos.hojasOcultas : [];
+          const codigos = [...new Set(lista.map((c) => String(c || "").trim().toUpperCase()).filter((c) => /^[A-Z0-9_]{2,60}$/.test(c)))];
+          cambios.hojasOcultas = codigos.length ? JSON.stringify(codigos) : null;
+        }
         const actual = configDe(repo, sesion, obraId);
         if (actual) repo.modificar("configCommissioning", sesion, actual.id, cambios);
         else repo.crear("configCommissioning", sesion, { obraId, ...cambios });
@@ -177036,7 +177472,13 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const eq = d.plantas.flatMap((p) => p.equipos || []).find((x) => x.id === id);
           if (!eq) return { ok: false, error: "No se encuentra el equipo." };
           await certificacionDeLaNube(ses, obra, { plantas: [{ equipos: [eq] }] }, { clave: `|${id}` });
-          return { ok: true, id, documentos: eq.documentos || [], acciones: eq.acciones || [], vida: eq.vida || null };
+          let tomas = [];
+          try {
+            tomas = PE.tomasDelEquipo(repo, ses, id) || [];
+          } catch {
+            tomas = [];
+          }
+          return { ok: true, id, documentos: eq.documentos || [], acciones: eq.acciones || [], vida: eq.vida || null, tomas };
         }
         function imagen({ ses, query }) {
           if (require_planoEquiposIfc().esIfc(query.id)) {
@@ -181173,7 +181615,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       })(/* @__PURE__ */ (() => {
         const estadoVisible = (estado, medidos, bocasSinMedir) => {
           if (estado !== "pendiente" || !medidos) return estado;
-          if (!medidos.rellenos) return "sinEmpezar";
+          if (!medidos.rellenos) return medidos.escrito ? estado : "sinEmpezar";
           return medidos.obligatorios && medidos.rellenos >= medidos.obligatorios && !(bocasSinMedir || []).length ? "completa" : estado;
         };
         const esDefinitiva = (x) => Boolean(x) && ["completa", "firmada"].includes(estadoVisible(x.estado, x.medidos, x.bocasSinMedir));
@@ -181803,6 +182245,12 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           }
         }
         const bytesFoto = (x) => x ? bytesDe(bajadas.get(x.ruta) || x.ruta) : null;
+        const normTag = (t) => llano(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+        function deConjuntoDe(p, equipo) {
+          const m = /^refrigerante:(.+)$/.exec(llano(p && p.clave));
+          if (!m || !equipo || normTag(m[1]) === normTag(equipo.tag)) return null;
+          return m[1];
+        }
         function fichas({ ses, query }) {
           const d = FPM.dossier(repo, ses, llano(query.equipo));
           if (!d) return { ok: false, error: "No se encuentra el equipo." };
@@ -181819,6 +182267,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
               /* Split y VRF: lo guardado antes en otra unidad del conjunto, para leerlo. */
               conservada: Boolean(p.conservada),
               unidadTag: p.unidadTag || null,
+              /* 15-nov (JC): la estanqueidad de una interior es la de su conjunto (la misma hoja, enlazada). */
+              deConjunto: p.deConjunto || deConjuntoDe(p, d.equipo),
               /* VRF (29-oct-2026, JC): una toma por unidad; la de cada UI lleva su TAG y su sala. */
               porUnidad: Boolean(p.porUnidad),
               papel: p.papel || null,
@@ -181848,6 +182298,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             secciones: ev.secciones.map((s) => ({
               titulo: s.titulo,
               tipo: s.tipo,
+              planta: s.planta || null,
               puntos: (s.puntos || []).map((p) => ({
                 codigo: p.codigo,
                 numero: p.numero || null,
@@ -181862,6 +182313,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
                 m: p.m ?? null,
                 proyecto: Boolean(p.proyecto),
                 fabricante: Boolean(p.fabricante),
+                sinFabricante: Boolean(p.sinFabricante),
                 resultado: p.resultado || null,
                 desv: p.desv ?? null,
                 /* Caudales de aire: «medido en equipo» o «suma de N bocas» (JC, 16-oct). */
@@ -217709,11 +218161,47 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
         const tono = (texto, t) => t ? `<span class="pesTono ${t}">${esc(texto)}</span>` : `<span class="pesVacio">${esc(texto)}</span>`;
         const tabla = (filas) => `<table class="pesTablaFicha"><tbody>${filas.filter((f) => f && f[1] != null && f[1] !== "").map(([k, v, crudo]) => `<tr><th>${esc(k)}</th><td>${crudo ? v : esc(v)}</td></tr>`).join("")}</tbody></table>`;
         const bloque = (titulo, cuerpo, extra = "") => `<section class="pesBloqueFicha" ${extra}><h4>${esc(titulo)}</h4>${cuerpo}</section>`;
-        const TITULO_FILA = { ft: "Ficha t\xE9cnica", ce: "Marcado CE", checklist: "Check list", manual: "Manual de instrucciones", fichaPM: "Puesta en marcha", estanqueidad: "Estanqueidad" };
+        const TITULO_FILA = { ft: "Ficha t\xE9cnica", ce: "Marcado CE", checklist: "Check list", manual: "Manual de instrucciones", fichaPM: "Puesta en marcha", estanqueidad: "Estanqueidad", balanceo: "Balanceo de caudales" };
         const ORDEN_BASE = ["ft", "ce", "checklist", "manual", "fichaPM", "estanqueidad"];
         const CLASE_A_COLUMNA = { ft: "ft", ce: "ce", mi: "manual", pm: "fichaPM" };
         const TEXTO_VER = { pdf: "Ver PDF", hoja: "Ver PDF", foto: "Ver foto" };
         function filasDocumentos(d = {}) {
+          return conHojasDeLaApp(filasSinHojas(d), d.pesada && Array.isArray(d.pesada.tomas) ? d.pesada.tomas : []);
+        }
+        const HOJAS_DE_FILA = { checklist: ["checklist"], fichaPM: ["fichaPM"], estanqueidad: ["estanqAgua", "estanqRefrigerante"], balanceo: ["balanceo"] };
+        const SIN_EMPEZAR = /* @__PURE__ */ new Set(["sinFicha", "sinEmpezar"]);
+        const PESO_TOMA = { firmada: 4, completa: 3, pendiente: 2 };
+        const pesoToma = (t) => t.firmada ? 4 : PESO_TOMA[t.estado] || (t.hoja && t.rellenos ? 2 : 0);
+        function conHojasDeLaApp(filas, tomas) {
+          if (!tomas.length) return filas;
+          const mejor = (clases) => {
+            let i = -1;
+            tomas.forEach((t, j) => {
+              if (t && clases.includes(t.clase) && (i < 0 || pesoToma(t) > pesoToma(tomas[i]))) i = j;
+            });
+            return i;
+          };
+          const salida = filas.map((f) => {
+            const clases = HOJAS_DE_FILA[f.clave];
+            if (!clases || f.estado === "doc") return f;
+            const i = mejor(clases);
+            if (i < 0) return f;
+            const t = tomas[i];
+            const empezada = !SIN_EMPEZAR.has(t.estado) || pesoToma(t) > 0;
+            if (!empezada && f.estado !== "noAplica") return f;
+            const queda = t.estado === "pendiente" && Array.isArray(t.faltan) && t.faltan.length ? `falta ${t.faltan[0]}${t.faltan.length > 1 ? ` y ${t.faltan.length - 1} m\xE1s` : ""}` : "";
+            return { ...f, estado: "hoja", toma: i, hecha: pesoToma(t) >= 3, empezada, hojaEstado: t.firmada ? "Firmada" : ESTADO_TOMA[t.estado] || (empezada ? "A medias" : "Sin empezar"), cuenta: [t.obligatorios ? `${t.rellenos} de ${t.obligatorios}${t.hoja ? " bocas" : ""}` : "", queda].filter(Boolean).join(" \xB7 ") };
+          });
+          if (!salida.some((f) => f.clave === "balanceo")) {
+            const i = mejor(HOJAS_DE_FILA.balanceo);
+            if (i >= 0 && pesoToma(tomas[i]) > 0) {
+              const extra = conHojasDeLaApp([{ clave: "balanceo", titulo: TITULO_FILA.balanceo, estado: "noAplica", archivos: [], nota: "", motivo: "", porConfirmar: false }], tomas)[0];
+              salida.push(extra);
+            }
+          }
+          return salida;
+        }
+        function filasSinHojas(d) {
           const c = d.celdas && Array.isArray(d.celdas.celdas) ? d.celdas.celdas : null;
           if (c) return c.map((x) => ({ clave: x.clave, titulo: TITULO_FILA[x.clave] || x.titulo, estado: x.estado, archivos: x.archivos || [], nota: x.nota || "", motivo: x.motivo || "", porConfirmar: Boolean(x.porConfirmar) }));
           const docs = documentosDe(d.pesada);
@@ -217732,11 +218220,13 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
             const todos = f.archivos.map((x) => x.nombre).join(" \xB7 ");
             const texto = f.porConfirmar ? "Por confirmar" : TEXTO_VER[a.tipo] || "Ver PDF";
             celda = `<button type="button" class="botonMini pesVerPdf" data-pes-ver-doc="${i}" title="${esc(`${f.titulo}: ${todos}`)}" aria-label="${esc(`Ver ${f.titulo}: ${a.nombre}`)}">${esc(texto)}</button>`;
+          } else if (f.estado === "hoja") {
+            celda = `<button type="button" class="botonMini pesVerPdf" data-pes-toma="${esc(f.toma)}" title="${esc(`${f.titulo}: hoja rellenada en la app \xB7 ${f.hojaEstado}`)}" aria-label="${esc(`Ver la hoja de ${f.titulo}`)}">${f.empezada ? "Ver hoja" : "Abrir"}</button>`;
           } else if (f.estado === "falta") celda = `<span class="pesDocFalta" title="${esc(f.motivo || "a\xFAn no est\xE1")}">falta</span>`;
           else if (f.estado === "pendSP") celda = `<span class="pesDocPend" title="${esc(`Est\xE1 en SharePoint: ${f.motivo || "falta descargarlo"}`)}">pend. desc.</span>`;
           else if (f.estado === "pendFab") celda = `<span class="pesDocPend" title="${esc(`Pendiente del fabricante${f.motivo ? `: ${f.motivo}` : ""}`)}">pend. fab.</span>`;
           else celda = '<span class="pesVacio" title="No aplica a este tipo de equipo">\u2014</span>';
-          const pie = f.estado === "doc" && f.archivos.length ? `<small class="pesDocArchivo" title="${esc(f.archivos.map((x) => x.nombre).join(" \xB7 "))}">${esc(nombreCorto(f.archivos[0]))}${f.archivos.length > 1 ? ` (+${f.archivos.length - 1})` : ""}${f.nota ? ` \xB7 ${esc(f.nota)}` : ""}</small>` : "";
+          const pie = f.estado === "hoja" ? `<small class="pesDocArchivo">Hoja de la app \xB7 <span class="pesTono ${f.hecha ? "bien" : f.empezada ? "info" : ""}">${esc(f.hojaEstado)}</span>${f.cuenta ? ` \xB7 ${esc(f.cuenta)}` : ""}</small>` : f.estado === "doc" && f.archivos.length ? `<small class="pesDocArchivo" title="${esc(f.archivos.map((x) => x.nombre).join(" \xB7 "))}">${esc(nombreCorto(f.archivos[0]))}${f.archivos.length > 1 ? ` (+${f.archivos.length - 1})` : ""}${f.nota ? ` \xB7 ${esc(f.nota)}` : ""}</small>` : "";
           return `<tr data-pes-doc-fila="${esc(f.clave)}"><th scope="row">${esc(f.titulo)}${pie}</th><td class="pesDocAccion">${celda}</td></tr>`;
         }
         function documentosHtml(d) {
@@ -217782,6 +218272,28 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
             }
           });
         }
+        function accionToma(t) {
+          if (!t) return null;
+          if (t.clase === "balanceo") return "balanceo";
+          if (t.plantilla && t.clave) return `hoja:${t.plantilla}|${t.clave}`;
+          if (t.pestana === "estanqueidad") return "estanqueidad";
+          if (t.clase === "checklist") return "checklist";
+          return "datos";
+        }
+        function leerAccionHoja(a) {
+          const m = /^hoja:([^|]+)\|(.+)$/.exec(String(a || ""));
+          return m ? { plantilla: m[1], clave: m[2] } : null;
+        }
+        const TIPO_HOJA = { checklist: "Checklist", fichaPM: "Ficha de PM (toma de datos)", balanceo: "Balanceo de caudales", estanqAgua: "Estanqueidad", estanqRefrigerante: "Estanqueidad", equilibrado: "Equilibrado hidr\xE1ulico" };
+        const nombreHoja = (x) => x && TIPO_HOJA[x.clase] || x && x.nombre || "Hoja";
+        function detalleHoja(x) {
+          if (!x || !TIPO_HOJA[x.clase] || !x.nombre) return "";
+          const n = String(x.nombre).trim();
+          const llano = (t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          const sobra = { checklist: /^check\s*-?\s*list( de instalacion)?\s*/, balanceo: /^(hoja de )?balanceo( de caudales)?\s*/, estanqAgua: /^(prueba de )?estanqueidad\s*/, estanqRefrigerante: /^(prueba de )?estanqueidad\s*/, fichaPM: /^(toma de datos|ficha de pm|puesta en marcha)( de puesta en marcha)?\s*/, equilibrado: /^equilibrado hidraulico\s*/ }[x.clase];
+          const resto = n.slice(llano(n).match(sobra) ? llano(n).match(sobra)[0].length : 0).trim();
+          return resto ? resto.charAt(0).toUpperCase() + resto.slice(1) : "";
+        }
         function tomasHtml(d) {
           const ts = d.pesada && Array.isArray(d.pesada.tomas) ? d.pesada.tomas : [];
           if (!ts.length) return "";
@@ -217790,7 +218302,9 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
             const res = RESULTADO_BALANCEO[x.resultado];
             const cuenta = x.obligatorios ? `${x.rellenos} de ${x.obligatorios}${x.hoja ? " bocas" : ""}` : "";
             const fotos = x.fotos ? `${cuenta ? " \xB7 " : ""}${x.fotos} foto${x.fotos === 1 ? "" : "s"}` : "";
-            return `<tr><th>${esc(x.nombre)}${x.unidadTag ? ` \xB7 ${esc(x.unidadTag)}` : ""}</th><td>${estado}${res ? ` \xB7 ${tono(res[0], res[1])}` : ""}${cuenta || fotos ? `<small>${esc(cuenta)}${esc(fotos)}</small>` : ""}</td><td class="pesAccion">${d.abrirTomas ? `<button type="button" class="botonMini" data-pes-toma="${i}">Abrir</button>` : ""}</td></tr>`;
+            const det = detalleHoja(x);
+            const queda = x.estado === "pendiente" && Array.isArray(x.faltan) && x.faltan.length ? `<small>Falta: ${esc(x.faltan.join(", "))}</small>` : "";
+            return `<tr><th>${esc(nombreHoja(x))}${x.unidadTag ? ` \xB7 ${esc(x.unidadTag)}` : ""}${det ? `<small>${esc(det)}</small>` : ""}</th><td>${estado}${res ? ` \xB7 ${tono(res[0], res[1])}` : ""}${cuenta || fotos ? `<small>${esc(cuenta)}${esc(fotos)}</small>` : ""}${queda}</td><td class="pesAccion">${d.abrirTomas ? `<button type="button" class="botonMini" data-pes-toma="${i}">Abrir</button>` : ""}</td></tr>`;
           }).join("");
           return bloque("Toma de datos", `<table class="pesTablaFicha conAccion"><tbody>${filas}</tbody></table>`, "data-pes-tomas");
         }
@@ -217841,7 +218355,7 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
       ${d.red ? plegado("Su red", d.red, "", "data-pes-sured") : ""}
       ${(d.notas || []).filter(Boolean).map((t) => `<p class="pesNota">${esc(t)}</p>`).join("")}`;
         }
-        return { html, incidenciasHtml, documentosHtml, documentosDe, filasDocumentos, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA };
+        return { html, incidenciasHtml, documentosHtml, tomasHtml, accionToma, leerAccionHoja, documentosDe, filasDocumentos, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA, TIPO_HOJA, nombreHoja, detalleHoja };
       });
     }
   });
@@ -230944,7 +231458,7 @@ En el claim, esta l\xEDnea suma su venta: ${eur(venta)}. El plazo (coste indirec
             const s = Math.round(Math.abs(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
             return `${n < 0 && Math.round(Math.abs(n)) ? "\u2212" : ""}${s} \u20AC`;
           }
-          function fila({ obra = {}, commissioning = null, certificacion = null, costsPlan = null, industriales = null, mantenimiento = null, ncr = null, hoy = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10) } = {}) {
+          function fila({ obra = {}, commissioning = null, certificacion = null, costsPlan = null, industriales = null, mantenimiento = null, ncr = null, hoy = ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date()) } = {}) {
             const mirar = [];
             const ojo = (gravedad, area, texto) => mirar.push({ gravedad, area, texto });
             let com = null;
@@ -231039,7 +231553,7 @@ En el claim, esta l\xEDnea suma su venta: ${eur(venta)}. El plazo (coste indirec
             const [a, m, d] = dia.split("-").map(Number);
             return new Date(Date.UTC(a, m - 1, d + n)).toISOString().slice(0, 10);
           }
-          function informe({ filas = [], hoy = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10) } = {}) {
+          function informe({ filas = [], hoy = ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date()) } = {}) {
             const ORDEN = { mal: 0, aviso: 1, info: 2, bien: 3 };
             const lista = [...filas].sort((a, b) => ORDEN[a.peor] - ORDEN[b.peor] || b.mirar.length - a.mirar.length || String(a.codigo).localeCompare(String(b.codigo), "es", { numeric: true }));
             const suma = (f) => {
@@ -240303,6 +240817,212 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
     }
   });
 
+  // shared/sync/rescate.js
+  var require_rescate = __commonJS({
+    "shared/sync/rescate.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PQ2 = require_paquete();
+      var CUBO = "cx-pruebas";
+      var TROZO = 30 * 1024 * 1024;
+      var TIPOS = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", heic: "image/heic", heif: "image/heif", gif: "image/gif", pdf: "application/pdf" };
+      var limpio = (s) => String(s || "").replace(/[^A-Za-z0-9._-]/g, "_");
+      var nombreDe = (r) => String(r || "").split(/[\\/]/).pop();
+      var extDe = (r) => {
+        const m = /\.([A-Za-z0-9]+)$/.exec(String(r || ""));
+        return m ? m[1].toLowerCase() : "";
+      };
+      var SECRETO = /token|clave|sesion|jwt|secret|password|huella/i;
+      var existe = (db, t) => Boolean(db.prepare("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = ?").get(t));
+      var columnas = (db, t) => db.prepare(`PRAGMA table_info("${t}")`).all().map((c) => c.name);
+      var fila = (db, t, id) => /^[A-Za-z]+$/.test(t) && existe(db, t) ? db.prepare(`SELECT * FROM "${t}" WHERE id = ?`).get(id) || null : null;
+      var todas = (db, t) => existe(db, t) ? db.prepare(`SELECT * FROM "${t}"`).all() : [];
+      function rutasDe(valor, io, out = /* @__PURE__ */ new Set(), hondo = 0) {
+        if (valor == null || hondo > 6) return out;
+        if (typeof valor === "string") {
+          const s = valor.trim();
+          if ((s[0] === "{" || s[0] === "[") && s.length < 5e6) {
+            try {
+              return rutasDe(JSON.parse(s), io, out, hondo + 1);
+            } catch {
+            }
+          }
+          if (s.length < 500 && !s.startsWith("data:") && TIPOS[extDe(s)] && io.existe(s)) out.add(s);
+          return out;
+        }
+        if (Array.isArray(valor)) {
+          for (const v of valor) rutasDe(v, io, out, hondo + 1);
+          return out;
+        }
+        if (typeof valor === "object") for (const v of Object.values(valor)) rutasDe(v, io, out, hondo + 1);
+        return out;
+      }
+      function armarRescate({ db, motor = null, personaId = null, desde = "", obras = null, extra = {}, ahora = () => /* @__PURE__ */ new Date() }) {
+        const visto = /* @__PURE__ */ new Map();
+        if (existe(db, "_syncVisto")) for (const v of db.prepare("SELECT tabla, id, modificadoEn FROM _syncVisto").all()) visto.set(`${v.tabla}\0${v.id}`, v.modificadoEn);
+        const rechazos = todas(db, "_syncRechazos");
+        const descartes = todas(db, "_syncDescartes");
+        const conflictos = existe(db, "_syncConflictos") ? db.prepare("SELECT * FROM _syncConflictos ORDER BY n").all() : [];
+        const rechazada = new Map(rechazos.map((r) => [`${r.tabla}\0${r.id}`, r]));
+        const descartada = new Map(descartes.map((r) => [`${r.tabla}\0${r.id}`, r]));
+        const conConflicto = new Set(conflictos.map((c) => `${c.tabla}\0${c.id}`));
+        const mias = obras ? new Set(obras) : null;
+        let cola = null;
+        try {
+          if (motor) {
+            const p = motor.pendientes();
+            cola = new Set(p.suben.map((e) => `${e.tabla}\0${e.id}`));
+          }
+        } catch {
+          cola = null;
+        }
+        const porTabla = {};
+        const cuenta = {};
+        const meter = (t, f, porque, k) => {
+          (porTabla[t] = porTabla[t] || []).push({ porque, visto: visto.get(k) || null, rechazo: rechazada.get(k) || null, descarte: descartada.get(k) || null, fila: f });
+          cuenta[porque] = (cuenta[porque] || 0) + 1;
+        };
+        for (const t of PQ2.TABLAS_VUELTA) {
+          if (!existe(db, t)) continue;
+          const cols = columnas(db, t);
+          if (!cols.includes("modificadoEn")) continue;
+          const personal = PQ2.esPersonal(t);
+          for (const f of todas(db, t)) {
+            const k = `${t}\0${f.id}`;
+            const mod = String(f.modificadoEn || "");
+            const v = visto.get(k);
+            const subida = v !== void 0 && mod <= v && !rechazada.has(k) && !descartada.has(k);
+            if (subida && !conConflicto.has(k)) continue;
+            let porque;
+            if (rechazada.has(k)) porque = "rechazada";
+            else if (descartada.has(k)) porque = "descartada";
+            else if (subida) porque = "conflicto";
+            else if (personal && personaId && f.personaId !== personaId) porque = "de-otra-persona";
+            else if (!personal && !f.obraId) porque = "sin-obra";
+            else if (!personal && mias && !mias.has(f.obraId)) porque = "fuera-de-mis-obras";
+            else if (v === void 0 && desde && mod <= desde) porque = "anterior-al-paquete";
+            else if (cola && cola.has(k)) porque = "en-cola";
+            else porque = "sin-subir";
+            meter(t, f, porque, k);
+          }
+        }
+        for (const r of [...rechazos, ...descartes]) {
+          if (PQ2.TABLAS_VUELTA.includes(r.tabla)) continue;
+          meter(r.tabla, fila(db, r.tabla, r.id), rechazada.has(`${r.tabla}\0${r.id}`) ? "rechazada" : "descartada", `${r.tabla}\0${r.id}`);
+        }
+        const estadoSync = {};
+        if (existe(db, "_syncEstado")) {
+          for (const e of db.prepare("SELECT clave, valor FROM _syncEstado").all()) if (!SECRETO.test(e.clave)) estadoSync[e.clave] = e.valor;
+        }
+        const resumen = {
+          tipo: "rescate-cx",
+          version: 1,
+          cuando: ahora().toISOString(),
+          personaId,
+          desde,
+          obras,
+          cuenta,
+          motor: motor ? motor.estado() : null,
+          estadoSync,
+          rechazos,
+          descartes,
+          conflictos: conflictos.map((c) => ({ ...c, fila: fila(db, c.tabla, c.id) })),
+          ...extra
+        };
+        return { resumen, porTabla };
+      }
+      function fotosDelRescate({ db, io, rescate }) {
+        const rutas = /* @__PURE__ */ new Set();
+        for (const lista of Object.values(rescate.porTabla)) for (const x of lista) rutasDe(x.fila, io, rutas);
+        for (const c of rescate.resumen.conflictos) {
+          rutasDe(c.valorQuePierde, io, rutas);
+          rutasDe(c.valorQueGana, io, rutas);
+        }
+        const subidas = /* @__PURE__ */ new Set();
+        if (existe(db, "_syncArchivos")) for (const r of db.prepare("SELECT clave FROM _syncArchivos").all()) subidas.add(nombreDe(r.clave));
+        for (const r of io.lista ? io.lista() : []) {
+          if (r.startsWith(`${io.carpeta}/nube/`) || !TIPOS[extDe(r)]) continue;
+          if (!subidas.has(limpio(nombreDe(r)))) rutas.add(r);
+        }
+        return [...rutas];
+      }
+      function trozos(lista, max = TROZO) {
+        const out = [];
+        let actual = [];
+        let tam = 2;
+        for (const x of lista) {
+          const n = JSON.stringify(x).length + 1;
+          if (actual.length && tam + n > max) {
+            out.push(actual);
+            actual = [];
+            tam = 2;
+          }
+          actual.push(x);
+          tam += n;
+        }
+        if (actual.length || !out.length) out.push(actual);
+        return out;
+      }
+      var bytes = (texto) => new TextEncoder().encode(texto);
+      async function enviarRescate({ db, nube, io, espacio, obra, dispositivo, rescate, alAvance = () => {
+      }, ahora = () => /* @__PURE__ */ new Date() }) {
+        if (!nube || !nube.subirArchivo) throw new Error("Sin nube.");
+        if (!obra) throw new Error("Este tel\xE9fono no tiene ninguna obra asignada en la nube.");
+        const raiz = `${limpio(espacio)}/${limpio(obra)}/rescate-${limpio(dispositivo)}`;
+        const sello = ahora().toISOString().replace(/[:.]/g, "-");
+        const carpeta = `${raiz}/${sello}`;
+        db.exec("CREATE TABLE IF NOT EXISTS _syncRescateFotos (ruta TEXT PRIMARY KEY, clave TEXT NOT NULL)");
+        const ya = new Map(db.prepare("SELECT ruta, clave FROM _syncRescateFotos").all().map((r) => [r.ruta, r.clave]));
+        const apuntar = db.prepare("INSERT INTO _syncRescateFotos (ruta, clave) VALUES (?, ?) ON CONFLICT(ruta) DO UPDATE SET clave = excluded.clave");
+        const fotos = fotosDelRescate({ db, io, rescate });
+        const ficheros = [];
+        for (const [t, lista] of Object.entries(rescate.porTabla)) {
+          const partes = trozos(lista);
+          partes.forEach((p, i) => ficheros.push({ ruta: `${carpeta}/filas-${limpio(t)}${partes.length > 1 ? `-${i + 1}` : ""}.json`, cuerpo: { tabla: t, parte: i + 1, de: partes.length, filas: p } }));
+        }
+        const total = fotos.length + ficheros.length + 1;
+        let hechos = 0;
+        const avance = () => {
+          hechos++;
+          try {
+            alAvance(hechos, total);
+          } catch {
+          }
+        };
+        const mapaFotos = {};
+        const fallidas = [];
+        const usados = /* @__PURE__ */ new Set();
+        for (const r of fotos) {
+          let nombre = limpio(nombreDe(r));
+          if (usados.has(nombre)) nombre = `${limpio(r)}`;
+          usados.add(nombre);
+          const clave = ya.get(r) || `${raiz}/fotos/${nombre}`;
+          try {
+            if (!ya.has(r)) {
+              await nube.subirArchivo(CUBO, clave, io.leer(r), TIPOS[extDe(r)] || "application/octet-stream");
+              apuntar.run(r, clave);
+            }
+            mapaFotos[r] = clave;
+          } catch (e) {
+            if (e.sinRed) throw e;
+            fallidas.push({ ruta: r, error: e.message });
+          }
+          avance();
+        }
+        for (const f of ficheros) {
+          await nube.subirArchivo(CUBO, f.ruta, bytes(JSON.stringify(f.cuerpo)), "application/json");
+          avance();
+        }
+        const resumen = { ...rescate.resumen, dispositivo, espacio, obra, carpeta, ficheros: ficheros.map((f) => f.ruta), fotos: mapaFotos, fotosFallidas: fallidas };
+        await nube.subirArchivo(CUBO, `${carpeta}/resumen.json`, bytes(JSON.stringify(resumen)), "application/json");
+        avance();
+        return { carpeta, ficheros: ficheros.length + 1, fotos: Object.keys(mapaFotos).length, fallidas: fallidas.length, filas: Object.values(rescate.porTabla).reduce((s, l) => s + l.length, 0) };
+      }
+      module.exports = { armarRescate, fotosDelRescate, enviarRescate, rutasDe, trozos, CUBO };
+    }
+  });
+
   // shared/arranqueLogo.js
   var require_arranqueLogo = __commonJS({
     "shared/arranqueLogo.js"(exports, module) {
@@ -240928,6 +241648,75 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
           syncCx.motor().marcarDescartesVistos();
           almacen.guardarPronto(base);
         }
+      },
+      /* Lo que la nube rechazó (con su porqué) y lo que no ha subido (13-nov). */
+      rechazos: () => syncCx.motor() ? syncCx.motor().rechazos() : [],
+      sinSubir: () => syncCx.motor() ? syncCx.motor().sinSubir() : null,
+      /* VOLVER A SUBIR (13-nov): lo rechazado y lo descartado, a la cola, y una vuelta ya. */
+      volverASubir: async () => {
+        await conectar();
+        const m = syncCx.motor();
+        if (!m) throw new Error("Sin sesi\xF3n en la nube: entra con tu correo y contrase\xF1a.");
+        const r = m.reencolar();
+        almacen.guardarPronto(base);
+        const c = await syncCx.ciclo();
+        almacen.guardarPronto(base);
+        return { ...r, subidas: c && c.subida ? c.subida.subidas : 0, rechazadas: c && c.subida ? c.subida.rechazadas || 0 : 0, error: c && c.error ? c.error.message : null, rechazos: m.rechazos() };
+      },
+      /* ENVIAR A LA OFICINA LO QUE NO HA SUBIDO (13-nov, shared/sync/rescate.js): copia de
+         seguridad al cubo cx-pruebas. No escribe en las tablas de la nube. */
+      rescate: async (alAvance) => {
+        await conectar();
+        const yo2 = syncCx.yo();
+        if (!yo2) throw new Error("Sin sesi\xF3n en la nube: entra con tu correo y contrase\xF1a.");
+        const R = require_rescate();
+        const m = syncCx.motor();
+        const o = oficina();
+        const obras = m && m.obras() || o.obras || null;
+        const io = {
+          carpeta: CARPETA,
+          existe: (r) => archivos.has(r),
+          leer: (r) => archivos.get(r),
+          lista: () => [...archivos.keys()].filter((r) => r.startsWith(`${CARPETA}/`))
+        };
+        const rescate = R.armarRescate({
+          db: base,
+          motor: m,
+          personaId: yo2.personaId,
+          desde: o.recibido || "",
+          obras,
+          extra: {
+            oficina: { recibido: o.recibido || null, enviado: o.enviado || null, obras: o.obras || null, personaId: o.personaId || null },
+            ota: (() => {
+              try {
+                return ota.info();
+              } catch {
+                return null;
+              }
+            })(),
+            diario: m ? m.diario() : [],
+            estadoPantalla: { ...syncCx.estado(), entrado: true },
+            tamanoBase: (() => {
+              try {
+                return globalThis.cxObra.tamanoBase();
+              } catch {
+                return null;
+              }
+            })()
+          }
+        });
+        const res = await R.enviarRescate({
+          db: base,
+          nube: syncCx.nube,
+          io,
+          espacio: yo2.espacio,
+          obra: obras && obras[0] || null,
+          dispositivo: leerLS("cxobra.aparato") || "telefono",
+          rescate,
+          alAvance
+        });
+        almacen.guardarPronto(base);
+        return res;
       }
     };
     conectar();
