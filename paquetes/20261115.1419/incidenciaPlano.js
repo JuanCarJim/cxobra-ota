@@ -16,6 +16,20 @@
  * Contraste (WCAG): el naranja #e0671f da 3,4:1 sobre blanco y 3,0:1 sobre el arena del plano: vale para contornos y
  * figuras (≥ 3:1), no para letra. La letra y las cifras van en el tono oscuro #a8440b (6,0:1 sobre blanco, 5,4:1 sobre el arena).
  *
+ * INCIDENCIA RESUELTA, FALTAN LOS DATOS (15-nov-2026, JC: «si la incidencia de ese equipo se ha resuelto, tiene que
+ * verse en azul, en espera de que se tomen los datos, pero con el signo de exclamación […] ahora en azul»):
+ *   · RESUELTA = CERRADA por el jefe de obra (estado 'cerrada' de shared/incidencias/motor.js, `activa: false`). La
+ *     «terminada» por el encargado sigue sin cerrar: todavía puede volver al encargado, así que sigue en naranja.
+ *   · DATOS TOMADOS = una toma de datos de Cx COMPLETA o FIRMADA de ESA unidad con el día de la toma igual o posterior
+ *     al del cierre (el día de la toma es el de shared/commissioning/fechaPM.js, sin las fechas solo de garantía; la
+ *     fechaPuestaMarcha no se mira), o el equipo validado en Commissioning tras esa incidencia («Validado tras
+ *     incidencia»: equiposObra.revalidadoTras = su código). El día del cierre: fechaCierre (si falta, fechaTerminada).
+ *   · EL COLOR: cerrada y sin datos tomados → AZUL (#1f63c6, el azul del sistema de colorBloque) con el «!» en azul;
+ *     cerrada y con los datos tomados → el color de su estado, sin «!» (verde si el Cx está hecho).
+ *   · Manda la abierta: con una sin cerrar y otra resuelta, naranja. Pasa al conjunto igual que la abierta, pero cada
+ *     unidad mira su propia toma de datos.
+ *   · Contraste: #1f63c6 da 5,8:1 sobre blanco (vale para figura y para letra).
+ *
  * Lógica pura: vale en la pantalla (window.INCIDENCIA_PLANO) y en Node.
  */
 (function () {
@@ -30,6 +44,10 @@ const NOMBRE = 'Con incidencia';
 const ABIERTAS = ['abierta', 'enCurso', 'terminada'];
 const NOMBRE_ESTADO = { abierta: 'Abierta', enCurso: 'En curso', terminada: 'Por revisar' };
 const ORDEN_PRIORIDAD = { alta: 0, media: 1, baja: 2 };
+/* Resuelta y sin los datos tomados (15-nov). */
+const COLOR_RESUELTA = '#1f63c6';
+const CLAVE_RESUELTA = 'incResuelta';
+const NOMBRE_RESUELTA = 'Resuelta, faltan datos';
 
 /* La partición de conjuntos de siempre (shared/commissioning/conjuntos.js), en Node y en la pantalla. */
 const conjuntosCx = () => {
@@ -38,6 +56,10 @@ const conjuntosCx = () => {
 };
 const leerLista = (v) => { if (Array.isArray(v)) return v; try { const a = JSON.parse(v || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } };
 const estaAbierta = (i) => Boolean(i && !i.borrado && ABIERTAS.includes(i.estado));
+const estaResuelta = (i) => Boolean(i && !i.borrado && i.estado === 'cerrada');
+const dia = (v) => { const t = String(v || '').trim().slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : null; };
+/** El día en que se resolvió: el del cierre; si no consta, el de terminada. */
+const diaCierre = (i) => (i ? dia(i.fechaCierre) || dia(i.fechaTerminada) : null);
 
 /** Lo que el plano enseña de una incidencia: nada de dinero ni de horas. */
 const breve = (i) => ({ id: i.id, codigo: i.codigo || '', titulo: i.titulo || '', estado: i.estado, estadoNombre: NOMBRE_ESTADO[i.estado] || i.estado, prioridad: i.prioridad || null });
@@ -58,6 +80,10 @@ const breve = (i) => ({ id: i.id, codigo: i.codigo || '', titulo: i.titulo || ''
  * @returns {Map<string, object[]>} id del equipo → sus incidencias abiertas (las de prioridad alta primero)
  */
 function porEquipo(incidencias = [], equipos = null) {
+  return repartir(incidencias, equipos, estaAbierta, breve);
+}
+
+function repartir(incidencias, equipos, vale, resumen) {
   const mapa = new Map();
   const poner = (id, x) => {
     if (!mapa.has(id)) mapa.set(id, []);
@@ -65,9 +91,9 @@ function porEquipo(incidencias = [], equipos = null) {
   };
   const propias = [];
   for (const i of incidencias || []) {
-    if (!estaAbierta(i)) continue;
+    if (!vale(i)) continue;
     for (const id of new Set([i.equipoId, ...leerLista(i.equiposIds)].filter(Boolean))) {
-      poner(id, breve(i));
+      poner(id, resumen(i));
       propias.push([id, i]);
     }
   }
@@ -83,12 +109,34 @@ function porEquipo(incidencias = [], equipos = null) {
       if (!unidades) continue;
       const origen = unidades.find((u) => u.id === id);
       const enUnidad = { id, tag: origen.tag || '', exterior: Boolean(CJ.esExterior(origen)) };
-      for (const u of unidades) if (u.id !== id) poner(u.id, { ...breve(i), enUnidad });
+      for (const u of unidades) if (u.id !== id) poner(u.id, { ...resumen(i), enUnidad });
     }
   }
   const peso = (x) => (x.prioridad in ORDEN_PRIORIDAD ? ORDEN_PRIORIDAD[x.prioridad] : 1);
   for (const l of mapa.values()) l.sort((a, b) => peso(a) - peso(b) || String(a.codigo).localeCompare(String(b.codigo), 'es', { numeric: true }));
   return mapa;
+}
+
+/**
+ * Las incidencias RESUELTAS (cerradas) de cada equipo que esperan la toma de datos (15-nov, JC). La misma partición de
+ * conjuntos que `porEquipo`; cada unidad, con su toma.
+ * @param {object[]} incidencias  filas del registro (con fechaCierre / fechaTerminada)
+ * @param {object[]} [equipos]    filas de los equipos, para el conjunto
+ * @param {object} [datos]
+ *   tomaDe(id)       → 'AAAA-MM-DD' de la ÚLTIMA toma de datos completa o firmada de esa unidad, o null
+ *   validadoTras(id) → el código de la incidencia tras la que se validó en Commissioning (revalidadoTras), o null
+ * @returns {Map<string, object[]>} id del equipo → sus resueltas a falta de datos (con `cierre`)
+ */
+function resueltasPorEquipo(incidencias = [], equipos = null, { tomaDe = () => null, validadoTras = () => null } = {}) {
+  const m = repartir(incidencias, equipos, estaResuelta, (i) => ({ ...breve(i), cierre: diaCierre(i) }));
+  const salida = new Map();
+  for (const [id, l] of m) {
+    const toma = dia(tomaDe(id));
+    const validada = validadoTras(id);
+    const faltan = l.filter((x) => !(toma && x.cierre && toma >= x.cierre) && !(validada && validada === x.codigo));
+    if (faltan.length) salida.set(id, faltan);
+  }
+  return salida;
 }
 
 /** ¿Lleva incidencia abierta? Vale el recuento (`inc`), la lista (`incidencias`) o el propio número. */
@@ -98,15 +146,26 @@ function tiene(x) {
   return Boolean(x && ((Number(x.inc) || 0) > 0 || (Array.isArray(x.incidencias) && x.incidencias.length > 0)));
 }
 
+/** ¿Lleva incidencia resuelta a falta de datos? Vale el recuento (`incRes`), la lista (`resueltas`) o el propio número. */
+function tieneResuelta(x) {
+  if (typeof x === 'number') return x > 0;
+  if (Array.isArray(x)) return x.length > 0;
+  return Boolean(x && ((Number(x.incRes) || 0) > 0 || (Array.isArray(x.resueltas) && x.resueltas.length > 0)));
+}
+/** Azul con «!»: resuelta, faltan datos, y ninguna abierta (la abierta manda). */
+const pendienteDatos = (x, resueltas = x) => !tiene(x) && tieneResuelta(resueltas);
+
 /**
- * El color que le toca al bloque: la incidencia abierta manda sobre el estado.
+ * El color que le toca al bloque: la incidencia abierta manda sobre el estado; después, la resuelta a falta de datos.
  * @param {string} estado  la clave del estado del bloque (la de cada plano: 'pedido', 'cxHecho'…)
- * @param {*} incidencias  lo que entiende `tiene`
- * @returns {{ clave: string, estado: string, incidencia: boolean, distintivo: string }}
+ * @param {*} incidencias  lo que entiende `tiene` (la marca entera vale para los dos)
+ * @param {*} [resueltas]  lo que entiende `tieneResuelta`; por defecto, lo mismo que `incidencias`
+ * @returns {{ clave: string, estado: string, incidencia: boolean, resuelta: boolean, distintivo: string }}
  */
-function colorDe(estado, incidencias) {
+function colorDe(estado, incidencias, resueltas = incidencias) {
   const inc = tiene(incidencias);
-  return { clave: inc ? CLAVE : estado, estado, incidencia: inc, distintivo: inc ? DISTINTIVO : '' };
+  const res = !inc && tieneResuelta(resueltas);
+  return { clave: inc ? CLAVE : res ? CLAVE_RESUELTA : estado, estado, incidencia: inc, resuelta: res, distintivo: inc || res ? DISTINTIVO : '' };
 }
 
 /** Cuántos equipos de la lista llevan incidencia abierta (la cifra de «Con incidencia N»). */
@@ -115,21 +174,33 @@ const recuento = (lista = []) => (lista || []).filter(tiene).length;
 /** El filtro de la leyenda: los que llevan incidencia. */
 const filtrar = (lista = []) => (lista || []).filter(tiene);
 
+/** Cuántos van en azul con «!» (resuelta, faltan datos) y el filtro de su casilla. */
+const recuentoResueltas = (lista = []) => (lista || []).filter((x) => pendienteDatos(x)).length;
+const filtrarResueltas = (lista = []) => (lista || []).filter((x) => pendienteDatos(x));
+
 /** «En la exterior UE-01» / «En la interior UI-01»: dónde está la incidencia que llega del conjunto. */
 const dondeEsta = (x) => (x && x.enUnidad ? `En la ${x.enUnidad.exterior ? 'exterior' : 'interior'} ${x.enUnidad.tag}`.trim() : '');
 
 /** «1 incidencia abierta» / «3 incidencias abiertas». */
 const frase = (n) => `${n} ${n === 1 ? 'incidencia abierta' : 'incidencias abiertas'}`;
 
+/** «1 incidencia resuelta, faltan datos» / «2 incidencias resueltas, faltan datos». */
+const fraseResuelta = (n) => `${n} ${n === 1 ? 'incidencia resuelta' : 'incidencias resueltas'}, faltan datos`;
+
 /**
  * Reglas CSS para un plano que pinta el símbolo con `currentColor` y su interior en `.cuerpo` (el del móvil Cx).
- * `sel`: el selector del bloque con incidencia.
+ * `sel`: el selector del bloque con incidencia; `selRes`: el de la resuelta a falta de datos (va después: la abierta
+ * manda porque el bloque no lleva las dos clases). Lleva también las variables, por si la hoja de tokens no las trae.
  */
-function css(sel = '.marca-boca.bq-incidencia') {
-  return `${sel}{color:${COLOR};--bq:${COLOR}}${sel} .cuerpo{fill:${COLOR};fill-opacity:${RELLENO}}.bq-punto-incidencia{background:${COLOR}}`;
+function css(sel = '.marca-boca.bq-incidencia', selRes = '.marca-boca.bq-incResuelta') {
+  return `:root{--incidencia:${COLOR};--incidenciaTexto:${COLOR_TEXTO};--incResuelta:${COLOR_RESUELTA}}`
+    + `${selRes}{color:${COLOR_RESUELTA};--bq:${COLOR_RESUELTA}}${selRes} .cuerpo{fill:${COLOR_RESUELTA};fill-opacity:${RELLENO}}.bq-punto-incResuelta{background:${COLOR_RESUELTA}}`
+    + `${sel}{color:${COLOR};--bq:${COLOR}}${sel} .cuerpo{fill:${COLOR};fill-opacity:${RELLENO}}.bq-punto-incidencia{background:${COLOR}}`;
 }
 
-const API = { COLOR, COLOR_TEXTO, RELLENO, DISTINTIVO, CLAVE, NOMBRE, ABIERTAS, NOMBRE_ESTADO, estaAbierta, porEquipo, tiene, colorDe, recuento, filtrar, frase, dondeEsta, css };
+const API = { COLOR, COLOR_TEXTO, RELLENO, DISTINTIVO, CLAVE, NOMBRE, ABIERTAS, NOMBRE_ESTADO, COLOR_RESUELTA, CLAVE_RESUELTA, NOMBRE_RESUELTA,
+  estaAbierta, estaResuelta, diaCierre, porEquipo, resueltasPorEquipo, tiene, tieneResuelta, pendienteDatos, colorDe, recuento, filtrar,
+  recuentoResueltas, filtrarResueltas, frase, fraseResuelta, dondeEsta, css };
 if (typeof module !== 'undefined' && module.exports) module.exports = API;
 if (typeof window !== 'undefined') window.INCIDENCIA_PLANO = API;
 })();
