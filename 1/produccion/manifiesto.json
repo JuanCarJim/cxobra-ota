@@ -1,9 +1,9 @@
 {
-  "version": "20261114.1648",
+  "version": "20261115.0024",
   "runtime": "1",
   "canal": "produccion",
-  "publicada": "2026-11-14T16:48:41.976Z",
-  "base": "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main/paquetes/20261114.1648/",
+  "publicada": "2026-11-15T00:24:13.562Z",
+  "base": "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main/paquetes/20261115.0024/",
   "archivos": {
     "acceso.js": "c4f217316bc1149ac1f6d1a9bbc1a617d6fb49dba625261163a4f4cd035eb9a1",
     "albaranes.js": "4a7891d1de95dd97796993d8a0bc91729e6f740094350021ef6722b2531e8d52",
@@ -25,7 +25,7 @@
     "carcasa.js": "1878653c7946fd390e0d55f9157288e82388e7ed56452b5044efff561cf43700",
     "colaGuardado.js": "4ded604e0f6da89269cf6d4bbb997b10e4d3b4e955d5d0b48209a79b5986b172",
     "colorBloque.js": "2afd610f2819f27fd7d42f51a8cd1d896c953c6f62f583092ca7e1cd863f3e51",
-    "commissioning.js": "7c2be1aa547a1f43d2b4d08a4458eceb3aae7d733df711db3a5a45e48c04ad22",
+    "commissioning.js": "d5fb9eb1c571d2472fc79cfc1d3dd3511218fdbfa7baa87f84fedde7b1c091b1",
     "estanqueidad.js": "8636f7ba818f352a1132a19ad4797044c2a5b086f95016fabcad11c92cc9762f",
     "fichaEquipo.js": "d25ba69b446931a72ca4414bec49760e4e1b5cea64d40f33aebd546c2dea184b",
     "firmaDoble.js": "117811d28c690d67505df5ddc111a42e829ea8d748025ce18d79140087dc7d65",
@@ -63,8 +63,8 @@
     "mantenimiento.css": "84b910c4c2c592a456306db938fbda27c4a246b5ecff4a45ad515450cfdaf5c0",
     "mantenimiento.js": "a27836df0b6346dcf1eef3c5c3aef61fc59aa363a30f4db4ef464820efa4969c",
     "misTareas.js": "d10cf1d7c437aa0a9116d714fdf10c5ba590b94a87c1016fd8d68579ae86bc1a",
-    "motor-cxobra.js": "448d4a30fe9caaba0a46715e6e7684dda5ba3f167c21a31b748ee6ff9731d847",
-    "movil.css": "b91316250d79b360edbeec22320af10af1d23ef0ab46563c37e152b061099cc7",
+    "motor-cxobra.js": "ef2b7b6e8cf1390c01077868ae9216ecdcfc143e4ce7fb9408be9a58d720105f",
+    "movil.css": "b51e957ed40c2f644d1637e29aebc70731f16de288e0a030c463c240fc018357",
     "movil.js": "960df3f1fa8b5c6dd5f46cfb8cf312c0df5fd56113a12551619fd6dccb71a68e",
     "ncr.js": "1eda946df529cc180a7a02998a20e39abfddd3e8a140d5be0b49668e6af7a86f",
     "ocr/eng.traineddata.gz": "45b4cb346724ac1774f1c36f42f182b887bcdb28ebe63e6fff90ac41f3fcff91",
@@ -75,14 +75,14 @@
     "ocr/tesseract.min.js": "000c27d9cd0def655f77b36c72a389c0ab13793aa31cb4d7aab56d09c0afbc7e",
     "ocr/worker.min.js": "576b7df7e3393e137e51849357c9adb53fe7ac1bb69bfa06cf3d61520f182c6d",
     "ocrPlaca.js": "409ecce2eb725d0c4471d62b027b2edbe5c8228ae1e7764968d0e97dfb72163e",
-    "ota-version.json": "2bb5fd46da1694eacefa181eb144eabe5e9c2f7fa85a2bf2ee587d915a7b7815",
+    "ota-version.json": "d98623eaeaeb786cc31c21fe545837545a1a3248999bd4c62ff2b8ce220bee62",
     "panelEquipoPlano.js": "0b8e402ae898bbb0ed0ee92cca7545cfc4151b80a70d74e55d1487e0fb275c6d",
     "panelNcn.js": "2cbb5f1e3f5b96f7182ccc9263405afe3dfdab5c34f16ef88a5114b85673313f",
     "partes.js": "c4c9de0946901bac34199711ab88abb4ffaa14cfa78824bf9f2f409d6bc8786d",
     "partesIncidencia.js": "b771c2ab716ad840c4c841b1cd5c118767380cbaf2d56761f92d7edd9ef361c1",
     "personal.js": "a0886981e4c8a9837731665d47b1f3c16c65590fe153eca8afc26efd833674a5",
     "placaSerie.js": "d6de3a4e1103e12b10511c5d06781c1e02e9ddbb83c5a2bc2dc2ed23b556f756",
-    "planoEquipos.js": "b3c9b699780c4afd28a56cf8c789e99ad6b631d278c7ba8a384a30118ce806f7",
+    "planoEquipos.js": "bac6862e05e14dbf119bc78012541ab7b210ac645588c76c1a5b9ebfa29781cf",
     "planoFaltas.js": "430468b2f2c75dcfdc520f88c23ed6b5dd2ffc20272eb9cb5925cc9e1d8a66c5",
     "planoMantenimiento.js": "453a1040f9b62de484e0bc6687609a8f8958f6a609a86808800e8936bf6b7a70",
     "pruebasEstanqueidad.js": "525012b4fdd6a9683821f3284cb419c5e56c9e75ce2ad0782b2d39d97581e7f7",
@@ -96,6 +96,6 @@
     "tokens.css": "6d1f29ad9bc5c307003c7d7fa433d59fb3700e5c46d6d6d980a1bb6df8ed752d",
     "verificarIdentidad.js": "9fe7f543aded715e745f06c11a81702e3c38d07ba3c3eb6af00aa4d694383454",
     "vidaire-tokens.css": "64fa0882b7bb33ced4d0673f85786a74775bf46e261d5c3fae4a7751c6e33921",
-    "vistaPlano.js": "12bd6ad1c648865b2049cde41aedc93e52164b3a51c266ecc8b9f730d8fa91ab"
+    "vistaPlano.js": "adab79c062e611e4dd215c2d58353c666c239dc8f5196fb0247b1a44833356db"
   }
 }

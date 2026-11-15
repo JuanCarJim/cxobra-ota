@@ -80,6 +80,13 @@
   --bien-fondo: #DFF0E8;
   --aviso: #14507F;
   --aviso-fondo: #E1ECF6;
+  /* El equipo con incidencia abierta en el plano (14-nov, JC): naranja intenso para contornos y figuras (3,4:1 sobre
+     blanco) y su tono oscuro para la letra (6:1). Los mismos valores que shared/commissioning/incidenciaPlano.js. */
+  --incidencia: #e0671f;
+  /* El equipo NO PEDIDO en el plano (14-nov, JC: «gris clarito»): marca/colores.js › ESTADO_PLANO. */
+  --noPedido: #A9B2B5;
+  --noPedidoRelleno: #E4E8E9;
+  --incidenciaTexto: #a8440b;
   --mal: #9C2B2B;
   --mal-fondo: #F7DEDE;
   --info: #0B4A63;

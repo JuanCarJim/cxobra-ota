@@ -166,8 +166,9 @@
        debajo UI, quiero el nombre del conjunto una vez»). Lo da el servidor
        (shared/commissioning/filaMovil.js) solo si los dos TAG dicen lo mismo:
        si no cuadran, las dos unidades como antes. */
-    if (e.clase === 'par' && e.nombre) {
-      return `<strong class="cifra" title="${esc(us.map((u) => u.tag).join(' / '))}">${esc(e.nombre)}</strong>`;
+    /* 15-nov (JC): la exterior y la interior, UNA fila con el nombre y «UI+UE» delante; también el VRF de una y una. */
+    if (e.nombre && us.length === 2) {
+      return `<strong class="cifra" title="${esc(us.map((u) => u.tag).join(' / '))}"><em class="fe-par">UI+UE</em>${esc(e.nombre)}</strong>`;
     }
     if (e.clase === 'par') {
       return `<div class="tags-par">${us.map((u) => `<strong class="cifra"><em>${esc(u.papel)}</em>${esc(u.tag)}</strong>`).join('')}</div>`;
@@ -500,7 +501,7 @@
     const nom = (SEGMENTOS.find(([id]) => id === segmento) || [])[1] || '';
     const vista = (id, et) => `<button type="button" data-cx="vista-${id}" aria-pressed="${(id === 'lista') === listaCompleta}" class="${(id === 'lista') === listaCompleta ? 'activa' : ''}">${et}</button>`;
     return `<p class="cx-franja">${fr.map((c) => `<button type="button" data-cx-seg="${c.id}" aria-pressed="${segmento === c.id}" class="${segmento === c.id ? 'activa' : ''}">${esc(c.et)} <b>${cifra(c.n)}</b></button>`).join('')}<button type="button" class="cx-filtro" data-cx-seg="${esc(segmento)}" hidden>${esc(nom)} ×</button></p>
-      <div class="cx-busca-fila">${window.BUSCADOR_MOVIL.campo({ placeholder: 'Buscar TAG, tipo, sala o planta', valor: filtro, atributo: 'data-cx-buscar' })}<div class="cx-vista" role="group" aria-label="Vista">${vista('plano', 'Plano')}${vista('lista', 'Lista')}</div></div>`;
+      <div class="cx-busca-fila">${window.BUSCADOR_MOVIL.campo({ placeholder: 'TAG, tipo o sala', valor: filtro, atributo: 'data-cx-buscar' })}<div class="cx-vista" role="group" aria-label="Vista">${vista('plano', 'Plano')}${vista('lista', 'Lista')}</div></div>`;
   }
   function pintarCx(op = {}) {
     $app.innerHTML = `${notaCopiaMovil()}${cabeceraCx()}
@@ -939,6 +940,15 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
 
   /* Las reparaciones de la obra se piden al abrir el equipo y se filtran aquí (las de sus unidades también). */
   let incEq = null; /* { equipoId, ok, filas, error } */
+  /* EL PLANO EN LA FICHA (15-nov-2026, JC: «tiene que aparecer un pantallazo del plano con el equipo abierto»): bajo el
+     nº de serie y el aviso de bloqueo, el recorte de su planta con el equipo resaltado (planoEquipos.js › miniatura).
+     Tocarlo abre el plano entero en esa planta con el equipo elegido. Sin posición en el plano, el hueco se va. */
+  const huecoMiniPlano = (f) => (window.CX_PLANO_EQUIPOS && window.CX_PLANO_EQUIPOS.miniatura && f && f.equipo ? '<div class="pe-mini-hueco" data-cx-mini-plano hidden></div>' : '');
+  function pintarMiniPlano(f) {
+    const h = $app.querySelector('[data-cx-mini-plano]');
+    if (!h) return;
+    window.CX_PLANO_EQUIPOS.miniatura(h, idsDelEquipo(f), f.equipo.planta || '').catch(() => { if (h.isConnected) h.remove(); });
+  }
   const idsDelEquipo = (f) => [f.equipo.id, ...(((f.conjunto && f.conjunto.unidades) || []).map((u) => u.id))];
   async function cargarIncidenciasEq(f) {
     const id = f.equipo.id;
@@ -1468,6 +1478,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       ${htmlMantenimientoEquipo(f)}
       ${htmlNumSerie(e, f.conjunto, puede)}
       ${htmlIncidenciaEquipo(f)}
+      ${huecoMiniPlano(f)}
       ${htmlFichas('equipo', 'Fichas del equipo')}
       ${htmlEntradaIncidencias()}
       ${htmlUnidadesInteriores(f, puede)}
@@ -1487,6 +1498,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     if (ab) { const d = ab.closest('details.grupo-lista'); if (d && !d.open) d.open = true; try { ab.scrollIntoView({ block: 'center' }); } catch { /* sin desplazamiento */ } }
     C.cargarImagenes($app);
     cargarFotosLocales($app);
+    pintarMiniPlano(f);
     if (firmando) prepararLienzo();
     if (pestanaEq === 'balanceo') { restaurarBocas(); restaurarPlano(); latirCrono(); }
     else { bocaAbierta = null; grandeId = null; document.body.classList.remove('sin-scroll'); }

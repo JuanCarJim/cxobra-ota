@@ -1,8 +1,8 @@
 'use strict';
 /*
  * EL COLOR DE CADA BLOQUE DE EQUIPO EN EL PLANO (13-nov-2026, JC; sustituye a los del 9-nov y a «En marcha / Falta doc. /
- * Sin empezar»). UNA sola regla para el móvil Cx, la web, el escritorio y el HTML de la DF. El color va en el relleno del
- * símbolo del catálogo; la leyenda y el recuento de arriba salen de aquí.
+ * Sin empezar»). UNA sola regla para el móvil Cx, la web, el escritorio y el HTML de la DF. El color va en el contorno del
+ * símbolo y, suave y semitransparente, en su relleno (14-nov); la leyenda y el recuento de arriba salen de aquí.
  *
  *   AZUL  certificado ............ su partida está certificada entera (vidaEquipo.certificacion → 'certificada';
  *                                  la certificación va por partida, no por unidad: lo dice estadoEjecucionPlano).
@@ -57,12 +57,18 @@ function recuentoBloques(lista = [], de = (x) => x.bloque) {
   return c;
 }
 
-/** Reglas CSS: el relleno del símbolo (`.cuerpo`) con el color del estado. `sel`: el selector del bloque. */
+/* 14-nov (JC: «lo que quería en verde o azul o rojo era el contorno y el interior del mismo color que el contorno pero más
+   suave y semitransparente»): el CONTORNO del símbolo (currentColor) en el color del estado y el interior (`.cuerpo`) del
+   mismo color al 28 %, que deja ver el plano debajo. El gris claro de «sin dato» no se leería como contorno: lo lleva más oscuro. */
+const RELLENO_BLOQUE = 0.28;
+const contornoDe = (x) => (x.id === 'sinDato' ? '#8a9099' : x.hex);
+/** Reglas CSS: contorno y relleno suave del símbolo con el color del estado. `sel`: el selector del bloque. */
 function cssBloques(sel = '.marca-boca') {
-  return ESTADOS_BLOQUE.map((x) => `${sel}.bq-${x.id} .cuerpo{fill:${x.hex};fill-opacity:1}${sel}.bq-${x.id}{--bq:${x.hex}}.bq-punto-${x.id}{background:${x.hex}}`).join('');
+  return ESTADOS_BLOQUE.map((x) => `${sel}.bq-${x.id}{color:${contornoDe(x)};--bq:${x.hex}}${sel}.bq-${x.id} .cuerpo{fill:${x.hex};fill-opacity:${RELLENO_BLOQUE}}.bq-punto-${x.id}{background:${x.hex}}`).join('');
 }
 
-const API = { ESTADOS_BLOQUE, ORDEN_BLOQUE, COLOR_BLOQUE, estadoBloque, recuentoBloques, constaInstalado, cssBloques };
+/* El naranja del equipo con incidencia abierta NO vive aquí: es shared/commissioning/incidenciaPlano.js (14-nov). */
+const API = { ESTADOS_BLOQUE, ORDEN_BLOQUE, COLOR_BLOQUE, RELLENO_BLOQUE, estadoBloque, recuentoBloques, constaInstalado, cssBloques };
 if (typeof module !== 'undefined' && module.exports) module.exports = API;
 if (typeof window !== 'undefined') window.COLOR_BLOQUE = API;
 })();

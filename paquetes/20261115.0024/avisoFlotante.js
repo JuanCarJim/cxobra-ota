@@ -44,15 +44,17 @@
   function html({ id, cuenta = 1, etiqueta, titulo = 'Avisos', contenido, nivel = 'aviso', abrirSolo = false }) {
     if (!contenido) return '';
     nivel = nivelDe(nivel, contenido);
-    const texto = etiqueta || `${cuenta} ${cuenta === 1 ? 'aviso' : 'avisos'}`;
+    /* En el idioma de la app (14-nov): la cuenta y los globos del botón. */
+    const tr = (k, v, es) => (window.IDIOMA ? window.IDIOMA.t(k, v) : es);
+    const texto = etiqueta || (cuenta === 1 ? tr('aviso.n1', { n: cuenta }, `${cuenta} aviso`) : tr('aviso.nN', { n: cuenta }, `${cuenta} avisos`));
     const auto = abrirSolo === 'siempre';
     if (auto) setTimeout(() => abrirAuto(), 0);
     return `<span class="avisoFlot ${nivel === 'mal' ? 'mal' : ''}" data-aviso-flot="${esc(id)}" ${auto ? 'data-auto-abrir' : ''}>
       <button type="button" class="avisoFlotBoton" aria-haspopup="dialog" aria-expanded="false"
-              title="Ver los avisos de esta pantalla">⚠ ${esc(texto)}</button>
+              title="${esc(tr('aviso.ver', null, 'Ver los avisos de esta pantalla'))}">⚠ ${esc(texto)}</button>
       <div class="avisoFlotPanel" role="dialog" aria-label="${esc(titulo)}" hidden>
         <div class="avisoFlotCabecera"><strong>${esc(titulo)}</strong>
-          <button type="button" class="avisoFlotCerrar" data-aviso-cerrar aria-label="Cerrar" title="Cerrar (Esc)">×</button></div>
+          <button type="button" class="avisoFlotCerrar" data-aviso-cerrar aria-label="${esc(tr('aviso.cerrar', null, 'Cerrar'))}" title="${esc(tr('aviso.cerrarEsc', null, 'Cerrar (Esc)'))}">×</button></div>
         <div class="avisoFlotCuerpo">${contenido}</div>
       </div></span>`;
   }
