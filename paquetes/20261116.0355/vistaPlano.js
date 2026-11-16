@@ -320,7 +320,12 @@ function huecoSalas(salas, aspecto = 1) {
 const LETRA_PX = { tag: 6, elegido: 7.4, sala: 6.2, codigo: 5.4 };
 const ALTO_SALA = 14;
 
-function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], huecos = null, ancho = null, sitios = false, grupos = false } = {}) {
+function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], huecos = null, ancho = null, sitios = false, grupos = false, fijos = [] } = {}) {
+  /* 15-nov (JC, capturas del plano: «Sala de bombas» encima del texto del propio PDF): `fijos` son los textos que ya trae
+     el dibujo de fondo (rótulos de sala del PDF: [{ t, x, y }], x centro e y línea base, en fracción). Son obstáculos: ningún
+     TAG ni nombre se pone encima. Y un nombre de sala que el PDF ya trae (igual sin mirar mayúsculas ni tildes) no se pinta otra vez. */
+  const normaTexto = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  const yaEnFondo = new Set((fijos || []).map((f) => normaTexto(f && f.t)).filter(Boolean));
   const ALTO_SALA_1 = ALTO_SALA; const ALTO_COD = 11;
   /* 13-nov (JC: «número de sala es muy importante también»): el rótulo de sala lleva el nombre y, debajo y más pequeño,
      su número (código del recinto, p. ej. «00.STE.036»). Van en una sola caja: si sale el nombre, sale el número. */
@@ -349,12 +354,19 @@ function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], hue
     }
     tags.push({ id, x: pri0.x, izq: pri0.izq, alt, y: cy - (el ? 8 : 6), w, h, pri: el ? 0 : (q.pri !== undefined ? q.pri : priDef) });
   };
+  for (const f of fijos || []) {
+    if (!f || !f.t || !Number.isFinite(f.x) || !Number.isFinite(f.y)) continue;
+    /* Sin el tamaño de la letra del PDF: unas 0,65 % del ancho del plano por letra (planos A1–A3 a escala), nunca menos que el rótulo de sala. */
+    const n = String(f.t).length; const w = Math.max(mide(f.t, 'sala') * 0.8, n * 0.0065 * lw) + 4; const h = Math.max(10, (w / Math.max(1, n)) * 1.7);
+    obstaculos.push({ x: f.x * lw - w / 2, y: f.y * lh - h, w, h: h + 3 });
+  }
   for (const e of equipos) mete(e, `eq:${e.id}`, 1.5);
   for (const m of materiales) mete(m, m.id, 3);
   const hueco = huecos || huecoSalas(salas, lh / (lw || 1));
   const cajasSala = [];
   salas.forEach((r, i) => {
     if (!r || !r.t || r.x === null || r.x === undefined) return;
+    if (yaEnFondo.has(normaTexto(r.t))) return;
     const cod = codigoSala(r);
     const w = Math.max(mide(r.t, 'sala'), cod ? mide(cod, 'codigo') : 0) + 4;
     const ALTO_SALA = cod ? ALTO_SALA_1 + ALTO_COD : ALTO_SALA_1;
