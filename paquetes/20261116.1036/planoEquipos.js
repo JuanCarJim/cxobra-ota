@@ -40,7 +40,7 @@
   const NOMBRE = CB ? Object.fromEntries(CB.ESTADOS_BLOQUE.map((x) => [x.id, x.nombre])) : { cxHecho: 'Commissioning hecho', instalado: 'Instalado, sin Cx', sinDato: 'Sin dato' };
   /* 14-nov (JC en el iPhone, chips cortados a 390 px): en la pestaña Cx, los nombres cortos. */
   const CORTO = { certificado: 'Certificado', cxHecho: 'Cx hecho', instalado: 'Instalado', noInstalado: 'No instalado', sinDato: 'Sin dato' };
-  /* Verde por estar en marcha, sin el Cx cerrado: se dice «En marcha», no «Commissioning hecho» (15-nov, NCN). */
+  /* Verde por estar en marcha, sin el Cx cerrado: se dice «En marcha», no «Commissioning hecho» (15-nov). */
   const enMarchaSinCerrar = (e) => Boolean(e && e.color === 'verde' && e.completo === false && bq(e) !== 'certificado');
   const nombreBloque = (e) => (enMarchaSinCerrar(e) ? 'En marcha, Cx sin cerrar' : NOMBRE[bq(e)]);
   const bq = (e) => (e && e.bloque) || (e && e.color === 'verde' ? 'cxHecho' : e && e.color === 'azul' ? 'instalado' : 'sinDato');
@@ -631,7 +631,7 @@
     const e = equipoElegido();
     if (!e) return '';
     const que = [e.tipo, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
-    /* 15-nov (JC, NCN): verde y «completo» no son lo mismo —el verde también es «en marcha»—; con algo pendiente se dice qué. */
+    /* 15-nov (JC): verde y «completo» no son lo mismo —el verde también es «en marcha»—; con algo pendiente se dice qué. */
     const leFalta = e.falta && e.falta.length ? `${e.falta.slice(0, 2).map(esc).join(', ')}${e.falta.length > 2 ? ` y ${e.falta.length - 2} más` : ''}` : '';
     const falta = e.color === 'verde' && e.completo !== false ? 'Commissioning completo.'
       : e.color === 'verde' ? `En marcha.${leFalta ? ` Para cerrar el Cx le falta: ${leFalta}.` : ''}`

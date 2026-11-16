@@ -48,7 +48,7 @@
   function filasDocumentos(d = {}) {
     return conHojasDeLaApp(filasSinHojas(d), d.pesada && Array.isArray(d.pesada.tomas) ? d.pesada.tomas : []);
   }
-  /* 15-nov (JC, NCN UI-N00-SALA IT T15.2: «Check list —» con el checklist hecho en la app, 36/36): una fila sin PDF cuya hoja
+  /* 15-nov (JC: «Check list —» con el checklist hecho en la app, 36/36): una fila sin PDF cuya hoja
      se rellenó en la app enlaza a ESA hoja («Ver hoja») con su estado, en vez de «—» o «falta». El PDF subido sigue mandando.
      Vale para check list, puesta en marcha (ficha de PM), estanqueidad y balanceo; `toma` es su índice en pesada.tomas. */
   const HOJAS_DE_FILA = { checklist: ['checklist'], fichaPM: ['fichaPM'], estanqueidad: ['estanqAgua', 'estanqRefrigerante'], balanceo: ['balanceo'] };

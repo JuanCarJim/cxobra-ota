@@ -656,9 +656,17 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   async function abrir(id, { quieto = false } = {}) {
     /* quieto: se repinta el mismo equipo (llegó algo de la oficina) sin moverse de donde estaba. */
     const y = window.scrollY;
-    if (!quieto) $app.innerHTML = '<p class="cargando">Cargando el equipo…</p>';
+    /* Al pulsar, ya mismo el TAG y su modelo de la lista (16-nov-2026, JC: «Ficha completa
+       tarda muchísimo»); el resto, en cuanto llega. */
+    if (!quieto) {
+      const fl = lista && (lista.equipos || []).find((x) => x.id === id);
+      const sub = fl ? [fl.planta, [fl.marca, fl.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ') : '';
+      $app.innerHTML = `${fl ? tagFijo(fl.tag, sub, 'cargando-equipo') : ''}<p class="cargando">Cargando el equipo…</p>`;
+    }
     try {
-      const r = await C.pedir(`api/equipo?id=${encodeURIComponent(id)}`);
+      /* Ligero (16-nov-2026, JC: «Ficha completa tarda muchísimo»): la ficha sale ya
+         y el plano del equipo llega detrás (cargarPlanoEq). */
+      const r = conservarPlano(await C.pedir(`api/equipo?id=${encodeURIComponent(id)}&ligero=1`));
       if (!r.ok) throw new Error(r.error);
       /*
        * EL REPINTADO EN SILENCIO NO CIERRA UNA HOJA (JC, 28-oct). Tras guardar la
@@ -681,10 +689,41 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       for (const [k, t] of tomas) if (!t.cambiada) tomas.delete(k);
       pintarFicha();
       window.scrollTo(0, quieto ? y : 0);
-      cargarFichas(id);
+      /* Primero las fichas (para tomar datos); el plano, detrás: el servidor del móvil atiende de una en una. */
+      cargarFichas(id).finally(() => { if (r.planoPendiente) cargarPlanoEq(id); });
       if (!quieto) incEq = null;
       cargarIncidenciasEq(r);
     } catch (e) { C.aviso(e.message); cargarLista(); }
+  }
+
+  /*
+   * EL PLANO DEL EQUIPO, DETRÁS DE LA FICHA (16-nov-2026, JC: «Ficha completa tarda
+   * muchísimo»). Era lo más lento de api/equipo: llega aparte por
+   * api/equipo/localizacion. Al repintar el mismo equipo se queda el que ya había.
+   */
+  const CAMPOS_PLANO = ['localizacion', 'planoEquipo', 'localizacionPorConfirmar'];
+  function conservarPlano(r) {
+    if (r && r.ok && r.planoPendiente && ficha && r.equipo && ficha.equipo.id === r.equipo.id && !ficha.planoPendiente) {
+      for (const k of CAMPOS_PLANO) r[k] = ficha[k];
+      delete r.planoPendiente;
+    }
+    return r;
+  }
+  async function cargarPlanoEq(id) {
+    let r = null;
+    try { r = await C.pedir(`api/equipo/localizacion?id=${encodeURIComponent(id)}`); } catch { r = null; }
+    if (!ficha || ficha.equipo.id !== id || !ficha.planoPendiente) return;
+    if (r && r.ok) for (const k of CAMPOS_PLANO) ficha[k] = r[k];
+    delete ficha.planoPendiente;
+    if (!activa()) return;
+    if (!hoja && !abriendoHoja && !firmando && !escribiendoEnApp()) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); return; }
+    /* Con una hoja abierta o escribiendo: solo el hueco del plano, sin tocar lo demás. */
+    for (const el of $app.querySelectorAll('.plano-equipo-pendiente')) {
+      const t = document.createElement('div');
+      t.innerHTML = htmlPlanoEquipo(ficha, el.dataset.plegado === '1');
+      el.replaceWith(...t.childNodes);
+    }
+    C.cargarImagenes($app);
   }
 
   /* El equipo otra vez del servidor, sin tocar lo demás (fichas, tomas, pestaña). */
@@ -1366,6 +1405,10 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
    * en el modelo se dice («Sin plano del modelo») y se enseña el plano antiguo si lo hay.
    */
   function htmlPlanoEquipo(f, plegado) {
+    if (f && f.planoPendiente) {
+      return plegado ? `<details class="ensayo-plegado plano-equipo-plegado plano-equipo-pendiente" data-plegado="1"><summary><span class="t">Plano del equipo</span><span class="tenue">Cargando…</span></summary></details>`
+        : `<div class="plano-equipo-pendiente"><h2>Plano del equipo</h2><p class="cargando">Cargando el plano…</p></div>`;
+    }
     const p = f && f.planoEquipo;
     if (!p) return '';
     const donde = p.ok ? [p.edificio, p.planta, p.sala].filter(Boolean).join(' · ') : '';
@@ -1458,7 +1501,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
             ${med.velocidad ? `<p class="nota">Una medida por boca, con el equipo a velocidad ${esc(med.velocidad)}.</p>` : ''}
       ${f.planos.length ? planosVistos.map((p) => `
         <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} boca${p.bocas.length === 1 ? '' : 's'}${circ ? ` de ${circ === 'retorno' ? esc(nombreRet.toLowerCase()) : 'impulsión'}` : ''}</span></h2>
-        ${htmlPlano(p, circ ? delCircuito : null)}
+        ${htmlPlano(p, circ ? delCircuito : null, f.tolerancias)}
         <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puedeToma, f.tolerancias)).join('')}</ul>`).join('') : sinPlano()}
       ${window.BOCA_MANUAL_MOVIL ? window.BOCA_MANUAL_MOVIL.boton(f, circ, nombreRet, puedeToma) : ''}
       <details class="plegado-bal"><summary><span class="t">Cuadrilla y cronómetro</span><span class="tenue">quién mide y cuánto tarda</span></summary><div class="crono-bal">${htmlCrono()}</div></details>
@@ -1523,6 +1566,28 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   /* «Balanceo de caudales», «Caudales de extracción»… según lo que se mide. */
   const tituloMedicion = (f) => (f.medicion && f.medicion.titulo) || 'Balanceo de caudales';
   const claseMarca = (estado) => (estado === 'dentro' || estado === 'ok' ? 'bien' : estado === 'alto' ? 'alto' : estado === 'bajo' ? 'mal' : 'neutra');
+  /*
+   * LA BOCA SIEMPRE EN SU COLOR (16-nov-2026, JC en la UTA-N10-PITCH 03: «No salen
+   * bien los difusores con los colores que tienen que salir»). La I1 medía 53 de
+   * 326 m³/h (−83,7 %) y salía gris: el servidor no la juzgaba porque no le llegaban
+   * las tolerancias. La tolerancia por boca es la que manda el servidor; si no
+   * llega, la del perfil de la edición (PERFIL_EDICION) y, sin perfil, ±10 %.
+   */
+  const tolBocaDe = (tol) => {
+    const deEdicion = globalThis.PERFIL_EDICION && globalThis.PERFIL_EDICION.commissioning && globalThis.PERFIL_EDICION.commissioning.tolerancias;
+    for (const v of [tol && tol.boca, deEdicion && deEdicion.boca]) { const n = Number(v); if (v !== null && v !== undefined && Number.isFinite(n) && n > 0 && n < 1) return n; }
+    return 0.1;
+  };
+  /* El estado con el que se pinta: el del servidor si la juzga; si no (sin
+     tolerancias), el de su desviación con la regla de todas las hojas (|d| ≤ tol). */
+  function estadoPintado(b, tol) {
+    if (['dentro', 'ok', 'alto', 'bajo', 'aRevisar', 'sinFactor'].includes(b.estado)) return b.estado;
+    const q = Number(b.caudal), dis = Number(b.caudalDiseno);
+    const d = typeof b.desviacion === 'number' && Number.isFinite(b.desviacion) ? b.desviacion
+      : b.caudal !== null && b.caudal !== undefined && Number.isFinite(q) && dis > 0 ? q / dis - 1 : null;
+    if (d === null) return b.estado;
+    return Math.abs(d) <= tolBocaDe(tol) + 1e-9 ? 'ok' : d > 0 ? 'alto' : 'bajo';
+  }
 
   /*
    * EL PLANO CON SUS BOCAS (15-oct-2026, JC: «la imagen del plano con las
@@ -1534,13 +1599,13 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   /* La forma de su tipo de difusor o reja (shared/commissioning/simbolosBoca.js). */
   const simbolo = (b) => (window.SIMBOLOS_BOCA ? window.SIMBOLOS_BOCA.svg(b.tipoId, { titulo: b.tipo || '' }) : '');
 
-  function htmlPlano(p, delCircuito) {
+  function htmlPlano(p, delCircuito, tol) {
     const conSitio = (p.todas || p.bocas).filter((b) => b.x !== null && b.x !== undefined && b.y !== null && b.y !== undefined);
     if (!p.imagen || !conSitio.length) return '';
     return `<figure class="plano-bocas" data-plano-fig="${esc(p.id)}">
       <div class="plano-marco" data-paleta="vidaire"><div class="plano-lienzo">
         <img data-src="api/equipo/plano?id=${encodeURIComponent(p.id)}" alt="Plano ${esc(p.nombre)}">
-        ${conSitio.map((b) => { const otro = delCircuito && !delCircuito(b); return `<button class="marca-boca ${claseMarca(b.estado)}${esRetorno(b) ? ' ret' : ''}${otro ? ' otro-circuito' : ''}" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%"
+        ${conSitio.map((b) => { const otro = delCircuito && !delCircuito(b); return `<button class="marca-boca ${claseMarca(estadoPintado(b, tol))}${esRetorno(b) ? ' ret' : ''}${otro ? ' otro-circuito' : ''}" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%"
           data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}"${otro ? ` data-circuito="${esRetorno(b) ? 'retorno' : 'impulsion'}"` : ''} aria-label="Ir a la boca ${esc(b.nombre)}">${simbolo(b)}<span class="rotulo-boca">${esc(b.nombre)}</span></button>`; }).join('')}
         ${(p.ajenas || []).map((b) => `<span class="marca-boca ajena" aria-hidden="true" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%">${simbolo({ tipoId: b.tipo })}<span class="rotulo-boca">${esc(b.nombre)}</span></span>`).join('')}
       </div></div>
@@ -2172,7 +2237,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   }
 
   function htmlBoca(p, b, puede, tol) {
-    const [clase, nombre] = ESTADO_BOCA[b.estado] || ['neutra', b.estado || ''];
+    const estado = estadoPintado(b, tol);
+    const [clase, nombre] = ESTADO_BOCA[estado] || ['neutra', estado || ''];
     const porc = pct(b.caudal, b.caudalDiseno);
     const clave = claveBoca(p.id, b.id);
     const bal = equipoDeBoca(b) === 'balometro';
@@ -2182,7 +2248,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     const lect = enQ ? (b.lecturasCaudal && b.lecturasCaudal.length ? b.lecturasCaudal : (b.caudalMedido === null || b.caudalMedido === undefined ? [] : [b.caudalMedido]))
       : b.lecturas && b.lecturas.length ? b.lecturas : (b.velocidad === null || b.velocidad === undefined ? [] : [b.velocidad]);
     const unidadM = enQ ? 'm³/h' : 'm/s';
-    const tolB = tol && tol.boca ? Math.round(tol.boca * 100) : 10;
+    const tolB = Math.round(tolBocaDe(tol) * 1000) / 10;
     const qLeido = b.caudalMedido !== null && b.caudalMedido !== undefined;
     let formula = '';
     if (!bal) {
@@ -2192,7 +2258,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       else if (b.modoFactor === 'k') formula = `<div class="formula">v̄ ${comaD(b.velocidad)} m/s · Q = v̄ × k = ${comaD(b.velocidad)} × ${comaD(b.factor, 1)} = <b>${cifra(b.caudal)}</b> m³/h</div>`;
       else formula = `<div class="formula">v̄ ${comaD(b.velocidad)} m/s · Q = v̄ × Ak × 3600 = ${comaD(b.velocidad)} × ${comaD(b.factor, 4)} × 3600 = <b>${cifra(b.caudal)}</b> m³/h</div>`;
     }
-    const fuera = (b.estado === 'alto' || b.estado === 'bajo') && porc !== null;
+    const fuera = (estado === 'alto' || estado === 'bajo') && porc !== null;
     /* Lo que necesita el cálculo en vivo (vivoBoca): mientras se teclea, la
        boca ya dice si va dentro o fuera, sin esperar a guardarla. */
     const vivo = `data-diseno="${b.caudalDiseno ?? ''}" data-factor="${b.factor ?? ''}" data-modo="${esc(b.modoFactor || '')}" data-tol="${tolB}" data-lectura="${enQ ? 'caudal' : 'velocidad'}"`;
@@ -2228,7 +2294,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
 
   function textoFuera(desv, tolB) {
     const d = `${desv > 0 ? '+' : ''}${comaD(desv * 100, 1)} %`;
-    return `${desv > 0 ? 'Sopla de más' : 'Le falta caudal'} (${d}): fuera de ±${tolB} %, hay que regular esta boca.`;
+    return `${desv > 0 ? 'Sopla de más' : 'Le falta caudal'} (${d}): fuera de ±${String(tolB).replace('.', ',')} %, hay que regular esta boca.`;
   }
   const numVivo = (t) => { const n = Number(String(t).trim().replace(',', '.')); return String(t).trim() === '' || !Number.isFinite(n) ? null : n; };
 
@@ -2461,7 +2527,9 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   /* Nombres de ficha como los dice el técnico (13-nov): ni «CHECKLIST_UTA v1» ni «ESTANQ. AGUA». */
   /* Los mismos nombres de tipo que la hoja del plano (panelEquipoPlano TIPO_HOJA, 15-nov, JC). */
   const TITULO_FICHA = { checklist: 'Checklist', fichaPM: 'Ficha de PM (toma de datos)', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo de caudales', equilibrado: 'Equilibrado hidráulico' };
-  const nombreFicha = (x) => TITULO_FICHA[x.clase] || x.nombre;
+  /* Con libro propio de la edición, sus nombres (api/fichas › nombresHoja); sin él, los de arriba. */
+  const titulos = () => ({ ...TITULO_FICHA, ...((fichasEq && fichasEq.nombresHoja) || {}) });
+  const nombreFicha = (x) => titulos()[x.clase] || x.nombre;
   const CLASE_FICHA = { checklist: 'Checklist', fichaPM: 'Puesta en marcha', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo', equilibrado: 'Equilibrado hidráulico' };
 
   /* Lo que falta de una ficha, dicho con nombre: en la de balanceo, qué filas
@@ -2489,7 +2557,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
    */
   const esDefinitiva = (x) => ['completa', 'firmada'].includes(estadoVisible(x.estado, x.medidos, x.bocasSinMedir));
   function htmlVerHoja(x, i) {
-    if (!x.plantilla || estadoVisible(x.estado, x.medidos, x.bocasSinMedir) === 'sinFicha') return '';
+    /* 16-nov (JC): «vacía si no tiene nada»: la hoja se ve también sin empezar (sale en blanco, nunca «sin hoja»). */
+    if (!x.plantilla || !x.clave) return '';
     const def = esDefinitiva(x);
     return `<div class="ver-hoja"><button type="button" class="enlace" data-cx="ver-hoja" data-i="${i}">Ver hoja${def ? '' : ' (borrador)'}</button></div>`;
   }
@@ -2637,7 +2706,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     return `
         <li class="fila-ficha"><button class="fila-ios" data-cx="ver-balanceo">
           ${puntoBalanceo(chip)}
-          <div class="fila-principal"><strong>${esc(TITULO_FICHA.balanceo)}</strong><span class="sub">${esc([sub, extra].filter(Boolean).join(' · '))}</span></div>
+          <div class="fila-principal"><strong>${esc(titulos().balanceo)}</strong><span class="sub">${esc([sub, extra].filter(Boolean).join(' · '))}</span></div>
           <span class="fe-ir" aria-hidden="true">›</span>
         </button></li>`;
   }
@@ -4392,6 +4461,25 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   });
 
   window.addEventListener('movil:obra', () => { if (activa()) cargarLista(); });
+  /* LO ÚLTIMO QUE SE VIO (16-nov-2026, JC: «la V tarda demasiado»): la lista salió al momento de lo guardado la
+     última vez (cxobra/ultimaVista.js) y se recalcula aparte. Un hilo fino arriba dice «actualizando»; si lo
+     nuevo es distinto, se repinta la lista en silencio (sin moverla). Solo lectura: la ficha de un equipo
+     (api/equipo) y todo lo que se guarda va siempre a la base, nunca a esta copia. */
+  window.addEventListener('cxobra:actualizando', (ev) => { try { document.body.classList.toggle('cx-actualizando', !!ev.detail); } catch { /* nada */ } });
+  let repintandoVista = false;
+  window.addEventListener('cxobra:datos', async (ev) => {
+    if (!ev.detail || !Array.isArray(ev.detail) || !ev.detail.includes('ultimaVista')) return;
+    if (repintandoVista || !activa() || !lista || ficha || hoja || abriendoHoja || escribiendoEnApp()) return;
+    repintandoVista = true;
+    try {
+      const r = await C.pedir(`api/commissioning?obra=${encodeURIComponent(C.obraId())}`);
+      if (!r || !r.ok || !activa() || ficha || hoja || abriendoHoja || escribiendoEnApp()) return;
+      const y = window.scrollY;
+      lista = r;
+      pintarLista();
+      window.scrollTo(0, y);
+    } catch { /* se queda lo que había */ } finally { repintandoVista = false; }
+  });
   window.addEventListener('hashchange', (ev) => {
     /* Se va a otra pantalla (atrás, otra pestaña): lo pendiente se manda ya. */
     if (!activa()) { guardarTodoYa(); return; }
