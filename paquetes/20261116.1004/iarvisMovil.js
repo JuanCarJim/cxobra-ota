@@ -15,6 +15,12 @@
  */
 (function iarvisMovil() {
   const C = window.CX;
+  /* 15-nov (JC: «Iarvis tiene que saludar y hablar en todos los idiomas de la app»): el idioma elegido en este
+     teléfono y, si no se ha elegido ninguno (el móvil no tiene selector), el del teléfono si es uno de los seis
+     (shared/idioma.js › detectar; si no, español). El saludo, las sugerencias y lo fijo del chat salen en él,
+     y viaja en la pregunta para que la respuesta llegue en ese idioma. */
+  const IDI = window.IDIOMA;
+  if (IDI) { let elegido = null; try { elegido = localStorage.getItem('idioma'); } catch { /* sin almacenamiento */ } IDI.poner(elegido || IDI.detectar(), { recordar: false }); }
   const $app = document.getElementById('app');
   const activa = () => C.activa('iarvis');
   let adaptador = null;
@@ -230,7 +236,7 @@
     window.IARVIS.montarEn($app, {
       adaptador: a,
       ir: (destino) => { location.hash = `#${destino}`; },
-      contexto: () => ({ pantalla: 'movil', obraId: C.obraId ? C.obraId() : null, obraNombre: obraNombre(), idioma: (navigator.language || 'es').slice(0, 2) }),
+      contexto: () => ({ pantalla: 'movil', obraId: C.obraId ? C.obraId() : null, obraNombre: obraNombre(), idioma: IDI ? IDI.idioma() : (navigator.language || 'es').slice(0, 2) }),
       movil: true,
       volver,
     });

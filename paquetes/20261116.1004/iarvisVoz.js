@@ -18,6 +18,8 @@
  */
 (function iarvisVoz() {
   const V = window.IarvisVoz;
+  /* 15-nov: se dicta y se lee en el idioma de la app (el que pone iarvisMovil.js); en español, «es-ES» como antes. */
+  const vozLocal = () => { try { return window.IDIOMA ? window.IDIOMA.local() : 'es-ES'; } catch { return 'es-ES'; } };
   if (!V) return;
   let almacen = null;
   try { almacen = window.localStorage; } catch { /* sin almacenamiento: sin cola ni ▶ al repintar */ }
@@ -52,7 +54,7 @@
         return { ruta: r.ruta, src: C && C.convertFileSrc ? C.convertFileSrc(r.ruta) : '', duracion: r.duracion };
       },
       cancelar: () => P.cancelar(),
-      transcribir: async ({ ruta }) => (await P.transcribir({ ruta, idioma: 'es-ES' }).catch((e) => { throw comoCodigo(e); })).texto,
+      transcribir: async ({ ruta }) => (await P.transcribir({ ruta, idioma: vozLocal() }).catch((e) => { throw comoCodigo(e); })).texto,
     };
   }
 
@@ -72,7 +74,7 @@
         grab.start();
         if (Reconocer) {
           rec = new Reconocer();
-          rec.lang = 'es-ES'; rec.continuous = true; rec.interimResults = false;
+          rec.lang = vozLocal(); rec.continuous = true; rec.interimResults = false;
           rec.onresult = (e) => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) texto += `${e.results[i][0].transcript} `; };
           rec.onerror = (e) => { fallo = e.error || 'fallo'; };
           finRec = new Promise((ok) => { rec.onend = ok; });
@@ -105,7 +107,7 @@
     if (P && P.hablar) {
       try { P.addListener('fin', () => { if (alTerminar) alTerminar(); }); } catch { /* sin aviso de fin */ }
       return {
-        hablar: (t, fin) => { alTerminar = fin; return P.hablar({ texto: t, idioma: 'es-ES' }); },
+        hablar: (t, fin) => { alTerminar = fin; return P.hablar({ texto: t, idioma: vozLocal() }); },
         callar: () => P.callar(),
       };
     }
@@ -115,8 +117,8 @@
       hablar: (t, fin) => {
         S.cancel();
         const u = new window.SpeechSynthesisUtterance(t);
-        u.lang = 'es-ES';
-        const voz = V.elegirVoz(S.getVoices());
+        u.lang = vozLocal();
+        const voz = V.elegirVoz(S.getVoices(), vozLocal());
         if (voz) u.voice = voz;
         u.onend = fin; u.onerror = fin;
         S.speak(u);

@@ -39,13 +39,52 @@
   /* ── LOS DOCUMENTOS, EN TABLA (13-nov, JC: «una tabla limpia, una fila por clase de documento»). Una sola pieza para el panel del
         plano, la ficha y el móvil: las filas salen de las celdas del índice de la DF (paqueteDF.celdasDeConjunto, vía
         entregaPaqueteDF.celdasEntregaDF con `tag`), en SU orden y con las columnas que tenga configuradas la entrega. ── */
-  const TITULO_FILA = { ft: 'Ficha técnica', ce: 'Marcado CE', checklist: 'Check list', manual: 'Manual de instrucciones', fichaPM: 'Puesta en marcha', estanqueidad: 'Estanqueidad' };
+  const TITULO_FILA = { ft: 'Ficha técnica', ce: 'Marcado CE', checklist: 'Check list', manual: 'Manual de instrucciones', fichaPM: 'Puesta en marcha', estanqueidad: 'Estanqueidad', balanceo: 'Balanceo de caudales' };
   const ORDEN_BASE = ['ft', 'ce', 'checklist', 'manual', 'fichaPM', 'estanqueidad'];
   const CLASE_A_COLUMNA = { ft: 'ft', ce: 'ce', mi: 'manual', pm: 'fichaPM' };
   const TEXTO_VER = { pdf: 'Ver PDF', hoja: 'Ver PDF', foto: 'Ver foto' };
 
   /** Las filas de la tabla. `celdas` = { columnas, celdas } de celdasEntregaDF (el conjunto del equipo) o null; sin ellas, lo que sabe la ficha (fabricante). */
   function filasDocumentos(d = {}) {
+    return conHojasDeLaApp(filasSinHojas(d), d.pesada && Array.isArray(d.pesada.tomas) ? d.pesada.tomas : []);
+  }
+  /* 15-nov (JC: «Check list —» con el checklist hecho en la app, 36/36): una fila sin PDF cuya hoja
+     se rellenó en la app enlaza a ESA hoja («Ver hoja») con su estado, en vez de «—» o «falta». El PDF subido sigue mandando.
+     Vale para check list, puesta en marcha (ficha de PM), estanqueidad y balanceo; `toma` es su índice en pesada.tomas. */
+  const HOJAS_DE_FILA = { checklist: ['checklist'], fichaPM: ['fichaPM'], estanqueidad: ['estanqAgua', 'estanqRefrigerante'], balanceo: ['balanceo'] };
+  const SIN_EMPEZAR = new Set(['sinFicha', 'sinEmpezar']);
+  const PESO_TOMA = { firmada: 4, completa: 3, pendiente: 2 };
+  const pesoToma = (t) => (t.firmada ? 4 : PESO_TOMA[t.estado] || (t.hoja && t.rellenos ? 2 : 0));
+  function conHojasDeLaApp(filas, tomas) {
+    if (!tomas.length) return filas;
+    const mejor = (clases) => {
+      let i = -1;
+      tomas.forEach((t, j) => { if (t && clases.includes(t.clase) && (i < 0 || pesoToma(t) > pesoToma(tomas[i]))) i = j; });
+      return i;
+    };
+    const salida = filas.map((f) => {
+      const clases = HOJAS_DE_FILA[f.clave];
+      if (!clases || f.estado === 'doc') return f;
+      const i = mejor(clases);
+      if (i < 0) return f;
+      const t = tomas[i];
+      const empezada = !SIN_EMPEZAR.has(t.estado) || pesoToma(t) > 0;
+      /* Una hoja sin empezar no tapa un «falta»: solo sustituye al «—» (su tipo sí la pide). */
+      if (!empezada && f.estado !== 'noAplica') return f;
+      const queda = t.estado === 'pendiente' && Array.isArray(t.faltan) && t.faltan.length ? `falta ${t.faltan[0]}${t.faltan.length > 1 ? ` y ${t.faltan.length - 1} más` : ''}` : '';
+      return { ...f, estado: 'hoja', toma: i, hecha: pesoToma(t) >= 3, empezada, hojaEstado: t.firmada ? 'Firmada' : (ESTADO_TOMA[t.estado] || (empezada ? 'A medias' : 'Sin empezar')), cuenta: [t.obligatorios ? `${t.rellenos} de ${t.obligatorios}${t.hoja ? ' bocas' : ''}` : '', queda].filter(Boolean).join(' · ') };
+    });
+    /* El balanceo no tiene columna en el índice: si su hoja existe en la app, sale como una fila más. */
+    if (!salida.some((f) => f.clave === 'balanceo')) {
+      const i = mejor(HOJAS_DE_FILA.balanceo);
+      if (i >= 0 && pesoToma(tomas[i]) > 0) {
+        const extra = conHojasDeLaApp([{ clave: 'balanceo', titulo: TITULO_FILA.balanceo, estado: 'noAplica', archivos: [], nota: '', motivo: '', porConfirmar: false }], tomas)[0];
+        salida.push(extra);
+      }
+    }
+    return salida;
+  }
+  function filasSinHojas(d) {
     const c = d.celdas && Array.isArray(d.celdas.celdas) ? d.celdas.celdas : null;
     if (c) return c.map((x) => ({ clave: x.clave, titulo: TITULO_FILA[x.clave] || x.titulo, estado: x.estado, archivos: x.archivos || [], nota: x.nota || '', motivo: x.motivo || '', porConfirmar: Boolean(x.porConfirmar) }));
     const docs = documentosDe(d.pesada);
@@ -64,11 +103,14 @@
       const todos = f.archivos.map((x) => x.nombre).join(' · ');
       const texto = (f.porConfirmar ? 'Por confirmar' : TEXTO_VER[a.tipo] || 'Ver PDF');
       celda = `<button type="button" class="botonMini pesVerPdf" data-pes-ver-doc="${i}" title="${esc(`${f.titulo}: ${todos}`)}" aria-label="${esc(`Ver ${f.titulo}: ${a.nombre}`)}">${esc(texto)}</button>`;
+    } else if (f.estado === 'hoja') {
+      celda = `<button type="button" class="botonMini pesVerPdf" data-pes-toma="${esc(f.toma)}" title="${esc(`${f.titulo}: hoja rellenada en la app · ${f.hojaEstado}`)}" aria-label="${esc(`Ver la hoja de ${f.titulo}`)}">${f.empezada ? 'Ver hoja' : 'Abrir'}</button>`;
     } else if (f.estado === 'falta') celda = `<span class="pesDocFalta" title="${esc(f.motivo || 'aún no está')}">falta</span>`;
     else if (f.estado === 'pendSP') celda = `<span class="pesDocPend" title="${esc(`Está en SharePoint: ${f.motivo || 'falta descargarlo'}`)}">pend. desc.</span>`;
     else if (f.estado === 'pendFab') celda = `<span class="pesDocPend" title="${esc(`Pendiente del fabricante${f.motivo ? `: ${f.motivo}` : ''}`)}">pend. fab.</span>`;
     else celda = '<span class="pesVacio" title="No aplica a este tipo de equipo">—</span>';
-    const pie = f.estado === 'doc' && f.archivos.length ? `<small class="pesDocArchivo" title="${esc(f.archivos.map((x) => x.nombre).join(' · '))}">${esc(nombreCorto(f.archivos[0]))}${f.archivos.length > 1 ? ` (+${f.archivos.length - 1})` : ''}${f.nota ? ` · ${esc(f.nota)}` : ''}</small>` : '';
+    const pie = f.estado === 'hoja' ? `<small class="pesDocArchivo">Hoja de la app · <span class="pesTono ${f.hecha ? 'bien' : f.empezada ? 'info' : ''}">${esc(f.hojaEstado)}</span>${f.cuenta ? ` · ${esc(f.cuenta)}` : ''}</small>`
+      : f.estado === 'doc' && f.archivos.length ? `<small class="pesDocArchivo" title="${esc(f.archivos.map((x) => x.nombre).join(' · '))}">${esc(nombreCorto(f.archivos[0]))}${f.archivos.length > 1 ? ` (+${f.archivos.length - 1})` : ''}${f.nota ? ` · ${esc(f.nota)}` : ''}</small>` : '';
     return `<tr data-pes-doc-fila="${esc(f.clave)}"><th scope="row">${esc(f.titulo)}${pie}</th><td class="pesDocAccion">${celda}</td></tr>`;
   }
   function documentosHtml(d) {
@@ -149,7 +191,9 @@
       const cuenta = x.obligatorios ? `${x.rellenos} de ${x.obligatorios}${x.hoja ? ' bocas' : ''}` : '';
       const fotos = x.fotos ? `${cuenta ? ' · ' : ''}${x.fotos} foto${x.fotos === 1 ? '' : 's'}` : '';
       const det = detalleHoja(x);
-      return `<tr><th>${esc(nombreHoja(x))}${x.unidadTag ? ` · ${esc(x.unidadTag)}` : ''}${det ? `<small>${esc(det)}</small>` : ''}</th><td>${estado}${res ? ` · ${tono(res[0], res[1])}` : ''}${cuenta || fotos ? `<small>${esc(cuenta)}${esc(fotos)}</small>` : ''}</td><td class="pesAccion">${d.abrirTomas ? `<button type="button" class="botonMini" data-pes-toma="${i}">Abrir</button>` : ''}</td></tr>`;
+      /* «A medias» con «3 de 3» se contradice si no se dice qué le queda (15-nov): lo que le falta, debajo. */
+      const queda = x.estado === 'pendiente' && Array.isArray(x.faltan) && x.faltan.length ? `<small>Falta: ${esc(x.faltan.join(', '))}</small>` : '';
+      return `<tr><th>${esc(nombreHoja(x))}${x.unidadTag ? ` · ${esc(x.unidadTag)}` : ''}${det ? `<small>${esc(det)}</small>` : ''}</th><td>${estado}${res ? ` · ${tono(res[0], res[1])}` : ''}${cuenta || fotos ? `<small>${esc(cuenta)}${esc(fotos)}</small>` : ''}${queda}</td><td class="pesAccion">${d.abrirTomas ? `<button type="button" class="botonMini" data-pes-toma="${i}">Abrir</button>` : ''}</td></tr>`;
     }).join('');
     return bloque('Toma de datos', `<table class="pesTablaFicha conAccion"><tbody>${filas}</tbody></table>`, 'data-pes-tomas');
   }

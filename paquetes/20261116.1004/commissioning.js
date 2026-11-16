@@ -656,9 +656,17 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   async function abrir(id, { quieto = false } = {}) {
     /* quieto: se repinta el mismo equipo (llegó algo de la oficina) sin moverse de donde estaba. */
     const y = window.scrollY;
-    if (!quieto) $app.innerHTML = '<p class="cargando">Cargando el equipo…</p>';
+    /* Al pulsar, ya mismo el TAG y su modelo de la lista (16-nov-2026, JC: «Ficha completa
+       tarda muchísimo»); el resto, en cuanto llega. */
+    if (!quieto) {
+      const fl = lista && (lista.equipos || []).find((x) => x.id === id);
+      const sub = fl ? [fl.planta, [fl.marca, fl.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ') : '';
+      $app.innerHTML = `${fl ? tagFijo(fl.tag, sub, 'cargando-equipo') : ''}<p class="cargando">Cargando el equipo…</p>`;
+    }
     try {
-      const r = await C.pedir(`api/equipo?id=${encodeURIComponent(id)}`);
+      /* Ligero (16-nov-2026, JC: «Ficha completa tarda muchísimo»): la ficha sale ya
+         y el plano del equipo llega detrás (cargarPlanoEq). */
+      const r = conservarPlano(await C.pedir(`api/equipo?id=${encodeURIComponent(id)}&ligero=1`));
       if (!r.ok) throw new Error(r.error);
       /*
        * EL REPINTADO EN SILENCIO NO CIERRA UNA HOJA (JC, 28-oct). Tras guardar la
@@ -681,10 +689,41 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       for (const [k, t] of tomas) if (!t.cambiada) tomas.delete(k);
       pintarFicha();
       window.scrollTo(0, quieto ? y : 0);
-      cargarFichas(id);
+      /* Primero las fichas (para tomar datos); el plano, detrás: el servidor del móvil atiende de una en una. */
+      cargarFichas(id).finally(() => { if (r.planoPendiente) cargarPlanoEq(id); });
       if (!quieto) incEq = null;
       cargarIncidenciasEq(r);
     } catch (e) { C.aviso(e.message); cargarLista(); }
+  }
+
+  /*
+   * EL PLANO DEL EQUIPO, DETRÁS DE LA FICHA (16-nov-2026, JC: «Ficha completa tarda
+   * muchísimo»). Era lo más lento de api/equipo: llega aparte por
+   * api/equipo/localizacion. Al repintar el mismo equipo se queda el que ya había.
+   */
+  const CAMPOS_PLANO = ['localizacion', 'planoEquipo', 'localizacionPorConfirmar'];
+  function conservarPlano(r) {
+    if (r && r.ok && r.planoPendiente && ficha && r.equipo && ficha.equipo.id === r.equipo.id && !ficha.planoPendiente) {
+      for (const k of CAMPOS_PLANO) r[k] = ficha[k];
+      delete r.planoPendiente;
+    }
+    return r;
+  }
+  async function cargarPlanoEq(id) {
+    let r = null;
+    try { r = await C.pedir(`api/equipo/localizacion?id=${encodeURIComponent(id)}`); } catch { r = null; }
+    if (!ficha || ficha.equipo.id !== id || !ficha.planoPendiente) return;
+    if (r && r.ok) for (const k of CAMPOS_PLANO) ficha[k] = r[k];
+    delete ficha.planoPendiente;
+    if (!activa()) return;
+    if (!hoja && !abriendoHoja && !firmando && !escribiendoEnApp()) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); return; }
+    /* Con una hoja abierta o escribiendo: solo el hueco del plano, sin tocar lo demás. */
+    for (const el of $app.querySelectorAll('.plano-equipo-pendiente')) {
+      const t = document.createElement('div');
+      t.innerHTML = htmlPlanoEquipo(ficha, el.dataset.plegado === '1');
+      el.replaceWith(...t.childNodes);
+    }
+    C.cargarImagenes($app);
   }
 
   /* El equipo otra vez del servidor, sin tocar lo demás (fichas, tomas, pestaña). */
@@ -1366,6 +1405,10 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
    * en el modelo se dice («Sin plano del modelo») y se enseña el plano antiguo si lo hay.
    */
   function htmlPlanoEquipo(f, plegado) {
+    if (f && f.planoPendiente) {
+      return plegado ? `<details class="ensayo-plegado plano-equipo-plegado plano-equipo-pendiente" data-plegado="1"><summary><span class="t">Plano del equipo</span><span class="tenue">Cargando…</span></summary></details>`
+        : `<div class="plano-equipo-pendiente"><h2>Plano del equipo</h2><p class="cargando">Cargando el plano…</p></div>`;
+    }
     const p = f && f.planoEquipo;
     if (!p) return '';
     const donde = p.ok ? [p.edificio, p.planta, p.sala].filter(Boolean).join(' · ') : '';
@@ -2440,7 +2483,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   /* La misma regla está en shared/commissioning/archivoPreparado.js, para «Preparar archivo» (y su ruta). */
   const estadoVisible = (estado, medidos, bocasSinMedir) => {
     if (estado !== 'pendiente' || !medidos) return estado;
-    if (!medidos.rellenos) return 'sinEmpezar';
+    if (!medidos.rellenos) return medidos.escrito ? estado : 'sinEmpezar'; /* algo escrito y guardado: «A medias» (15-nov) */
     return medidos.obligatorios && medidos.rellenos >= medidos.obligatorios && !(bocasSinMedir || []).length ? 'completa' : estado;
   };
   const chipFicha = (estado0, resultado, medidos, bocasSinMedir) => {
@@ -2461,7 +2504,9 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   /* Nombres de ficha como los dice el técnico (13-nov): ni «CHECKLIST_UTA v1» ni «ESTANQ. AGUA». */
   /* Los mismos nombres de tipo que la hoja del plano (panelEquipoPlano TIPO_HOJA, 15-nov, JC). */
   const TITULO_FICHA = { checklist: 'Checklist', fichaPM: 'Ficha de PM (toma de datos)', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo de caudales', equilibrado: 'Equilibrado hidráulico' };
-  const nombreFicha = (x) => TITULO_FICHA[x.clase] || x.nombre;
+  /* Con libro propio de la edición, sus nombres (api/fichas › nombresHoja); sin él, los de arriba. */
+  const titulos = () => ({ ...TITULO_FICHA, ...((fichasEq && fichasEq.nombresHoja) || {}) });
+  const nombreFicha = (x) => titulos()[x.clase] || x.nombre;
   const CLASE_FICHA = { checklist: 'Checklist', fichaPM: 'Puesta en marcha', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo', equilibrado: 'Equilibrado hidráulico' };
 
   /* Lo que falta de una ficha, dicho con nombre: en la de balanceo, qué filas
@@ -2637,7 +2682,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     return `
         <li class="fila-ficha"><button class="fila-ios" data-cx="ver-balanceo">
           ${puntoBalanceo(chip)}
-          <div class="fila-principal"><strong>${esc(TITULO_FICHA.balanceo)}</strong><span class="sub">${esc([sub, extra].filter(Boolean).join(' · '))}</span></div>
+          <div class="fila-principal"><strong>${esc(titulos().balanceo)}</strong><span class="sub">${esc([sub, extra].filter(Boolean).join(' · '))}</span></div>
           <span class="fe-ir" aria-hidden="true">›</span>
         </button></li>`;
   }
@@ -4392,6 +4437,25 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   });
 
   window.addEventListener('movil:obra', () => { if (activa()) cargarLista(); });
+  /* LO ÚLTIMO QUE SE VIO (16-nov-2026, JC: «la V tarda demasiado»): la lista salió al momento de lo guardado la
+     última vez (cxobra/ultimaVista.js) y se recalcula aparte. Un hilo fino arriba dice «actualizando»; si lo
+     nuevo es distinto, se repinta la lista en silencio (sin moverla). Solo lectura: la ficha de un equipo
+     (api/equipo) y todo lo que se guarda va siempre a la base, nunca a esta copia. */
+  window.addEventListener('cxobra:actualizando', (ev) => { try { document.body.classList.toggle('cx-actualizando', !!ev.detail); } catch { /* nada */ } });
+  let repintandoVista = false;
+  window.addEventListener('cxobra:datos', async (ev) => {
+    if (!ev.detail || !Array.isArray(ev.detail) || !ev.detail.includes('ultimaVista')) return;
+    if (repintandoVista || !activa() || !lista || ficha || hoja || abriendoHoja || escribiendoEnApp()) return;
+    repintandoVista = true;
+    try {
+      const r = await C.pedir(`api/commissioning?obra=${encodeURIComponent(C.obraId())}`);
+      if (!r || !r.ok || !activa() || ficha || hoja || abriendoHoja || escribiendoEnApp()) return;
+      const y = window.scrollY;
+      lista = r;
+      pintarLista();
+      window.scrollTo(0, y);
+    } catch { /* se queda lo que había */ } finally { repintandoVista = false; }
+  });
   window.addEventListener('hashchange', (ev) => {
     /* Se va a otra pantalla (atrás, otra pestaña): lo pendiente se manda ya. */
     if (!activa()) { guardarTodoYa(); return; }
