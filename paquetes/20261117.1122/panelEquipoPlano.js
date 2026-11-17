@@ -86,7 +86,7 @@
   }
   function filasSinHojas(d) {
     const c = d.celdas && Array.isArray(d.celdas.celdas) ? d.celdas.celdas : null;
-    if (c) return c.map((x) => ({ clave: x.clave, titulo: TITULO_FILA[x.clave] || x.titulo, estado: x.estado, archivos: x.archivos || [], nota: x.nota || '', motivo: x.motivo || '', porConfirmar: Boolean(x.porConfirmar) }));
+    if (c) return c.map((x) => ({ clave: x.clave, titulo: TITULO_FILA[x.clave] || x.titulo, estado: x.estado, archivos: x.archivos || [], nota: x.nota || '', motivo: x.motivo || '', porConfirmar: Boolean(x.porConfirmar), enlaces: x.enlaces || [] }));
     const docs = documentosDe(d.pesada);
     return ORDEN_BASE.map((k) => {
       const clase = Object.keys(CLASE_A_COLUMNA).find((q) => CLASE_A_COLUMNA[q] === k);
@@ -107,6 +107,7 @@
       celda = `<button type="button" class="botonMini pesVerPdf" data-pes-toma="${esc(f.toma)}" title="${esc(`${f.titulo}: hoja rellenada en la app · ${f.hojaEstado}`)}" aria-label="${esc(`Ver la hoja de ${f.titulo}`)}">${f.empezada ? 'Ver hoja' : 'Abrir'}</button>`;
     } else if (f.estado === 'falta') celda = `<span class="pesDocFalta" title="${esc(f.motivo || 'aún no está')}">falta</span>`;
     else if (f.estado === 'pendSP') celda = `<span class="pesDocPend" title="${esc(`Está en SharePoint: ${f.motivo || 'falta descargarlo'}`)}">pend. desc.</span>`;
+    else if (f.estado === 'pendFab' && (f.enlaces || []).length) celda = f.enlaces.map((e) => `<button type="button" class="botonMini pesVerPdf" data-pes-url="${esc(e.url)}" title="${esc(`${f.titulo}: ${e.nombre} · se abre en el navegador (SharePoint o web del fabricante)`)}" aria-label="${esc(`Abrir ${f.titulo}: ${e.nombre}`)}">Ver PDF</button>`).join(' ');
     else if (f.estado === 'pendFab') celda = `<span class="pesDocPend" title="${esc(`Pendiente del fabricante${f.motivo ? `: ${f.motivo}` : ''}`)}">pend. fab.</span>`;
     else celda = '<span class="pesVacio" title="No aplica a este tipo de equipo">—</span>';
     const pie = f.estado === 'hoja' ? `<small class="pesDocArchivo">Hoja de la app · <span class="pesTono ${f.hecha ? 'bien' : f.empezada ? 'info' : ''}">${esc(f.hojaEstado)}</span>${f.cuenta ? ` · ${esc(f.cuenta)}` : ''}</small>`
