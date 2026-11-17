@@ -10852,8 +10852,8 @@ globalThis.CX_VARIANTE="cxobra";globalThis.PERFIL_EDICION={"commissioning":{"tol
       init_define_CX_LICENCIAS();
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261117.1122" : "0";
-      var URL_OTA = "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main/" ? "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main/" : CONFIG.url;
+      var VERSION = true ? "20261117.1305" : "0";
+      var URL_OTA = "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main" ? "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
       var SNAPSHOTS = "NoCloud/ionic_built_snapshots";
@@ -19308,6 +19308,18 @@ globalThis.CX_VARIANTE="cxobra";globalThis.PERFIL_EDICION={"commissioning":{"tol
           p("t_salida_agua_calor", "T\xAA salida agua calor", "\xB0C", OPC, false)
         ]
       });
+      var LECTURAS_PLC_UTA_CODIGOS = ["co2_ppm", "ventilador_impulsion_pct", "ventilador_retorno_pct", "t_aire_exterior_oda", "t_expulsion_eha"];
+      var lecturasPlcUta = () => ({
+        titulo: "Lecturas del PLC",
+        tipo: "parametros",
+        puntos: [
+          p("co2_ppm", "CO2", "ppm", OPC, false),
+          p("ventilador_impulsion_pct", "Ventilador de impulsi\xF3n", "%", OPC, false),
+          p("ventilador_retorno_pct", "Ventilador de retorno", "%", OPC, false),
+          p("t_aire_exterior_oda", "T\xAA aire exterior (ODA)", "\xB0C", OPC, false),
+          p("t_expulsion_eha", "T\xAA expulsi\xF3n (EHA)", "\xB0C", OPC, false)
+        ]
+      });
       var temperaturasRecuperador = () => [
         p("t_aire_exterior", "T\xAA aire exterior", "\xB0C", O, false),
         p("t_impulsion_tras_recup", "T\xAA impulsi\xF3n tras recuperador", "\xB0C", O, false),
@@ -19530,8 +19542,10 @@ globalThis.CX_VARIANTE="cxobra";globalThis.PERFIL_EDICION={"commissioning":{"tol
           clase: "ficha_pm",
           nombre: "Unidad de tratamiento de aire",
           titulo: "FICHA DE PUESTA EN MARCHA \xB7 UNIDAD DE TRATAMIENTO DE AIRE",
+          version: 2,
+          // v2 (17-nov): lecturas del PLC, solo en este catálogo genérico
           criterio: CRITERIO_PM,
-          secciones: [...datosUta(), caudalesUta(), temperaturasUta()]
+          secciones: [...datosUta(), caudalesUta(), temperaturasUta(), lecturasPlcUta()]
         },
         {
           codigo: "SPLIT_UD_INTERIOR",
@@ -21145,6 +21159,7 @@ globalThis.CX_VARIANTE="cxobra";globalThis.PERFIL_EDICION={"commissioning":{"tol
         estanqueidadDe,
         puntosMedidos,
         TERMOSTATO_CODIGOS,
+        LECTURAS_PLC_UTA_CODIGOS,
         HUMEDAD_TERMOSTATO_CODIGOS,
         CONSIGNA_PRODUCCION_CODIGOS,
         VENTILADOR_CODIGOS
@@ -21262,7 +21277,7 @@ globalThis.CX_VARIANTE="cxobra";globalThis.PERFIL_EDICION={"commissioning":{"tol
           if (n !== esperado) fallo(`${cod}: ${n} preguntas, se esperaban ${esperado}`);
         }
         const ESPERADO_MED = {
-          UTA: [7, 5],
+          UTA: [7, 10],
           CLIMATIZADOR_REC_ESTATICO: [11, 5],
           CLIMATIZADOR_REC_ROTATIVO: [11, 5],
           SPLIT_UD_INTERIOR: [1, 3],
@@ -242139,6 +242154,40 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
     }
   });
 
+  // cxobra/cuandoQuieta.js
+  var require_cuandoQuieta = __commonJS({
+    "cxobra/cuandoQuieta.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      function crearCuandoQuieta({ ahora = () => performance.now(), esperar = (fn, ms) => setTimeout(fn, ms) } = {}) {
+        let enCurso = 0;
+        let ultima = 0;
+        return {
+          empieza() {
+            enCurso += 1;
+          },
+          acaba() {
+            enCurso = Math.max(0, enCurso - 1);
+            ultima = ahora() || 1;
+          },
+          cuandoQuieta({ quieto = 600, max = 1e4 } = {}) {
+            return new Promise((listo) => {
+              const desde = ahora();
+              const mirar = () => {
+                const t = ahora();
+                if (ultima > 0 && !enCurso && t - ultima >= quieto || t - desde >= max) listo();
+                else esperar(mirar, 150);
+              };
+              esperar(mirar, quieto);
+            });
+          }
+        };
+      }
+      module.exports = { crearCuandoQuieta };
+    }
+  });
+
   // shared/sync/rescate.js
   var require_rescate = __commonJS({
     "shared/sync/rescate.js"(exports, module) {
@@ -242765,9 +242814,20 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
     });
     const vistasCargadas = ultimaVista.cargar().catch(() => 0);
     globalThis.cxUltimaVista = { tam: () => ultimaVista.tam() };
+    const quieta = require_cuandoQuieta().crearCuandoQuieta();
+    const cuandoQuieta = (o) => quieta.cuandoQuieta(o);
+    globalThis.cxCuandoQuieta = cuandoQuieta;
     globalThis.fetch = async (entrada, opciones = {}) => {
       const texto = String(typeof entrada === "string" ? entrada : entrada && entrada.url || "");
       if (!texto.startsWith("api/")) return fetchReal(entrada, opciones);
+      quieta.empieza();
+      try {
+        return await atenderApi(texto, opciones);
+      } finally {
+        quieta.acaba();
+      }
+    };
+    const atenderApi = async (texto, opciones) => {
       const url = new URL(texto, "http://cxobra.local/");
       const rutaApi = url.pathname.slice(1);
       const cabeceras = {};
@@ -243074,7 +243134,7 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
         return res;
       }
     };
-    conectar();
+    cuandoQuieta({ max: 8e3 }).then(() => conectar());
     t0 = T.ahora();
     for (const src of globalThis.SCRIPTS_PANTALLA || []) {
       await new Promise((ok, mal) => {

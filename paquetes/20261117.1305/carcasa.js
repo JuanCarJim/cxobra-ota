@@ -303,7 +303,10 @@
      plano de la pestaña Cx; al abrirla no lo calcula. No trae datos ({ ok }); si falla, la pestaña lo calcula al abrir. */
   function precalentarPlano() {
     if (!obraId || !secsSesion().includes('commissioning')) return;
-    pedir(`api/plano-equipos/precalentar?obra=${encodeURIComponent(obraId)}`).catch(() => {});
+    /* En Cx el motor va en este hilo: la precarga espera a que la obra esté pintada (cxobra/arranque.js › cxCuandoQuieta). */
+    const obra = obraId;
+    const espera = typeof globalThis.cxCuandoQuieta === 'function' ? globalThis.cxCuandoQuieta() : Promise.resolve();
+    espera.then(() => { if (obra === obraId) return pedir(`api/plano-equipos/precalentar?obra=${encodeURIComponent(obra)}`); return null; }).catch(() => {});
   }
 
   const obrasListas = (async () => {
