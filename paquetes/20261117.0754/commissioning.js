@@ -1530,6 +1530,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       ${htmlConservadas()}`
       : `${htmlFranjaEquipo(f)}
       ${htmlPestanasFicha(f)}
+      ${pestFicha === 'docs' || pestFicha === 'plano' || pestFicha === 'firmas' ? '' : htmlFotosRapidasEquipo(f, puede)}
       ${pestFicha === 'docs' ? checklist(f.checklist, f.medicion, puede, 'docs')
         : pestFicha === 'plano' ? `${htmlPlanoEquipo(f)}${htmlFotosEquipo(f, puede)}`
         : pestFicha === 'firmas' ? checklist(f.checklist, f.medicion, puede, 'firmas')
@@ -1915,6 +1916,27 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   /* De dónde viene cada foto: «Checklist split», «UE»… (nada si es de este mismo equipo). */
   const origenFoto = (x) => [x.ficha ? fichaCorta(x.ficha) : null, x.unidad].filter(Boolean).join(' · ');
   const fichaCorta = (n) => { const t = String(n || '').trim(); return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase(); };
+  /*
+   * FOTOS AL ABRIR EL EQUIPO (16-nov-2026, JC en obra: «echo de menos los botones
+   * para las fotos al abrir el equipo, de la galería y con la cámara»). En la vista
+   * por defecto, bajo las pestañas: «Cámara» (foto al momento) y «Galería» (varias),
+   * con el contador y las últimas miniaturas. Misma función y misma cola sin red
+   * que los botones de la pestaña «Plano · Fotos» (data-cx="foto-equipo").
+   */
+  function htmlFotosRapidasEquipo(f, puede) {
+    if (!puede) return '';
+    const fotos = f.fotos || [];
+    const enCola = fotosEnCola(f);
+    const total = fotos.length + enCola.length;
+    const mini = [...enCola.map((x) => `<img data-local="${esc(x.local)}" alt="${esc(x.pie || 'Foto')}">`),
+      ...fotos.slice(-4).reverse().map((x) => `<img data-src="${esc(x.url || `api/equipo/foto?id=${encodeURIComponent(x.id)}`)}" alt="${esc(x.pie || 'Foto')}">`)].slice(0, 4);
+    return `<div class="fotos-al-abrir" aria-label="Fotos del equipo">
+      <button type="button" class="boton secundario" data-cx="foto-equipo" data-pie="" data-camara="1"><i class="ic ic-camara"></i>Cámara</button>
+      <button type="button" class="boton secundario" data-cx="foto-equipo" data-pie="" data-galeria="1"><i class="ic ic-galeria"></i>Galería</button>
+      <span class="cuenta-fotos"><b class="cifra">${total}</b> foto${total === 1 ? '' : 's'}${enCola.length ? ` · ${enCola.length} sin subir` : ''}</span>
+      ${mini.length ? `<span class="mini-fotos">${mini.join('')}</span>` : ''}
+    </div>`;
+  }
   function htmlFotosEquipo(f, puede) {
     const fotos = f.fotos || [];
     const enCola = fotosEnCola(f);
