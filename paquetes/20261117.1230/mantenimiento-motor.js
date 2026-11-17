@@ -6370,8 +6370,8 @@ create table if not exists ajustes (
 
   // cxobra/generado/vidaire-publico.json
   var vidaire_publico_default = {
-    url: "https://kuctmrwyejbzokmudroe.supabase.co",
-    publishableKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1Y3Rtcnd5ZWpiem9rbXVkcm9lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MDY2ODYsImV4cCI6MjEwNjA4MjY4Nn0.Wdpx_549-Mrt-J7NhRcG_YCkciruU45b5gZBxNddc8M"
+    url: "",
+    publishableKey: ""
   };
 
   // cxobra/mantenimiento/fuente/motor.ts
