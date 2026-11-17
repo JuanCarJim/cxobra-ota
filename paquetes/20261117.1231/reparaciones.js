@@ -137,9 +137,9 @@
    */
   const AG = window.AUTOGUARDADO;
   const claveAlta = () => `rep.alta.${C.obraId() || ''}`;
-  const altaVacia = () => ({ tag: '', planta: '', zona: '', ubicacion: '', operario: '', descripcion: '', prioridad: 'media', encargadoId: '', fechaLimite: '', fotos: [] });
+  const altaVacia = () => ({ tag: '', planta: '', zona: '', ubicacion: '', operario: '', responsable: '', responsableEmpresa: '', descripcion: '', prioridad: 'media', encargadoId: '', fechaLimite: '', fotos: [] });
   const altaConContenido = (f) => Boolean(f && (String(f.tag || '').trim() || String(f.descripcion || '').trim() || String(f.zona || '').trim()
-    || String(f.planta || '').trim() || f.operario || f.encargadoId || f.fechaLimite || (f.fotos || []).length));
+    || String(f.planta || '').trim() || f.operario || f.responsable || f.encargadoId || f.fechaLimite || (f.fotos || []).length));
   function persistirAlta() {
     if (!form) return;
     let ok = true;
@@ -171,6 +171,21 @@
     if (activa()) pintarForm();
   }
 
+  /*
+   * 17-nov, JC: «si es nuestra o de terceros» y, de terceros, la empresa: se elige de las de la obra
+   * (subcontratas y proveedores) y solo se escribe a mano si no está. `donde`: 'alta' o 'ficha'.
+   */
+  function htmlResponsable(donde, valor, empresa, aMano) {
+    const lista = (donde === 'ficha' ? abierta && abierta.empresasResponsables : datos && datos.empresasResponsables) || [];
+    const conLa = empresa && !lista.includes(empresa) ? [...lista, empresa] : lista;
+    const escribir = aMano || (!conLa.length && valor === 'terceros');
+    return `<label>Responsable</label>
+      <div class="segmentado responsable-rp">${[['nuestra', 'Nuestra'], ['terceros', 'De terceros']].map(([id, txt]) => `<button type="button" data-rp-resp="${id}" data-donde="${donde}" class="${valor === id ? 'activa' : ''}" aria-pressed="${valor === id}">${txt}</button>`).join('')}</div>
+      ${valor === 'terceros' ? (escribir
+        ? `<label>Empresa<input data-rp-resp-empresa="${donde}" value="${esc(empresa || '')}" autocomplete="off" placeholder="Nombre de la empresa"></label>${conLa.length ? `<button type="button" class="enlace" data-rp="resp-lista" data-donde="${donde}">Elegir de la lista</button>` : ''}`
+        : `<label>Empresa<select data-rp-resp-empresa="${donde}"><option value="">— Elige la empresa —</option>${conLa.map((v) => `<option value="${esc(v)}" ${v === empresa ? 'selected' : ''}>${esc(v)}</option>`).join('')}<option value="__otra">No está: escribirla…</option></select></label>`) : ''}`;
+  }
+
   function pintarForm() {
     const f = form;
     $app.innerHTML = `
@@ -189,6 +204,7 @@
       <datalist id="rp-zonas">${(datos.zonas || []).map((v) => `<option value="${esc(v)}">`).join('')}</datalist>
       ${f.ubicacion !== undefined && (f.ubicacion || f.desdeCx) ? `<label>Ubicación<input data-rp-campo="ubicacion" value="${esc(f.ubicacion)}" autocomplete="off" placeholder="Sala, local…"></label>` : ''}
       <label>Operario<select data-rp-campo="operario"><option value="">—</option>${(datos.asignables || []).map((v) => `<option value="${esc(v)}" ${v === f.operario ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>
+      ${htmlResponsable('alta', f.responsable, f.responsableEmpresa, f.respAMano)}
       <label>Qué le pasa<textarea rows="4" data-rp-campo="descripcion" placeholder="Qué falla y qué hay que hacer">${esc(f.descripcion)}</textarea></label>
       <label>Prioridad</label>
       <div class="segmentado">${['alta', 'media', 'baja'].map((p) => `<button data-rp-prioridad="${p}" class="${f.prioridad === p ? 'activa' : ''}">${NOMBRE_PRIORIDAD[p]}</button>`).join('')}</div>
@@ -251,7 +267,9 @@
       const alta = {
         obraId: C.obraId(), equipoId: eq.id, titulo: `${eq.tag} · ${primera}`, descripcion: form.descripcion,
         prioridad: form.prioridad, encargadoId: form.encargadoId || undefined,
-        operario: form.operario || undefined, zona: form.zona || undefined, planta: form.planta || undefined, ubicacion: form.ubicacion || undefined, fechaLimite: form.fechaLimite || null,
+        operario: form.operario || undefined,
+        responsable: form.responsable || undefined, responsableEmpresa: form.responsable === 'terceros' ? (form.responsableEmpresa || '').trim() || undefined : undefined,
+        zona: form.zona || undefined, planta: form.planta || undefined, ubicacion: form.ubicacion || undefined, fechaLimite: form.fechaLimite || null,
       };
       let r = await C.postJson('api/reparacion', alta);
       /* El equipo ya tiene una reparación sin cerrar: se pregunta antes de abrir otra. */
@@ -473,6 +491,7 @@
       ${r.avisos.length ? `<p class="nota aviso">${esc(r.avisos.join(' · '))}</p>` : ''}
       <section class="grupo">
         ${dato('Código', r.codigo)}${dato('Planta', r.planta || (r.equipo && r.equipo.planta))}${dato('Zona', r.zona || (r.equipo && r.equipo.zona))}${dato('Operario', r.operario)}
+        ${dato('Responsable', r.responsable === 'terceros' ? `De terceros${r.responsableEmpresa ? ` · ${r.responsableEmpresa}` : ''}` : (r.responsable === 'nuestra' ? 'Nuestra' : ''))}
         ${dato('Sala', r.equipo && r.equipo.sala)}${dato('Código de sala', r.equipo && r.equipo.codSala)}
         ${dato('Encargado', r.encargado || 'Sin encargado')}
         ${dato('Abierta', fechaEs(r.fechaApertura))}${dato('Para el', fechaEs(r.fechaLimite))}
@@ -483,7 +502,8 @@
         <label>Zona<input data-rp-dato="zona" list="rp-zonas" value="${esc(r.zona || '')}" placeholder="${esc((r.equipo && r.equipo.zona) || 'Tribuna…')}"></label></div>
         <datalist id="rp-plantas">${(abierta.plantas || []).map((v) => `<option value="${esc(v)}">`).join('')}</datalist>
         <datalist id="rp-zonas">${(abierta.zonas || []).map((v) => `<option value="${esc(v)}">`).join('')}</datalist>
-        <label>Operario<select data-rp-dato="operario"><option value="">—</option>${[...new Set([...(abierta.asignables || []), r.operario].filter(Boolean))].map((v) => `<option value="${esc(v)}" ${v === r.operario ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>` : ''}
+        <label>Operario<select data-rp-dato="operario"><option value="">—</option>${[...new Set([...(abierta.asignables || []), r.operario].filter(Boolean))].map((v) => `<option value="${esc(v)}" ${v === r.operario ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>
+        ${htmlResponsable('ficha', r.responsable, r.responsableEmpresa, abierta.respAMano)}` : ''}
       ${r.descripcion ? `<h2>Qué le pasa</h2><p class="texto-ficha">${esc(r.descripcion)}</p>` : ''}
       ${r.instrucciones ? `<h2>Instrucciones</h2><p class="texto-ficha">${esc(r.instrucciones)}</p>` : ''}
       ${[['antes', 'Fotos del antes'], ['despues', 'Fotos del después']].map(([m, titulo]) => {
@@ -782,12 +802,15 @@
     if (f) { filtro = f.dataset.rpFiltro; pintarLista(); return; }
     const p = ev.target.closest('[data-rp-prioridad]');
     if (p && form) { form.prioridad = p.dataset.rpPrioridad; persistirAlta(); pintarForm(); return; }
+    const rs = ev.target.closest('[data-rp-resp]');
+    if (rs) { elegirResponsable(rs.dataset.donde, rs.dataset.rpResp); return; }
     const res = ev.target.closest('[data-rp-resultado]');
     if (res && visita) { visita.resultado = res.dataset.rpResultado; persistirCambios(); pintarVisita(); return; }
     const b = ev.target.closest('[data-rp]');
     if (!b) return;
     const a = b.dataset.rp;
     if (a === 'lista') { alSalirDeFicha(); cambios = null; lista(); }
+    else if (a === 'resp-lista') { if (b.dataset.donde === 'alta' && form) { form.respAMano = false; persistirAlta(); pintarForm(); } else if (abierta) { abierta.respAMano = false; repintarFicha(); } }
     else if (a === 'mias') { soloMias = !soloMias; pintarLista(); }
     else if (a === 'revisar') { porRevisar = !porRevisar; solo = null; pintarLista(); }
     else if (a === 'solo') { solo = null; pintarLista(); }
@@ -816,6 +839,42 @@
     else if (a === 'limpiar-firma') { const cv = $app.querySelector('[data-firma-lienzo]'); if (cv) { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); if (window.CX_FIRMA) window.CX_FIRMA.soltar(cv); trazadoRep = false; } }
     else if (a === 'cancelar-firma') { firmando = null; const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
   });
+  const repintarFicha = () => { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); };
+  /* Responsable: en el alta se queda en el formulario; en la ficha se guarda al momento (con la empresa, si la hay). */
+  async function guardarResponsable(responsable, responsableEmpresa) {
+    const r = abierta.reparacion;
+    try {
+      const x = await C.postJson('api/reparacion/datos', { id: r.id, responsable, responsableEmpresa: responsable === 'terceros' ? responsableEmpresa : '' });
+      if (!x.ok) throw new Error(x.error);
+      r.responsable = responsable; r.responsableEmpresa = responsable === 'terceros' ? responsableEmpresa : '';
+      const lista = abierta.empresasResponsables || [];
+      if (r.responsableEmpresa && !lista.includes(r.responsableEmpresa)) abierta.empresasResponsables = [...lista, r.responsableEmpresa].sort((a, b) => a.localeCompare(b, 'es'));
+      C.aviso('Guardado.', 'bien');
+    } catch (e) { C.aviso(e.message); }
+    repintarFicha();
+  }
+  function elegirResponsable(donde, id) {
+    if (donde === 'alta' && form) {
+      form.responsable = form.responsable === id ? '' : id;
+      if (form.responsable !== 'terceros') { form.responsableEmpresa = ''; form.respAMano = false; }
+      persistirAlta(); pintarForm();
+    } else if (abierta) {
+      const r = abierta.reparacion;
+      const nuevo = r.responsable === id ? '' : id;
+      guardarResponsable(nuevo, nuevo === 'terceros' ? r.responsableEmpresa || '' : '');
+    }
+  }
+  function cambiarEmpresaResp(t, ev) {
+    const donde = t.dataset.rpRespEmpresa;
+    if (t.value === '__otra') {
+      if (donde === 'alta' && form) { form.respAMano = true; form.responsableEmpresa = ''; persistirAlta(); pintarForm(); }
+      else if (abierta) { abierta.respAMano = true; repintarFicha(); }
+      const i = $app.querySelector(`input[data-rp-resp-empresa="${donde}"]`); if (i) i.focus();
+      return;
+    }
+    if (donde === 'alta' && form) { form.responsableEmpresa = t.value; persistirAlta(); }
+    else if (abierta && ev.type === 'change') guardarResponsable('terceros', t.value.trim());
+  }
   /* Planta, zona u operario de la ficha: se guarda al elegirlo (no es de lo que espera al «Guardar»). */
   async function guardarDato(campo) {
     try {
@@ -828,6 +887,7 @@
   const recoger = (ev) => {
     if (!activa()) return;
     const t = ev.target;
+    if (t.dataset.rpRespEmpresa) { cambiarEmpresaResp(t, ev); return; }
     if (form && t.dataset.rpCampo) { form[t.dataset.rpCampo] = t.value; persistirAlta(); }
     /* Elegido el equipo, se sugieren su planta y su zona (si no se han escrito). */
     if (form && ev.type === 'change' && t.dataset.rpCampo === 'tag') {
