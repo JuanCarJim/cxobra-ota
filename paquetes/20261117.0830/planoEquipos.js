@@ -85,6 +85,14 @@
   let hojaDe = null; /* el equipo o material cuya hoja está pintada (para volver arriba y a media altura al cambiar) */
   const ASA = '<button type="button" class="pe-asa" data-pe-asa aria-label="Subir o bajar la ficha del equipo"></button>';
   let verFranja = false; /* 14-nov (JC): la lista «N equipos sin sala, por confirmar» desplegada */
+  let franjaFiltro = ''; /* 17-nov (v2): el buscador de la lista «por ubicar» (TAG, sala, zona, tipo) */
+  /* 17-nov (JC: «Los equipos sin ubicar debemos de ser capaces de ubicarlos desde el móvil in situ»): el equipo que se está
+     ubicando ({ id, tag }); el siguiente toque en el plano (no un arrastre ni un pellizco) dice su sitio. La regla, la del
+     escritorio: shared/commissioning/ubicarEnPlano.js y planosIfc.colocarEnModelo (quién y cuándo, y sube a la nube). */
+  let ubicando = null;
+  let guardandoSitio = false;
+  const UB = () => window.UBICAR_PLANO || null;
+  const puedeUbicarAqui = (p) => Boolean(datos && datos.puedeUbicar && p && p.esIfc && p.plano && String(p.plano.id || '').startsWith('ifc:'));
   let base = 1; /* 14-nov (JC): ancho del lienzo en «Entero» (fracción del marco) para que la planta quepa entera también a lo alto */
   /* Materiales instalados (29-oct, JC): compuertas, difusores, rejillas… con nº de serie y ficha técnica. */
   let capasOff = new Set(); /* capas apagadas (equipos, compuertas, difusores…) */
@@ -152,6 +160,45 @@
   .pe-franja-lista b{font-variant-numeric:tabular-nums;white-space:nowrap}
   .pe-franja-lista .tipo{flex:1;min-width:0;color:var(--textoTenue);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pe-franja-lista .pe-ir{flex:none;color:var(--textoTenue)}
+  .pe-franja-lista li.con-ubicar{display:flex;align-items:center}
+  .pe-franja-lista li.con-ubicar>button:first-child{flex:1 1 auto;min-width:0}
+  .pe-franja-lista .pe-ubicar{flex:none;width:auto;min-height:36px;margin:2px 6px 2px 0;padding:0 12px;border:1px solid var(--acento);border-radius:6px;background:var(--panel);color:var(--acento-fuerte,var(--acento));font-size:13px;font-weight:600}
+  .pe-marco.pe-colocando{cursor:crosshair;outline:2px solid var(--acento);outline-offset:-2px}
+  /* 17-nov (v2, JC: «hay que poder acceder a toda la info posible de proyecto de ese equipo para poder ubicarlo bien»). */
+  .pe-franja-lista .pe-fr-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}
+  .pe-franja-lista .pe-fr-l1{display:flex;align-items:baseline;gap:8px;min-width:0}
+  .pe-franja-lista .pista{font-size:12px;line-height:15px;color:var(--textoSuave,var(--textoTenue));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pe-franja-lista .pista.vacia{font-style:italic}
+  .pe-franja-buscar{position:sticky;top:0;z-index:1;display:block;box-sizing:border-box;width:100%;margin:0;padding:6px 8px;border:0;border-bottom:1px solid var(--borde);background:var(--panel);color:var(--texto);font:inherit;font-size:14px}
+  .pe-franja-lista .pe-franja-nada{padding:8px;font-size:13px;color:var(--textoTenue)}
+  .pe-ubicando .pe-ub-txt{display:flex;flex-direction:column;gap:1px}
+  .pe-ubicando small{font-size:12px;line-height:15px;color:var(--textoSuave,var(--textoTenue))}
+  .pe-sala-buscada{position:absolute;transform:translate(-50%,-50%);box-sizing:border-box;min-width:26px;min-height:26px;border:2px solid var(--acento);border-radius:4px;background:color-mix(in srgb,var(--acento) 16%,transparent);pointer-events:none;z-index:1;animation:peBuscada 1.2s ease-in-out infinite alternate}
+  .pe-sala-buscada span{position:absolute;left:50%;bottom:calc(100% + 2px);transform:translateX(-50%);white-space:nowrap;font:700 11px/14px system-ui,sans-serif;color:var(--sobre-relleno);background:var(--acento-relleno,var(--acento));padding:0 5px;border-radius:3px}
+  @keyframes peBuscada{from{background:color-mix(in srgb,var(--acento) 10%,transparent)}to{background:color-mix(in srgb,var(--acento) 26%,transparent)}}
+  @media (prefers-reduced-motion:reduce){.pe-sala-buscada{animation:none}}
+  .pe-propuesta{position:absolute;transform:translate(-50%,-50%);width:22px;height:22px;box-sizing:border-box;border:2px dashed var(--acento);border-radius:50%;background:color-mix(in srgb,var(--acento) 22%,transparent);pointer-events:none;z-index:2}
+  .pe-propuesta span{position:absolute;left:50%;top:calc(100% + 3px);transform:translateX(-50%);white-space:nowrap;font:700 11px/14px system-ui,sans-serif;color:var(--sobre-relleno);background:var(--acento-relleno,var(--acento));padding:0 5px;border-radius:3px}
+  .pe-franja-lista .pe-propuesto,.pe-ubicar-hoja .pe-propuesto{display:block;font-size:12px;line-height:16px;color:var(--acento);font-weight:600}
+  #app .pe-lienzo .marca-boca.pe-referencia{opacity:1!important;z-index:7}
+  #app .pe-lienzo .marca-boca.pe-referencia .simbolo-boca{outline:2px solid var(--acento);outline-offset:3px;border-radius:50%}
+  #app .pe-lienzo .marca-boca.pe-referencia .rotulo-boca{display:block}
+  .pe-pistas{margin:6px 0;padding:6px 8px;border:1px solid var(--borde);border-radius:8px;background:var(--panel)}
+  .pe-pistas h4{margin:0 0 4px;font-size:13px;color:var(--acento-fuerte,var(--acento))}
+  .pe-pistas dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0;font-size:13px;line-height:17px}
+  .pe-pistas dt{color:var(--textoTenue);white-space:nowrap}
+  .pe-pistas dd{margin:0;min-width:0;overflow-wrap:anywhere}
+  .pe-pistas .pe-refs{display:flex;flex-wrap:wrap;gap:4px}
+  .pe-pistas .pe-refs button{width:auto;min-height:30px;margin:0;padding:0 8px;font-size:12.5px}
+  /* Mientras se ubica, el aviso ocupa su fila entera y el zoom baja a la siguiente (en 390 px no caben juntos). */
+  .cx-plano .pe-pie.con-ubicando,.pe-pie.con-ubicando{flex-wrap:wrap}
+  .pe-pie.con-ubicando .pe-ubicando{flex:1 0 100%}
+  .pe-ubicando{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;min-height:36px;padding:2px 4px 2px 8px;border:1px solid var(--acento);border-radius:6px;background:var(--panel);font-size:13px;line-height:16px}
+  .pe-ubicando span{flex:1;min-width:0}
+  .pe-ubicando button{flex:none;width:auto;min-height:32px;margin:0;padding:0 10px}
+  .pe-ubicando.con-propuesta{flex-wrap:wrap;justify-content:flex-end;padding:6px 6px 6px 8px}.pe-ubicando.con-propuesta .pe-ub-txt{flex:1 0 100%}
+  .pe-ubicar-hoja{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0}
+  .pe-ubicar-hoja .boton{width:auto;margin:0}
   /* TAG encima o debajo del bloque cuando a los lados no cabe (vistaPlano.colocarRotulos, opción sitios). */
   #app .pe-lienzo .marca-boca.tag-arr .rotulo-boca{left:calc(50% + var(--tag-dx,0px));top:auto;bottom:calc(100% + 1px);transform:translateX(-50%);margin:0}
   #app .pe-lienzo .marca-boca.tag-abj .rotulo-boca{left:calc(50% + var(--tag-dx,0px));top:calc(100% + 1px);transform:translateX(-50%);margin:0}
@@ -389,7 +436,12 @@
     const pos = p.ifc.pos || {};
     /* 14-nov: los de la franja «sin sala» no se pintan sobre el dibujo (a 390 px se pisaban): van en su franja bajo el plano. */
     const deFranja = new Set(p.ifc.franja || []);
-    const equipos = p.equipos.map((e) => (pos[e.id] ? { ...e, x: pos[e.id][0], y: pos[e.id][1], mano: false, revisar: false, w: 0, h: 0, ...(deFranja.has(e.id) ? { franja: true } : {}) } : { ...e, x: null, y: null, mano: false, revisar: false }));
+    /* 17-nov: quién y cuándo lo colocó a mano, y si su sitio es el bloque del modelo (ese no se mueve a mano). */
+    const aMano = p.ifc.mano || {}; const fijos = new Set(p.ifc.fijos || []);
+    /* 17-nov (JC: «Desde los IFCs deberías ser capaz de ubicar los equipos»): el casado solo con el modelo y lo propuesto. */
+    const prop = p.ifc.propuestos || {}; const solo = p.ifc.desdeIfc || {};
+    const delIfc = (e) => ({ ...(prop[e.id] ? { propuesto: prop[e.id] } : {}), ...(solo[e.id] ? { desdeIfc: solo[e.id] } : {}) });
+    const equipos = p.equipos.map((e) => (pos[e.id] ? { ...e, x: pos[e.id][0], y: pos[e.id][1], mano: false, revisar: false, w: 0, h: 0, ...(deFranja.has(e.id) ? { franja: true } : {}), ...(aMano[e.id] ? { aMano: aMano[e.id] } : {}), ...(fijos.has(e.id) ? { delModelo: true } : {}), ...delIfc(e) } : { ...e, x: null, y: null, mano: false, revisar: false, ...delIfc(e) }));
     const sinUbicar = equipos.filter((q) => q.x === null).map((q) => ({ id: q.id, tag: q.tag, familia: q.familia, sala: q.sala, icono: q.icono }));
     const v = { ...p, plano: p.ifc.plano, equipos, sinUbicar, materiales: (p.materiales || []).map((m) => ({ ...m, x: null, y: null })), faltas: [], esIfc: true,
       cuentas: { ...p.cuentas, enPlano: equipos.length - sinUbicar.length, sinUbicar: sinUbicar.length, revisar: 0 } };
@@ -627,6 +679,72 @@
     location.hash = 'reparaciones';
   }
 
+  /* 17-nov: en la hoja, «Ubicar en el plano» si está por ubicar y «Mover» si ya tiene sitio (salvo el bloque del modelo). */
+  function ubicarHojaHtml(e, p) {
+    const dicho = e.aMano && UB() ? `<span class="sub tenue" data-pe-a-mano>${esc(UB().dichoAMano(e.aMano))}</span>`
+      : e.desdeIfc ? `<span class="sub tenue" data-pe-desde-ifc>Ubicado desde el IFC: ${esc(e.desdeIfc.motivo || 'casado con el modelo')}</span>` : '';
+    if (!puedeUbicarAqui(p) || e.delModelo) return dicho ? `<div class="pe-ubicar-hoja">${dicho}</div>` : '';
+    if (ubicando && ubicando.id === e.id) return `<div class="pe-ubicar-hoja">${dicho}<span class="sub" data-pe-ubicando-hoja>Ubicando: toca en el plano su sitio.</span></div>`;
+    const porUbicar = e.x === null || e.franja;
+    const prop = porUbicar && e.propuesto ? `<span class="sub pe-propuesto" data-pe-propuesto-hoja>${esc(dichoPropuesto(e.propuesto))}</span>` : '';
+    return `<div class="pe-ubicar-hoja">${dicho}${prop}<button type="button" class="boton${porUbicar ? '' : ' secundario'}" data-pe-ubicar="${esc(e.id)}">${e.propuesto && porUbicar ? 'Ver la propuesta del IFC' : porUbicar ? 'Ubicar en el plano' : 'Mover en el plano'}</button></div>`;
+  }
+
+  /* 17-nov (v2): las pistas de un equipo por ubicar (ubicarEnPlano.pistaDe, servidas por la lista): solo lo que la base trae. */
+  const pistaCorta = (x) => (UB() && UB().lineaPista ? UB().lineaPista(x) : '');
+  const casaFranja = (x) => !franjaFiltro.trim() || !UB() || !UB().casaBusqueda || UB().casaBusqueda(x, franjaFiltro, tipoDe(x));
+  /* El que se está ubicando: su sala en el plano del modelo (si está) y los ya ubicados que sirven de referencia. */
+  function buscado(p) {
+    if (!ubicando || !p || !UB() || !UB().hermanos) return null;
+    const e = p.equipos.find((q) => q.id === ubicando.id);
+    if (!e) return null;
+    const fuera = p.equipos.filter((q) => q.franja || q.x === null).map((q) => q.id);
+    const hs = UB().hermanos(p.equipos, e, { fuera });
+    const pos = (id) => { const q = p.equipos.find((z) => z.id === id); return q ? [q.x, q.y] : null; };
+    const sala = p.esIfc && p.plano ? UB().salaEnPlano(p.plano.salas || [], e, { cerca: hs.map((h) => pos(h.id)) }) : null;
+    return { e, hs, sala, refs: new Set(hs.map((h) => h.id)) };
+  }
+  /* «Propuesto desde el IFC · mismo modelo (hay 2 más iguales)». */
+  const dichoPropuesto = (x) => `Propuesto desde el IFC · ${x.motivo || 'casado con el modelo'}${x.otros ? ` (hay ${x.otros} más ${x.otros === 1 ? 'igual' : 'iguales'})` : ''}`;
+  const propuestaDe = (p) => (p && ubicando && !guardandoSitio ? ((p.equipos || []).find((q) => q.id === ubicando.id) || {}).propuesto || null : null);
+  function dichoBuscado(b) {
+    if (!b) return '';
+    if (b.e.propuesto) return `${dichoPropuesto(b.e.propuesto)}: confírmalo o toca su sitio en el plano.`;
+    const pi = b.e.pista || {};
+    const ue = b.e.papel === 'UE';
+    const nombreSala = pi.salaGris ? [pi.salaGris.nombre, pi.salaGris.codigo].filter(Boolean).join(' ') : '';
+    const refs = b.hs.length ? `${b.hs.slice(0, 2).map((h) => h.tag).join(', ')}${b.hs.length > 2 ? ` y ${b.hs.length - 2} más` : ''}` : '';
+    if (b.sala) return `${ue ? 'Da servicio a' : 'Su sala'}: ${nombreSala || b.sala.t}, marcada en el plano${refs ? ` · referencia: ${refs}` : ''}.`;
+    if (refs) return `${nombreSala ? `${nombreSala} no está en el modelo. ` : ''}Marcados de referencia: ${refs}.`;
+    const linea = pistaCorta(b.e);
+    return linea ? `${linea}${nombreSala ? ' (sala no está en el modelo)' : ''}.` : 'Sin sala ni referencias en la base: mira su ficha.';
+  }
+  function pistasHtml(e, p) {
+    const pi = e && e.pista;
+    const porUbicar = e && (e.x === null || e.franja);
+    if (!pi || !porUbicar) return '';
+    const filas = [];
+    const fila = (k, v) => { if (v) filas.push(`<dt>${esc(k)}</dt><dd>${v}</dd>`); };
+    if (pi.salaGris) fila(e.papel === 'UE' ? 'Da servicio a' : 'Sala (arquitectura)', `${esc(pi.salaGris.nombre || '')} <span class="cifra">${esc(pi.salaGris.codigo)}</span>${pi.salaGris.estado ? ` <span class="tenue">(${esc(pi.salaGris.estado)})</span>` : ''}`);
+    if (pi.codSala) fila('Código de sala', `<span class="cifra">${esc(pi.codSala)}</span>`);
+    fila('Zona', pi.zona ? esc(pi.zona) : '');
+    for (const s of pi.sirve || []) fila(s.k, esc(s.v));
+    fila('Denominación', pi.denominacion ? esc(pi.denominacion) : '');
+    const b = ubicando && ubicando.id === e.id ? buscado(p) : null;
+    const hs = b ? b.hs : (UB() && UB().hermanos ? UB().hermanos(p.equipos, e, { fuera: p.equipos.filter((q) => q.franja || q.x === null).map((q) => q.id) }) : []);
+    if (hs.length) fila('Referencia', `<span class="pe-refs">${hs.map((h) => `<button type="button" class="boton secundario" data-pe-ir-ref="${esc(h.id)}" title="${esc(h.motivo)}">${esc(h.tag)}</button>`).join('')}</span>`);
+    if (pi.origen) fila('Origen', esc([pi.origen.tipo, pi.origen.nombre].filter(Boolean).join(' · ')));
+    if (pi.partida) fila('Partida', `<span class="cifra">${esc(pi.partida.codigo)}</span> ${esc(pi.partida.resumen || '')}`);
+    else if (pi.partidas) fila('Partida', `${cifra(pi.partidas)} partidas posibles con su modelo`);
+    if (pi.compra) {
+      const c = pi.compra;
+      const t = esc([c.pedido && `Pedido ${c.pedido}`, c.proveedor, c.albaran && `albarán ${c.albaran}${c.fecha ? ` (${c.fecha.split('-').reverse().join('/')})` : ''}`].filter(Boolean).join(' · '));
+      fila('Compra', c.enlace ? `<a href="${esc(c.enlace)}" target="_blank" rel="noopener">${t} ↗</a>` : t);
+    }
+    fila('Notas', pi.notas ? esc(pi.notas) : '');
+    return filas.length ? `<div class="pe-pistas" data-pe-pistas><h4>Para encontrarlo</h4><dl>${filas.join('')}</dl></div>` : '';
+  }
+
   function hojaHtml(p) {
     const e = equipoElegido();
     if (!e) return '';
@@ -648,11 +766,14 @@
       ${resumenDocsHtml(e)}</div>
       <div class="pe-hoja-resto">
       ${incidenciasHtml(e)}
+      ${ubicarHojaHtml(e, p)}
+      ${pistasHtml(e, p)}
       ${falta ? `<div class="falta">${falta}</div>` : ''}
       ${hojasCxHtml(e)}
       ${datos.conCommissioning ? '<button class="boton pe-ficha-completa" data-pe-accion="equipo">Ficha completa ›</button>' : ''}
       ${e.miembros && e.miembros.length > 1 ? conjuntoHtml(e) : (rol ? `<div class="sub">${rol}</div>` : '')}
       ${documentosEquipoHtml(e)}
+      ${window.PLANO_FOTOS ? window.PLANO_FOTOS.hueco(e) : ''}
       ${p.plano && e.x === null ? '<div class="sub tenue">No está en el plano.</div>' : ''}
       ${vidaHtml(e)}
       ${acc.length && !(Array.isArray(e.tomas) && e.tomas.length) ? `<div class="pe-acciones">${acc.map((a) => `<button class="boton${a.id === 'datos' ? '' : ' secundario'}" data-pe-accion="${esc(a.id)}">${esc(a.texto)}</button>`).join('')}</div>` : ''}
@@ -957,6 +1078,8 @@
   /* Que el equipo tocado quede a la vista: si está cerca de un borde del plano visible, se centra. */
   function asomar(id) {
     const p = plantaActual();
+    /* Con la ficha abierta mientras se ubica, el plano sigue en su sala o referencias (no en su sitio de la franja). */
+    if (ubicando && id === ubicando.id && p && verSuSitio(p)) return;
     const e = p && p.equipos.find((x) => x.id === id && x.x !== null);
     const [marco, lienzo] = marcoYLienzo();
     if (!e || !marco || !lienzo) return;
@@ -976,6 +1099,8 @@
       return;
     }
     planta = p.planta || '';
+    /* Al cambiar de planta (o si el plano ya no es el del modelo) se deja de ubicar. */
+    if (ubicando && (ubicando.planta !== planta || !puedeUbicarAqui(p))) { ubicando = null; guardandoSitio = false; }
     /* Una planta sin equipos y con materiales abre la lista de materiales: «Equipos 0» no dice nada. */
     if (!p.equipos.length && (p.materiales || []).length) lista = 'materiales';
     try { sessionStorage.setItem('cx.planoEquipos.planta', planta); } catch { /* nada */ }
@@ -988,6 +1113,7 @@
     const enPlano = capasOff.has('equipos') ? [] : visibles.filter((m) => m.x !== null && !m.franja);
     const enFranja = capasOff.has('equipos') ? [] : visibles.filter((m) => m.x !== null && m.franja).sort((a, b) => String(a.tag || '').localeCompare(String(b.tag || ''), 'es', { numeric: true }));
     const enConjunto = idsDelConjunto();
+    const bus = buscado(p);
     const q = filtro.trim().toLowerCase();
     const mats = (p.materiales || []).filter((m) => m.x !== null && !capasOff.has(m.capa));
     const cuentasCapa = p.capas || {};
@@ -996,20 +1122,23 @@
     const pe0 = datos && (datos.plantas || []).find((x) => (x.planta || '') === (p.planta || ''));
     const selector = compacto ? '' : pe0 && pe0.ifc ? `<div class="pe-fondo" role="group" aria-label="Fondo del plano"><button data-pe-fondo="ifc" aria-pressed="${Boolean(p.esIfc)}">Modelo IFC</button><button data-pe-fondo="pdf" aria-pressed="${!p.esIfc}"${pe0.plano ? '' : ' disabled'}>Plano PDF</button></div>${p.esIfc ? `<p class="nota" data-pe-fondo-nota>${p.sinUbicar.length ? `${cifra(p.sinUbicar.length)} equipo${p.sinUbicar.length === 1 ? '' : 's'} sin posición en el modelo${pe0.plano ? ' (en el plano PDF quizá sí)' : ''}. ` : ''}${(pe0.materiales || []).some((m) => m.x !== null) || (pe0.faltas || []).length ? 'Los materiales y lo que falta están marcados en el plano PDF.' : ''}</p>` : ''}`
       : (p.plano ? '<p class="nota" data-pe-pdf-sin-ifc>plano PDF (sin IFC)</p>' : '');
-    const plano = p.plano ? `${selector}<div class="pe-visor"><div class="pe-marco${FA.marcando() ? ' fa-activo' : ''}" data-pe-marco data-paleta="vidaire">
+    const plano = p.plano ? `${selector}<div class="pe-visor"><div class="pe-marco${FA.marcando() ? ' fa-activo' : ''}${ubicando ? ' pe-colocando' : ''}" data-pe-marco data-paleta="vidaire">
         <div class="pe-lienzo${zoom >= ZOOM_SALAS ? ' con-salas' : ''}" data-pe-lienzo style="width:${zoom * base * 100}%;${p.plano.ancho > 0 && p.plano.alto > 0 ? `aspect-ratio:${p.plano.ancho}/${p.plano.alto};` : ''}--pe-esc:${escMarcas()}">
           <img data-src="api/plano-equipos/imagen?id=${encodeURIComponent(p.plano.id)}" alt="Plano ${esc(p.plano.nombre)}" draggable="false">
           ${salasDe(p).map((r, i) => `<span class="pe-sala" data-pe-sala="${i}" style="left:${r.x * 100}%;top:${r.y * 100}%">${esc(r.t)}${r.codigo && r.codigo !== r.t ? `<small>${esc(r.codigo)}</small>` : ''}</span>`).join('')}
           ${mats.map((m) => marcaMaterial(m, q, p)).join('')}
           ${FA.marcas(p)}
-          ${enPlano.map((x) => `<button class="marca-boca bq-${bq(x)}${incClase(x)}${enConjunto.has(x.id) ? ' elegida' : ''}${x.revisar ? ' revisar' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[bq(x)]}${dichoInc(x)}${x.revisar ? '; revisar ubicación' : ''}`)}">${simbolo(x.icono)}${incMarca(x)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
+          ${propuestaDe(p) ? `<div class="pe-propuesta" data-pe-propuesta style="left:${propuestaDe(p).x * 100}%;top:${propuestaDe(p).y * 100}%"><span>Propuesto desde el IFC</span></div>` : ''}
+          ${bus && bus.sala ? `<div class="pe-sala-buscada" data-pe-sala-buscada style="left:${bus.sala.x * 100}%;top:${bus.sala.y * 100}%;width:${(bus.sala.w || 0) * 100}%;height:${(bus.sala.h || 0) * 100}%"><span>${esc(bus.sala.t)}</span></div>` : ''}
+          ${enPlano.map((x) => `<button class="marca-boca bq-${bq(x)}${incClase(x)}${enConjunto.has(x.id) ? ' elegida' : ''}${x.revisar ? ' revisar' : ''}${bus && bus.refs.has(x.id) ? ' pe-referencia' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[bq(x)]}${dichoInc(x)}${x.revisar ? '; revisar ubicación' : ''}`)}">${simbolo(x.icono)}${incMarca(x)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
         </div>
       </div>
       ${!compacto && p.esIfc && !(p.plano.salas || []).length ? '<p class="nota pe-sin-nombres" data-pe-sin-nombres>El modelo de esta planta no trae nombres de sala y no hay plano de arquitectura para situarlos.</p>' : ''}${!compacto && p.esIfc && p.plano.fuenteSalas === 'plano' ? '<p class="nota pe-sin-nombres" data-pe-nombres-pdf>Nombres de sala del plano de arquitectura, situados por los equipos: el modelo no los trae.</p>' : ''}
       <!-- 13-nov (JC en el iPhone): el −/Entero/+ en una franja bajo el plano, nunca encima; también pellizco y doble toque.
            14-nov (JC): en la misma fila, plegados, los equipos que el modelo no pone en ninguna sala («por confirmar»). -->
-      <div class="pe-pie">${enFranja.length ? `<button type="button" class="pe-franja-boton" data-pe-franja aria-expanded="${verFranja}" aria-controls="pe-franja-lista"><span>${cifra(enFranja.length)} equipo${enFranja.length === 1 ? '' : 's'} sin sala, por confirmar <span class="flecha" aria-hidden="true">›</span></span></button>` : ''}<div class="pe-zoom" role="group" aria-label="Zoom del plano"><button class="boton secundario" data-pe-zoom="-1" aria-label="Alejar">−</button><button class="boton secundario" data-pe-zoom="0">Entero</button><button class="boton secundario" data-pe-zoom="1" aria-label="Acercar">+</button></div>
-      ${enFranja.length && verFranja ? `<div class="pe-franja-lista" id="pe-franja-lista" data-pe-franja-lista role="list" aria-label="Sin sala en el modelo, por confirmar"><ul>${enFranja.map((x) => `<li><button type="button" class="${enConjunto.has(x.id) ? 'elegida' : ''}" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, sin sala en el modelo, por confirmar: ${NOMBRE[bq(x)]}`)}">${simbolo(x.icono)}<b>${esc(x.tag)}</b><span class="tipo">${esc(tipoDe(x))}</span><i class="pe-punto bq-punto-${puntoInc(x)}" title="${esc(conInc(x) ? 'Con incidencia' : conRes(x) ? IP.NOMBRE_RESUELTA : NOMBRE[bq(x)])}"></i><span class="pe-ir" aria-hidden="true">›</span></button></li>`).join('')}</ul></div>` : ''}</div>${FA.marcando() ? FA.mando(p) : ''}</div>`
+      <div class="pe-pie${ubicando ? ' con-ubicando' : ''}">${ubicando ? `<div class="pe-ubicando${propuestaDe(p) && !guardandoSitio ? ' con-propuesta' : ''}" data-pe-ubicando role="status"><span class="pe-ub-txt"><span>${guardandoSitio ? 'Guardando el sitio de' : 'Toca en el plano dónde está'} <b>${esc(ubicando.tag)}</b></span>${guardandoSitio ? '' : `<small data-pe-ub-pista>${esc(dichoBuscado(bus))}</small>`}</span>${propuestaDe(p) ? `<button type="button" class="boton" data-pe-confirmar-ifc>Confirmar</button>` : ''}${guardandoSitio ? '' : `<button type="button" class="boton secundario" data-pe-ubicar-ficha>Ficha</button>`}<button type="button" class="boton secundario" data-pe-ubicar-cancelar>Cancelar</button></div>`
+        : enFranja.length ? `<button type="button" class="pe-franja-boton" data-pe-franja aria-expanded="${verFranja}" aria-controls="pe-franja-lista"><span>${cifra(enFranja.length)} equipo${enFranja.length === 1 ? '' : 's'} ${puedeUbicarAqui(p) ? 'por ubicar' : 'sin sala, por confirmar'} <span class="flecha" aria-hidden="true">›</span></span></button>` : ''}<div class="pe-zoom" role="group" aria-label="Zoom del plano"><button class="boton secundario" data-pe-zoom="-1" aria-label="Alejar">−</button><button class="boton secundario" data-pe-zoom="0">Entero</button><button class="boton secundario" data-pe-zoom="1" aria-label="Acercar">+</button></div>
+      ${enFranja.length && verFranja && !ubicando ? `<div class="pe-franja-lista" id="pe-franja-lista" data-pe-franja-lista role="list" aria-label="Sin sala en el modelo, por confirmar">${enFranja.length > 5 ? `<input type="search" class="pe-franja-buscar" data-pe-franja-buscar placeholder="Filtrar por TAG, sala, zona o tipo" aria-label="Filtrar los equipos por ubicar" value="${esc(franjaFiltro)}">` : ''}<ul>${enFranja.map((x) => `<li${puedeUbicarAqui(p) ? ' class="con-ubicar"' : ''} data-pe-franja-fila="${esc(x.id)}"${casaFranja(x) ? '' : ' hidden'}><button type="button" class="${enConjunto.has(x.id) ? 'elegida' : ''}" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${pistaCorta(x) || 'sin sala en el modelo'}, por confirmar: ${NOMBRE[bq(x)]}`)}">${simbolo(x.icono)}<span class="pe-fr-txt"><span class="pe-fr-l1"><b>${esc(x.tag)}</b><span class="tipo">${esc([tipoDe(x), x.modelo].filter(Boolean).join(' · '))}</span></span><span class="pista${pistaCorta(x) ? '' : ' vacia'}">${esc(pistaCorta(x) || 'Sin sala, zona ni sistema en la base')}</span>${x.propuesto ? `<span class="pe-propuesto" data-pe-propuesto="${esc(x.id)}">${esc(dichoPropuesto(x.propuesto))}</span>` : ''}</span><i class="pe-punto bq-punto-${puntoInc(x)}" title="${esc(conInc(x) ? 'Con incidencia' : conRes(x) ? IP.NOMBRE_RESUELTA : NOMBRE[bq(x)])}"></i><span class="pe-ir" aria-hidden="true">›</span></button>${puedeUbicarAqui(p) ? `<button type="button" class="pe-ubicar" data-pe-ubicar="${esc(x.id)}" aria-label="${esc(x.propuesto ? `Ver dónde lo propone el IFC para ${x.tag}` : `Ubicar ${x.tag} en el plano`)}">${x.propuesto ? 'Ver' : 'Ubicar'}</button>` : ''}</li>`).join('')}</ul><p class="pe-franja-nada" data-pe-franja-nada${enFranja.some(casaFranja) ? ' hidden' : ''}>Ninguno con «${esc(franjaFiltro)}».</p></div>` : ''}</div>${FA.marcando() ? FA.mando(p) : ''}</div>`
       : compacto ? `<div class="pe-sin-plano" data-pe-sin-ifc><b>Falta el IFC de la planta ${esc(etiqueta(p))}</b> (y tampoco tiene plano PDF). Lo prepara el delineante; mientras, sus equipos están en «Lista».</div>`
       : `<div class="pe-sin-plano"><b>La planta ${esc(etiqueta(p))} aún no tiene plano de equipos.</b><br>Lo sube la oficina desde Commissioning › Plano. Mientras, la lista dice la sala y el estado de cada equipo.</div>`;
     /* Fila 1 de la pestaña Cx: el desplegable con todas las plantas (las que tienen IFC dicen cuántos coloca el modelo; las que no,
@@ -1388,6 +1517,17 @@
       if (gesto && gesto.tipo === 'pellizco') { const l = marco && marco.querySelector('[data-pe-lienzo]'); tagsYa(l); encuadrar(); }
       else if (tTags && marco) tagsYa(marco.querySelector('[data-pe-lienzo]'));
       /* Marcando (8-nov): el toque dice el sitio, aunque caiga encima de otra marca; arrastrar y pellizcar siguen moviendo el plano. */
+      /* Ubicando (17-nov): el toque dice el sitio del equipo, aunque caiga encima de otro; arrastrar y pellizcar mueven el plano. */
+      if (eraEspera && marco && ubicando && !guardandoSitio) {
+        const pt = UB() && UB().puntoDelToque(marco.querySelector('[data-pe-lienzo]').getBoundingClientRect(), ev.clientX, ev.clientY);
+        gesto = null;
+        ultimoToque = null;
+        tragarClick = true;
+        setTimeout(() => { tragarClick = false; }, 350);
+        /* Fuera del dibujo (el hueco bajo un plano apaisado) no es un sitio: sigue esperando. */
+        if (pt) guardarSitio(pt[0], pt[1]);
+        return;
+      }
       if (eraEspera && marco && FA.marcando()) {
         const caja = marco.querySelector('[data-pe-lienzo]').getBoundingClientRect();
         const x = (ev.clientX - caja.left) / caja.width;
@@ -1442,6 +1582,68 @@
   }, { passive: false });
 
   /* Repinta sin perder dónde estaba el plano ni la lista. */
+  /* 17-nov: tocar «Ubicar» (en la lista «por ubicar» o en la hoja) deja el plano libre y espera el toque en su sitio. */
+  function empezarAUbicar(id) {
+    const p = plantaActual();
+    const e = p && p.equipos.find((q) => q.id === id);
+    if (!e || !puedeUbicarAqui(p) || e.delModelo) return;
+    ubicando = { id: e.id, tag: e.tag || e.id, planta: p.planta || '' };
+    verFranja = false; elegida = null; mat = null;
+    marcarElegida(); mostrarHoja(); repintarQuieto();
+    verSuSitio(p);
+  }
+  /* 17-nov (v2): el plano va a su sala (si el modelo la tiene) o a sus referencias ya ubicadas. */
+  function verSuSitio(p) {
+    const pr = propuestaDe(p);
+    if (pr) { centrarPunto(pr.x, pr.y); return true; }
+    const b = buscado(p);
+    const q = b && b.hs[0] ? p.equipos.find((z) => z.id === b.hs[0].id) : null;
+    if (b && b.sala) centrarPunto(b.sala.x, b.sala.y, b.sala); else if (q) centrarPunto(q.x, q.y);
+    return !!(b && (b.sala || q));
+  }
+  /* Acerca hasta que la sala (o el punto) llena buena parte del marco, y lo centra. */
+  function centrarPunto(x, y, caja = null) {
+    const [marco0, lienzo0] = marcoYLienzo();
+    if (!marco0 || !lienzo0) return;
+    const ancho = lienzo0.offsetWidth / Math.max(1, zoom);
+    const objetivo = caja && caja.w > 0 ? Math.min(ZOOM_MAX, Math.max(2, (marco0.clientWidth * 0.45) / (caja.w * ancho))) : 3;
+    if (Math.abs(zoom - objetivo) > 0.05) ponerZoom(objetivo);
+    const [marco, lienzo] = marcoYLienzo();
+    marco.scrollLeft = x * lienzo.offsetWidth + lienzo.offsetLeft - marco.clientWidth / 2;
+    marco.scrollTop = y * lienzo.offsetHeight + lienzo.offsetTop - marco.clientHeight / 2;
+  }
+
+  async function guardarSitio(x, y) {
+    const p = plantaActual();
+    const u = ubicando;
+    if (!u || !p || !puedeUbicarAqui(p)) { ubicando = null; repintarQuieto(); return; }
+    guardandoSitio = true; repintarQuieto();
+    let r;
+    try { r = await C.postJson('api/plano-equipos/colocar', { obra: C.obraId(), plano: p.plano.id, id: u.id, x, y }); } catch (e) { r = { ok: false, error: e.message }; }
+    guardandoSitio = false;
+    if (!r || !r.ok) { C.aviso((r && r.error) || 'No se pudo guardar el sitio.'); repintarQuieto(); return; }
+    ubicando = null;
+    try { await cargar(); } catch (e) { C.aviso(e.message); }
+    elegida = u.id; mat = null;
+    repintarQuieto(); marcarElegida(); mostrarHoja(); centrar(u.id);
+  }
+
+  /* «Confirmar» la propuesta del IFC (17-nov): el equipo se queda con ese elemento del modelo, su GUID y su bloque. */
+  async function confirmarPropuesta() {
+    const p = plantaActual();
+    const u = ubicando; const pr = propuestaDe(p);
+    if (!u || !pr || !puedeUbicarAqui(p)) return;
+    guardandoSitio = true; repintarQuieto();
+    let r;
+    try { r = await C.postJson('api/plano-equipos/confirmar-ifc', { obra: C.obraId(), plano: p.plano.id, id: u.id, g: pr.g, motivo: pr.motivo }); } catch (e) { r = { ok: false, error: e.message }; }
+    guardandoSitio = false;
+    if (!r || !r.ok) { C.aviso((r && r.error) || 'No se pudo confirmar.'); repintarQuieto(); return; }
+    ubicando = null;
+    try { await cargar(); } catch (e) { C.aviso(e.message); }
+    elegida = u.id; mat = null;
+    repintarQuieto(); marcarElegida(); mostrarHoja(); centrar(u.id);
+  }
+
   function repintarQuieto() {
     const marco = $raiz.querySelector('[data-pe-marco]');
     const lista = $raiz.querySelector('.pe-lista');
@@ -1480,6 +1682,18 @@
 
   /* El buscador filtra la lista y apaga en el plano lo que no casa. */
   document.addEventListener('input', (ev) => {
+    if ($raiz && ev.target.matches && ev.target.matches('[data-pe-franja-buscar]') && $raiz.contains(ev.target)) {
+      franjaFiltro = ev.target.value;
+      const p = plantaActual();
+      let alguno = false;
+      for (const li of $raiz.querySelectorAll('[data-pe-franja-fila]')) {
+        const x = p && p.equipos.find((q) => q.id === li.dataset.peFranjaFila);
+        const si = Boolean(x && casaFranja(x)); li.hidden = !si; alguno = alguno || si;
+      }
+      const nada = $raiz.querySelector('[data-pe-franja-nada]');
+      if (nada) { nada.hidden = alguno; nada.textContent = `Ninguno con «${franjaFiltro}».`; }
+      return;
+    }
     if (!$raiz || !ev.target.matches || !ev.target.matches('[data-pe-buscar]') || !$raiz.contains(ev.target)) return;
     filtro = ev.target.value;
     const pos = ev.target.selectionStart;
@@ -1549,6 +1763,14 @@
       elegida = null; mat = null; zoom = 1; pintar();
       return;
     }
+    const ub = blanco(ev).closest('[data-pe-ubicar]');
+    if (ub) { empezarAUbicar(ub.dataset.peUbicar); return; }
+    if (blanco(ev).closest('[data-pe-ubicar-cancelar]')) { ubicando = null; repintarQuieto(); return; }
+    if (blanco(ev).closest('[data-pe-confirmar-ifc]')) { confirmarPropuesta(); return; }
+    /* 17-nov (v2): la ficha del que se ubica, sin dejar de ubicar: el siguiente toque en el plano sigue diciendo su sitio. */
+    if (blanco(ev).closest('[data-pe-ubicar-ficha]')) { if (ubicando) { elegida = ubicando.id; mat = null; mostrarHoja(); asomar(elegida); } return; }
+    const rf = blanco(ev).closest('[data-pe-ir-ref]');
+    if (rf) { centrar(rf.dataset.peIrRef); return; }
     const fr = blanco(ev).closest('[data-pe-franja]');
     if (fr) { verFranja = !verFranja; repintarQuieto(); return; }
     /* Una píldora «+N»: acerca hacia ella hasta que sus TAG caben. */

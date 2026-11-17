@@ -49,7 +49,8 @@
    * mismo criterio: lo que más hace cada uno en la obra). Un rol que no está aquí, RELLENO.
    */
   const BARRA_POR_ROL = {
-    encargadoObra: ['avance', 'partes'],
+    /* 17-nov (JC): Cx «quiero que sustituya a avance». Avance sigue en el «+». */
+    encargadoObra: ['commissioning', 'partes'],
     /* El técnico de commissioning aún no es un rol propio: queda preparado por id. */
     tecnicoCommissioning: ['equipos', 'ncr'],
     jefeCommissioning: ['equipos', 'ncr'],
@@ -126,7 +127,10 @@
   const ACCIONES_PLUS_POR_ROL = {
     jefeObra: JEFE_OBRA,
     jefeProduccion: JEFE_OBRA,
-    encargadoObra: ['jornada', 'avance', 'partes', 'albaranes', 'avisos', 'bloc'],
+    /* 17-nov (JC): «Los encargados en la app movil tienen que hacer Commisionning y gestion de
+       incidencias y NCRs ademas de pruebas de estanqueidad». Esas cuatro, a la vista; con el avance
+       y el aviso de siempre. Fichar, albaranes, reclamables y bloc, en «Todas las acciones». */
+    encargadoObra: ['commissioning', 'estanqueidad', 'ncr', 'reparaciones', 'avance', 'partes'],
     operario: ['jornada', 'partes', 'commissioning', 'bloc'],
     jefeCommissioning: CX,
     tecnicoCommissioning: CX,
