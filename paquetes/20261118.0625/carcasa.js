@@ -130,7 +130,8 @@
       icono: svg('<path d="M14 3.5H6.5A1.5 1.5 0 0 0 5 5v14a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19V8.5z"/><path d="M14 3.5v5h5"/><path d="M12 11v4M12 17.5v.1"/>') },
     /* 26-oct: esperas, accesos denegados, falta de medios… (avisosReclamables.js). */
     { seccion: 'avisos', nombre: 'Algo reclamable', ayuda: 'Esperas, accesos denegados, sin grúa…', obra: true, pasos: ['[data-at="nuevo"]'],
-      icono: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>') },
+      /* 18-nov: una balanza (⚖, como en «Más»); el reloj era el de Fichar y en el «+» van juntos. */
+      icono: svg('<path d="M12 4v16M8 20h8M5 7h14"/><path d="M5 7l-2.5 6a2.5 2.5 0 0 0 5 0zM19 7l-2.5 6a2.5 2.5 0 0 0 5 0z"/>') },
     /* 5-nov (JC): el reporte QHSE en 20 s: cámara, categoría, ¿qué? y guardar (reportesQhse.js). */
     { seccion: 'reportesQhse', nombre: 'Reporte QHSE', ayuda: 'Foto, qué y categoría: observación, incidente o inspección', obra: true, pasos: ['[data-rq="nuevo"]', '[data-rq="camara"]'],
       icono: svg('<path d="M12 3.5 5 6.2v5.3c0 4.3 3 7.6 7 9 4-1.4 7-4.7 7-9V6.2z"/><path d="M12 8.5v4.5"/><circle cx="12" cy="16" r=".6" fill="currentColor"/>') },
@@ -639,7 +640,7 @@
         if ((actual && actual.id === p.id) && propias.some(([id]) => id === s)) destino = s;
         return `<a href="#${destino}" class="pestana-${p.id}${(actual && actual.id === p.id) ? ' activa' : ''}" ${(actual && actual.id === p.id) ? 'aria-current="page"' : ''}>${p.icono}<span>${esc(p.nombre)}</span></a>`;
       };
-      const centro = accionesDisponibles().length
+      const centro = accionesDelMas().length
         ? '<div class="barra-centro"><button type="button" class="boton-anadir" id="boton-anadir" aria-label="Añadir" aria-haspopup="dialog">' + MAS + '</button><span>Añadir</span></div>'
         : '';
       /* 9-nov (JC): «que quede el + centrado»: las pestañas, todas del mismo ancho, mitad a cada
@@ -707,6 +708,8 @@
   const CORTO = { estanqueidad: 'Estanqueidad', albaranes: 'Albarán', avisos: 'Reclamable', qhse: 'Inspección QHSE', reportesQhse: 'Reporte QHSE', avance: 'Avance' };
 
   const accionesDisponibles = () => { const ok = new Set(permitidas()); return ACCIONES.filter((a) => ok.has(a.seccion)); };
+  /* 18-nov (JC): sin duplicar la barra; si todo lo del rol ya está abajo, no hay «+». */
+  const accionesDelMas = () => { const r = BR().accionesDe((sesion() || {}).rol, accionesDisponibles().map((a) => a.seccion), secsSesion()); return [...r.principales, ...r.resto]; };
 
   function cerrarHoja() {
     const h = document.getElementById('hoja-anadir');
@@ -723,7 +726,7 @@
     /* 9-nov: hasta 6 a la vista según el rol; las demás, al pie, sin perder ninguna. */
     const disponibles = accionesDisponibles();
     const porSeccion = new Map(disponibles.map((a) => [a.seccion, a]));
-    const reparto = BR().accionesDe((sesion() || {}).rol, disponibles.map((a) => a.seccion));
+    const reparto = BR().accionesDe((sesion() || {}).rol, disponibles.map((a) => a.seccion), secsSesion());
     const lista = [...reparto.principales, ...reparto.resto].map((s) => porSeccion.get(s));
     const celda = (a, i) => {
       const falta = a.obra && !o;

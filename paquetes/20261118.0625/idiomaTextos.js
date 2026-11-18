@@ -510,6 +510,7 @@ const NOMBRES = [
   ['Comparativos', 'Comparisons', 'Comparatius', 'Comparativos', 'Preisvergleiche', 'Comparatifs'],
   ['Precios de compra', 'Purchase prices', 'Preus de compra', 'Preços de compra', 'Einkaufspreise', 'Prix d’achat'],
   ['Diagrama de Gantt', 'Gantt chart', 'Diagrama de Gantt', 'Diagrama de Gantt', 'Gantt-Diagramm', 'Diagramme de Gantt'],
+  ['Planificaciones concretas', 'Targeted schedules', 'Planificacions concretes', 'Planeamentos específicos', 'Detailpläne', 'Plannings ciblés'],
   ['Planificación económica', 'Financial planning', 'Planificació econòmica', 'Planeamento económico', 'Finanzplanung', 'Planification financière'],
   ['Reporte a dirección', 'Report to management', 'Report a direcció', 'Relatório à direção', 'Bericht an die Geschäftsleitung', 'Rapport à la direction'],
   ['Planos', 'Drawings', 'Plànols', 'Plantas', 'Pläne', 'Plans'],

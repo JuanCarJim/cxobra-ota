@@ -124,7 +124,12 @@
   const MANTENIMIENTO = ['reparaciones', 'commissioning', 'ncr', 'bloc', 'jornada'];
   const QHSE = ['qhse', 'reportesQhse', 'bloc', 'jornada'];
   const SOLO_LO_SUYO = ['jornada', 'bloc'];
+  /* 18-nov (JC): Fichar, Estanqueidad, NCR, Reparación y Avance, que no tiene en su barra (Cx y QHSE);
+     y lo reclamable, que es lo que se le cobra al cliente. */
+  const DIRECCION = ['jornada', 'estanqueidad', 'ncr', 'reparaciones', 'avance', 'avisos'];
   const ACCIONES_PLUS_POR_ROL = {
+    administrador: DIRECCION,
+    gerente: DIRECCION,
     jefeObra: JEFE_OBRA,
     jefeProduccion: JEFE_OBRA,
     /* 17-nov (JC): «Los encargados en la app movil tienen que hacer Commisionning y gestion de
@@ -156,17 +161,28 @@
    * Reparte las acciones que el rol puede hacer: `principales` (hasta 6, a la vista) y `resto`
    * («Todas las acciones»). `disponibles`, las secciones permitidas en el orden de carcasa.js.
    * Un rol sin tabla, o sin ninguna de las suyas permitida, ve las primeras 6 de siempre.
+   * 18-nov (JC): «No tiene sentido tener duplicada una acción en la barra inferior y en el +».
+   * Con `secciones` (las del rol), lo que ya se abre con una pestaña de abajo no sale en el «+».
+   * Las ocultas de una pestaña (Estanqueidad en Cx) no cuentan: desde la barra no se llega.
    */
-  function accionesDe(rol, disponibles = []) {
-    const ok = new Set(disponibles);
+  function accionesDe(rol, disponibles = [], secciones = null) {
+    const directas = secciones ? enLaBarra(rol, secciones) : new Set();
+    const libres = disponibles.filter((s) => !directas.has(s));
+    const ok = new Set(libres);
     const suyas = (ACCIONES_PLUS_POR_ROL[rol] || []).filter((s) => ok.has(s));
-    const principales = (suyas.length ? suyas : disponibles).slice(0, MAX_ACCIONES);
+    const principales = (suyas.length ? suyas : libres).slice(0, MAX_ACCIONES);
     const arriba = new Set(principales);
-    return { principales, resto: disponibles.filter((s) => !arriba.has(s)) };
+    return { principales, resto: libres.filter((s) => !arriba.has(s)) };
+  }
+
+  /** Las secciones que se abren directamente con una pestaña de abajo (sin Inicio ni Más). */
+  function enLaBarra(rol, secciones = []) {
+    return new Set(pestanasDe(rol, secciones).filter((p) => p.id !== 'inicio' && p.id !== 'mas')
+      .flatMap((p) => p.secciones.filter(([, , oculta]) => !oculta).map(([s]) => s)));
   }
 
   /* Jornada no va en «Más» si «Fichar» está a la vista en el «+»: abre esa misma pantalla. */
-  const fichaEnElMas = (rol, secciones) => accionesDe(rol, SECCIONES_ACCION.filter((s) => secciones.includes(s))).principales.includes('jornada');
+  const fichaEnElMas = (rol, secciones) => accionesDe(rol, SECCIONES_ACCION.filter((s) => secciones.includes(s)), secciones).principales.includes('jornada');
 
   const orden = (a, b) => a.localeCompare(b, 'es');
 
@@ -216,7 +232,7 @@
   /** El nombre del ordenador de cada sección, para el título de arriba. */
   const nombreDe = (s) => (EN_MAS[s] ? EN_MAS[s].nombre : null);
 
-  const api = { PESTANAS, BARRA_POR_ROL, RELLENO, EN_MAS, ACCIONES_PLUS_POR_ROL, MAX_ACCIONES, SECCIONES_ACCION, accionesDe, pestanasDe, masDe, pestanaDeSeccion, nombreDe };
+  const api = { PESTANAS, BARRA_POR_ROL, RELLENO, EN_MAS, ACCIONES_PLUS_POR_ROL, MAX_ACCIONES, SECCIONES_ACCION, accionesDe, enLaBarra, pestanasDe, masDe, pestanaDeSeccion, nombreDe };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (raiz) raiz.CXBarraRol = api;
 })(typeof window !== 'undefined' ? window : null);
