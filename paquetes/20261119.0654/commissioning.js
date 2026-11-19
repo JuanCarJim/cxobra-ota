@@ -264,6 +264,7 @@
       const r = await C.postJson('api/equipo/placa', { equipoId, accion: 'lectura', fotoId, pasadas, vista });
       if (!r.ok) throw new Error(r.error || 'No se ha guardado la lectura.');
       if (ficha && r.equipo && ficha.equipo.id === r.equipo.id) ficha = r;
+      if (window.CX_POSICION_PLANO && r.equipo) window.CX_POSICION_PLANO.contexto({ equipoId: r.equipo.id, tag: r.equipo.tag, planta: r.equipo.planta, origen: 'placa' });
       if (r.lectura === 'aplicada' && r.numSerie) C.aviso(`Nº de serie leído de la placa: ${r.numSerie}`);
     } catch (e) {
       if (boton) C.aviso(e.message || 'No se ha podido leer la foto.');
@@ -684,6 +685,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       ficha = r;
       hoja = null;
       fichasEq = null;
+      /* 18-nov (JC): abrir un equipo dice dónde estás en el plano (renderer/movil/posicionPlanoCapa.js). */
+      if (!quieto && window.CX_POSICION_PLANO) window.CX_POSICION_PLANO.contexto({ equipoId: r.equipo.id, tag: r.equipo.tag, planta: r.equipo.planta, origen: 'ficha' });
       /* Lo leído antes puede haber cambiado (llegó algo de la oficina): se vuelve
          a pedir. Lo tecleado y sin guardar se queda. */
       for (const [k, t] of tomas) if (!t.cambiada) tomas.delete(k);
@@ -1600,19 +1603,49 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   /* La forma de su tipo de difusor o reja (shared/commissioning/simbolosBoca.js). */
   const simbolo = (b) => (window.SIMBOLOS_BOCA ? window.SIMBOLOS_BOCA.svg(b.tipoId, { titulo: b.tipo || '' }) : '');
 
+  /*
+   * EL PLANO DEL MODELO IFC (16-nov-2026, JC: «Para estas cosas lo que yo quiero son los planos de IFC con sus
+   * materiales»). «Plano IFC» cambia la lámina por la red de la máquina dibujada desde el modelo (tamaños de tramo,
+   * rejas, salas, TAG; impulsión y retorno en dos colores) y pone cada boca encima de la reja del modelo con la que
+   * casa. Solo cambia lo que se ve: las bocas guardadas no se mueven.
+   */
+  const planosIfc = new Map(); /* planoId → { cargando } | { ok, svg, pos: Map(bocaId → {x,y}), ver } | { ok: false, motivo } */
+  async function alternarPlanoIfc(b) {
+    const id = b.dataset.plano;
+    const ya = planosIfc.get(id);
+    if (ya && ya.cargando) return;
+    if (ya && ya.ok) { ya.ver = !ya.ver; repintarConScroll(); return; }
+    planosIfc.set(id, { cargando: true }); repintarConScroll();
+    let r;
+    try { r = await C.pedir(`api/equipo/plano-ifc?equipo=${encodeURIComponent(ficha.equipo.id)}&plano=${encodeURIComponent(id)}`); } catch (e) { r = { ok: false, motivo: String((e && e.message) || e) }; }
+    planosIfc.set(id, r && r.ok
+      ? { ok: true, ver: true, svg: r.svg, codigo: r.codigo, pie: r.encaje && r.encaje.casadas ? `${r.encaje.casadas} bocas casadas con las rejas del modelo` : (r.encaje && r.encaje.motivo) || '',
+        pos: new Map((r.bocas || []).filter((x) => !x.fuera && x.x != null).map((x) => [String(x.id), { x: x.x, y: x.y }])) }
+      : { ok: false, motivo: (r && (r.motivo || r.error)) || 'No se ha podido dibujar el plano del modelo.' });
+    repintarConScroll();
+  }
+
   function htmlPlano(p, delCircuito, tol) {
-    const conSitio = (p.todas || p.bocas).filter((b) => b.x !== null && b.x !== undefined && b.y !== null && b.y !== undefined);
-    if (!p.imagen || !conSitio.length) return '';
-    return `<figure class="plano-bocas" data-plano-fig="${esc(p.id)}">
+    const ifc = planosIfc.get(p.id);
+    const conIfc = Boolean(ifc && ifc.ok && ifc.ver);
+    const sitio = (b) => (conIfc ? ifc.pos.get(String(b.id)) || null : b);
+    const conSitio = (p.todas || p.bocas).filter((b) => { const s = sitio(b); return s && s.x !== null && s.x !== undefined && s.y !== null && s.y !== undefined; })
+      .map((b) => (conIfc ? { ...b, ...sitio(b) } : b));
+    if (!p.imagen || !(p.todas || p.bocas).some((b) => b.x !== null && b.x !== undefined)) return '';
+    return `<figure class="plano-bocas${conIfc ? ' plano-ifc' : ''}" data-plano-fig="${esc(p.id)}">
       <div class="plano-marco" data-paleta="vidaire"><div class="plano-lienzo">
-        <img data-src="api/equipo/plano?id=${encodeURIComponent(p.id)}" alt="Plano ${esc(p.nombre)}">
+        ${conIfc ? ifc.svg.replace('<svg ', '<svg class="plano-ifc-svg" ') : `<img data-src="api/equipo/plano?id=${encodeURIComponent(p.id)}" alt="Plano ${esc(p.nombre)}">`}
         ${conSitio.map((b) => { const otro = delCircuito && !delCircuito(b); return `<button class="marca-boca ${claseMarca(estadoPintado(b, tol))}${esRetorno(b) ? ' ret' : ''}${otro ? ' otro-circuito' : ''}" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%"
           data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}"${otro ? ` data-circuito="${esRetorno(b) ? 'retorno' : 'impulsion'}"` : ''} aria-label="Ir a la boca ${esc(b.nombre)}">${simbolo(b)}<span class="rotulo-boca">${esc(b.nombre)}</span></button>`; }).join('')}
-        ${(p.ajenas || []).map((b) => `<span class="marca-boca ajena" aria-hidden="true" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%">${simbolo({ tipoId: b.tipo })}<span class="rotulo-boca">${esc(b.nombre)}</span></span>`).join('')}
+        ${(conIfc ? [] : p.ajenas || []).map((b) => `<span class="marca-boca ajena" aria-hidden="true" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%">${simbolo({ tipoId: b.tipo })}<span class="rotulo-boca">${esc(b.nombre)}</span></span>`).join('')}
       </div></div>
       <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Por debajo <i class="alto"></i>Por encima</span>
         <span class="zoom-botones"><button class="enlace" data-cx="zoom-menos" aria-label="Alejar">−</button><button class="enlace" data-cx="zoom-mas" aria-label="Acercar">+</button>
-        <button class="enlace" data-cx="plano-grande">Ampliar</button></span></figcaption>
+        <button class="enlace" data-cx="plano-ifc" data-plano="${esc(p.id)}" ${ifc && ifc.cargando ? 'disabled' : ''}
+          title="La red de esta máquina dibujada desde el modelo IFC">${ifc && ifc.cargando ? 'Leyendo el modelo…' : conIfc ? 'Ver lámina' : 'Plano IFC'}</button>
+        <button class="enlace" data-cx="plano-grande">Ampliar</button></span>
+        ${conIfc && ifc.pie ? `<span class="plano-ifc-pie">Sistema ${esc(ifc.codigo)} · ${esc(ifc.pie)}</span>` : ''}
+        ${ifc && ifc.ok === false ? `<span class="plano-ifc-pie">${esc(ifc.motivo)}</span>` : ''}</figcaption>
     </figure>`;
   }
 
@@ -4293,6 +4326,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       irABoca(b.dataset.boca);
     }
     else if (que === 'plano-grande' && ficha) planoGrande(b);
+    else if (que === 'plano-ifc' && ficha) alternarPlanoIfc(b);
     else if (que === 'lamina-red' && hoja) { hoja.lamina = Number(b.dataset.i) || 0; vistas.delete('red-modelo'); const y = window.scrollY; pintarHoja(); window.scrollTo(0, y); }
     else if (que === 'ir-bocas-red' && hoja) { const li = $app.querySelector('[data-fila-boca]:not(.medida)'); if (li) elegirBocaRed(li.dataset.filaBoca, true); }
     else if (que === 'conducto-guardar' && ficha) guardarConducto(b);

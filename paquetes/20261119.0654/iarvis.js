@@ -864,7 +864,8 @@
       ${I.movil
     /* 8-nov (JC): en el móvil, SOLO el chat: una cabecera mínima con «‹» para volver y «Iarvis». */
     ? '<div class="iaCabecera"><button class="iaVolver" title="Volver" aria-label="Volver">‹</button><h2>Iarvis</h2></div>'
-    : '<div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso" data-ia-t="ia.aviso">' + esc(T('ia.aviso')) + '</span></div><button class="iaAnclar" type="button" aria-pressed="false" title="Anclar: queda fijo a la derecha" aria-label="Anclar Iarvis"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 6 3 3v2H7v-2l3-3-1-6zM12 15v6"/></svg></button><button class="iaFlotar" title="Soltar como ventana (o anclar a la columna)" aria-label="Soltar o anclar">⧉</button><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button><button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button></div>'}
+    : '<div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso" data-ia-t="ia.aviso">' + esc(T('ia.aviso')) + '</span></div><button class="iaAnclar" type="button" aria-pressed="false" title="Anclar: queda fijo a la derecha" aria-label="Anclar Iarvis"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 6 3 3v2H7v-2l3-3-1-6zM12 15v6"/></svg></button><button class="iaFlotar" title="Minimizar a burbuja" aria-label="Minimizar">–</button><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button><button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button></div>'}
+      <button class="iaBurbuja" type="button" title="Abrir Iarvis" aria-label="Abrir Iarvis">${(window.ARRANQUE_LOGO && window.ARRANQUE_LOGO.BRUJULA) || '<span aria-hidden="true">🧭</span>'}</button>
       <div class="iaSobre" hidden></div>
       <div class="iaLista" role="log" aria-live="polite"></div>
       <div class="iaEntrada">
@@ -913,7 +914,7 @@
       adjuntar(lista);
     });
     const cerrarB = p.querySelector('.iaCerrar');
-    if (cerrarB) cerrarB.addEventListener('click', cerrar);
+    if (cerrarB) cerrarB.addEventListener('click', () => cerrar(true)); /* la × cierra también la columna anclada (JC, 18-nov) */
     p.addEventListener('click', async (e) => {
       const sug = e.target.closest('[data-ia-sugerencia]');
       if (sug) { mandar(sug.getAttribute('data-ia-sugerencia')); return; }
@@ -962,45 +963,97 @@
     Object.assign(p.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px`, right: 'auto', bottom: 'auto' });
     return { x, y, w, h };
   }
+  /* 18-nov (JC: «la pantalla de Iarvis molesta; que sea flotante siempre y que se pueda mover»): flotante por defecto;
+     solo la chincheta (anclar) la pone en columna. Se puede minimizar a una burbuja que también se arrastra. */
+  const BURBUJA = 56;
+  function medidasDe(g) { const H = window.innerHeight; return { w: (g && g.w) || 380, h: (g && g.h) || Math.min(540, H - 116) }; }
+  function colocarFlotante(g) {
+    const p = I.panel; if (!p) return null;
+    const W = window.innerWidth, H = window.innerHeight;
+    const m = medidasDe(g);
+    p.classList.add('iaFlota');
+    document.body.classList.remove('iaAbierto');
+    if (I.mini) {
+      const x = g && g.x != null ? g.x : W - BURBUJA - 16, y = g && g.y != null ? g.y : H - BURBUJA - 84;
+      Object.assign(p.style, { left: `${Math.max(8, Math.min(x, W - BURBUJA - 8))}px`, top: `${Math.max(8, Math.min(y, H - BURBUJA - 8))}px`, width: `${BURBUJA}px`, height: `${BURBUJA}px`, right: 'auto', bottom: 'auto' });
+      return null;
+    }
+    const x = g && g.x != null ? g.x : W - m.w - 16, y = g && g.y != null ? g.y : H - m.h - 84;
+    return encajar(p, x, y, m.w, m.h);
+  }
+  function guardarVentana() {
+    const p = I.panel; if (!p || !p.classList.contains('iaFlota') || p.hidden) return;
+    const r = p.getBoundingClientRect();
+    if (I.mini) guardarPos({ flota: true, mini: true, x: r.left, y: r.top, w: I.rectLleno && I.rectLleno.w, h: I.rectLleno && I.rectLleno.h });
+    else { I.rectLleno = { w: r.width, h: r.height }; guardarPos({ flota: true, mini: false, x: r.left, y: r.top, w: r.width, h: r.height }); }
+  }
   function soltar(r) {
     const p = I.panel; if (!p || I.movil) return;
     const rect = r || p.getBoundingClientRect();
-    if (I.anclado) anclar(false); /* soltarla como ventana le quita la chincheta */
-    p.classList.add('iaFlota');
-    document.body.classList.remove('iaAbierto');
-    const pos = encajar(p, rect.left - (r ? 0 : 24), r ? rect.top : Math.max(8, rect.top + 24), Math.min(rect.width, 420), Math.min(rect.height, window.innerHeight - 80));
-    guardarPos({ flota: true, ...pos });
+    if (I.anclado) anclar(false, { flotar: false }); /* soltarla como ventana le quita la chincheta */
+    colocarFlotante({ x: rect.left, y: rect.top, w: Math.min(rect.width, 420), h: Math.min(rect.height, window.innerHeight - 80) });
+    guardarVentana();
   }
   function aColumna() {
     const p = I.panel; if (!p || I.movil) return;
-    p.classList.remove('iaFlota');
+    p.classList.remove('iaFlota', 'iaMini');
+    I.mini = false;
     ['left', 'top', 'width', 'height', 'right', 'bottom'].forEach((k) => { p.style[k] = ''; });
     if (!p.hidden) document.body.classList.add('iaAbierto');
-    guardarPos({ flota: false });
+  }
+  function minimizar(v) {
+    const p = I.panel; if (!p || I.movil || I.anclado) return;
+    I.mini = Boolean(v);
+    const r = p.getBoundingClientRect();
+    if (I.mini && !p.classList.contains('iaMini')) I.rectLleno = { w: r.width, h: r.height };
+    p.classList.toggle('iaMini', I.mini);
+    colocarFlotante({ x: r.left, y: r.top, ...(I.rectLleno || {}) });
+    guardarVentana();
   }
   function engancharArrastre(p) {
     const cab = p.querySelector('.iaCabecera'); if (!cab || I.movil) return;
     const flot = p.querySelector('.iaFlotar');
-    if (flot) flot.addEventListener('click', () => (p.classList.contains('iaFlota') ? aColumna() : soltar()));
-    let a = null;
-    cab.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0 || e.target.closest('button')) return;
-      if (window.innerWidth < 900) return;
+    if (flot) flot.addEventListener('click', () => minimizar(true));
+    const bur = p.querySelector('.iaBurbuja');
+    let a = null, movido = false;
+    const empezar = (e, el) => {
+      if (e.button !== 0 || window.innerWidth < 900) return false;
       if (!p.classList.contains('iaFlota')) soltar(p.getBoundingClientRect());
       const r = p.getBoundingClientRect();
-      a = { dx: e.clientX - r.left, dy: e.clientY - r.top };
-      try { cab.setPointerCapture(e.pointerId); } catch { /* */ }
+      a = { dx: e.clientX - r.left, dy: e.clientY - r.top, x0: e.clientX, y0: e.clientY };
+      movido = false;
+      try { el.setPointerCapture(e.pointerId); } catch { /* */ }
       e.preventDefault();
-    });
-    cab.addEventListener('pointermove', (e) => {
+      return true;
+    };
+    const mover = (e) => {
       if (!a) return;
+      if (Math.abs(e.clientX - a.x0) + Math.abs(e.clientY - a.y0) > 4) movido = true;
       const r = p.getBoundingClientRect();
-      encajar(p, e.clientX - a.dx, e.clientY - a.dy, r.width, r.height);
-    });
-    const fin = () => { if (!a) return; a = null; const r = p.getBoundingClientRect(); guardarPos({ flota: true, x: r.left, y: r.top, w: r.width, h: r.height }); };
+      if (I.mini) { Object.assign(p.style, { left: `${Math.max(8, Math.min(e.clientX - a.dx, window.innerWidth - BURBUJA - 8))}px`, top: `${Math.max(8, Math.min(e.clientY - a.dy, window.innerHeight - BURBUJA - 8))}px` }); }
+      else encajar(p, e.clientX - a.dx, e.clientY - a.dy, r.width, r.height);
+    };
+    const fin = () => { if (!a) return; a = null; guardarVentana(); };
+    cab.addEventListener('pointerdown', (e) => { if (e.target.closest('button')) return; empezar(e, cab); });
+    cab.addEventListener('pointermove', mover);
     cab.addEventListener('pointerup', fin); cab.addEventListener('pointercancel', fin);
+    if (bur) {
+      bur.addEventListener('pointerdown', (e) => { empezar(e, bur); });
+      bur.addEventListener('pointermove', mover);
+      bur.addEventListener('pointerup', () => { const eraClic = !movido; fin(); if (eraClic) minimizar(false); });
+      bur.addEventListener('pointercancel', fin);
+      bur.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); minimizar(false); } });
+    }
     /* El tamaño que le dé con la esquina también se recuerda. */
-    if (window.ResizeObserver) new ResizeObserver(() => { if (a || !p.classList.contains('iaFlota') || p.hidden) return; const r = p.getBoundingClientRect(); guardarPos({ flota: true, x: r.left, y: r.top, w: r.width, h: r.height }); }).observe(p);
+    if (window.ResizeObserver) new ResizeObserver(() => { if (a || I.mini || !p.classList.contains('iaFlota') || p.hidden) return; guardarVentana(); }).observe(p);
+    /* Si la ventana de la app cambia de tamaño, Iarvis se queda dentro de la pantalla. */
+    window.addEventListener('resize', () => {
+      if (p.hidden || I.movil || I.anclado || !p.classList.contains('iaFlota')) return;
+      if (window.innerWidth < 900) return;
+      const r = p.getBoundingClientRect();
+      if (I.mini) colocarFlotante({ x: r.left, y: r.top }); else encajar(p, r.left, r.top, r.width, r.height);
+      guardarVentana();
+    });
   }
 
 
@@ -1013,7 +1066,7 @@
   function leerAnclado(id) { try { return localStorage.getItem(claveAnclado(id)) === '1'; } catch { return false; } }
   function guardarAnclado(id, v) { try { localStorage.setItem(claveAnclado(id), v ? '1' : '0'); } catch { /* sin almacenamiento */ } }
   function pantallaAncha() { try { return window.matchMedia('(min-width: 900px)').matches; } catch { return true; } }
-  function anclar(v, { guardar = true, abrirYa = true } = {}) {
+  function anclar(v, { guardar = true, abrirYa = true, flotar = true } = {}) {
     if (I.movil || !I.panel) return;
     I.anclado = Boolean(v);
     if (I.anclado && I.panel.classList.contains('iaFlota')) aColumna(); /* la chincheta la deja en la columna */
@@ -1021,6 +1074,7 @@
     const b = I.panel.querySelector('.iaAnclar');
     if (b) { b.setAttribute('aria-pressed', String(I.anclado)); b.title = I.anclado ? 'Desanclar: vuelve a flotar' : 'Anclar: queda fijo a la derecha'; }
     if (guardar) guardarAnclado(I.personaId, I.anclado);
+    if (!I.anclado && flotar && !I.panel.hidden && pantallaAncha() && !I.panel.classList.contains('iaFlota')) { const g = leerPos(); colocarFlotante(g && g.x != null ? g : null); guardarVentana(); }
     if (I.anclado && I.panel.hidden && abrirYa) abrir({ foco: false });
   }
   /** Al saber quién entra: su chincheta. */
@@ -1086,9 +1140,16 @@
     if (!I.panel) return;
     I.panel.hidden = false;
     /* 9-nov (JC): el panel empuja el contenido en vez de tapar lo que hay debajo (iarvis.css › body.iaAbierto). */
-    const g = !I.movil && window.innerWidth >= 900 ? leerPos() : null;
-    if (g && g.flota) { I.panel.classList.add('iaFlota'); encajar(I.panel, g.x, g.y, g.w, g.h); }
-    else if (!I.movil) document.body.classList.add('iaAbierto');
+    if (!I.movil && window.innerWidth >= 900) {
+      if (I.anclado) document.body.classList.add('iaAbierto'); /* solo anclado es columna */
+      else {
+        const g = leerPos();
+        I.mini = Boolean(g && g.mini);
+        I.rectLleno = g && g.w ? { w: g.w, h: g.h } : null;
+        I.panel.classList.toggle('iaMini', I.mini);
+        colocarFlotante(g && g.x != null ? g : null);
+      }
+    } else if (!I.movil) document.body.classList.add('iaAbierto');
     /* 8-nov: el botón vive en la cabecera y no se esconde; solo se le quita el punto. */
     if (I.boton) { I.boton.classList.remove('conPunto'); I.boton.setAttribute('aria-expanded', 'true'); }
     caducar();
@@ -1099,8 +1160,8 @@
     const t = I.panel.querySelector('textarea');
     if (t && foco) t.focus();
   }
-  function cerrar() {
-    if (I.movil || !I.panel || (I.anclado && pantallaAncha())) return;
+  function cerrar(forzar) {
+    if (I.movil || !I.panel || (I.anclado && pantallaAncha() && forzar !== true)) return;
     I.panel.hidden = true;
     document.body.classList.remove('iaAbierto');
     if (I.boton) I.boton.setAttribute('aria-expanded', 'false');

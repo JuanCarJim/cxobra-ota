@@ -99,6 +99,7 @@
     /* Lo reclamable va con los conflictos y el claim, en «Cliente y contrato». */
     avisos: { grupo: 'Cliente y contrato', nombre: 'Reclamables', icono: '⚖' },
     avance: { grupo: 'Producción', nombre: 'Avance de obra', icono: '◩' },
+    recorridos: { grupo: 'Producción', nombre: 'Recorridos de zona', icono: '⌖' },
     albaranes: { grupo: 'Compras', nombre: 'Albaranes', icono: '▨' },
     inventario: { grupo: 'Compras', nombre: 'Inventario', icono: '▨' },
     personal: { grupo: 'Personal', nombre: 'Personal en obra', icono: '♙' },
@@ -117,7 +118,7 @@
    */
   const MAX_ACCIONES = 6;
   /* Las de ACCIONES en carcasa.js, en su mismo orden (una prueba lo vigila). */
-  const SECCIONES_ACCION = ['jornada', 'commissioning', 'estanqueidad', 'ncr', 'reparaciones', 'avance', 'bloc', 'albaranes', 'partes', 'avisos', 'reportesQhse', 'qhse'];
+  const SECCIONES_ACCION = ['jornada', 'commissioning', 'estanqueidad', 'ncr', 'reparaciones', 'avance', 'bloc', 'albaranes', 'partes', 'avisos', 'reportesQhse', 'qhse', 'recorridos'];
   const JEFE_OBRA = ['commissioning', 'ncr', 'avisos', 'reportesQhse', 'bloc', 'jornada'];
   const CX = ['commissioning', 'estanqueidad', 'ncr', 'reparaciones', 'bloc', 'jornada'];
   const MANDO = ['avisos', 'ncr', 'reportesQhse', 'bloc'];

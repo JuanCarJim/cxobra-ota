@@ -228,8 +228,10 @@
   function incidenciasHtml(d) {
     const l = (d.incidencias || []).filter(Boolean);
     if (!l.length) return resueltasHtml(d);
-    return `<div class="pesIncEq" data-pes-incidencias role="group" aria-label="Incidencias abiertas de este equipo"><p class="pesIncEqTit"><span class="pesPunto incidencia" aria-hidden="true">!</span><b>${l.length === 1 ? '1 incidencia abierta' : `${l.length} incidencias abiertas`}</b></p>
-      <table class="pesTablaFicha pesIncEqTabla"><tbody>${l.map((i) => `<tr><td><button type="button" class="pesIncEnlace" data-pes-incidencia="${esc(i.id)}" title="Abrir la incidencia ${esc(i.codigo)}">${esc(i.codigo || 'Incidencia')}</button></td><td>${esc(i.titulo || '')}${i.enUnidad ? `<span class="pesIncEqDonde">${esc(`En la ${i.enUnidad.exterior ? 'exterior' : 'interior'} ${i.enUnidad.tag || ''}`.trim())}</span>` : ''}</td><td class="pesIncEqEstado">${esc(i.estadoNombre || i.estado || '')}</td></tr>`).join('')}</tbody></table></div>`;
+    /* 18-nov (JC): si todas las abiertas son de terceros, el recuadro va en morado y lo dice. */
+    const ter = l.every((i) => i.terceros);
+    return `<div class="pesIncEq${ter ? ' terceros' : ''}" data-pes-incidencias role="group" aria-label="Incidencias abiertas de este equipo"><p class="pesIncEqTit"><span class="pesPunto ${ter ? 'incTerceros' : 'incidencia'}" aria-hidden="true">!</span><b>${l.length === 1 ? '1 incidencia abierta' : `${l.length} incidencias abiertas`}${ter ? ' de terceros' : ''}</b></p>
+      <table class="pesTablaFicha pesIncEqTabla"><tbody>${l.map((i) => `<tr><td><button type="button" class="pesIncEnlace" data-pes-incidencia="${esc(i.id)}" title="Abrir la incidencia ${esc(i.codigo)}">${esc(i.codigo || 'Incidencia')}</button></td><td>${esc(i.titulo || '')}${i.enUnidad ? `<span class="pesIncEqDonde">${esc(`En la ${i.enUnidad.exterior ? 'exterior' : 'interior'} ${i.enUnidad.tag || ''}`.trim())}</span>` : ''}</td><td class="pesIncEqEstado">${esc(i.estadoNombre || i.estado || '')}${i.terceros ? `<span class="pesIncEqDonde">${esc(i.empresa ? `De terceros: ${i.empresa}` : 'De terceros')}</span>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
   }
 
   /* 15-nov (JC): sin abiertas, las RESUELTAS (cerradas) que esperan la toma de datos, en azul (incidenciaPlano.js). */
@@ -238,10 +240,39 @@
     if (!l.length) return '';
     const fecha = (t) => (t ? String(t).slice(0, 10).split('-').reverse().join('/') : '');
     return `<div class="pesIncEq resuelta" data-pes-resueltas role="group" aria-label="Incidencias resueltas a falta de la toma de datos"><p class="pesIncEqTit"><span class="pesPunto incResuelta" aria-hidden="true">!</span><b>${l.length === 1 ? 'Incidencia resuelta' : `${l.length} incidencias resueltas`}: falta tomar los datos</b></p>
-      <table class="pesTablaFicha pesIncEqTabla"><tbody>${l.map((i) => `<tr><td><button type="button" class="pesIncEnlace" data-pes-incidencia="${esc(i.id)}" title="Abrir la incidencia ${esc(i.codigo)}">${esc(i.codigo || 'Incidencia')}</button></td><td>${esc(i.titulo || '')}${i.enUnidad ? `<span class="pesIncEqDonde">${esc(`En la ${i.enUnidad.exterior ? 'exterior' : 'interior'} ${i.enUnidad.tag || ''}`.trim())}</span>` : ''}</td><td class="pesIncEqEstado">${esc(i.cierre ? `Cerrada el ${fecha(i.cierre)}` : 'Cerrada')}</td></tr>`).join('')}</tbody></table></div>`;
+      <table class="pesTablaFicha pesIncEqTabla"><tbody>${l.map((i) => `<tr><td><button type="button" class="pesIncEnlace" data-pes-incidencia="${esc(i.id)}" title="Abrir la incidencia ${esc(i.codigo)}">${esc(i.codigo || 'Incidencia')}</button></td><td>${esc(i.titulo || '')}${i.enUnidad ? `<span class="pesIncEqDonde">${esc(`En la ${i.enUnidad.exterior ? 'exterior' : 'interior'} ${i.enUnidad.tag || ''}`.trim())}</span>` : ''}</td><td class="pesIncEqEstado">${esc(`${i.estado === 'terminada' ? 'Terminada' : 'Cerrada'}${i.cierre ? ` el ${fecha(i.cierre)}` : ''}`)}</td></tr>`).join('')}</tbody></table></div>`;
   }
 
-  /* De arriba abajo: TAG, sus incidencias abiertas, estado de Cx y sala; sus botones; documentos y toma de datos con su botón; lo demás, plegado. */
+  /* ── EL CONJUNTO AL PULSAR (18-nov, JC: «al pulsar en un equipo de un conjunto, lo que se tiene que mostrar en cualquier app
+        es el conjunto»). Una sola pieza para el panel del plano (web y escritorio) y la hoja del móvil: el nombre del conjunto y
+        sus unidades, cada una con su enlace para abrirla por separado. Las hojas de Cx, la estanqueidad y las incidencias que
+        van debajo ya son las del conjunto (planoEquipos.ficha y incidenciaPlano.porEquipo). Un equipo suelto no cambia. ── */
+  /** El nombre del conjunto, el mismo que pone el libro de Cx: «UE / UI» en un split; el de la exterior en un VRF. */
+  function nombreConjunto(unidades = []) {
+    const us = unidades.filter((u) => u && u.tag);
+    if (us.length < 2) return '';
+    const ext = us.find((u) => u.papel === 'UE') || us[0];
+    return us.length === 2 ? [ext, ...us.filter((u) => u !== ext)].map((u) => u.tag).join(' / ') : ext.tag;
+  }
+  /**
+   * e = { id, conjunto?: nombre, miembros: [{ id, tag, papel, aqui?, enPlano?, planta? }] } → null si no forma conjunto, o
+   * { nombre, unidades: [{ id, tag, sigla, nombre, actual, donde }] } con la exterior primero.
+   */
+  function conjuntoAlPulsar(e = {}) {
+    const ms = (Array.isArray(e.miembros) ? e.miembros : []).filter((m) => m && m.id && m.tag);
+    if (ms.length < 2 || !ms.some((m) => m.id === e.id)) return null;
+    const orden = [...ms].sort((a, b) => (a.papel === 'UE' ? 0 : 1) - (b.papel === 'UE' ? 0 : 1));
+    const donde = (m) => (m.id === e.id ? '' : m.aqui ? 'en este plano' : m.enPlano ? `en ${m.planta || 'otra planta'}` : m.enPlano === false ? 'sin colocar' : '');
+    return { nombre: e.conjunto || nombreConjunto(orden), unidades: orden.map((m) => ({ id: m.id, tag: m.tag, ...((p) => ({ sigla: p.sigla, nombre: p.nombre }))(papelDe(m)), actual: m.id === e.id, donde: donde(m) })) };
+  }
+  /** El bloque del conjunto. `atributo`: el data- del enlace de cada unidad (la web usa data-pes-unidad; el móvil, data-pe-ver). */
+  function conjuntoHtml(c, { atributo = 'data-pes-unidad' } = {}) {
+    if (!c) return '';
+    const filas = c.unidades.map((u) => `<tr${u.actual ? ' class="actual" aria-current="true"' : ''}><td class="pesCjSigla">${esc(u.sigla)}</td><td><b>${esc(u.tag)}</b><small>${esc(u.nombre)}${u.donde ? ` · ${esc(u.donde)}` : ''}</small></td><td class="pesAccion">${u.actual ? '<span class="pesVacio">Esta</span>' : `<button type="button" class="botonMini" ${atributo}="${esc(u.id)}" title="Abrir ${esc(u.tag)}">Abrir</button>`}</td></tr>`).join('');
+    return `<section class="pesConjunto" data-pes-conjunto role="group" aria-label="Conjunto ${esc(c.nombre)}"><p class="pesConjuntoTit">Conjunto <b>${esc(c.nombre)}</b> · ${c.unidades.length} unidades</p><table class="pesTablaFicha conAccion"><tbody>${filas}</tbody></table><small class="pesConjuntoNota">Hojas de Cx, estanqueidad e incidencias: las del conjunto.</small></section>`;
+  }
+
+  /* De arriba abajo: TAG, su conjunto, sus incidencias abiertas, estado de Cx y sala; sus botones; documentos y toma de datos con su botón; lo demás, plegado. */
   function html(d = {}) {
     const est = d.estado || {};
     const botones = (d.botones || []).filter(Boolean).map((b) => `<button type="button" class="botonMini" ${b.dato}>${esc(b.texto)}</button>`).join('');
@@ -249,6 +280,7 @@
     const estados = (d.estados || []).filter((f) => f && f[1] != null && f[1] !== '');
     return `<div class="pesPanelCab"><span class="pesPunto ${esc(est.clase || '')}" aria-hidden="true"></span><strong>${esc(d.codigo || 'Equipo')}</strong><button type="button" class="botonMini pesPanelCerrar" data-pes-panel-cerrar title="Cerrar y volver a la lista" aria-label="Cerrar el panel del equipo">×</button></div>
       ${incidenciasHtml(d)}
+      ${conjuntoHtml(d.conjunto)}
       ${resumenHtml(d)}
       ${botones ? `<div class="pesFichaPie pesAcciones">${botones}</div>` : ''}
       ${documentosHtml(d)}
@@ -261,5 +293,5 @@
       ${(d.notas || []).filter(Boolean).map((t) => `<p class="pesNota">${esc(t)}</p>`).join('')}`;
   }
 
-  return { html, incidenciasHtml, documentosHtml, tomasHtml, accionToma, leerAccionHoja, documentosDe, filasDocumentos, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA, TIPO_HOJA, nombreHoja, detalleHoja };
+  return { html, conjuntoAlPulsar, conjuntoHtml, nombreConjunto, incidenciasHtml, documentosHtml, tomasHtml, accionToma, leerAccionHoja, documentosDe, filasDocumentos, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA, TIPO_HOJA, nombreHoja, detalleHoja };
 });

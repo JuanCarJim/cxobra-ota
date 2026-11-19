@@ -76,6 +76,10 @@
     { frase: 'qué equipos de la planta <planta> faltan por instalar', cuando: 'equipos por instalar de una planta' },
     { frase: 'dame las incidencias abiertas', cuando: 'el listado de incidencias o reparaciones (admite tipo de equipo y planta: «dame los splits abiertos de la N10»)' },
     { frase: 'planificación de commissioning de <periodo>', cuando: 'lo planificado de puesta en marcha en un periodo (esta semana, noviembre…)' },
+    { frase: 'dame el presupuesto en Excel', cuando: 'el presupuesto de la obra en un Excel descargable (sin precios para quien no los ve); solo en el ordenador o la web' },
+    { frase: 'sácame el BC3 del presupuesto', cuando: 'el presupuesto de la obra en BC3 (FIEBDC-3, lo abre Presto); solo quien ve precios y puede exportar' },
+    { frase: 'exporta el Gantt a MS Project', cuando: 'el programa de obra (Diagrama de Gantt) en XML de Microsoft Project; también «en Excel» o «en PDF»' },
+    { frase: 'el Gantt de commissioning en Project', cuando: 'el Gantt de puesta en marcha en XML de Microsoft Project (módulo Commissioning + Mantenimiento)' },
     { frase: 'qué equipos reconociste en el plano de CAD', cuando: 'lo leído de un plano de AutoCAD o PDF: equipos, dudas y por qué' },
   ];
   const listaCapacidades = () => CAPACIDADES_APP.map((c) => `- «${c.frase}»: ${c.cuando}`).join('\n');

@@ -1296,7 +1296,10 @@ main#app.densa details.grupo-lista[open] > summary + ul.lista-ios:not(.numerada)
 .plano-bocas.grande .plano-lienzo { width: 100%; }
 /* A pantalla completa, los mandos arriba: abajo los taparía la tarjeta de la boca. */
 .plano-bocas.grande figcaption { order: -1; border-bottom: 1px solid var(--rejilla); }
-.plano-bocas .zoom-botones { display: inline-flex; align-items: center; gap: 4px; }
+.plano-bocas .zoom-botones { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+/* «Ver lámina / Plano IFC» y «Ampliar» como botones separados: sin borde ni hueco se leían pegados (16-nov). */
+.plano-bocas .zoom-botones [data-cx="plano-ifc"], .plano-bocas .zoom-botones [data-cx="plano-grande"] { min-height: 30px; padding: 4px 10px;
+  margin-left: 6px; border: 1px solid var(--rejilla); border-radius: 6px; background: var(--panel); white-space: nowrap; }
 .plano-bocas .zoom-botones [data-cx^="zoom-"] { min-width: 32px; min-height: 30px; font-size: 18px; font-weight: 700; line-height: 1;
   border: 1px solid var(--rejilla); border-radius: 6px; background: var(--panel); }
 .marca-boca.elegida .simbolo-boca { filter: drop-shadow(0 0 3px var(--acento)); }
@@ -2325,3 +2328,14 @@ body.cx-actualizando::before { content: ''; position: fixed; top: 0; left: 0; ri
 .fotos-al-abrir .cuenta-fotos b{color:var(--texto);font-variant-numeric:tabular-nums}
 .fotos-al-abrir .mini-fotos{flex:1 1 100%;display:flex;gap:6px}
 .fotos-al-abrir .mini-fotos img{width:52px;height:52px;object-fit:cover;border-radius:8px;background:var(--rejillaSuave);display:block}
+
+/* Plano de balanceo desde el modelo IFC (16-nov): el dibujo en vez de la lámina, mismas marcas encima. */
+.plano-lienzo .plano-ifc-svg { display: block; width: 100%; height: auto; background: #fff; }
+.plano-ifc-pie { display: block; width: 100%; margin-top: 4px; font-size: 12px; color: var(--vd-texto-suave, #5b6670); }
+/* Sobre el dibujo del modelo la reja ya se ve: la boca es un punto con su nombre, sin el símbolo que tapa los tramos. */
+.plano-ifc .marca-boca .simbolo-boca { display: none; }
+.plano-ifc .marca-boca { width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 1.5px #fff; color: var(--textoTenue); }
+.plano-ifc .marca-boca.bien { color: var(--bien); }
+.plano-ifc .marca-boca.mal { color: var(--mal); }
+.plano-ifc .marca-boca.alto { color: var(--alto); }
+.plano-ifc .marca-boca .rotulo-boca { font-size: 9px; line-height: 12px; }

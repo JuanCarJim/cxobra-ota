@@ -33,13 +33,15 @@
   const FA = window.CX_PLANO_FALTAS; /* marcar lo que falta (planoFaltas.js) */
 
   /* 13-nov (JC): los colores del bloque son los de shared/commissioning/colorBloque.js —certificado (azul), Cx hecho
-     (verde), instalado sin Cx (gris, propuesta), no instalado (rojo), sin dato—; sustituyen a «En marcha / Falta doc. /
+     (verde), instalado sin Cx (gris), no instalado (gris claro discontinuo), sin dato—; sustituyen a «En marcha / Falta doc. /
      Sin empezar». La leyenda, el filtro y el recuento de arriba van por ese estado. */
   const CB = window.COLOR_BLOQUE;
-  const ORDEN = CB ? CB.ORDEN_BLOQUE : ['cxHecho', 'instalado', 'sinDato'];
-  const NOMBRE = CB ? Object.fromEntries(CB.ESTADOS_BLOQUE.map((x) => [x.id, x.nombre])) : { cxHecho: 'Commissioning hecho', instalado: 'Instalado, sin Cx', sinDato: 'Sin dato' };
-  /* 14-nov (JC en el iPhone, chips cortados a 390 px): en la pestaña Cx, los nombres cortos. */
-  const CORTO = { certificado: 'Certificado', cxHecho: 'Cx hecho', instalado: 'Instalado', noInstalado: 'No instalado', sinDato: 'Sin dato' };
+  /* 18-nov (JC: «es incoherente cómo se ven los equipos con sus colores en la web y en el móvil»): el orden, los nombres y los
+     nombres cortos (14-nov, chips a 390 px) son los de shared/commissioning/estadoEquipoPlano.js, los mismos que la web. */
+  const EEP = window.ESTADO_EQUIPO_PLANO;
+  const ORDEN = EEP ? EEP.ORDEN : CB ? CB.ORDEN_BLOQUE : ['cxHecho', 'instalado', 'sinDato'];
+  const NOMBRE = EEP ? EEP.NOMBRE : CB ? Object.fromEntries(CB.ESTADOS_BLOQUE.map((x) => [x.id, x.nombre])) : { cxHecho: 'Commissioning hecho', instalado: 'Instalado, sin Cx', sinDato: 'Sin dato' };
+  const CORTO = EEP ? EEP.CORTO : { certificado: 'Certificado', cxHecho: 'Cx hecho', instalado: 'Instalado', noInstalado: 'No instalado', sinDato: 'Sin dato' };
   /* Verde por estar en marcha, sin el Cx cerrado: se dice «En marcha», no «Commissioning hecho» (15-nov). */
   const enMarchaSinCerrar = (e) => Boolean(e && e.color === 'verde' && e.completo === false && bq(e) !== 'certificado');
   const nombreBloque = (e) => (enMarchaSinCerrar(e) ? 'En marcha, Cx sin cerrar' : NOMBRE[bq(e)]);
@@ -70,10 +72,13 @@
   /* 15-nov (JC): incidencia RESUELTA (cerrada) a falta de la toma de datos → azul con «!» azul; la abierta manda. */
   let soloRes = false;
   const conRes = (e) => Boolean(IP && IP.pendienteDatos(e));
-  const incClase = (x) => (conInc(x) ? ' con-inc' : conRes(x) ? ' con-incres' : '');
-  const incMarca = (x) => (conInc(x) || conRes(x) ? incHtml() : '');
-  const puntoInc = (x) => (conInc(x) ? 'incidencia' : conRes(x) ? 'incResuelta' : bq(x));
-  const dichoInc = (x) => (conInc(x) ? '; con incidencia abierta' : conRes(x) ? '; incidencia resuelta, faltan datos' : '');
+  /* 18-nov (JC): «si tiene una incidencia por terceros, que salga en otro color, en naranja no» → morado. */
+  let soloTer = false;
+  const conTer = (e) => Boolean(IP && IP.tieneTerceros && IP.tieneTerceros(e));
+  const incClase = (x) => (conInc(x) ? ' con-inc' : conTer(x) ? ' con-incter' : conRes(x) ? ' con-incres' : '');
+  const incMarca = (x) => (conInc(x) || conTer(x) || conRes(x) ? incHtml() : '');
+  const puntoInc = (x) => (conInc(x) ? 'incidencia' : conTer(x) ? 'incTerceros' : conRes(x) ? 'incResuelta' : bq(x));
+  const dichoInc = (x) => (conInc(x) ? '; con incidencia abierta' : conTer(x) ? '; con incidencia abierta de terceros' : conRes(x) ? '; incidencia resuelta, faltan datos' : '');
   let $raiz = null;
   let vista = null; /* cómo estaba el plano al irse a una ficha, para volver igual */
   let propio = false; /* sección «Plano de equipos» (sin Commissioning) */
@@ -148,6 +153,8 @@
   .pe-franja-boton .flecha{flex:none;display:inline-block;transition:transform .15s;font-size:16px}
   .pe-franja-boton[aria-expanded="true"] .flecha{transform:rotate(90deg)}
   .pe-pie{flex-wrap:wrap}
+  /* 18-nov (JC): sin −/Entero/+ (se pellizca); «N equipos por ubicar ›» en una sola línea. */
+  .pe-franja-boton>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pe-pie .pe-franja-lista{flex:1 0 100%}
   .cx-plano .pe-pie{position:relative;flex-wrap:nowrap}
   .cx-plano .pe-pie .pe-franja-lista{position:absolute;left:0;right:0;bottom:calc(100% + 6px);z-index:6;max-height:min(46vh,380px);margin:0;border:1px solid var(--acento);border-radius:8px}
@@ -240,11 +247,16 @@
   .pe-iconos span{display:inline-flex;align-items:center;gap:4px}
   .pe-iconos svg{height:16px;width:16px;color:var(--acento)}
   .pe-iconos svg .cuerpo{fill:var(--panel)}
-  .pe-conjunto{margin-top:6px;font-size:14px;display:grid;gap:2px}
-  .pe-conjunto div{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:30px;font-size:13.5px}
-  .pe-conjunto .actual{background:var(--acento-suave);border-radius:6px;padding:0 6px}
-  .pe-conjunto div>span{flex:1 1 auto;min-width:0}
-  .pe-conjunto button{width:auto;min-width:56px;min-height:32px;margin:0;padding:0 12px;font-size:13px;flex:none}
+  .pe-hoja .pesConjunto{margin:6px 0 4px;padding:6px 8px;border-left:3px solid var(--acento);background:var(--acento-suave);border-radius:4px;font-size:14px}
+  .pe-hoja .pesConjuntoTit{margin:0 0 2px;overflow-wrap:anywhere}
+  .pe-hoja .pesConjunto .pesTablaFicha{width:100%;border-collapse:collapse}
+  .pe-hoja .pesConjunto td{padding:3px 6px 3px 0;vertical-align:middle;border:0;overflow-wrap:anywhere}
+  .pe-hoja .pesConjunto td small{display:block;color:var(--textoTenue);font-size:12.5px}
+  .pe-hoja .pesConjunto .pesCjSigla{width:1%;white-space:nowrap;font-weight:700;color:var(--textoTenue)}
+  .pe-hoja .pesConjunto .pesAccion{width:1%;white-space:nowrap;text-align:right}
+  .pe-hoja .pesConjunto tr.actual td{font-weight:600}
+  .pe-hoja .pesConjunto .botonMini{min-height:36px;min-width:64px;padding:0 10px;border:0;border-radius:8px;background:var(--panel);color:var(--acento-fuerte);font-size:14px;font-weight:600}
+  .pe-hoja .pesConjuntoNota{display:block;color:var(--textoTenue);font-size:12.5px}
   .pe-sin-plano{padding:14px;border:1px dashed var(--borde);border-radius:10px;background:var(--panel);font-size:14px}
   .pe-visor{position:relative}
   /* Los nombres de sala, como texto encima del plano: nítidos a cualquier zoom
@@ -281,6 +293,12 @@
   .pe-leyenda .pe-chip-res{border-color:var(--incResuelta);color:var(--incResuelta)}
   .pe-leyenda .pe-chip-res[aria-pressed="true"]{background:color-mix(in srgb,var(--incResuelta) 14%,var(--panel))}
   .pe-lienzo .marca-boca.con-incres .pe-inc{background:var(--incResuelta)}
+  .pe-leyenda .pe-chip-ter{border-color:var(--incTerceros);color:var(--incTerceros)}
+  .pe-leyenda .pe-chip-ter[aria-pressed="true"]{background:color-mix(in srgb,var(--incTerceros) 14%,var(--panel))}
+  .pe-lienzo .marca-boca.con-incter .pe-inc{background:var(--incTerceros)}
+  .pe-hoja .pesIncEq.terceros{border-left-color:var(--incTerceros);background:color-mix(in srgb,var(--incTerceros) 8%,var(--panel))}
+  .pe-hoja .pesIncEq.terceros .pesIncEqTit,.pe-hoja .pesIncEq.terceros .pesIncEnlace,.pe-hoja .pesIncEq.terceros .pesIncEqDonde{color:var(--incTerceros)}
+  .pe-hoja .pesPunto.incTerceros{display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--incTerceros);color:var(--blanco);font:900 11px/16px system-ui,sans-serif;text-align:center}
   .pe-hoja .pesIncEq.resuelta{border-left-color:var(--incResuelta);background:color-mix(in srgb,var(--incResuelta) 8%,var(--panel))}
   .pe-hoja .pesIncEq.resuelta .pesIncEqTit,.pe-hoja .pesIncEq.resuelta .pesIncEnlace,.pe-hoja .pesIncEq.resuelta .pesIncEqDonde{color:var(--incResuelta)}
   .pe-hoja .pesPunto.incResuelta{display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--incResuelta);color:var(--blanco);font:900 11px/16px system-ui,sans-serif;text-align:center}
@@ -411,7 +429,7 @@
     if (document.getElementById('pe-estilo')) return;
     const s = document.createElement('style');
     s.id = 'pe-estilo';
-    s.textContent = ESTILO + (CB ? `.pe-lienzo .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-lienzo .marca-boca')}.pe-franja .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-franja .marca-boca')}${IP ? IP.css('.pe-lienzo .marca-boca.con-inc', '.pe-lienzo .marca-boca.con-incres') : ''}.pe-punto[class*="bq-punto-"]{border:1px solid rgba(38,43,56,.35)}` : '');
+    s.textContent = ESTILO + (CB ? `.pe-lienzo .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-lienzo .marca-boca')}.pe-franja .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-franja .marca-boca')}${IP ? IP.css('.pe-lienzo .marca-boca.con-inc', '.pe-lienzo .marca-boca.con-incres', '.pe-lienzo .marca-boca.con-incter') : ''}:where(.pe-punto[class*="bq-punto-"]){border:1px solid rgba(38,43,56,.35)}` : ''); /* :where: el discontinuo de «no instalado» (colorBloque) manda. */
     document.head.appendChild(s);
   }
 
@@ -429,6 +447,11 @@
     if (conPdf.has(k)) return false;
     return conModelo.has(k) || !p.plano || Object.keys((p.ifc && p.ifc.pos) || {}).length > 0;
   };
+  /* La ficha de un equipo de otra planta (para el plano que comparten), entre las plantas ya cargadas. */
+  const fichaDeOtra = (id, p) => {
+    for (const x of plantas()) if (x !== p && !x.parcial) { const e = (x.equipos || []).find((q) => q.id === id); if (e) return e; }
+    return null;
+  };
   const vistaIfc = (p) => {
     if (!p || !p.ifc || p.parcial || !usaModelo(p)) return p;
     const ya = vistas.get(p);
@@ -441,10 +464,15 @@
     /* 17-nov (JC: «Desde los IFCs deberías ser capaz de ubicar los equipos»): el casado solo con el modelo y lo propuesto. */
     const prop = p.ifc.propuestos || {}; const solo = p.ifc.desdeIfc || {};
     const delIfc = (e) => ({ ...(prop[e.id] ? { propuesto: prop[e.id] } : {}), ...(solo[e.id] ? { desdeIfc: solo[e.id] } : {}) });
-    const equipos = p.equipos.map((e) => (pos[e.id] ? { ...e, x: pos[e.id][0], y: pos[e.id][1], mano: false, revisar: false, w: 0, h: 0, ...(deFranja.has(e.id) ? { franja: true } : {}), ...(aMano[e.id] ? { aMano: aMano[e.id] } : {}), ...(fijos.has(e.id) ? { delModelo: true } : {}), ...delIfc(e) } : { ...e, x: null, y: null, mano: false, revisar: false, ...delIfc(e) }));
+    /* 18-nov (JC: web y móvil, lo mismo): los que el modelo dibuja en el plano de otra planta se ven allí, no aquí. */
+    const enOtro = new Set(p.ifc.enOtroPlano || []);
+    /* …y los de otra planta que el modelo dibuja en este (S1/S2 comparten plano con N20/N10): su ficha, la de su planta. */
+    const deOtra = (p.ifc.deOtraPlanta || []).map((id) => fichaDeOtra(id, p)).filter(Boolean);
+    const propios = p.equipos.filter((e) => !enOtro.has(e.id));
+    const equipos = (deOtra.length ? propios.concat(deOtra) : propios).map((e) => (pos[e.id] ? { ...e, x: pos[e.id][0], y: pos[e.id][1], mano: false, revisar: false, w: 0, h: 0, ...(deFranja.has(e.id) ? { franja: true } : {}), ...(aMano[e.id] ? { aMano: aMano[e.id] } : {}), ...(fijos.has(e.id) ? { delModelo: true } : {}), ...delIfc(e) } : { ...e, x: null, y: null, mano: false, revisar: false, ...delIfc(e) }));
     const sinUbicar = equipos.filter((q) => q.x === null).map((q) => ({ id: q.id, tag: q.tag, familia: q.familia, sala: q.sala, icono: q.icono }));
     const v = { ...p, plano: p.ifc.plano, equipos, sinUbicar, materiales: (p.materiales || []).map((m) => ({ ...m, x: null, y: null })), faltas: [], esIfc: true,
-      cuentas: { ...p.cuentas, enPlano: equipos.length - sinUbicar.length, sinUbicar: sinUbicar.length, revisar: 0 } };
+      cuentas: { ...p.cuentas, ...((enOtro.size || deOtra.length) && EEP ? (({ bloques, conIncidencia, incResuelta }) => ({ bloques, conIncidencia, incResuelta }))(EEP.cuentas(equipos)) : {}), enPlano: equipos.length - sinUbicar.length, sinUbicar: sinUbicar.length, revisar: 0 } };
     vistas.set(p, v);
     return v;
   };
@@ -616,16 +644,12 @@
     return `<div class="pe-iconos" role="group" aria-label="Tipos de equipo">${usados.filter((k) => ic[k]).map((k) => `<span><svg viewBox="0 0 24 24" aria-hidden="true">${ic[k].svg}</svg>${esc(ic[k].nombre)} <b>${cifra(n(k))}</b></span>`).join('')}</div>`;
   }
 
-  /* El conjunto en la ficha: UE y UI con su TAG; las que caen en otro plano o fuera de la vista, con «ver». */
+  /* El conjunto en la ficha (18-nov, JC: «al pulsar en un equipo de un conjunto, lo que se tiene que mostrar en cualquier app
+     es el conjunto»): la misma pieza que el panel de la web (panelEquipoPlano.conjuntoAlPulsar), con su nombre y cada unidad con
+     su «Abrir» (data-pe-ver: la lleva a su sitio en el plano o a su ficha). */
   function conjuntoHtml(e) {
-    const ms = e.miembros || [];
-    if (ms.length < 2) return '';
-    const filas = ms.map((m) => {
-      const donde = m.id === e.id ? '' : m.aqui ? 'en este plano' : m.enPlano ? `en ${esc(m.planta || 'otra planta')}` : 'sin colocar';
-      const ver = m.id !== e.id && m.enPlano ? `<button class="boton secundario" data-pe-ver="${esc(m.id)}">ver</button>` : '';
-      return `<div${m.id === e.id ? ' class="actual" aria-current="true"' : ''}><span><em>${esc(m.papel === 'UE' ? 'UE' : 'UI')}</em> <b class="cifra">${esc(m.tag)}</b> <span class="tenue">· ${m.papel === 'UE' ? 'Unidad exterior' : 'Unidad interior'}${donde ? ` · ${donde}` : ''}</span></span>${ver}</div>`;
-    });
-    return `<div class="pe-conjunto">${filas.join('')}</div>`;
+    const P = PEP();
+    return P && P.conjuntoAlPulsar ? P.conjuntoHtml(P.conjuntoAlPulsar(e), { atributo: 'data-pe-ver' }) : '';
   }
 
   /* Puesta en marcha, garantía y certificación, ya escritas por el servidor
@@ -658,9 +682,15 @@
      incidencias (IP.recuento, como el escritorio) y, pulsado, deja solo esos en el plano. Sin ninguno, solo sale pulsado. */
   function chipInc(p) {
     const n = IP ? IP.recuento(p.equipos) : p.equipos.filter(conInc).length;
-    if (!n && !soloInc) return chipRes(p);
+    if (!n && !soloInc) return chipTer(p) + chipRes(p);
     const nombre = IP ? IP.NOMBRE : 'Con incidencia';
-    return `<button class="pe-chip-inc" data-pe-solo-inc aria-pressed="${soloInc}" title="${esc(nombre)}: ${soloInc ? 'ver todos' : 'ver solo estos'}"><i class="pe-punto bq-punto-incidencia"></i>${esc(nombre)} <b>${cifra(n)}</b></button>${chipRes(p)}`;
+    return `<button class="pe-chip-inc" data-pe-solo-inc aria-pressed="${soloInc}" title="${esc(nombre)}: ${soloInc ? 'ver todos' : 'ver solo estos'}"><i class="pe-punto bq-punto-incidencia"></i>${esc(nombre)} <b>${cifra(n)}</b></button>${chipTer(p)}${chipRes(p)}`;
+  }
+  /* «Incidencia de terceros N» (18-nov): abierta e imputable a otro industrial o al cliente (IP.recuentoTerceros); pulsado, filtra. */
+  function chipTer(p) {
+    const n = IP && IP.recuentoTerceros ? IP.recuentoTerceros(p.equipos) : 0;
+    if (!n && !soloTer) return '';
+    return `<button class="pe-chip-inc pe-chip-ter" data-pe-solo-ter aria-pressed="${soloTer}" title="${esc(IP.NOMBRE_TERCEROS)}: ${soloTer ? 'ver todos' : 'ver solo estos'}"><i class="pe-punto bq-punto-incTerceros"></i>${esc(IP.NOMBRE_TERCEROS)} <b>${cifra(n)}</b></button>`;
   }
   /* «Resuelta, faltan datos N» (15-nov): cerrada y sin toma de datos después del cierre (IP.recuentoResueltas); pulsado, filtra. */
   function chipRes(p) {
@@ -766,12 +796,13 @@
       ${resumenDocsHtml(e)}</div>
       <div class="pe-hoja-resto">
       ${incidenciasHtml(e)}
+      ${e.miembros && e.miembros.length > 1 ? conjuntoHtml(e) : ''}
       ${ubicarHojaHtml(e, p)}
       ${pistasHtml(e, p)}
       ${falta ? `<div class="falta">${falta}</div>` : ''}
       ${hojasCxHtml(e)}
       ${datos.conCommissioning ? '<button class="boton pe-ficha-completa" data-pe-accion="equipo">Ficha completa ›</button>' : ''}
-      ${e.miembros && e.miembros.length > 1 ? conjuntoHtml(e) : (rol ? `<div class="sub">${rol}</div>` : '')}
+      ${e.miembros && e.miembros.length > 1 ? '' : (rol ? `<div class="sub">${rol}</div>` : '')}
       ${documentosEquipoHtml(e)}
       ${window.PLANO_FOTOS ? window.PLANO_FOTOS.hueco(e) : ''}
       ${p.plano && e.x === null ? '<div class="sub tenue">No está en el plano.</div>' : ''}
@@ -915,6 +946,14 @@
     const val = (v) => (v === null || v === undefined || v === '' ? VACIO : esc(v));
     const car = Object.entries(m.caracteristicas || {}).filter(([, v]) => v !== null && v !== '');
     const docs = [enlaceFicha(m.fichaTecnica, 'Ficha técnica'), enlaceFicha(m.marcadoCE, 'Marcado CE')].filter(Boolean).join('');
+    /* 18-nov-2026 (JC): sus tres papeles —Marcado CE, ficha técnica y manual—, sin puesta en marcha; valen para su modelo
+       (o su tipo, sin modelo). Se suben desde la ficha del escritorio o de la web. */
+    const papeles = m.docs && m.docs.papeles ? `<table class="pe-ficha">${m.docs.papeles.map((p) => {
+      const d = p.doc;
+      const href = d && d.url ? d.url : (d && d.documentoId ? `api/materiales/documento?id=${encodeURIComponent(m.id)}&papel=${encodeURIComponent(p.id)}` : null);
+      const nombre = d ? `${esc(d.nombre || p.nombre)}${p.de === 'tipo' ? ' <span class="tenue">(del tipo)</span>' : ''}` : '';
+      return fila(p.nombre, d ? (href ? `<a href="${esc(href)}" target="_blank" rel="noopener">${nombre} ↗</a>` : nombre) : '<span style="color:var(--mal)">Falta</span>');
+    }).join('')}</table>` : '';
     return `<div class="pe-hoja-fija">${ASA}<div class="fila-principal"><strong class="cifra" style="font-size:17px">${esc(m.tag)}</strong>
         <span class="chip"><i class="pe-punto ${esc(m.estado)}"></i> ${esc(ESTADO_MAT[m.estado] || '')}</span>
         <button class="cierra" data-pe-cerrar aria-label="Cerrar">×</button></div></div>
@@ -925,7 +964,7 @@
         ${datos.puedeEditar ? `<div class="pe-serie"><input data-pe-serie value="${esc(m.numSerie || '')}" placeholder="—" aria-label="Nº de serie (de la placa)" autocapitalize="characters"><button class="boton" data-pe-guardar-serie="${esc(m.id)}">Guardar</button></div>` : ''}</div>
       <div class="pe-bloque"><h4>Fabricante</h4><table class="pe-ficha">
         ${fila('Marca', val(m.marca))}${fila('Modelo', val(m.modelo))}${car.map(([k, v]) => fila(k, esc(v))).join('')}</table></div>
-      <div class="pe-bloque"><h4>Documentos</h4><div class="pe-enlaces">${docs || '<span class="tenue">Sin ficha técnica.</span>'}</div></div>
+      <div class="pe-bloque"><h4>Documentos${m.docs ? ` <span class="tenue cifra">${m.docs.subidos} de ${m.docs.total}</span>` : ''}</h4>${papeles || `<div class="pe-enlaces">${docs || '<span class="tenue">Sin ficha técnica.</span>'}</div>`}</div>
       <div class="pe-bloque"><h4>Estado e incidencias</h4><table class="pe-ficha">
         ${fila('Sirve a', m.sirveA ? `<b class="cifra">${esc(m.sirveA)}</b>` : VACIO)}${fila('Incidencia', m.incidencia ? `<span style="color:var(--mal)">${esc(m.incidencia)}</span>` : '<span class="tenue">Ninguna</span>')}</table></div>`;
   }
@@ -1063,6 +1102,7 @@
 
   function elegir(id, { centrarla = false } = {}) {
     elegida = id === elegida ? null : id;
+    if (elegida && window.CX_POSICION_PLANO) { const e = (plantaActual() || { equipos: [] }).equipos.find((x) => x.id === elegida); window.CX_POSICION_PLANO.contexto({ equipoId: elegida, tag: e && e.tag, planta: planta, origen: 'plano' }); }
     if (mat) { mat = null; for (const el of $raiz.querySelectorAll('[data-pe-mat]')) el.classList.remove('elegida'); }
     marcarElegida();
     mostrarHoja();
@@ -1109,7 +1149,7 @@
     /* 13-nov (JC: «número de sala es muy importante»): también por número de sala, con o sin puntos («00.STE.036», «00 036»). */
     const BM = window.BUSCADOR_MOVIL;
     const textosEq = (m) => [m.tag, m.sala, m.codSala, m.local];
-    const visibles = p.equipos.filter((m) => !ocultos.has(bq(m)) && (!soloInc || conInc(m)) && (!soloRes || conRes(m)) && (!qq || (BM && BM.coincide ? BM.coincide(filtro.trim(), textosEq(m)) : textosEq(m).some((v) => String(v || '').toLowerCase().includes(qq)))));
+    const visibles = p.equipos.filter((m) => !ocultos.has(bq(m)) && (!soloInc || conInc(m)) && (!soloRes || conRes(m)) && (!soloTer || conTer(m)) && (!qq || (BM && BM.coincide ? BM.coincide(filtro.trim(), textosEq(m)) : textosEq(m).some((v) => String(v || '').toLowerCase().includes(qq)))));
     const enPlano = capasOff.has('equipos') ? [] : visibles.filter((m) => m.x !== null && !m.franja);
     const enFranja = capasOff.has('equipos') ? [] : visibles.filter((m) => m.x !== null && m.franja).sort((a, b) => String(a.tag || '').localeCompare(String(b.tag || ''), 'es', { numeric: true }));
     const enConjunto = idsDelConjunto();
@@ -1134,11 +1174,11 @@
         </div>
       </div>
       ${!compacto && p.esIfc && !(p.plano.salas || []).length ? '<p class="nota pe-sin-nombres" data-pe-sin-nombres>El modelo de esta planta no trae nombres de sala y no hay plano de arquitectura para situarlos.</p>' : ''}${!compacto && p.esIfc && p.plano.fuenteSalas === 'plano' ? '<p class="nota pe-sin-nombres" data-pe-nombres-pdf>Nombres de sala del plano de arquitectura, situados por los equipos: el modelo no los trae.</p>' : ''}
-      <!-- 13-nov (JC en el iPhone): el −/Entero/+ en una franja bajo el plano, nunca encima; también pellizco y doble toque.
+      <!-- 13-nov (JC en el iPhone): zoom con pellizco y doble toque; 18-nov (JC): sin los botones −/Entero/+.
            14-nov (JC): en la misma fila, plegados, los equipos que el modelo no pone en ninguna sala («por confirmar»). -->
       <div class="pe-pie${ubicando ? ' con-ubicando' : ''}">${ubicando ? `<div class="pe-ubicando${propuestaDe(p) && !guardandoSitio ? ' con-propuesta' : ''}" data-pe-ubicando role="status"><span class="pe-ub-txt"><span>${guardandoSitio ? 'Guardando el sitio de' : 'Toca en el plano dónde está'} <b>${esc(ubicando.tag)}</b></span>${guardandoSitio ? '' : `<small data-pe-ub-pista>${esc(dichoBuscado(bus))}</small>`}</span>${propuestaDe(p) ? `<button type="button" class="boton" data-pe-confirmar-ifc>Confirmar</button>` : ''}${guardandoSitio ? '' : `<button type="button" class="boton secundario" data-pe-ubicar-ficha>Ficha</button>`}<button type="button" class="boton secundario" data-pe-ubicar-cancelar>Cancelar</button></div>`
-        : enFranja.length ? `<button type="button" class="pe-franja-boton" data-pe-franja aria-expanded="${verFranja}" aria-controls="pe-franja-lista"><span>${cifra(enFranja.length)} equipo${enFranja.length === 1 ? '' : 's'} ${puedeUbicarAqui(p) ? 'por ubicar' : 'sin sala, por confirmar'} <span class="flecha" aria-hidden="true">›</span></span></button>` : ''}<div class="pe-zoom" role="group" aria-label="Zoom del plano"><button class="boton secundario" data-pe-zoom="-1" aria-label="Alejar">−</button><button class="boton secundario" data-pe-zoom="0">Entero</button><button class="boton secundario" data-pe-zoom="1" aria-label="Acercar">+</button></div>
-      ${enFranja.length && verFranja && !ubicando ? `<div class="pe-franja-lista" id="pe-franja-lista" data-pe-franja-lista role="list" aria-label="Sin sala en el modelo, por confirmar">${enFranja.length > 5 ? `<input type="search" class="pe-franja-buscar" data-pe-franja-buscar placeholder="Filtrar por TAG, sala, zona o tipo" aria-label="Filtrar los equipos por ubicar" value="${esc(franjaFiltro)}">` : ''}<ul>${enFranja.map((x) => `<li${puedeUbicarAqui(p) ? ' class="con-ubicar"' : ''} data-pe-franja-fila="${esc(x.id)}"${casaFranja(x) ? '' : ' hidden'}><button type="button" class="${enConjunto.has(x.id) ? 'elegida' : ''}" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${pistaCorta(x) || 'sin sala en el modelo'}, por confirmar: ${NOMBRE[bq(x)]}`)}">${simbolo(x.icono)}<span class="pe-fr-txt"><span class="pe-fr-l1"><b>${esc(x.tag)}</b><span class="tipo">${esc([tipoDe(x), x.modelo].filter(Boolean).join(' · '))}</span></span><span class="pista${pistaCorta(x) ? '' : ' vacia'}">${esc(pistaCorta(x) || 'Sin sala, zona ni sistema en la base')}</span>${x.propuesto ? `<span class="pe-propuesto" data-pe-propuesto="${esc(x.id)}">${esc(dichoPropuesto(x.propuesto))}</span>` : ''}</span><i class="pe-punto bq-punto-${puntoInc(x)}" title="${esc(conInc(x) ? 'Con incidencia' : conRes(x) ? IP.NOMBRE_RESUELTA : NOMBRE[bq(x)])}"></i><span class="pe-ir" aria-hidden="true">›</span></button>${puedeUbicarAqui(p) ? `<button type="button" class="pe-ubicar" data-pe-ubicar="${esc(x.id)}" aria-label="${esc(x.propuesto ? `Ver dónde lo propone el IFC para ${x.tag}` : `Ubicar ${x.tag} en el plano`)}">${x.propuesto ? 'Ver' : 'Ubicar'}</button>` : ''}</li>`).join('')}</ul><p class="pe-franja-nada" data-pe-franja-nada${enFranja.some(casaFranja) ? ' hidden' : ''}>Ninguno con «${esc(franjaFiltro)}».</p></div>` : ''}</div>${FA.marcando() ? FA.mando(p) : ''}</div>`
+        : enFranja.length ? `<button type="button" class="pe-franja-boton" data-pe-franja aria-expanded="${verFranja}" aria-controls="pe-franja-lista"><span>${cifra(enFranja.length)} equipo${enFranja.length === 1 ? '' : 's'} ${puedeUbicarAqui(p) ? 'por ubicar' : 'sin sala, por confirmar'} <span class="flecha" aria-hidden="true">›</span></span></button>` : ''}
+      ${enFranja.length && verFranja && !ubicando ? `<div class="pe-franja-lista" id="pe-franja-lista" data-pe-franja-lista role="list" aria-label="Sin sala en el modelo, por confirmar">${enFranja.length > 5 ? `<input type="search" class="pe-franja-buscar" data-pe-franja-buscar placeholder="Filtrar por TAG, sala, zona o tipo" aria-label="Filtrar los equipos por ubicar" value="${esc(franjaFiltro)}">` : ''}<ul>${enFranja.map((x) => `<li${puedeUbicarAqui(p) ? ' class="con-ubicar"' : ''} data-pe-franja-fila="${esc(x.id)}"${casaFranja(x) ? '' : ' hidden'}><button type="button" class="${enConjunto.has(x.id) ? 'elegida' : ''}" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${pistaCorta(x) || 'sin sala en el modelo'}, por confirmar: ${NOMBRE[bq(x)]}`)}">${simbolo(x.icono)}<span class="pe-fr-txt"><span class="pe-fr-l1"><b>${esc(x.tag)}</b><span class="tipo">${esc([tipoDe(x), x.modelo].filter(Boolean).join(' · '))}</span></span><span class="pista${pistaCorta(x) ? '' : ' vacia'}">${esc(pistaCorta(x) || 'Sin sala, zona ni sistema en la base')}</span>${x.propuesto ? `<span class="pe-propuesto" data-pe-propuesto="${esc(x.id)}">${esc(dichoPropuesto(x.propuesto))}</span>` : ''}</span><i class="pe-punto bq-punto-${puntoInc(x)}" title="${esc(conInc(x) ? 'Con incidencia' : conTer(x) ? IP.NOMBRE_TERCEROS : conRes(x) ? IP.NOMBRE_RESUELTA : NOMBRE[bq(x)])}"></i><span class="pe-ir" aria-hidden="true">›</span></button>${puedeUbicarAqui(p) ? `<button type="button" class="pe-ubicar" data-pe-ubicar="${esc(x.id)}" aria-label="${esc(x.propuesto ? `Ver dónde lo propone el IFC para ${x.tag}` : `Ubicar ${x.tag} en el plano`)}">${x.propuesto ? 'Ver' : 'Ubicar'}</button>` : ''}</li>`).join('')}</ul><p class="pe-franja-nada" data-pe-franja-nada${enFranja.some(casaFranja) ? ' hidden' : ''}>Ninguno con «${esc(franjaFiltro)}».</p></div>` : ''}</div>${FA.marcando() ? FA.mando(p) : ''}</div>`
       : compacto ? `<div class="pe-sin-plano" data-pe-sin-ifc><b>Falta el IFC de la planta ${esc(etiqueta(p))}</b> (y tampoco tiene plano PDF). Lo prepara el delineante; mientras, sus equipos están en «Lista».</div>`
       : `<div class="pe-sin-plano"><b>La planta ${esc(etiqueta(p))} aún no tiene plano de equipos.</b><br>Lo sube la oficina desde Commissioning › Plano. Mientras, la lista dice la sala y el estado de cada equipo.</div>`;
     /* Fila 1 de la pestaña Cx: el desplegable con todas las plantas (las que tienen IFC dicen cuántos coloca el modelo; las que no,
@@ -1183,6 +1223,9 @@
     C.cargarImagenes($raiz);
     mostrarHoja();
     colocarTags($raiz.querySelector('[data-pe-lienzo]'));
+    /* 18-nov (JC): «dónde estoy», una capa aparte encima (renderer/movil/posicionPlanoCapa.js). */
+    /* 18-nov: con la lista de plantas y su cota del IFC, para proponer la planta en la que estás (plantaAutoCapa.js). */
+    if (window.CX_POSICION_PLANO) window.CX_POSICION_PLANO.montar($raiz, p, { salas: salasDe(p), plantas: (compacto ? plantasCx() : plantas()).map((x) => ({ planta: x.planta, cota: x.ifc && x.ifc.plano ? x.ifc.plano.cota ?? null : null })) });
     if (compacto || window.innerWidth < 900) ajustarAlto();
     /* 14-nov: hasta que llega la imagen el lienzo no tiene alto; al llegar, los rótulos se recolocan con el de verdad. */
     const img = $raiz.querySelector('[data-pe-lienzo] img');
@@ -1754,6 +1797,7 @@
     }
     if (blanco(ev).closest('[data-pe-solo-inc]')) { soloInc = !soloInc; repintarQuieto(); return; }
     if (blanco(ev).closest('[data-pe-solo-res]')) { soloRes = !soloRes; repintarQuieto(); return; }
+    if (blanco(ev).closest('[data-pe-solo-ter]')) { soloTer = !soloTer; repintarQuieto(); return; }
     const co = blanco(ev).closest('[data-pe-color]');
     if (co) { const k = co.dataset.peColor; if (ocultos.has(k)) ocultos.delete(k); else ocultos.add(k); repintarQuieto(); return; }
     const fo = blanco(ev).closest('[data-pe-fondo]');

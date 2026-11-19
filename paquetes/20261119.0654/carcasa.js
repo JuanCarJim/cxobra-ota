@@ -138,13 +138,16 @@
     /* 28-oct: la inspección del sitio de cada semana (qhse.js). */
     { seccion: 'qhse', nombre: 'Inspección del sitio', ayuda: 'QHSE: la de esta semana, control de subcontratas, CAE', obra: true, pasos: ['[data-qh="tipo"][data-p="inspeccionObra"]', '[data-qh="nuevo"][data-p="inspeccionObra"]'],
       icono: svg('<path d="M9 4.5h6M9 4.5A1.5 1.5 0 0 0 7.5 6H6a1.5 1.5 0 0 0-1.5 1.5v11A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 18 6h-1.5A1.5 1.5 0 0 0 15 4.5"/><path d="M8.5 13l2.5 2.5 4.5-5"/>') },
+    /* 18-nov (JC): el recorrido de una zona con los puntos que otros industriales tienen que liberar (recorridos.js). */
+    { seccion: 'recorridos', nombre: 'Recorrido de zona', ayuda: 'Puntos que otros industriales tienen que liberar, con foto', obra: true, pasos: ['[data-rz="nuevo"]'],
+      icono: svg('<path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/>') },
   ];
 
   /* El título de cada sección, arriba: corto, que en el iPhone quepa junto a la pastilla (18-oct). */
   const TITULO = {
     inicio: 'Inicio', commissioning: 'Cx', partes: 'Avisos', ncr: 'No conformidades', reparaciones: 'Reparaciones', avance: 'Avance de obra', albaranes: 'Albaranes',
     inventario: 'Inventario', bloc: 'Notas', personal: 'Personal', estanqueidad: 'Estanqueidad', cuenta: 'Perfil',
-    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', reportesQhse: 'Reportes QHSE', plano: 'Plano de equipos', planoMant: 'Plano de mantenimiento', jornada: 'Mi jornada',
+    misTareas: 'Mis tareas', avisos: 'Reclamables', qhse: 'QHSE', reportesQhse: 'Reportes QHSE', recorridos: 'Recorridos', plano: 'Plano de equipos', planoMant: 'Plano de mantenimiento', jornada: 'Mi jornada',
     iarvis: 'Iarvis', mas: 'Más',
   };
   /* Las que no dependen de la obra elegida no enseñan el selector. */
@@ -705,7 +708,7 @@
   /* ═══════════════════════════════════ El «+»: la hoja de Añadir */
 
   /* Nombre corto para la rejilla (dos líneas como mucho). */
-  const CORTO = { estanqueidad: 'Estanqueidad', albaranes: 'Albarán', avisos: 'Reclamable', qhse: 'Inspección QHSE', reportesQhse: 'Reporte QHSE', avance: 'Avance' };
+  const CORTO = { estanqueidad: 'Estanqueidad', albaranes: 'Albarán', avisos: 'Reclamable', qhse: 'Inspección QHSE', reportesQhse: 'Reporte QHSE', avance: 'Avance', recorridos: 'Recorrido' };
 
   const accionesDisponibles = () => { const ok = new Set(permitidas()); return ACCIONES.filter((a) => ok.has(a.seccion)); };
   /* 18-nov (JC): sin duplicar la barra; si todo lo del rol ya está abajo, no hay «+». */
