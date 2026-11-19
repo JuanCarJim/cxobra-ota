@@ -29,6 +29,9 @@
   const RE_PROGRAMAR = /\b(programa(?:me|lo|la)?|implementa(?:me|lo|la)?|desarrolla(?:me)?|codifica|refactoriza)\b/;
   const RE_CAMBIO = /\b(arregla(?:me|lo|la)?|corrige|repara|cambia(?:me)?|modifica|anade(?:me|le)?|pon(?:me|le)?|quita(?:me|le)?|mete(?:me|le)?|haz que|que salga|que aparezca)\b/;
   const RE_PIEZA = /\b(la app|la aplicacion|el codigo|el programa|la pantalla|la ventana|la pestana|el boton|un boton|el menu|la barra|el modulo|el fichero|la funcion|el fallo de la app|el fallo de la pantalla|el bug|el error de la app|el listado de la app|la tabla de la pantalla|el formulario|el pdf que saca|el informe que saca|a iarvis|iarvis sepa|iarvis pueda)\b/;
+  /* 19-nov (iarvis-genera-ficheros): «sácame el programa de obra en Project» pide un FICHERO, no programar
+     (lo saca electron/data/iarvisFicheros.js). Empieza por sacar/pasar/exportar… y nombra un formato. */
+  const RE_FICHERO = /^(iarvis,? )?(sac\w*|pasa\w*|exporta\w*|descarga\w*|dame\w*|genera\w*|baja\w*|quiero|necesito)\b.*\b(excel|xlsx?|pdf|bc3|fiebdc|ms ?project|project|xml)\b/;
   const RE_PREGUNTA = /^(¿|como |se puede|puedo |podria|es posible|sabes |donde |por que |que es )/;
 
   function detectar(pregunta) {
@@ -37,6 +40,7 @@
     if (!t || t.length < 12) return null;
     if (RE_PREGUNTA.test(t) || /\?\s*$/.test(original)) return null;
     const explicito = /^(encargo|iarvis,? programa|programa)\s*:/.test(t);
+    if (!explicito && RE_FICHERO.test(t)) return null;
     if (!explicito && !RE_PROGRAMAR.test(t) && !(RE_CAMBIO.test(t) && RE_PIEZA.test(t))) return null;
     return { texto: original.replace(/^\s*(encargo|iarvis,?\s*programa|programa)\s*:\s*/i, '').slice(0, 2000) };
   }

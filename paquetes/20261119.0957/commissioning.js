@@ -1970,6 +1970,26 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       ${mini.length ? `<span class="mini-fotos">${mini.join('')}</span>` : ''}
     </div>`;
   }
+  /* Dónde se hizo la foto, discreto: cerca / lejos del sitio del equipo en el plano calibrado; sin calibrar, solo las coordenadas. */
+  function geoFoto(x, f) {
+    if (x.lat == null || x.lon == null) return '';
+    const pf = f.posicionFoto;
+    const pre = x.precision != null ? ` ±${Math.round(x.precision)} m` : '';
+    const coord = `${Number(x.lat).toFixed(5)}, ${Number(x.lon).toFixed(5)}${pre}`;
+    if (pf && pf.fotoId === x.id && pf.distanciaM != null) {
+      const cerca = pf.estado === 'coincide' || pf.estado === 'movido' || pf.distanciaM <= Math.max(10, Math.round(x.precision || 0));
+      return `<span class="geo-foto ${cerca ? 'cerca' : 'lejos'}" title="${esc(coord)}">${cerca ? 'En su sitio' : `A ${pf.distanciaM} m del plano`}</span>`;
+    }
+    return `<span class="geo-foto" title="${esc(coord)}">${esc(coord)}</span>`;
+  }
+  /* El equipo según la foto: ya movido (se puede deshacer) o propuesto (se acepta o no). */
+  function avisoPosicionFoto(f, puede) {
+    const pf = f.posicionFoto;
+    if (!pf || !puede) return '';
+    if (pf.estado === 'movido') return `<p class="nota aviso-posicion-foto">Colocado en el plano según la foto (GPS). <button class="enlace" data-cx="foto-deshacer">Deshacer</button></p>`;
+    if (pf.estado === 'propuesta' && pf.distanciaM != null) return `<p class="nota aviso-posicion-foto">Posición según la foto: a ${pf.distanciaM} m; ¿colocar aquí? <button class="enlace" data-cx="foto-colocar" data-foto="${esc(pf.fotoId)}">Colocar</button></p>`;
+    return '';
+  }
   function htmlFotosEquipo(f, puede) {
     const fotos = f.fotos || [];
     const enCola = fotosEnCola(f);
@@ -1984,10 +2004,11 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     const pc = f.localizacionPorConfirmar || [];
     const porConfirmar = pc.length ? `<p class="nota localizacion-por-confirmar">Localización en plano por confirmar: ${esc(pc.map((u) => `${u.etiqueta}${u.planta ? ` (${u.planta})` : ''}`).join(', '))} — ${esc(pc[0].motivo)}.</p>` : '';
     return `<h2>Fotos del equipo <span class="cuenta">${total}</span></h2>
+      ${avisoPosicionFoto(f, puede)}
       ${porConfirmar}
       ${enCola.length ? `<p class="nota">${marcaAG('sinRed')} ${enCola.length === 1 ? 'Una foto está' : `${enCola.length} fotos están`} solo en el móvil: se subirá${enCola.length === 1 ? '' : 'n'} sola${enCola.length === 1 ? '' : 's'} al volver la conexión.</p>` : ''}
       ${total || loc ? `<ul class="fotos-equipo">${loc}${fotos.map((x) => `<li><img data-src="${esc(x.url || `api/equipo/foto?id=${encodeURIComponent(x.id)}`)}" alt="${esc(x.pie || 'Foto')}">
-        <div class="pie"><span>${pieDe(x)}</span>${marca(x)}${puede && (x.origen || 'equipo') === 'equipo' ? `<button class="enlace mal" data-cx="quitar-foto-equipo" data-id="${esc(x.id)}">Quitar</button>` : ''}</div></li>`).join('')}${enCola.map((x) => `<li class="en-movil"><img data-local="${esc(x.local)}" alt="${esc(x.pie || 'Foto')}">
+        <div class="pie"><span>${pieDe(x)}</span>${marca(x)}${geoFoto(x, f)}${puede && (x.origen || 'equipo') === 'equipo' ? `<button class="enlace mal" data-cx="quitar-foto-equipo" data-id="${esc(x.id)}">Quitar</button>` : ''}</div></li>`).join('')}${enCola.map((x) => `<li class="en-movil"><img data-local="${esc(x.local)}" alt="${esc(x.pie || 'Foto')}">
         <div class="pie"><span>${pieDe(x)}</span>${marca(x)}<span class="origen-foto">En el móvil</span></div></li>`).join('')}</ul>` : ''}
       ${puede ? `<div class="fila-botones fotos-rapidas">
         ${PIES_FOTO.map((pie) => `<button class="boton secundario" data-cx="foto-equipo" data-pie="${esc(pie)}"><i class="ic ic-camara"></i>${esc(pie)}</button>`).join('')}
@@ -2168,12 +2189,46 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       C.aviso('Documento guardado.');
     } catch (e) { boton.disabled = false; C.aviso(e.message || 'No se ha podido subir el documento.'); }
   }
+  /* Coordenadas de la foto: las del EXIF si las trae; si no, la posición del móvil (máx. 4 s). Nunca bloquea ni falla. */
+  async function coordenadasDeFoto(archivo) {
+    const FG = window.FOTO_GEO;
+    if (!FG) return null;
+    try {
+      const buf = new Uint8Array(await archivo.slice(0, 131072).arrayBuffer());
+      const ex = FG.leerExifGps(buf);
+      if (ex) return { lat: ex.lat, lon: ex.lon, precision: null, tomadaEn: new Date().toISOString() };
+    } catch { /* sin EXIF legible */ }
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return null;
+    return new Promise((ok) => {
+      const fin = setTimeout(() => ok(null), 4000);
+      try {
+        navigator.geolocation.getCurrentPosition((p) => {
+          clearTimeout(fin);
+          const g = FG.normalizar({ lat: p.coords.latitude, lon: p.coords.longitude, precision: p.coords.accuracy });
+          ok(g ? { lat: g.lat, lon: g.lon, precision: g.precision, tomadaEn: new Date(p.timestamp || Date.now()).toISOString() } : null);
+        }, () => { clearTimeout(fin); ok(null); }, { enableHighAccuracy: true, timeout: 3500, maximumAge: 15000 });
+      } catch { clearTimeout(fin); ok(null); }
+    });
+  }
+  /* Acepta la posición que propone la foto, o la deshace (solo se mueve el equipo fotografiado). */
+  async function colocarPorFoto(boton, que) {
+    boton.disabled = true;
+    try {
+      const r = await C.postJson(que === 'foto-colocar' ? 'api/equipo/foto-colocar' : 'api/equipo/foto-deshacer', { equipoId: ficha.equipo.id, fotoId: boton.dataset.foto || null });
+      if (!r.ok) throw new Error(r.error);
+      C.aviso(que === 'foto-colocar' ? 'Equipo colocado en el plano.' : 'Posición anterior recuperada.');
+      await abrir(ficha.equipo.id, { quieto: true });
+    } catch (e) { C.aviso(e.message || 'No se ha podido.'); boton.disabled = false; }
+  }
   /* Guarda la foto en el teléfono, la sube y la une al equipo (o a la UI de un VRF). */
   async function guardarFotoEquipo(archivo, equipoId, pie, boton = null, { despues = null } = {}) {
     if (!ficha) return;
     const vista = ficha.equipo.id;
     const clave = `fotoEquipo.${equipoId}.${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    /* Dónde se hizo (19-nov, JC): EXIF o posición del móvil; sin permiso o sin señal, la foto se guarda igual sin coordenadas. */
+    const geoP = coordenadasDeFoto(archivo);
     const foto = AG ? await AG.fotoNueva(archivo, { id: null, pie, hora: ahoraEs() }) : { id: null, pie, hora: ahoraEs(), archivo };
+    Object.assign(foto, (await geoP) || {});
     const apuntar = () => { if (AG) AG.guardar(clave, { equipoId, fotos: AG.fotosParaGuardar([foto]) }); };
     apuntar();
     fotosEquipoEnCurso.add(clave);
@@ -2210,7 +2265,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       apuntar();
     };
     if (!foto.id) await subir();
-    const unir = () => C.postJson('api/equipo/fotos', { equipoId, ...(vista ? { vista } : {}), fotos: [{ id: foto.id, pie: foto.pie, hora: foto.hora }] });
+    const unir = () => C.postJson('api/equipo/fotos', { equipoId, ...(vista ? { vista } : {}), fotos: [{ id: foto.id, pie: foto.pie, hora: foto.hora, ...(foto.lat != null ? { lat: foto.lat, lon: foto.lon, precision: foto.precision, tomadaEn: foto.tomadaEn } : {}) }] });
     let r = await unir();
     /* El ordenador olvidó la foto en espera (app cerrada): se vuelve a subir desde el teléfono. */
     if (!r.ok && /ya no está/i.test(String(r.error || ''))) { foto.id = null; await subir(); r = await unir(); }
@@ -4357,6 +4412,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     else if (que === 'guardar-firma' && ficha) guardarFirma(b);
     else if (que === 'quitar-firma' && ficha) C.confirmar('¿Quitar la firma guardada?', 'Tendrás que volver a firmar.', 'Sí, quitar').then((ok) => { if (ok) guardarFirma(b, true); });
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
+    else if (que === 'foto-colocar' || que === 'foto-deshacer') colocarPorFoto(b, que);
     else if (que === 'ver-hoja') verHoja(b);
     else if (que === 'preparar-archivo' && ficha) prepararArchivo(b);
     else if (que === 'ver-archivo' && ficha) compartirPdf(`api/equipo/archivo-preparado?id=${encodeURIComponent(b.dataset.id)}`, (fichasEq && fichasEq.archivo && fichasEq.archivo.nombre) || 'Archivo.pdf', b);

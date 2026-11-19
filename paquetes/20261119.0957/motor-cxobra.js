@@ -6985,7 +6985,7 @@ globalThis.CX_VARIANTE="cxobra";globalThis.PERFIL_EDICION={"commissioning":{"tol
         { id: "base", nombre: "Base: presupuesto, proyectos, obras y personal", siempre: true },
         { id: "compras", nombre: "Compras y pedidos" },
         { id: "produccion", nombre: "Producci\xF3n y certificaciones" },
-        { id: "cxMantenimiento", nombre: "Commissioning + Mantenimiento" },
+        { id: "cxMantenimiento", nombre: "Commissioning + GMAO" },
         { id: "calidad", nombre: "Calidad y QHSE" },
         { id: "documentacion", nombre: "Documentaci\xF3n y planos" },
         { id: "reclamaciones", nombre: "Reclamaciones" }
@@ -8804,6 +8804,9 @@ globalThis.CX_VARIANTE="cxobra";globalThis.PERFIL_EDICION={"commissioning":{"tol
         medObra: { modulo: "presupuestos", etiqueta: "Medici\xF3n real de obra" },
         albaranes: { modulo: "pedidos", etiqueta: "Albaranes" },
         inventario: { modulo: "pedidos", etiqueta: "Inventario" },
+        /* 18-nov (JC): el cruce a tres vías (factura, pedido, albarán), el almacén central con traspasos y las devoluciones con abono.
+           Se abre desde Inventario (pestaña «Cruce y almacén») y desde el buscador: Compras ya tiene siete. */
+        cruceCompras: { modulo: "pedidos", etiqueta: "Cruce y almac\xE9n" },
         facturasProveedor: { modulo: "certificaciones", etiqueta: "Facturas de proveedor" },
         entregasDF: { modulo: "commissioning", etiqueta: "Entregas a la DF y acta" },
         cierreObra: { modulo: "certificaciones", etiqueta: "Cierre de la obra" },
@@ -8827,7 +8830,8 @@ globalThis.CX_VARIANTE="cxobra";globalThis.PERFIL_EDICION={"commissioning":{"tol
         /* 2-nov (JC): con el permiso del avance de obra, que es quien los mide (no el de certificar). */
         m2Conductos: { modulo: "avanceObra", etiqueta: "m\xB2 de conductos" },
         /* 9-nov (JC): lo que ha ayudado la app en la obra, medido (horas y errores evitados; € solo dirección). */
-        ayudaObra: { modulo: "obras", etiqueta: "Lo que ha ayudado la app" },
+        /* 19-nov (JC): «esto lo tienes que mover al perfil del administrador solamente». Ni viéndolo «como» otro rol. */
+        ayudaObra: { modulo: "obras", etiqueta: "Lo que ha ayudado la app", solo: "veQueHaceLaApp" },
         /* 9-nov (JC): el ahorro medido por departamento y por proyecto contra lo que cuesta el programa. Solo veAhorroApp. */
         ayudaDireccion: { modulo: "obras", etiqueta: "Ahorro de la app", solo: "veAhorroApp" }
       };
@@ -8917,6 +8921,7 @@ globalThis.CX_VARIANTE="cxobra";globalThis.PERFIL_EDICION={"commissioning":{"tol
           if (!contratoPermite(contrato, m)) return false;
           if (!conLicenciaObra(m)) return false;
           if (a && a.solo === "veAhorroApp" && !veAhorroApp(idRol)) return false;
+          if (a && a.solo === "veQueHaceLaApp" && !veQueHaceLaApp(idRol)) return false;
           if (a && a.tambienCon && (visiblesPorRol.includes(a.tambienCon) || ((porId.get(idRol) || { permisos: {} }).permisos[a.tambienCon] || []).includes("ver"))) return true;
           return (a ? visiblesPorRol : visibles).includes(a ? a.modulo : m);
         };
@@ -10887,7 +10892,7 @@ globalThis.CX_VARIANTE="cxobra";globalThis.PERFIL_EDICION={"commissioning":{"tol
       init_define_CX_LICENCIAS();
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261118.2214" : "0";
+      var VERSION = true ? "20261119.0957" : "0";
       var URL_OTA = "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main" ? "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -13043,6 +13048,13 @@ globalThis.CX_VARIANTE="cxobra";globalThis.PERFIL_EDICION={"commissioning":{"tol
         inventarioRecuentos: { porObra: "obraId" },
         inventarioRecuentoLineas: { porObra: "obraId" },
         inventarioMovimientos: { porObra: "obraId" },
+        /* El cruce a tres vías, el almacén central y las devoluciones (18-nov-2026).
+           Un movimiento SIN obra es del almacén central: de la casa, lo ve quien
+           ve pedidos en cualquier obra. */
+        facturaPagos: { porObra: "obraId" },
+        almacenMovimientos: { porObra: "obraId", obraOpcional: true },
+        devolucionesProveedor: { porObra: "obraId" },
+        devolucionLineas: { porObra: "obraId" },
         inventarioTeorico: { porObra: "obraId" },
         inventarioCertificados: { porObra: "obraId" },
         inventarioCertificadoLineas: { porObra: "obraId" },
@@ -30519,6 +30531,78 @@ ${obsO}` : obsO).slice(0, 4e3);
      creadoEn        TEXT NOT NULL,
      modificadoEn    TEXT NOT NULL
    )`,
+        /*
+         * EL CRUCE A TRES VÍAS, EL ALMACÉN CENTRAL Y LAS DEVOLUCIONES (18-nov-2026).
+         * `facturaPagos`: cada pago apuntado a una factura de proveedor; si suman
+         * más que la factura, está pagada dos veces.
+         * `almacenMovimientos`: el libro del material que sale de una obra. Un
+         * traspaso son dos filas con el mismo grupoId (salida del origen, entrada
+         * en el destino); `obraId` NULO es el ALMACÉN CENTRAL, de la casa. Una
+         * devolución al proveedor deja aquí su salida (devolucionProveedor).
+         * `devolucionesProveedor` + `devolucionLineas`: la devolución con su
+         * albarán de devolución; su abono es una factura de proveedor en negativo
+         * (facturasProveedor.tipo = 'abono', devolucionId).
+         */
+        `CREATE TABLE IF NOT EXISTS facturaPagos (
+     id              TEXT PRIMARY KEY,
+     obraId          TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     facturaId       TEXT NOT NULL REFERENCES facturasProveedor(id) ON DELETE CASCADE,
+     fecha           TEXT NOT NULL,
+     importe         REAL NOT NULL CHECK (importe > 0),
+     referencia      TEXT,
+     creadoPor       TEXT,
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL
+   )`,
+        `CREATE TABLE IF NOT EXISTS almacenMovimientos (
+     id              TEXT PRIMARY KEY,
+     obraId          TEXT REFERENCES obras(id) ON DELETE CASCADE,
+     grupoId         TEXT,
+     fecha           TEXT NOT NULL,
+     tipo            TEXT NOT NULL CHECK (tipo IN ('salidaTraspaso','entradaTraspaso','devolucionProveedor')),
+     otraObraId      TEXT,
+     clave           TEXT NOT NULL,
+     referencia      TEXT,
+     descripcion     TEXT,
+     unidad          TEXT,
+     cantidad        REAL NOT NULL CHECK (cantidad > 0),
+     precio          REAL,
+     pedidoId        TEXT,
+     lineaPedido     INTEGER,
+     proveedorId     TEXT,
+     devolucionId    TEXT,
+     notas           TEXT,
+     creadoPor       TEXT,
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL
+   )`,
+        `CREATE TABLE IF NOT EXISTS devolucionesProveedor (
+     id              TEXT PRIMARY KEY,
+     obraId          TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     pedidoId        TEXT NOT NULL REFERENCES pedidosCompra(id) ON DELETE CASCADE,
+     proveedorId     TEXT,
+     codigo          TEXT NOT NULL,
+     numeroAlbaran   TEXT NOT NULL,
+     fecha           TEXT NOT NULL,
+     motivo          TEXT,
+     notas           TEXT,
+     creadoPor       TEXT,
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL
+   )`,
+        `CREATE TABLE IF NOT EXISTS devolucionLineas (
+     id              TEXT PRIMARY KEY,
+     devolucionId    TEXT NOT NULL REFERENCES devolucionesProveedor(id) ON DELETE CASCADE,
+     obraId          TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     lineaPedido     INTEGER NOT NULL,
+     descripcion     TEXT,
+     referencia      TEXT,
+     unidad          TEXT,
+     cantidad        REAL NOT NULL CHECK (cantidad > 0),
+     precio          REAL,
+     creadoEn        TEXT NOT NULL,
+     modificadoEn    TEXT NOT NULL
+   )`,
         /* Lo CERTIFICADO al cliente importado de su Excel (el IPC del SharePoint),
            para las obras que no certifican en la app: cantidad a origen por
            código de partida. Manda la certificación de la app si la hay. */
@@ -30997,6 +31081,14 @@ ${obsO}` : obsO).slice(0, 4e3);
         `CREATE INDEX IF NOT EXISTS idx_invrecuentos_obra  ON inventarioRecuentos (obraId, fecha)`,
         `CREATE INDEX IF NOT EXISTS idx_invreclineas_rec   ON inventarioRecuentoLineas (recuentoId, orden)`,
         `CREATE INDEX IF NOT EXISTS idx_invmov_obra        ON inventarioMovimientos (obraId, fecha)`,
+        `CREATE INDEX IF NOT EXISTS idx_factpagos_factura  ON facturaPagos (facturaId)`,
+        `CREATE INDEX IF NOT EXISTS idx_factpagos_obra     ON facturaPagos (obraId)`,
+        `CREATE INDEX IF NOT EXISTS idx_almmov_obra        ON almacenMovimientos (obraId, fecha)`,
+        `CREATE INDEX IF NOT EXISTS idx_almmov_grupo       ON almacenMovimientos (grupoId)`,
+        `CREATE INDEX IF NOT EXISTS idx_almmov_pedido      ON almacenMovimientos (pedidoId)`,
+        `CREATE INDEX IF NOT EXISTS idx_devprov_obra       ON devolucionesProveedor (obraId, fecha)`,
+        `CREATE INDEX IF NOT EXISTS idx_devprov_pedido     ON devolucionesProveedor (pedidoId)`,
+        `CREATE INDEX IF NOT EXISTS idx_devlin_devolucion  ON devolucionLineas (devolucionId)`,
         `CREATE INDEX IF NOT EXISTS idx_invteo_obra        ON inventarioTeorico (obraId, clave)`,
         `CREATE INDEX IF NOT EXISTS idx_invcert_obra       ON inventarioCertificados (obraId, creadoEn)`,
         `CREATE INDEX IF NOT EXISTS idx_invcertlineas_cert ON inventarioCertificadoLineas (certificadoId)`
@@ -31011,6 +31103,8 @@ ${obsO}` : obsO).slice(0, 4e3);
         ["planConcretoTareas", "responsable", "TEXT"],
         /* 13-nov (licencias por unidad de negocio): de qué unidad es cada persona; sin ella, ve todo lo de su rol. */
         ["personas", "unidadNegocioId", "TEXT"],
+        /* 18-nov (JC): el GMAO va para 20 usuarios; el tope negociado de cada unidad (vacío = los incluidos, shared/licencias.js). */
+        ["unidadesNegocio", "topeUsuariosGmao", "INTEGER"],
         /* En qué se parte cada documento de un industrial: contrato / horas / BIM / extras, con quién lo marcó y cuándo (13-nov, JC; shared/obra/certMesAMes.js). */
         ["docsCorreo", "partes", "TEXT"],
         /* Gap por disciplina (13-nov): la lectura por partidas y meses de cada documento (shared/obra/gapDisciplina.js). */
@@ -31082,6 +31176,11 @@ ${obsO}` : obsO).slice(0, 4e3);
         /* La copia de la foto en la nube (cubo cx-fotos, shared/sync/fotosNube.js): la pone quien sube la foto desde la web o el ordenador, y el teléfono la baja por esta clave. */
         ["fotosEquipo", "rutaNube", "TEXT"],
         ["fotosEquipo", "rutaOrigen", "TEXT"],
+        /* 19-nov (JC): dónde se hizo la foto (EXIF o posición del móvil): para verificar la ubicación del equipo. */
+        ["fotosEquipo", "lat", "REAL"],
+        ["fotosEquipo", "lon", "REAL"],
+        ["fotosEquipo", "precision", "REAL"],
+        ["fotosEquipo", "tomadaEn", "TEXT"],
         ["certIndustriales", "alcances", "TEXT"],
         /* Lo del MES de cada partida, su importe a su precio, lo de origen y quién lo midió. */
         ["lineasCertificacion", "cantidad", "REAL"],
@@ -31173,6 +31272,8 @@ ${obsO}` : obsO).slice(0, 4e3);
          * por terminada en Vidaire Cx (día del trabajo y quién); la cierra la oficina. */
         ["ordenesMant", "fechaTerminada", "TEXT"],
         ["ordenesMant", "terminadaPor", "TEXT"],
+        /* La hora a la que se terminó (18-nov): el SLA mide en horas y fechaTerminada solo guarda el día. */
+        ["ordenesMant", "terminadaEn", "TEXT"],
         ["partesIncidencia", "costeExtra", "REAL"],
         ["partesIncidencia", "costeExtraConcepto", "TEXT"],
         ["partesIncidencia", "repercusion", "TEXT"],
@@ -31400,6 +31501,11 @@ ${obsO}` : obsO).slice(0, 4e3);
         /* El inventario de obra (shared/compras/inventario.js): dónde se ha dejado
            lo que llegó y, si no se deduce del pedido, a qué partida va. Se rellenan
            desde Compras › Pedidos › Inventario. */
+        /* El cruce a tres vías (18-nov-2026): la factura puede ser un ABONO casado
+           con una devolución, y traer sus líneas (JSON) para cruzarlas con el pedido. */
+        ["facturasProveedor", "tipo", "TEXT"],
+        ["facturasProveedor", "devolucionId", "TEXT"],
+        ["facturasProveedor", "lineas", "TEXT"],
         ["albaranLineas", "ubicacion", "TEXT"],
         ["albaranLineas", "partidaCodigo", "TEXT"],
         /* Personal en obra: cuándo entró y cuándo y por qué salió cada operario. */
@@ -32451,6 +32557,12 @@ ${obsO}` : obsO).slice(0, 4e3);
         inventarioRecuentos: "inventarioCampo",
         inventarioRecuentoLineas: "inventarioCampo",
         inventarioMovimientos: "inventarioCampo",
+        /* El cruce a tres vías, el almacén central y las devoluciones (18-nov-2026):
+           los pagos son dinero (como las facturas); el material que sale, de quien pide. */
+        facturaPagos: "costsPlan",
+        almacenMovimientos: "pedidos",
+        devolucionesProveedor: "pedidos",
+        devolucionLineas: "pedidos",
         inventarioTeorico: "inventarioCampo",
         inventarioCertificados: "pedidos",
         inventarioCertificadoLineas: "pedidos",
@@ -84062,6 +84174,21 @@ ${subtitulo}`, c[5]] : c.slice())]);
           cebra: hex("#EEF6F4"),
           separador: "linea",
           cifra: hex(E.ACENTO.teal)
+        },
+        /* 19-nov: la de Vidaire para sus ofertas de venta (shared/ventas/ofertaPdf.js): paleta Arena,
+           marino #262b38 en títulos y rótulos, arena #e9bf86 en filete y bandas, granate en las cifras. */
+        vidaire: {
+          tinta: hex("#262b38"),
+          suave: hex("#5c5850"),
+          banda: { fondo: hex("#e9bf86"), texto: hex("#262b38") },
+          subcab: { fondo: null, texto: hex("#262b38"), linea: hex("#e9bf86") },
+          valor: null,
+          filete: hex("#e9bf86"),
+          cebra: hex("#f7f1e6"),
+          separador: "linea",
+          cifra: hex("#8a2b3a"),
+          titulo: hex("#262b38"),
+          rotulo: hex("#262b38")
         }
       };
       var esJpeg = (b) => b && b.length > 3 && b[0] === 255 && b[1] === 216;
@@ -84184,7 +84311,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
           }
           const lado = imgLogo ? 120 : 0;
           const wT = ANCHO2 - lado * 2;
-          const color = m === "app" ? hex(E.ACENTO.marino) : K.tinta;
+          const color = K.titulo || (m === "app" ? hex(E.ACENTO.marino) : K.tinta);
           centrado(String(titulo).toUpperCase(), MARGEN + lado, wT, y - 15, { tam: 11.5, color });
           if (sub) centrado(recortar(String(sub).toUpperCase(), 11.5, wT), MARGEN + lado, wT, y - 30, { tam: 11.5, color });
           y -= ALTO + 6;
@@ -84258,7 +84385,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
                 const x = MARGEN + j * (col + HUECO);
                 const rotulo = typeof f === "string" ? f : f && f.rotulo || "";
                 pag.drawRectangle({ x, y: y - 64, width: col, height: 64, borderColor: hex(E.TOKENS.rejilla), borderWidth: 0.8 });
-                texto(recortar(String(rotulo).toUpperCase(), 7, col - 12, F.b), x + 6, y - 11, { tam: 7, f: F.b, color: m === "app" ? hex(E.ACENTO.teal) : K.tinta });
+                texto(recortar(String(rotulo).toUpperCase(), 7, col - 12, F.b), x + 6, y - 11, { tam: 7, f: F.b, color: K.rotulo || (m === "app" ? hex(E.ACENTO.teal) : K.tinta) });
                 if (f && typeof f === "object") {
                   const img = f.imagen && esPng(f.imagen) ? await meter(f.imagen) : null;
                   if (img) {
@@ -84277,15 +84404,15 @@ ${subtitulo}`, c[5]] : c.slice())]);
             const mitad = ANCHO2 / 2;
             for (const fila of filas) {
               const anchoDe = (i) => (i === 0 && !fila[1] ? ANCHO2 : mitad) - rotulo - 8;
-              const alto = Math.max(0, ...fila.map((par, i) => par ? (lineas(par[1] || "", 7.5, anchoDe(i) - 6).length - 1) * 9.5 : 0));
+              const alto = Math.max(0, ...fila.map((par, i) => par ? (Math.max(1, lineas(par[1] || "", 7.5, anchoDe(i) - 6).length) - 1) * 9.5 : 0));
               cabe(15 + alto);
               fila.forEach((par, i) => {
                 if (!par) return;
                 const x = MARGEN + i * mitad;
                 const w = anchoDe(i);
-                texto(par[0], x, y - 9, { tam: 7.5, f: m === "app" ? F.b : F.n, color: m === "app" ? hex(E.ACENTO.teal) : K.tinta });
+                texto(par[0], x, y - 9, { tam: 7.5, f: m !== "libro" ? F.b : F.n, color: K.rotulo || (m === "app" ? hex(E.ACENTO.teal) : K.tinta) });
                 const ls = lineas(par[1] || "", 7.5, w - 6);
-                const extra = (ls.length - 1) * 9.5;
+                const extra = (Math.max(1, ls.length) - 1) * 9.5;
                 if (K.valor) pag.drawRectangle({ x: x + rotulo, y: y - 12 - extra, width: w, height: 12 + extra, color: K.valor });
                 ls.forEach((l, j) => texto(l, x + rotulo + 3, y - 9 - j * 9.5, { tam: 7.5 }));
                 if (m === "libro") punteada(x, x + rotulo - 4, y - 12.3 - extra);
@@ -84335,8 +84462,13 @@ ${subtitulo}`, c[5]] : c.slice())]);
            * La tabla densa. columnas: [{ t, w (pt; la última se queda el resto), alinear: 'centro' }].
            * filas: [[celda…]]; una celda es texto, o { texto, tam, negrita }, { numero, hecho },
            * { foto: bytes } (miniatura de 44×33) o { pastilla: tono, rotulo, sub } (sub: texto pequeño debajo).
+           * Una fila puede ser { grupo: 'texto' } (rótulo de grupo a lo ancho), { nota, pastilla, rotulo, sangria } (línea a lo ancho
+           * con su etiqueta delante, bajo la fila anterior) y una celda { casilla: true } (cuadro para marcar a mano).
+           * `altoMin`: el alto mínimo de cada fila (los renglones en blanco de un modelo para rellenar a mano).
+           * `grupos`: [{ t, n }] — una fila encima de la cabecera que agrupa n columnas seguidas bajo un rótulo
+           * (t vacío: sin rótulo); se repite en cada hoja con la cabecera (el informe semanal del jefe, 19-nov).
            */
-          async tabla(columnas, filas, { vacio = "" } = {}) {
+          async tabla(columnas, filas, { vacio = "", altoMin = 16, grupos = null } = {}) {
             const cols = columnas.map((c) => ({ ...c }));
             const libre = ANCHO2 - cols.reduce((s, c) => s + (c.w || 0), 0);
             const sinAncho = cols.filter((c) => !c.w);
@@ -84351,10 +84483,26 @@ ${subtitulo}`, c[5]] : c.slice())]);
               return t;
             });
             const cabLs = cols.map((c, k) => lineas(c.t, tamCab[k], c.w - 6, F.b));
-            const hCab = 13 + (Math.max(...cabLs.map((l) => l.length)) - 1) * 8;
+            const hGrupos = grupos && grupos.length ? 11 : 0;
+            const hCab = 13 + (Math.max(...cabLs.map((l) => l.length)) - 1) * 8 + hGrupos;
+            const filaGrupos = () => {
+              let x = MARGEN;
+              let k = 0;
+              for (const g of grupos) {
+                const w = cols.slice(k, k + (g.n || 1)).reduce((s, c) => s + c.w, 0);
+                if (g.t) {
+                  centrado(recortar(limpio(g.t), 6.5, w - 6, F.b), x, w, y - 8, { tam: 6.5, f: F.b, color: K.subcab.texto });
+                  pag.drawLine({ start: { x: x + 3, y: y - hGrupos + 0.5 }, end: { x: x + w - 3, y: y - hGrupos + 0.5 }, thickness: 0.6, color: K.subcab.texto });
+                }
+                x += w;
+                k += g.n || 1;
+              }
+              y -= hGrupos;
+            };
             const subcabecera = () => {
-              const h = hCab;
-              if (K.subcab.fondo) pag.drawRectangle({ x: MARGEN, y: y - h, width: ANCHO2, height: h, color: K.subcab.fondo });
+              if (K.subcab.fondo) pag.drawRectangle({ x: MARGEN, y: y - hCab, width: ANCHO2, height: hCab, color: K.subcab.fondo });
+              if (hGrupos) filaGrupos();
+              const h = hCab - hGrupos;
               let x = MARGEN;
               cols.forEach((c, k) => {
                 cabLs[k].forEach((r, j) => {
@@ -84377,7 +84525,32 @@ ${subtitulo}`, c[5]] : c.slice())]);
               return;
             }
             let i = 0;
+            const hG = 15;
+            let grupoPendiente = null;
+            const dibujarGrupo = () => {
+              pag.drawRectangle({ x: MARGEN, y: y - hG, width: ANCHO2, height: hG, color: K.cebra || hex(E.TOKENS.rejilla) });
+              texto(recortar(limpio(grupoPendiente), 7.5, ANCHO2 - 8, F.b), MARGEN + 4, y - 10.5, { tam: 7.5, f: F.b, color: K.subcab.texto });
+              y -= hG;
+              grupoPendiente = null;
+            };
             for (const fila of filas) {
+              if (!Array.isArray(fila) && fila && fila.grupo !== void 0) {
+                grupoPendiente = fila.grupo;
+                i = 0;
+                continue;
+              }
+              if (!Array.isArray(fila) && fila && fila.nota !== void 0) {
+                const x0 = MARGEN + (fila.sangria || 0) + 4;
+                const wP = fila.pastilla ? F.b.widthOfTextAtSize(limpio(fila.rotulo || ""), E.ETIQUETA.letra * ESC * 0.97) + E.ETIQUETA.padding * ESC * 2 + 6 : 0;
+                const ls2 = lineas(fila.nota, 7, MARGEN + ANCHO2 - x0 - wP - 4);
+                const alto2 = Math.max(15, ls2.length * 9 + 6);
+                if (!cabe(alto2)) subcabecera();
+                if (fila.pastilla) pastilla(fila.pastilla, fila.rotulo || "", x0, y - alto2 / 2 - 6);
+                ls2.forEach((l, j) => pag.drawText(l, { x: x0 + wP, y: y - alto2 / 2 + (ls2.length - 1) * 9 / 2 - 2.5 - j * 9, size: 7, font: F.n, color: fila.color ? hex(fila.color) : K.tinta }));
+                y -= alto2;
+                pag.drawLine({ start: { x: x0, y }, end: { x: MARGEN + ANCHO2, y }, thickness: 0.3, color: hex(E.TOKENS.rejilla) });
+                continue;
+              }
               const celdas = fila.map((c, k) => {
                 const x2 = c && typeof c === "object" ? c : { texto: c == null ? "" : String(c) };
                 if (x2.pastilla && x2.rotulo) {
@@ -84393,9 +84566,10 @@ ${subtitulo}`, c[5]] : c.slice())]);
                 }
                 return x2;
               });
-              const ls = celdas.map((c, k) => "texto" in c ? lineas(c.texto, c.tam || 7.5, cols[k].w - 8, c.negrita ? F.b : F.n) : c.pastilla && c.sub ? lineas(c.sub, 6.5, cols[k].w - 8, F.n) : []);
-              const alto = Math.max(16, ...celdas.map((c, k) => c.foto !== void 0 ? MINI.h + 6 : c.pastilla && c.sub ? 12 + ls[k].length * 8 + 9 : ls[k].length * ((c.tam || 7.5) + 2) + 8));
-              if (!cabe(alto)) subcabecera();
+              const ls = celdas.map((c, k) => "texto" in c ? (c.saltos ? String(c.texto ?? "").split(/\r?\n/) : [c.texto]).flatMap((parte) => lineas(parte, c.tam || 7.5, cols[k].w - 8, c.negrita ? F.b : F.n)) : c.pastilla && c.sub ? lineas(c.sub, 6.5, cols[k].w - 8, F.n) : []);
+              const alto = Math.max(altoMin, ...celdas.map((c, k) => c.foto !== void 0 ? MINI.h + 6 : c.pastilla && c.sub ? 12 + ls[k].length * 8 + 9 : ls[k].length * ((c.tam || 7.5) + 2) + 8));
+              if (!cabe(alto + (grupoPendiente !== null ? hG : 0))) subcabecera();
+              if (grupoPendiente !== null) dibujarGrupo();
               const arriba = y;
               const medio = y - alto / 2;
               if (K.cebra && i % 2 === 1) pag.drawRectangle({ x: MARGEN, y: arriba - alto, width: ANCHO2, height: alto, color: K.cebra });
@@ -84404,6 +84578,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
                 const c = celdas[k] || {};
                 const w = cols[k].w;
                 if (c.numero !== void 0) circulo(c.numero, x + w / 2, medio, c.hecho);
+                else if (c.casilla) pag.drawRectangle({ x: x + w / 2 - 4.5, y: medio - 4.5, width: 9, height: 9, borderColor: K.tinta, borderWidth: 0.7 });
                 else if (c.foto !== void 0) {
                   const img = c.foto ? await meter(c.foto) : null;
                   if (img) imagen(img, x + 4, medio - MINI.h / 2, MINI.w, MINI.h, { cubrir: true });
@@ -84701,6 +84876,505 @@ ${subtitulo}`, c[5]] : c.slice())]);
           if (typeof window !== "undefined") window.NCR_SALIDA_EXTERNA = API;
         })({ CAMPOS_EXTERNA, PROVISIONAL, nombreHerramienta, tablaExterna, fichaExterna, resumenExterna });
       })();
+    }
+  });
+
+  // shared/ncr/informesPdf.js
+  var require_informesPdf = __commonJS({
+    "shared/ncr/informesPdf.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var { crearInforme } = require_plantillaPdf();
+      var Mi = require_motor3();
+      var TX = require_texto();
+      var llano = (v) => String(v ?? "").trim();
+      var fecha = (d) => {
+        const x = Mi.dia(d);
+        return x ? x.split("-").reverse().join("/") : "";
+      };
+      var num = (v, d = 0) => v === null || v === void 0 || v === "" ? "" : Number(v).toLocaleString("es-ES", { minimumFractionDigits: d, maximumFractionDigits: d });
+      var eur = (v) => v === null || v === void 0 ? "" : `${num(v, 2)} \u20AC`;
+      var pct = (v) => v === null || v === void 0 ? "-" : `${num(v * 100, 0)} %`;
+      var estadoTxt = (e) => Mi.ESTADOS[e] ? Mi.ESTADOS[e].nombre : e || "";
+      var plazoTxt = (p) => Mi.PLAZOS[p] ? Mi.PLAZOS[p].nombre : "";
+      var CLASE_ESTADO = { abierta: "mal", enCurso: "aviso", enviadaRevision: "info", pteVerificar: "info", cerrada: "bien", observacion: "info", anulada: "neutra" };
+      var CLASE_PLAZO = { vencida: "mal", proximosDias: "aviso", sinPlanificar: "neutra", enPlazo: "bien" };
+      var ROL_PROPIO = () => {
+        try {
+          return String(require_perfilObra().titularO("Contratista")).toUpperCase();
+        } catch {
+          return "CONTRATISTA";
+        }
+      };
+      var T2 = 7;
+      var t = (texto, extra = {}) => ({ texto: llano(texto), tam: T2, ...extra });
+      var estado = (e) => ({ pastilla: CLASE_ESTADO[e] || "neutra", rotulo: estadoTxt(e) });
+      var plazo = (p) => plazoTxt(p) ? { pastilla: CLASE_PLAZO[p] || "neutra", rotulo: plazoTxt(p) } : "";
+      var nombreObraDe = (obra) => [obra && obra.codigo, obra && obra.nombre].filter(Boolean).join(" \xB7 ");
+      var seccion = (inf, texto) => {
+        inf.cabe(70);
+        inf.banda(texto);
+      };
+      var abrir = (d, ctx, { titulo, sub, apaisado = true }) => crearInforme({
+        marca: ctx.marca || null,
+        obra: d.obra,
+        logo: ctx.logo,
+        apaisado,
+        titulo,
+        subtitulo: [nombreObraDe(d.obra), sub].filter(Boolean).join(" \xB7 "),
+        pie: `${titulo} \xB7 ${llano(d.obra && d.obra.codigo)} \xB7 ${fecha(ctx.hoy || (/* @__PURE__ */ new Date()).toISOString())}`
+      });
+      async function porIndustrialPdf(d, industrial, ctx = {}) {
+        const quien = industrial || "(sin industrial)";
+        const lista = d.filas.filter((f) => f.calc.activa && (f.industrialResponsable || "") === (industrial || "")).sort(Mi.ordenPorPlazo);
+        const porEstado = Object.keys(Mi.ESTADOS).map((e) => [e, lista.filter((f) => f.estado === e).length]).filter(([, n]) => n);
+        const vencidas = lista.filter((f) => f.calc.plazo === "vencida").length;
+        const inf = await abrir(d, ctx, { titulo: "No conformidades pendientes", sub: `para ${quien}` });
+        inf.parrafo(`A la atenci\xF3n de ${quien}: estas son las no conformidades que siguen abiertas a ${fecha(d.corte)}, las vencidas primero. Os pedimos la correcci\xF3n en la fecha comprometida y que nos avis\xE9is al terminar cada una para verificarla.`);
+        inf.franja([[lista.length, "activas"], ...porEstado.map(([e, n]) => [n, estadoTxt(e).toLowerCase()]), [vencidas, "vencidas"]]);
+        await inf.tabla([
+          { t: "NCR", w: 56 },
+          { t: "Dalux", w: 50 },
+          { t: "Planta \xB7 sala", w: 80 },
+          { t: "Descripci\xF3n" },
+          { t: "Acci\xF3n esperada", w: 170 },
+          { t: "Prevista", w: 48 },
+          { t: "Plazo", w: 76 },
+          { t: "Estado", w: 76 }
+        ], lista.map((f) => [
+          t(f.codigo, { negrita: true }),
+          t(f.codExterno),
+          t([f.planta, f.sala].filter(Boolean).join(" \xB7 ")),
+          t(f.descripcion),
+          t(f.accionInicial),
+          t(fecha(f.fechaPrevista)),
+          plazo(f.calc.plazo),
+          estado(f.estado)
+        ]), { vacio: "Ninguna activa." });
+        await inf.firmas([{ rotulo: `RECIBIDO (${industrial || ""})`, nombre: "Nombre, firma y fecha" }, { rotulo: ROL_PROPIO(), nombre: "Nombre, firma y fecha" }], { porFila: 2 });
+        return inf.cerrar();
+      }
+      async function recorridoPdf(d, { planta = null, zona = null, soloActivas = true } = {}, ctx = {}) {
+        let lista = d.filas.filter((f) => (!soloActivas || f.calc.activa) && (planta === null || (f.planta || "") === planta) && (zona === null || (f.zona || "") === zona));
+        lista = lista.sort((a, b) => String(a.planta || "").localeCompare(String(b.planta || ""), "es", { numeric: true }) || String(a.sala || "").localeCompare(String(b.sala || ""), "es", { numeric: true }) || a.numero - b.numero);
+        const grupos = /* @__PURE__ */ new Map();
+        for (const f of lista) {
+          const k = f.planta || "(sin planta)";
+          if (!grupos.has(k)) grupos.set(k, []);
+          grupos.get(k).push(f);
+        }
+        const inf = await abrir(d, ctx, { titulo: "Recorrido de verificaci\xF3n", sub: [planta && `planta ${planta}`, zona && `zona ${zona}`].filter(Boolean).join(" \xB7 ") || "toda la obra" });
+        inf.parrafo(`${lista.length} no conformidades ${soloActivas ? "activas" : ""}, por planta y sala. Marcad en obra lo que se ve.`);
+        inf.franja([[lista.length, soloActivas ? "activas" : "no conformidades"], [grupos.size, grupos.size === 1 ? "planta" : "plantas"]]);
+        const filas = [];
+        for (const [p, l] of grupos) {
+          filas.push({ grupo: `PLANTA ${p} \xB7 ${l.length}` });
+          for (const f of l) {
+            filas.push([
+              { texto: [llano(f.codigo), llano(f.codExterno)].filter(Boolean).join("\n"), tam: T2, negrita: true, saltos: true },
+              t([f.sala, f.salaNueva].filter(Boolean).join(" \xB7 ")),
+              t(f.descripcion),
+              t(f.industrialResponsable),
+              estado(f.estado),
+              { casilla: true },
+              { casilla: true },
+              ""
+            ]);
+          }
+        }
+        await inf.tabla([
+          { t: "NCR", w: 62 },
+          { t: "Sala", w: 70 },
+          { t: "Descripci\xF3n" },
+          { t: "Industrial", w: 100 },
+          { t: "Estado", w: 76 },
+          { t: "Corregido", w: 48, alinear: "centro" },
+          { t: "No corregido", w: 48, alinear: "centro" },
+          { t: "Observaci\xF3n", w: 150 }
+        ], filas, { vacio: "Ninguna no conformidad en este recorrido.", altoMin: 22 });
+        await inf.firmas([{ rotulo: ROL_PROPIO(), nombre: "Nombre, firma y fecha" }, { rotulo: "DEO / DF", nombre: "Nombre, firma y fecha" }], { porFila: 2 });
+        return inf.cerrar();
+      }
+      function graficos(inf, ev) {
+        if (!ev || !ev.length) return;
+        const H = 120;
+        const hueco = 14;
+        inf.cabe(H + 16);
+        const pag = inf.pagina;
+        const K = inf.colores;
+        const F = inf.fuentes;
+        const ancho = (inf.ANCHO - hueco) / 2;
+        const nuevas = inf.hex("#4E8FA8");
+        const cerradas = inf.hex("#2E8B57");
+        const linea = inf.hex("#7A2E3A");
+        const eje = inf.hex("#BBBBBB");
+        const uno = (x0, titulo, dibujar) => {
+          pag.drawText(inf.limpio(titulo), { x: x0, y: inf.y - 9, size: 7.5, font: F.b, color: K.suave });
+          const m = { i: 22, d: 6, a: 18, b: 14 };
+          const base = inf.y - H + m.b;
+          pag.drawLine({ start: { x: x0 + m.i, y: base }, end: { x: x0 + ancho - m.d, y: base }, thickness: 0.6, color: eje });
+          const paso = (ancho - m.i - m.d) / ev.length;
+          ev.forEach((s, i) => {
+            const r = fecha(s.lunes).slice(0, 5);
+            pag.drawText(r, { x: x0 + m.i + i * paso + paso / 2 - F.n.widthOfTextAtSize(r, 5.5) / 2, y: base - 8, size: 5.5, font: F.n, color: K.suave });
+          });
+          dibujar({ x0: x0 + m.i, base, alto: H - m.a - m.b, paso });
+        };
+        uno(inf.MARGEN, "Nuevas y cerradas por semana", ({ x0, base, alto, paso }) => {
+          const max = Math.max(1, ...ev.map((s) => Math.max(s.nuevas, s.cerradas)));
+          pag.drawText(String(max), { x: x0 - 4 - F.n.widthOfTextAtSize(String(max), 6), y: base + alto - 2, size: 6, font: F.n, color: K.suave });
+          const w = Math.max(2, paso / 2 - 3);
+          ev.forEach((s, i) => {
+            const x = x0 + i * paso;
+            if (s.nuevas) pag.drawRectangle({ x: x + 1, y: base, width: w, height: s.nuevas / max * alto, color: nuevas });
+            if (s.cerradas) pag.drawRectangle({ x: x + 3 + w, y: base, width: w, height: s.cerradas / max * alto, color: cerradas });
+          });
+          const lx = inf.MARGEN + ancho - 100;
+          pag.drawRectangle({ x: lx, y: inf.y - 9, width: 6, height: 6, color: nuevas });
+          pag.drawText("nuevas", { x: lx + 9, y: inf.y - 9, size: 6.5, font: F.n, color: K.suave });
+          pag.drawRectangle({ x: lx + 44, y: inf.y - 9, width: 6, height: 6, color: cerradas });
+          pag.drawText("cerradas", { x: lx + 53, y: inf.y - 9, size: 6.5, font: F.n, color: K.suave });
+        });
+        uno(inf.MARGEN + ancho + hueco, "Pendientes al cierre de cada semana", ({ x0, base, alto, paso }) => {
+          const max = Math.max(1, ...ev.map((s) => s.pendientes));
+          pag.drawText(String(max), { x: x0 - 4 - F.n.widthOfTextAtSize(String(max), 6), y: base + alto - 2, size: 6, font: F.n, color: K.suave });
+          const pts = ev.map((s, i) => ({ x: x0 + i * paso + paso / 2, y: base + s.pendientes / max * alto }));
+          for (let i = 1; i < pts.length; i += 1) pag.drawLine({ start: pts[i - 1], end: pts[i], thickness: 1.4, color: linea });
+          pts.forEach((p) => pag.drawCircle({ x: p.x, y: p.y, size: 2.2, color: linea }));
+          const u = pts[pts.length - 1];
+          const v = String(ev[ev.length - 1].pendientes);
+          pag.drawText(v, { x: u.x - F.b.widthOfTextAtSize(v, 7), y: u.y + 5, size: 7, font: F.b, color: linea });
+        });
+        inf.y -= H + 8;
+      }
+      async function semanalPdf(d, ctx = {}) {
+        const cm = d.cuadro;
+        const inf = await abrir(d, ctx, { titulo: "No conformidades \xB7 informe semanal", sub: `corte ${fecha(cm.corte)} \xB7 semana del ${fecha(cm.semana.lunes)} al ${fecha(cm.semana.domingo)}` });
+        inf.franja([
+          [cm.global.total, "registradas"],
+          [cm.global.activas, "pendientes"],
+          [cm.global.cerradas, `cerradas (${pct(cm.global.pctCerradas)})`],
+          [cm.semana.nuevas, `nuevas esta semana (balance ${cm.semana.balance >= 0 ? "+" : ""}${cm.semana.balance})`],
+          [cm.semana.cerradas, "cerradas esta semana"],
+          [cm.semana.aplazadas, "aplazadas esta semana"]
+        ]);
+        inf.franja([
+          [cm.plazos.vencidas, "vencidas"],
+          [cm.plazos.proximos, `pr\xF3ximos ${cm.ventanaDias} d\xEDas`],
+          [cm.plazos.sinFecha, "sin fecha prevista"],
+          [cm.commissioning.equiposBloqueados, "equipos bloqueados"],
+          [cm.commissioning.equiposPteRePM, "pte. nueva PM"]
+        ]);
+        inf.franja([
+          [cm.tiempos.diasMedios ?? "-", `d\xEDas medios de resoluci\xF3n (mediana ${cm.tiempos.mediana ?? "-"} \xB7 m\xE1x. ${cm.tiempos.maximo ?? "-"})`],
+          [pct(cm.tiempos.pctEnPlazo), "resueltas en plazo"],
+          [TX.dias(cm.tiempos.antiguedadPendientes), "antig\xFCedad media pendientes"]
+        ]);
+        if (d.verDinero) {
+          inf.franja([
+            [num(cm.horas.oficial + cm.horas.operario, 1), `horas (${num(cm.horas.semana, 1)} esta semana)`],
+            [eur(cm.horas.coste), "coste"],
+            [eur(cm.horas.pendienteCobro), `pendiente de cobro (cobrado ${eur(cm.horas.cobrado)})`]
+          ]);
+        }
+        inf.cabe(160);
+        seccion(inf, "Evoluci\xF3n");
+        graficos(inf, cm.evolucion);
+        await inf.tabla(
+          [{ t: "Semana", w: 90 }, ...cm.evolucion.map((s) => ({ t: fecha(s.lunes).slice(0, 5), alinear: "derecha" }))],
+          [["Nuevas", "nuevas"], ["Cerradas", "cerradas"], ["Aplazadas", "aplazadas"], ["Pendientes al cierre", "pendientes"], ["Horas", "horas"]].map(([rot, c]) => [t(rot, { negrita: true }), ...cm.evolucion.map((s) => t(num(s[c], c === "horas" ? 1 : 0)))])
+        );
+        const lista = async (titulo, l, mas) => {
+          seccion(inf, titulo);
+          await inf.tabla(
+            [{ t: "NCR", w: 56 }, { t: "Prevista", w: 50 }, { t: "Planta", w: 44 }, { t: "Descripci\xF3n" }, { t: "Industrial", w: 130 }, { t: "Estado", w: 80 }],
+            [
+              ...l.map((f) => [t(f.codigo, { negrita: true }), t(fecha(f.fechaPrevista)), t(f.planta), t(String(f.descripcion || "").slice(0, 90)), t(f.industrial), estado(f.estado)]),
+              ...mas ? [[t(`\u2026 y ${mas} m\xE1s`, { color: "#595959" }), "", "", "", "", ""]] : []
+            ],
+            { vacio: "Ninguna." }
+          );
+        };
+        await lista(`Planificadas pr\xF3ximos ${cm.ventanaDias} d\xEDas`, cm.listas.proximas, cm.listas.masProximas);
+        await lista("Vencidas (m\xE1s antiguas primero)", cm.listas.vencidas, cm.listas.masVencidas);
+        const grupo = async (titulo, filas, nombre) => {
+          seccion(inf, titulo);
+          await inf.tabla(
+            [
+              { t: nombre },
+              { t: "Total", w: 60, alinear: "derecha" },
+              { t: "Activas", w: 60, alinear: "derecha" },
+              { t: "Vencidas", w: 60, alinear: "derecha" },
+              { t: "Cerradas", w: 60, alinear: "derecha" },
+              { t: "D\xEDas medios", w: 60, alinear: "derecha" },
+              ...d.verDinero ? [{ t: "Coste", w: 80, alinear: "derecha" }] : []
+            ],
+            filas.filter((g) => g.total).map((g) => [
+              t(g.clave || `(sin ${nombre.toLowerCase()})`, { negrita: true }),
+              t(g.total),
+              t(g.activas),
+              t(g.vencidas),
+              t(g.cerradas),
+              t(g.diasMedios ?? "-"),
+              ...d.verDinero ? [t(eur(g.coste))] : []
+            ])
+          );
+        };
+        await grupo("Por planta", cm.porPlanta, "Planta");
+        await grupo("Por zona", cm.porZona, "Zona");
+        seccion(inf, "Por industrial responsable");
+        await inf.tabla(
+          [
+            { t: "Industrial" },
+            { t: "Total", w: 56, alinear: "derecha" },
+            { t: "Activas", w: 56, alinear: "derecha" },
+            { t: "Vencidas", w: 56, alinear: "derecha" },
+            { t: "D\xEDas medios", w: 56, alinear: "derecha" },
+            { t: "Aplazamientos", w: 64, alinear: "derecha" },
+            { t: "En plazo", w: 56, alinear: "derecha" }
+          ],
+          cm.porIndustrial.map((g) => [t(g.clave || "(sin industrial)", { negrita: true }), t(g.total), t(g.activas), t(g.vencidas), t(g.diasMedios ?? "-"), t(g.aplazamientos), t(pct(g.pctEnPlazo))])
+        );
+        seccion(inf, "Estado \xD7 disciplina");
+        const estados = Object.keys(Mi.ESTADOS);
+        await inf.tabla(
+          [
+            { t: "Disciplina" },
+            ...estados.map((e) => ({ t: Mi.ESTADOS[e].nombre, w: 58, alinear: "derecha" })),
+            { t: "Total", w: 44, alinear: "derecha" },
+            { t: "Vencidas", w: 46, alinear: "derecha" },
+            { t: "Bloqueantes", w: 54, alinear: "derecha" }
+          ],
+          cm.porDisciplina.filter((g) => g.total).map((g) => [
+            t(g.clave || "(sin disciplina)", { negrita: true }),
+            ...estados.map((e) => t(g.porEstado[e] || "")),
+            t(g.total, { negrita: true }),
+            t(g.vencidas),
+            t(g.bloqueantes)
+          ])
+        );
+        return inf.cerrar();
+      }
+      async function cobrablesPdf(d, ctx = {}) {
+        const lista = d.filas.filter((f) => Number(f.cobrarPropiedad)).sort((a, b) => String(a.fechaResolucionReal || "9").localeCompare(String(b.fechaResolucionReal || "9")));
+        const porMes = /* @__PURE__ */ new Map();
+        for (const f of lista) {
+          const k = f.calc.mesResolucion || "(sin resolver)";
+          if (!porMes.has(k)) porMes.set(k, []);
+          porMes.get(k).push(f);
+        }
+        const inf = await abrir(d, ctx, { titulo: "NCR cobrables a la propiedad", apaisado: false });
+        let total = 0;
+        const filas = [];
+        for (const [mes, l] of porMes) {
+          const sub = l.reduce((s, f) => s + (f.calc.importeCobro || 0), 0);
+          total += sub;
+          for (const f of l) {
+            filas.push([
+              t(f.codigo, { negrita: true }),
+              t(fecha(f.fechaResolucionReal)),
+              t(String(f.descripcion || "").slice(0, 80)),
+              t(num(f.calc.horasTotal, 1)),
+              t(eur(f.calc.precioCobroH)),
+              t(eur(f.calc.importeCobro)),
+              t((Mi.ESTADOS_COBRO[f.estadoCobro] || {}).nombre || f.estadoCobro),
+              t(f.nCertificacion)
+            ]);
+          }
+          filas.push([t(`Total ${mes}`, { negrita: true }), "", "", "", "", t(eur(sub), { negrita: true }), "", ""]);
+        }
+        if (lista.length) {
+          inf.franja([[lista.length, "NCR cobrables"], [eur(total), "en total"]]);
+          filas.push([t("TOTAL", { negrita: true, tam: 8 }), "", "", "", "", t(eur(total), { negrita: true, tam: 8 }), "", ""]);
+        }
+        await inf.tabla([
+          { t: "NCR", w: 52 },
+          { t: "Resuelta", w: 48 },
+          { t: "Descripci\xF3n" },
+          { t: "Horas", w: 34, alinear: "derecha" },
+          { t: "\u20AC/h", w: 44, alinear: "derecha" },
+          { t: "Importe", w: 58, alinear: "derecha" },
+          { t: "Estado", w: 56 },
+          { t: "Certificaci\xF3n", w: 58 }
+        ], filas, { vacio: "Ninguna NCR se cobra a la propiedad." });
+        return inf.cerrar();
+      }
+      var AGRUPACIONES = { industrial: "industrial", planta: "planta", estado: "estado", semana: "semana prevista" };
+      function claveDeGrupo(f, agrupar, hoy) {
+        if (agrupar === "planta") return { clave: f.planta || "(sin planta)", orden: f.planta || "\uFFFF" };
+        if (agrupar === "estado") return { clave: estadoTxt(f.estado), orden: String((Mi.ESTADOS[f.estado] || {}).orden || 9) };
+        if (agrupar === "semana") {
+          const p = Mi.dia(f.fechaPrevista);
+          if (!f.calc.activa) return { clave: "No activas", orden: "9" };
+          if (!p) return { clave: "Sin fecha prevista", orden: "8" };
+          if (p < hoy) return { clave: "Vencidas (prevista anterior a hoy)", orden: "0" };
+          const l = Mi.lunesDe(p);
+          return { clave: `Semana del ${fecha(l)} al ${fecha(Mi.sumarDias(l, 6))}`, orden: `1${l}` };
+        }
+        return { clave: f.industrialResponsable || "(sin industrial)", orden: f.industrialResponsable || "\uFFFF" };
+      }
+      async function planificacionPdf(d, op = {}, ctx = {}) {
+        const hoy = Mi.dia(ctx.hoy) || Mi.dia(d.corte);
+        const agrupar = AGRUPACIONES[op.agrupar] ? op.agrupar : "industrial";
+        const fl = op.filtro || {};
+        const filas = Mi.filtrar(d.filas, fl);
+        const grupos = /* @__PURE__ */ new Map();
+        for (const f of filas) {
+          const g = claveDeGrupo(f, agrupar, hoy);
+          if (!grupos.has(g.clave)) grupos.set(g.clave, { ...g, filas: [] });
+          grupos.get(g.clave).filas.push(f);
+        }
+        const lista = [...grupos.values()].sort((a, b) => String(a.orden).localeCompare(String(b.orden), "es", { numeric: true }));
+        const vencidas = (l) => l.filter((f) => f.calc.plazo === "vencida").length;
+        const que = fl.tipo === "repaso" ? "repasos" : "NCR";
+        const filtroTxt = (() => {
+          const x = [];
+          if (fl.tipo) x.push(fl.tipo === "repaso" ? "solo repasos (R_)" : "solo NCR / instrucciones (I_)");
+          x.push(fl.estado === "todas" || !fl.estado ? "todos los estados" : fl.estado === "activas" ? "solo activas" : estadoTxt(fl.estado));
+          if (fl.industrialResponsable) x.push(`industrial ${fl.industrialResponsable === "__vacio" ? "(sin industrial)" : fl.industrialResponsable}`);
+          if (fl.planta) x.push(`planta ${fl.planta === "__vacio" ? "(sin planta)" : fl.planta}`);
+          if (fl.plazo) x.push(plazoTxt(fl.plazo).toLowerCase());
+          if (fl.texto) x.push(`\xAB${fl.texto}\xBB`);
+          return x.join(" \xB7 ");
+        })();
+        const titulo = op.titulo || (fl.tipo === "repaso" ? "Planificaci\xF3n de repasos" : fl.tipo === "instruccion" ? "Planificaci\xF3n de no conformidades" : "Planificaci\xF3n de no conformidades y repasos");
+        const inf = await abrir({ ...d, corte: hoy }, { ...ctx, hoy }, { titulo, sub: `agrupada por ${AGRUPACIONES[agrupar]}` });
+        inf.franja([[filas.length, que], [vencidas(filas), "vencidas"], [filas.filter((f) => f.calc.activa && !f.fechaPrevista).length, "activas sin fecha prevista"]], `${filtroTxt} \xB7 a ${fecha(hoy)}`);
+        const cuerpo = [];
+        for (const g of lista) {
+          cuerpo.push({ grupo: `${g.clave}  \xB7  ${g.filas.length} ${que}${vencidas(g.filas) ? ` \xB7 ${vencidas(g.filas)} vencidas` : ""}` });
+          for (const f of g.filas.slice().sort(Mi.ordenPorPlazo)) {
+            cuerpo.push([
+              t(f.codigo, { negrita: true }),
+              t(f.codExterno),
+              t([f.planta, f.sala].filter(Boolean).join(" \xB7 ")),
+              t(f.descripcion),
+              t(f.industrialResponsable),
+              estado(f.estado),
+              t(fecha(f.fechaPrevista)),
+              t(fecha(f.fechaResolucionReal)),
+              plazo(f.calc.plazo),
+              t(f.ultimoSeguimiento ? String(f.ultimoSeguimiento.texto).slice(0, 120) : "")
+            ]);
+          }
+        }
+        await inf.tabla([
+          { t: "NCR", w: 52 },
+          { t: "Dalux", w: 44 },
+          { t: "Planta \xB7 sala", w: 64 },
+          { t: "Descripci\xF3n" },
+          { t: "Industrial", w: 78 },
+          { t: "Estado", w: 82 },
+          { t: "Prevista", w: 44 },
+          { t: "Real", w: 44 },
+          { t: "Plazo", w: 82 },
+          { t: "\xDAltimo comentario", w: 120 }
+        ], cuerpo, { vacio: "Ninguna NCR con este filtro." });
+        return inf.cerrar();
+      }
+      async function externaPdf(d, filas, ctx = {}) {
+        const X = require_salidaExterna();
+        const campos = ctx.campos || X.CAMPOS_EXTERNA;
+        const ANCHOS = { Referencia: 50, "Referencia externa": 46, "Fecha de detecci\xF3n": 44, "Ubicaci\xF3n": 54, Disciplina: 50, Responsable: 54, Prioridad: 46, Estado: 64, "Fecha prevista": 44, "Fecha de cierre": 44 };
+        const inf = await abrir(d, ctx, {
+          titulo: `No conformidades \xB7 resumen para ${X.nombreHerramienta()}`,
+          sub: `${filas.length} NCR${X.PROVISIONAL ? " \xB7 campos de ejemplo" : ""}`
+        });
+        inf.franja([[filas.length, "NCR"], [campos.length, "campos, en el orden del formulario"]]);
+        const iEstado = campos.findIndex((c) => c[0] === "Estado");
+        await inf.tabla(
+          campos.map((c) => ({ t: c[0], w: ANCHOS[c[0]] })),
+          filas.map((f) => campos.map((c, k) => {
+            const v = llano(String(c[1](f) ?? "").replace(/[\t\r\n]+/g, " "));
+            if (k === iEstado && f.estado && Mi.ESTADOS[f.estado]) return { pastilla: CLASE_ESTADO[f.estado] || "neutra", rotulo: v };
+            return t(v, k === 0 ? { negrita: true } : {});
+          })),
+          { vacio: "Ninguna." }
+        );
+        return inf.cerrar();
+      }
+      async function resumenSemanalPdf(r, { obra = {}, hoy = null, marca = null, logo = null } = {}) {
+        const tt = r.totales;
+        const dia = hoy || new Date(Date.now() - (/* @__PURE__ */ new Date()).getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+        const semanaTxt = `del ${fecha(r.semana.lunes)} al ${fecha(r.semana.domingo)}`;
+        const dif = (v) => v === null || v === void 0 || v === 0 ? "" : `${v > 0 ? "+" : ""}${v} frente a la anterior`;
+        const fr = r.frente || {};
+        const titulo = "Resumen semanal de NCR";
+        const inf = await crearInforme({
+          marca,
+          obra,
+          logo,
+          apaisado: true,
+          titulo,
+          subtitulo: [nombreObraDe(obra), `Semana ${semanaTxt}${r.semana.actual ? ` \xB7 hasta hoy ${fecha(dia)}` : ""}`].filter(Boolean).join(" \xB7 "),
+          pie: `${titulo} \xB7 ${semanaTxt} \xB7 ${nombreObraDe(obra)}`
+        });
+        inf.datos([[["Obra", nombreObraDe(obra)], ["Qui\xE9n ha movido NCR", (tt.personas || []).join(", ")]]], { rotulo: 96 });
+        inf.franja([
+          [tt.abiertasInicio, "abiertas al inicio"],
+          [tt.nuevas, "nuevas"],
+          [tt.cerradas, "cerradas"],
+          [tt.actualizadas, "actualizadas"],
+          [tt.abiertasFin, "abiertas al final"],
+          [tt.vencidasFin, "vencidas"],
+          [tt.sinFechaFin, "sin fecha"],
+          [tt.enviadasRevisionFin, "enviadas a revisi\xF3n"]
+        ]);
+        const notas = [
+          ["Nuevas", tt.importadas ? `+${tt.importadas} importadas sin fecha` : dif(fr.nuevas)],
+          ["Cerradas", dif(fr.cerradas)],
+          ["Actualizadas", dif(fr.actualizadas)],
+          ["Abiertas al final", `balance ${tt.balance >= 0 ? "+" : ""}${tt.balance}`],
+          ["Enviadas a revisi\xF3n", tt.pteVerificarFin ? `${tt.pteVerificarFin} pte. verificar` : ""]
+        ].filter(([, n]) => n).map(([q, n]) => `${q}: ${n}`).join(" \xB7 ");
+        if (notas) inf.parrafo(notas, { tam: 7, color: inf.colores.suave });
+        if (r.aviso) inf.veredicto(r.aviso, "info");
+        seccion(inf, "Tendencia");
+        const filasT = [["Abiertas al inicio", "abiertasInicio"], ["Nuevas", "nuevas"], ["Cerradas", "cerradas"], ["Actualizadas", "actualizadas"], ["Abiertas al final", "abiertasFin"], ["Vencidas al final", "vencidasFin"]];
+        await inf.tabla(
+          [{ t: "Semana del", w: 110 }, ...r.tendencia.map((s) => ({ t: fecha(s.lunes).slice(0, 5), alinear: "derecha" }))],
+          filasT.map(([n, c]) => [t(n, { negrita: true }), ...r.tendencia.map((s) => t(s[c]))])
+        );
+        seccion(inf, `Cerradas (${r.cerradas.length})`);
+        await inf.tabla(
+          [{ t: "NCR", w: 56 }, { t: "Dalux", w: 56 }, { t: "Planta", w: 50 }, { t: "Industrial", w: 110 }, { t: "Descripci\xF3n" }, { t: "Cerrada el", w: 52 }, { t: "Por", w: 130 }],
+          r.cerradas.map((c) => [
+            t(c.codigo, { negrita: true }),
+            t(c.codExterno),
+            t(c.planta),
+            t(c.industrial),
+            t(c.descripcion),
+            t(fecha(c.dia)),
+            t(`${llano(c.quien || (c.sinRegistro ? "no consta" : ""))}${c.reabierta ? " \xB7 reabierta despu\xE9s" : ""}`)
+          ]),
+          { vacio: "Ninguna cerrada esta semana." }
+        );
+        seccion(inf, `Actualizadas (${r.actualizadas.length})`);
+        await inf.tabla(
+          [{ t: "NCR", w: 56 }, { t: "Dalux", w: 56 }, { t: "Planta", w: 50 }, { t: "Industrial", w: 110 }, { t: "Estado", w: 76 }, { t: "Qu\xE9 cambi\xF3" }],
+          r.actualizadas.map((a) => [
+            t(a.codigo, { negrita: true }),
+            t(a.codExterno),
+            t(a.planta),
+            t(a.industrial),
+            estado(a.estado),
+            t(a.cambios.map((c) => `${fecha(c.dia).slice(0, 5)} ${llano(c.texto)}${c.quien ? ` (${llano(c.quien)})` : ""}`).join("\n"), { saltos: true })
+          ]),
+          { vacio: "Ninguna actualizada esta semana." }
+        );
+        for (const [lista, nombre] of [[r.porIndustrial, "Industrial"], [r.porPlanta, "Planta"], [r.porDisciplina, "Disciplina"]]) {
+          seccion(inf, `Por ${nombre.toLowerCase()}`);
+          const n = (v) => t(v || "");
+          await inf.tabla(
+            [{ t: nombre }, ...["Nuevas", "Cerradas", "Actualiz.", "Abiertas", "Vencidas"].map((x) => ({ t: x, w: 70, alinear: "derecha" }))],
+            lista.slice(0, 25).map((g) => [t(g.clave || `(sin ${nombre.toLowerCase()})`), n(g.nuevas), n(g.cerradas), n(g.actualizadas), n(g.abiertasFin), n(g.vencidasFin)]),
+            { vacio: "Nada esta semana." }
+          );
+        }
+        return inf.cerrar();
+      }
+      module.exports = { porIndustrialPdf, recorridoPdf, semanalPdf, cobrablesPdf, planificacionPdf, externaPdf, resumenSemanalPdf };
     }
   });
 
@@ -88327,20 +89001,22 @@ ${subtitulo}`, c[5]] : c.slice())]);
         const I = require_informes();
         const ctx = { hoy: hoy() };
         const cod = d.obra.codigo;
-        if (tipo === "semanal") return { ok: true, html: I.semanal(d, ctx), nombre: nombreFichero(`${cod} NCR semanal ${d.corte}`), apaisado: true };
+        const P = () => require_informesPdf();
+        if (tipo === "semanal") return { ok: true, html: I.semanal(d, ctx), pdf: () => P().semanalPdf(d, ctx), nombre: nombreFichero(`${cod} NCR semanal ${d.corte}`), apaisado: true };
         if (tipo === "industrial") {
-          return { ok: true, html: I.porIndustrial(d, opciones.industrial || "", ctx), nombre: nombreFichero(`${cod} NCR ${opciones.industrial || "sin industrial"}`), apaisado: true };
+          return { ok: true, html: I.porIndustrial(d, opciones.industrial || "", ctx), pdf: () => P().porIndustrialPdf(d, opciones.industrial || "", ctx), nombre: nombreFichero(`${cod} NCR ${opciones.industrial || "sin industrial"}`), apaisado: true };
         }
         if (tipo === "recorrido") {
           const planta = opciones.planta === void 0 ? null : opciones.planta;
           const zona = opciones.zona === void 0 ? null : opciones.zona;
-          return { ok: true, html: I.recorrido(d, { planta, zona }, ctx), nombre: nombreFichero(`${cod} recorrido ${planta || ""} ${zona || ""}`.trim()), apaisado: true };
+          return { ok: true, html: I.recorrido(d, { planta, zona }, ctx), pdf: () => P().recorridoPdf(d, { planta, zona }, ctx), nombre: nombreFichero(`${cod} recorrido ${planta || ""} ${zona || ""}`.trim()), apaisado: true };
         }
         if (tipo === "planificacion") {
           const agrupar = ["industrial", "planta", "estado", "semana"].includes(opciones.agrupar) ? opciones.agrupar : "industrial";
           return {
             ok: true,
             html: I.planificacion(d, { agrupar, filtro: opciones.filtro || { estado: "activas" } }, ctx),
+            pdf: () => P().planificacionPdf(d, { agrupar, filtro: opciones.filtro || { estado: "activas" } }, ctx),
             nombre: nombreFichero(`${cod} ${(opciones.filtro || {}).tipo === "repaso" ? "repasos" : "NCR"} planificacion por ${agrupar}`),
             apaisado: true
           };
@@ -88348,12 +89024,18 @@ ${subtitulo}`, c[5]] : c.slice())]);
         if (tipo === "externa") {
           const ids = Array.isArray(opciones.ids) ? new Set(opciones.ids) : null;
           const filas = d.filas.filter((f) => !ids || ids.has(f.id)).sort((a, b) => a.numero - b.numero);
-          return { ok: true, html: require_salidaExterna().resumenExterna(d, filas, ctx), nombre: nombreFichero(`${cod} NCR resumen externo`), apaisado: true };
+          return {
+            ok: true,
+            html: require_salidaExterna().resumenExterna(d, filas, ctx),
+            pdf: () => P().externaPdf(d, filas, ctx),
+            nombre: nombreFichero(`${cod} NCR resumen externo`),
+            apaisado: true
+          };
         }
         if (tipo === "zona") return reporteZona(repo, sesion, d, opciones);
         if (tipo === "cobrables") {
           if (!d.verDinero) return { ok: false, error: "El cobro no es de tu rol." };
-          return { ok: true, html: I.cobrables(d, ctx), nombre: nombreFichero(`${cod} NCR cobrables`), apaisado: false };
+          return { ok: true, html: I.cobrables(d, ctx), pdf: () => P().cobrablesPdf(d, ctx), nombre: nombreFichero(`${cod} NCR cobrables`), apaisado: false };
         }
         return { ok: false, error: "Informe desconocido." };
       }
@@ -88382,7 +89064,14 @@ ${subtitulo}`, c[5]] : c.slice())]);
         const R = require_resumenSemanal();
         const nombre = nombreFichero(`${r.obra.codigo} NCR resumen semana ${r.semana.lunes}`);
         if (formato === "excel") return { ok: true, hojas: require_papel().excelConLogo(R.hojasExcel(r, { obra: r.obra }), r.obra), nombre };
-        return { ok: true, html: R.documento(r, { obra: r.obra, hoy: hoy() }), nombre, apaisado: true, papel: true };
+        return {
+          ok: true,
+          html: R.documento(r, { obra: r.obra, hoy: hoy() }),
+          pdf: () => require_informesPdf().resumenSemanalPdf(r, { obra: r.obra, hoy: hoy() }),
+          nombre,
+          apaisado: true,
+          papel: true
+        };
       }
       function avisos(repo, sesion) {
         if (!puede(sesion.rol, "ncr", "ver")) return null;
@@ -90258,7 +90947,9 @@ ${subtitulo}`, c[5]] : c.slice())]);
               { destino: "personasRoles", icono: "\u{1F511}", nombre: "Personas y roles", desc: "Qu\xE9 rol tiene cada cuenta, qu\xE9 obras ve y si ve el dinero; asignar obras a mano", vista: true, soloRoles: ["admin"] },
               { destino: "trazabilidad", icono: "\u{1F553}", nombre: "Auditor\xEDa", desc: "Qui\xE9n hizo qu\xE9 y cu\xE1ndo: filtros, Excel/PDF y comprobaci\xF3n de la cadena", vista: true },
               { destino: "empresas", icono: "\u{1F3E2}", nombre: "Empresas", desc: "Datos, logo, colores y condiciones" },
-              { destino: "licencias", icono: "\u{1F9FE}", nombre: "Licencias", desc: "Qu\xE9 m\xF3dulos tiene la empresa, qu\xE9 incluye cada uno (tambi\xE9n en el m\xF3vil); apagar y encender lo contratado", vista: true, soloRoles: ["admin"] }
+              { destino: "licencias", icono: "\u{1F9FE}", nombre: "Licencias", desc: "Qu\xE9 m\xF3dulos tiene la empresa, qu\xE9 incluye cada uno (tambi\xE9n en el m\xF3vil); apagar y encender lo contratado", vista: true, soloRoles: ["admin"] },
+              /* 18-nov (JC: «el gasto en Iarvis tiene que ser 0»): lo que costaría y lo que cuesta de verdad, por licencia (renderer/iarvisGastoPantalla.js). */
+              { destino: "iarvisGasto", icono: "\u{1F9EE}", nombre: "Gasto de Iarvis", desc: "Lo que costar\xEDa y lo que cuesta de verdad la IA cada mes, por licencia, por modelo y por petici\xF3n; modo, tope y clave de cada licencia", vista: true, soloRoles: ["admin"] }
             ] },
             { id: "plantilla", titulo: "Plantilla", icono: "\u{1F334}", color: "var(--area-configuracion)", hojas: [
               { destino: "calendarioPersonal", icono: "\u{1F334}", nombre: "Calendario de personal", desc: "Vacaciones, bajas y qui\xE9n queda en obra", vista: true },
@@ -90273,7 +90964,9 @@ ${subtitulo}`, c[5]] : c.slice())]);
             ] },
             /* 15-nov (JC): las presentaciones de Vidaire, solo el administrador (shared/presentaciones.js). */
             { id: "presentaciones", titulo: "Presentaciones", icono: "\u25B6", color: "var(--area-configuracion)", hojas: [
-              { destino: "presentaciones", icono: "\u25B6", nombre: "Presentaciones", desc: "Las presentaciones de Vidaire, a pantalla completa", vista: true, soloRoles: ["admin"] }
+              { destino: "presentaciones", icono: "\u25B6", nombre: "Presentaciones", desc: "Las presentaciones de Vidaire, a pantalla completa", vista: true, soloRoles: ["admin"] },
+              /* 19-nov (JC): el configurador de ofertas de venta, solo el administrador de Vidaire (soloVidaire: renderer/app.js › destinoVetado). */
+              { destino: "ofertasVentas", icono: "\u20AC", nombre: "Configurador de ofertas", desc: "Montar con el cliente su oferta: m\xF3dulos, personalizaci\xF3n, lo aparte y el PDF", vista: true, soloRoles: ["admin"], soloVidaire: true }
             ] }
           ] }
         ];
@@ -90483,7 +91176,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
             nombreComercial: "Administraci\xF3n",
             noIncluye: ["La app del tel\xE9fono y su sincronizaci\xF3n (App del m\xF3vil)"],
             problema: "Dar acceso a cada persona con su rol y no perder nunca los datos.",
-            funciones: ["Usuarios, roles y auditor\xEDa", "Plantilla: calendario, vacaciones, ausencias y festivos", "Empresas y licencias: el jefe apaga lo contratado y pide a Vidaire lo que no tiene", "Nube y copias de seguridad", "Las presentaciones de Vidaire (solo el administrador)"],
+            funciones: ["Usuarios, roles y auditor\xEDa", "Plantilla: calendario, vacaciones, ausencias y festivos", "Empresas y licencias: el jefe apaga lo contratado y pide a Vidaire lo que no tiene", "Gasto de Iarvis: lo que costar\xEDa y lo que cuesta de verdad cada mes, con el modo, el tope y la clave de cada licencia", "Nube y copias de seguridad", "Las presentaciones de Vidaire (solo el administrador)"],
             /* docs/perfiles-y-licencias.md § 6: licencias desde la nube (0030 y 0031, aplicadas el 15-nov). */
             enDesarrollo: ["Aviso a Vidaire cuando un jefe pide un m\xF3dulo (hoy se ve al abrir su consola)"],
             movil: {}
@@ -90696,7 +91389,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
             movilQueHace: ["Mis tareas: empezar, avanzar con fotos y terminar la orden", "Plano de mantenimiento con la ficha del equipo"],
             noIncluye: ["Reparaciones de la obra (base: Calidad y equipos)", "Acta de mantenimiento (base: Entrega de obra)"],
             problema: "Mantener los equipos entregados con su plan, sus \xF3rdenes y sus inspecciones al d\xEDa.",
-            funciones: ["Plan preventivo y calendario", "Control F-gas", "\xD3rdenes de trabajo", "Registro de mantenimiento e informes", "Inspecciones peri\xF3dicas", "Compras y contrato de mantenimiento"],
+            funciones: ["Plan preventivo y calendario", "Control F-gas", "\xD3rdenes de trabajo", "Registro de mantenimiento e informes", "Inspecciones peri\xF3dicas", "Indicadores (MTTR, MTBF, backlog) y SLA de las correctivas", "Compras y contrato de mantenimiento"],
             modulosObra: ["mantenimiento", "ordenesMant"],
             movil: { secciones: ["misTareas", "planoMant"], permisos: ["ordenesMant", "mantenimiento"] }
           },
@@ -99749,7 +100442,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         (function exportar(API) {
           if (typeof module !== "undefined" && module.exports) module.exports = API;
           if (typeof window !== "undefined") window.INCIDENCIAS_DOCUMENTO = API;
-        })({ html, bloquesFotos, REPERCUSION_TEXTO, MODELO, modelo, hojasExcel, nombreArchivo });
+        })({ html, bloquesFotos, REPERCUSION_TEXTO, MODELO, modelo, hojasExcel, nombreArchivo, incidenciaEjemplo, firmaJefeObra });
       })();
     }
   });
@@ -106894,7 +107587,20 @@ ${linea}` : linea;
   <p class="nota costeFinalFormula">${escCf(FORMULA_CF)}</p>
 </div>`;
         }
-        const API_CF = { COMPONENTES: COMP_CF, FORMULA: FORMULA_CF, partida: partidaCf, anotar, resumen, html, bloqueCoste: bloqueCosteCf };
+        const API_CF = {
+          COMPONENTES: COMP_CF,
+          FORMULA: FORMULA_CF,
+          COLUMNAS: COLS_CF,
+          partida: partidaCf,
+          anotar,
+          resumen,
+          html,
+          bloqueCoste: bloqueCosteCf,
+          /* Los formatos del HTML, para el PDF del reporte a dirección (19-nov). */
+          eurTxt: eurTxtCf,
+          pctTxt: pctTxtCf,
+          fechaTxt: fechaCf
+        };
         if (typeof module !== "undefined" && module.exports) module.exports = API_CF;
         if (typeof window !== "undefined") window.COSTE_FINAL = API_CF;
       })();
@@ -118687,7 +119393,7 @@ ${linea}` : linea;
     "package.json"(exports, module) {
       module.exports = {
         name: "gestor-de-obras",
-        version: "0.31.4",
+        version: "0.31.5",
         description: "Vidaire Gestor \u2014 app de escritorio para Windows y Mac",
         main: "electron/main.js",
         license: "UNLICENSED",
@@ -126203,7 +126909,7 @@ ${fallos.join("\r\n")}\r
         if (tipo === "equipo") {
           const e = repo.leer("equiposObra", ses, String(id || ""));
           if (!e || e.obraId !== obraId) return { ok: false, error: "Ese equipo no es de esta obra." };
-          repo.modificar("equiposObra", ses, e.id, { posicionPlano: quita ? null : JSON.stringify({ ifc: fila.id, x, y, por, en, origen: "manual", ...nota ? { nota: String(nota).slice(0, 120) } : {}, ...extra && extra.g ? { g: String(extra.g).slice(0, 80) } : {} }) });
+          repo.modificar("equiposObra", ses, e.id, { posicionPlano: quita ? null : JSON.stringify({ ifc: fila.id, x, y, por, en, origen: extra && extra.origen || "manual", ...extra && extra.anterior ? { anterior: extra.anterior } : {}, ...extra && extra.fotoId ? { fotoId: String(extra.fotoId).slice(0, 80) } : {}, ...nota ? { nota: String(nota).slice(0, 120) } : {}, ...extra && extra.g ? { g: String(extra.g).slice(0, 80) } : {} }) });
           return { ok: true, por, en };
         }
         if (tipo === "material") {
@@ -130688,6 +131394,7 @@ ${sinDatos.length ? `${MAQ.apartado("Equipos con gas sin datos")}<p>${esc(sinDat
           repo.modificar("ordenesMant", sesion, ordenId, {
             estado: "enCurso",
             fechaTerminada: null,
+            terminadaEn: null,
             terminadaPor: null,
             observaciones: [o.observaciones, `Devuelta al operario: ${texto}`].filter(Boolean).join(" \xB7 ")
           });
@@ -130700,6 +131407,7 @@ ${sinDatos.length ? `${MAQ.apartado("Equipos con gas sin datos")}<p>${esc(sinDat
             fechaCierre: null,
             cerradaPor: null,
             fechaTerminada: null,
+            terminadaEn: null,
             terminadaPor: null,
             observaciones: [o.observaciones, `Reabierta: ${texto}`].filter(Boolean).join(" \xB7 ")
           });
@@ -130724,7 +131432,7 @@ ${sinDatos.length ? `${MAQ.apartado("Equipos con gas sin datos")}<p>${esc(sinDat
         if (error) return { ok: false, error };
         const r = O.terminar(o, { ...entrada, quien: sesion.personaId, hoy });
         if (!r.ok) return r;
-        repo.modificar("ordenesMant", sesion, ordenId, aFila(r.cambios));
+        repo.modificar("ordenesMant", sesion, ordenId, aFila({ ...r.cambios, terminadaEn: (/* @__PURE__ */ new Date()).toISOString() }));
         return { ok: true, avisos: r.avisos };
       }
       function cerrar(repo, sesion, ordenId, _entrada = {}, hoy = hoyLocal()) {
@@ -148287,7 +148995,7 @@ ${reglas}`;
           ["qh.licUnidad1", "la unidad", "the unit", "la unitat", "a unidade", "die Einheit", "l\u2019unit\xE9"],
           ["qh.licUnidadN", "las {n} unidades", "the {n} units", "les {n} unitats", "as {n} unidades", "die {n} Einheiten", "les {n} unit\xE9s"],
           ["qh.licSuma", "{a} por {quien}, con usuarios ilimitados: con {p} personas sale a {x} por persona y a\xF1o. Pagando por usuario lo que hoy suma ({c} por usuario y a\xF1o), esas personas costar\xEDan {t}, y solo cubrir\xEDan la planificaci\xF3n.", "{a} for {quien}, with unlimited users: with {p} people it comes to {x} per person per year. Paying per user what is added up today ({c} per user per year), those people would cost {t}, and would only cover planning.", "{a} per {quien}, amb usuaris il\xB7limitats: amb {p} persones surt a {x} per persona i any. Pagant per usuari el que avui suma ({c} per usuari i any), aquestes persones costarien {t}, i nom\xE9s cobririen la planificaci\xF3.", "{a} por {quien}, com utilizadores ilimitados: com {p} pessoas fica a {x} por pessoa e ano. Pagando por utilizador o que hoje soma ({c} por utilizador e ano), essas pessoas custariam {t}, e s\xF3 cobririam o planeamento.", "{a} f\xFCr {quien}, mit unbegrenzten Benutzern: bei {p} Personen sind das {x} pro Person und Jahr. Bei Bezahlung pro Benutzer dessen, was heute zusammenkommt ({c} pro Benutzer und Jahr), w\xFCrden diese Personen {t} kosten und nur die Planung abdecken.", "{a} pour {quien}, avec utilisateurs illimit\xE9s : avec {p} personnes, cela revient \xE0 {x} par personne et par an. En payant par utilisateur ce qui s\u2019additionne aujourd\u2019hui ({c} par utilisateur et par an), ces personnes co\xFBteraient {t}, et ne couvriraient que la planification."],
-          ["qh.licNota", "La licencia es de la unidad de negocio (un departamento o una delegaci\xF3n), no de la persona: cada unidad elige sus m\xF3dulos y su gente ve solo esos. La base va siempre. Hasta {a} obras activas, la tarifa; de {b} a {c}, +{p} %; m\xE1s, a medida.", "The licence belongs to the business unit (a department or a branch), not to the person: each unit chooses its modules and its people see only those. The base is always included. Up to {a} active sites, the list rate; from {b} to {c}, +{p} %; more, custom.", "La llic\xE8ncia \xE9s de la unitat de negoci (un departament o una delegaci\xF3), no de la persona: cada unitat tria els seus m\xF2duls i la seva gent nom\xE9s veu aquests. La base hi va sempre. Fins a {a} obres actives, la tarifa; de {b} a {c}, +{p} %; m\xE9s, a mida.", "A licen\xE7a \xE9 da unidade de neg\xF3cio (um departamento ou uma delega\xE7\xE3o), n\xE3o da pessoa: cada unidade escolhe os seus m\xF3dulos e a sua gente s\xF3 v\xEA esses. A base vai sempre. At\xE9 {a} obras ativas, a tarifa; de {b} a {c}, +{p} %; mais, \xE0 medida.", "Die Lizenz geh\xF6rt der Gesch\xE4ftseinheit (einer Abteilung oder Niederlassung), nicht der Person: Jede Einheit w\xE4hlt ihre Module, und ihre Leute sehen nur diese. Die Basis ist immer dabei. Bis {a} aktive Baustellen der Tarif; von {b} bis {c} +{p} %; dar\xFCber nach Vereinbarung.", "La licence appartient \xE0 l\u2019unit\xE9 op\xE9rationnelle (un service ou une agence), pas \xE0 la personne : chaque unit\xE9 choisit ses modules et ses \xE9quipes ne voient que ceux-l\xE0. La base est toujours incluse. Jusqu\u2019\xE0 {a} chantiers actifs, le tarif ; de {b} \xE0 {c}, +{p} % ; au-del\xE0, sur mesure."],
+          ["qh.licNota", "La licencia es de la unidad de negocio (un departamento o una delegaci\xF3n), no de la persona: cada unidad elige sus m\xF3dulos y su gente ve solo esos. La base va siempre. Hasta {a} obras activas, la tarifa; m\xE1s, a medida.", "The licence belongs to the business unit (a department or a branch), not to the person: each unit chooses its modules and its people see only those. The base is always included. Up to {a} active sites, the list rate; more, custom.", "La llic\xE8ncia \xE9s de la unitat de negoci (un departament o una delegaci\xF3), no de la persona: cada unitat tria els seus m\xF2duls i la seva gent nom\xE9s veu aquests. La base hi va sempre. Fins a {a} obres actives, la tarifa; m\xE9s, a mida.", "A licen\xE7a \xE9 da unidade de neg\xF3cio (um departamento ou uma delega\xE7\xE3o), n\xE3o da pessoa: cada unidade escolhe os seus m\xF3dulos e a sua gente s\xF3 v\xEA esses. A base vai sempre. At\xE9 {a} obras ativas, a tarifa; mais, \xE0 medida.", "Die Lizenz geh\xF6rt der Gesch\xE4ftseinheit (einer Abteilung oder Niederlassung), nicht der Person: Jede Einheit w\xE4hlt ihre Module, und ihre Leute sehen nur diese. Die Basis ist immer dabei. Bis {a} aktive Baustellen der Tarif; dar\xFCber nach Vereinbarung.", "La licence appartient \xE0 l\u2019unit\xE9 op\xE9rationnelle (un service ou une agence), pas \xE0 la personne : chaque unit\xE9 choisit ses modules et ses \xE9quipes ne voient que ceux-l\xE0. La base est toujours incluse. Jusqu\u2019\xE0 {a} chantiers actifs, le tarif ; au-del\xE0, sur mesure."],
           ["qh.licRef", "Sin unidades dadas de alta: se ense\xF1a la de referencia (Base + Cx y Mantenimiento). Se dan de alta en Ajustes \u203A Mi perfil \u203A Licencias.", "No units set up: the reference one is shown (Base + Cx and Maintenance). They are set up in Settings \u203A My profile \u203A Licences.", "Sense unitats donades d\u2019alta: es mostra la de refer\xE8ncia (Base + Cx i Manteniment). Es donen d\u2019alta a Ajustos \u203A El meu perfil \u203A Llic\xE8ncies.", "Sem unidades registadas: mostra-se a de refer\xEAncia (Base + Cx e Manuten\xE7\xE3o). Registam-se em Defini\xE7\xF5es \u203A O meu perfil \u203A Licen\xE7as.", "Keine Einheiten angelegt: Gezeigt wird die Referenz (Basis + Cx und Wartung). Angelegt werden sie unter Einstellungen \u203A Mein Profil \u203A Lizenzen.", "Aucune unit\xE9 cr\xE9\xE9e : celle de r\xE9f\xE9rence est affich\xE9e (Base + Cx et Maintenance). Elles se cr\xE9ent dans R\xE9glages \u203A Mon profil \u203A Licences."],
           ["qh.licUnid", "Las unidades y sus precios, de Ajustes \u203A Mi perfil \u203A Licencias.", "Units and their prices come from Settings \u203A My profile \u203A Licences.", "Les unitats i els seus preus, d\u2019Ajustos \u203A El meu perfil \u203A Llic\xE8ncies.", "As unidades e os seus pre\xE7os, de Defini\xE7\xF5es \u203A O meu perfil \u203A Licen\xE7as.", "Einheiten und Preise aus Einstellungen \u203A Mein Profil \u203A Lizenzen.", "Les unit\xE9s et leurs prix viennent de R\xE9glages \u203A Mon profil \u203A Licences."],
           ["qh.licPersonas", "El n\xFAmero de personas es el de \xABGen\xE9rico\xBB.", "The number of people is the one in \u201CGeneric\u201D.", "El nombre de persones \xE9s el de \xABGen\xE8ric\xBB.", "O n\xFAmero de pessoas \xE9 o de \xABGen\xE9rico\xBB.", "Die Personenzahl ist die aus \u201EGenerisch\u201C.", "Le nombre de personnes est celui de \xAB G\xE9n\xE9rique \xBB."]
@@ -148333,6 +149041,7 @@ ${reglas}`;
           ["Tarifas por hora de subcontratas", "Subcontractor hourly rates", "Tarifes per hora de subcontractes", "Tarifas hor\xE1rias de subempreiteiros", "Stundens\xE4tze der Subunternehmer", "Tarifs horaires des sous-traitants"],
           ["Clientes", "Clients", "Clients", "Clientes", "Kunden", "Clients"],
           ["Personas y roles", "People and roles", "Persones i rols", "Pessoas e fun\xE7\xF5es", "Personen und Rollen", "Personnes et r\xF4les"],
+          ["Gasto de Iarvis", "Iarvis spend", "Despesa d\u2019Iarvis", "Gasto do Iarvis", "Iarvis-Kosten", "D\xE9pense d\u2019Iarvis"],
           ["Estad\xEDsticas", "Statistics", "Estad\xEDstiques", "Estat\xEDsticas", "Statistiken", "Statistiques"],
           ["Licitaciones", "Tenders", "Licitacions", "Concursos", "Ausschreibungen", "Appels d\u2019offres"],
           ["Medici\xF3n real de obra", "Actual site measurement", "Mesurament real d\u2019obra", "Medi\xE7\xE3o real de obra", "Tats\xE4chliches Baustellenaufma\xDF", "M\xE9tr\xE9 r\xE9el de chantier"],
@@ -148369,6 +149078,7 @@ ${reglas}`;
           ["Med Obra", "Site measurement", "Mesurament d\u2019obra", "Medi\xE7\xE3o de obra", "Baustellenaufma\xDF", "M\xE9tr\xE9 de chantier"],
           ["Albaranes", "Delivery notes", "Albarans", "Guias de remessa", "Lieferscheine", "Bons de livraison"],
           ["Inventario", "Inventory", "Inventari", "Invent\xE1rio", "Inventar", "Inventaire"],
+          ["Cruce y almac\xE9n", "Matching and warehouse", "Encreuament i magatzem", "Confer\xEAncia e armaz\xE9m", "Abgleich und Lager", "Rapprochement et magasin"],
           ["Facturas de proveedor", "Supplier invoices", "Factures de prove\xEFdor", "Faturas de fornecedor", "Lieferantenrechnungen", "Factures fournisseur"],
           ["Entregas a la DF y acta", "Handovers to the DF and minutes", "Lliuraments a la DF i acta", "Entregas \xE0 DF e ata", "\xDCbergaben an die Bauleitung und Protokoll", "Remises \xE0 la MOE et proc\xE8s-verbal"],
           ["Cierre de la obra", "Site close-out", "Tancament de l\u2019obra", "Encerramento da obra", "Baustellenabschluss", "Cl\xF4ture du chantier"],
@@ -148437,6 +149147,12 @@ ${reglas}`;
           ["Usuarios y accesos", "Users and access", "Usuaris i accessos", "Utilizadores e acessos", "Benutzer und Zug\xE4nge", "Utilisateurs et acc\xE8s"],
           ["\xDAltimos accesos", "Latest sign-ins", "\xDAltims accessos", "\xDAltimos acessos", "Letzte Anmeldungen", "Derniers acc\xE8s"],
           ["Presentaciones", "Presentations", "Presentacions", "Apresenta\xE7\xF5es", "Pr\xE4sentationen", "Pr\xE9sentations"],
+          /* 19-nov: el configurador de ofertas de venta de Vidaire (renderer/ofertasVentas.js). */
+          ["Configurador de ofertas", "Proposal builder", "Configurador d\u2019ofertes", "Configurador de propostas", "Angebotskonfigurator", "Configurateur d\u2019offres"],
+          ["M\xF3dulos", "Modules", "M\xF2duls", "M\xF3dulos", "Module", "Modules"],
+          ["Personalizaci\xF3n", "Personalisation", "Personalitzaci\xF3", "Personaliza\xE7\xE3o", "Anpassung", "Personnalisation"],
+          ["Aparte", "Separate", "A part", "\xC0 parte", "Separat", "\xC0 part"],
+          ["Guardadas", "Saved", "Desades", "Guardadas", "Gespeichert", "Enregistr\xE9es"],
           ["Plantilla", "Staff", "Plantilla", "Quadro de pessoal", "Belegschaft", "Effectif"],
           ["Personas y accesos", "People and access", "Persones i accessos", "Pessoas e acessos", "Personen und Zug\xE4nge", "Personnes et acc\xE8s"],
           ["Consulta", "Reference", "Consulta", "Consulta", "Nachschlagen", "Consultation"],
@@ -148635,6 +149351,33 @@ ${reglas}`;
           ["Departamento", "Department", "Departament", "Departamento", "Abteilung", "Service"],
           ["Personas", "People", "Persones", "Pessoas", "Personen", "Personnes"],
           ["Indicadores", "Indicators", "Indicadors", "Indicadores", "Kennzahlen", "Indicateurs"],
+          /* El GMAO (18-nov): Mantenimiento › Indicadores. */
+          ["Correctivas abiertas y su plazo", "Open corrective orders and their deadline", "Correctives obertes i el seu termini", "Corretivas abertas e o seu prazo", "Offene St\xF6rungsauftr\xE4ge und ihre Frist", "Correctifs ouverts et leur d\xE9lai"],
+          ["Plazos del SLA", "SLA deadlines", "Terminis del SLA", "Prazos do SLA", "SLA-Fristen", "D\xE9lais du SLA"],
+          ["Equipos que repiten aver\xEDa", "Equipment with repeated breakdowns", "Equips que repeteixen avaria", "Equipamentos com avarias repetidas", "Ger\xE4te mit wiederholten St\xF6rungen", "\xC9quipements \xE0 pannes r\xE9p\xE9t\xE9es"],
+          ["Resueltas", "Resolved", "Resoltes", "Resolvidas", "Erledigt", "R\xE9solues"],
+          ["Escalar a", "Escalate to", "Escalar a", "Escalar para", "Eskalieren an", "Escalader \xE0"],
+          ["Respuesta", "Response", "Resposta", "Resposta", "Reaktion", "R\xE9ponse"],
+          ["Resoluci\xF3n", "Resolution", "Resoluci\xF3", "Resolu\xE7\xE3o", "Behebung", "R\xE9solution"],
+          ["Orden", "Order", "Ordre", "Ordem", "Auftrag", "Ordre"],
+          ["Equipo", "Equipment", "Equip", "Equipamento", "Ger\xE4t", "\xC9quipement"],
+          ["Prioridad", "Priority", "Prioritat", "Prioridade", "Priorit\xE4t", "Priorit\xE9"],
+          ["Abierta", "Opened", "Oberta", "Aberta", "Er\xF6ffnet", "Ouverte"],
+          ["MTTR (reparaci\xF3n)", "MTTR (repair)", "MTTR (reparaci\xF3)", "MTTR (repara\xE7\xE3o)", "MTTR (Reparatur)", "MTTR (r\xE9paration)"],
+          ["MTBF (entre aver\xEDas)", "MTBF (between failures)", "MTBF (entre avaries)", "MTBF (entre avarias)", "MTBF (zwischen Ausf\xE4llen)", "MTBF (entre pannes)"],
+          ["preventivo hecho", "preventive done", "preventiu fet", "preventiva feita", "Wartung erledigt", "pr\xE9ventif r\xE9alis\xE9"],
+          ["en backlog", "in backlog", "en backlog", "em backlog", "im R\xFCckstand", "en attente"],
+          ["SLA cumplido", "SLA met", "SLA complert", "SLA cumprido", "SLA eingehalten", "SLA respect\xE9"],
+          ["con el plazo vencido", "past deadline", "amb el termini ven\xE7ut", "com o prazo vencido", "Frist \xFCberschritten", "d\xE9lai d\xE9pass\xE9"],
+          ["en riesgo", "at risk", "en risc", "em risco", "gef\xE4hrdet", "\xE0 risque"],
+          ["Alta", "High", "Alta", "Alta", "Hoch", "Haute"],
+          ["Media", "Medium", "Mitjana", "M\xE9dia", "Mittel", "Moyenne"],
+          ["Baja", "Low", "Baixa", "Baixa", "Niedrig", "Basse"],
+          ["en plazo", "on time", "en termini", "dentro do prazo", "in der Frist", "dans les d\xE9lais"],
+          ["vencida", "overdue", "ven\xE7uda", "vencida", "\xFCberf\xE4llig", "en retard"],
+          ["cumplida", "met", "complerta", "cumprida", "eingehalten", "respect\xE9e"],
+          ["incumplida", "missed", "incomplerta", "n\xE3o cumprida", "verfehlt", "non respect\xE9e"],
+          ["Encargado de mantenimiento", "Maintenance supervisor", "Encarregat de manteniment", "Encarregado de manuten\xE7\xE3o", "Instandhaltungsvorarbeiter", "Chef d\u2019\xE9quipe de maintenance"],
           ["En estudio", "Being estimated", "En estudi", "Em estudo", "In Kalkulation", "En \xE9tude"],
           ["Ofertado sin respuesta", "Quoted, no answer", "Ofertat sense resposta", "Proposto sem resposta", "Angeboten, ohne Antwort", "Offert sans r\xE9ponse"],
           ["Acierto", "Win rate", "Encert", "Taxa de sucesso", "Trefferquote", "Taux de r\xE9ussite"],
@@ -148968,6 +149711,7 @@ ${reglas}`;
           ["Claim: pruebas enlazadas a cada hecho", "Claim: evidence linked to each event", "Claim: proves enlla\xE7ades a cada fet", "Claim: provas ligadas a cada facto", "Claim: jedem Ereignis zugeordnete Beweise", "Claim : preuves li\xE9es \xE0 chaque fait"],
           ["Cliente", "Client", "Client", "Cliente", "Kunde", "Client"],
           ["Commissioning + Mantenimiento", "Commissioning + Maintenance", "Commissioning + Manteniment", "Commissioning + Manuten\xE7\xE3o", "Commissioning + Wartung", "Commissioning + Maintenance"],
+          ["Commissioning + GMAO", "Commissioning + CMMS", "Commissioning + GMAO", "Commissioning + GMAO", "Commissioning + Instandhaltung (CMMS)", "Commissioning + GMAO"],
           ["Commissioning, balanceo y estanqueidad", "Commissioning, balancing and leak testing", "Commissioning, balanceig i estanquitat", "Commissioning, equilibragem e estanquidade", "Commissioning, Abgleich und Dichtheit", "Commissioning, \xE9quilibrage et \xE9tanch\xE9it\xE9"],
           ["Comparativo, estad\xEDsticas y cierre de la oferta sin rehacer hojas", "Comparison, statistics and bid close-out without redoing spreadsheets", "Comparatiu, estad\xEDstiques i tancament de l'oferta sense refer fulls", "Comparativo, estat\xEDsticas e fecho da proposta sem refazer folhas", "Vergleich, Statistiken und Abschluss des Angebots ohne Tabellen neu zu erstellen", "Comparatif, statistiques et cl\xF4ture de l'offre sans refaire de feuilles"],
           ["Competencia", "Competition", "Compet\xE8ncia", "Concorr\xEAncia", "Konkurrenz", "Concurrence"],
@@ -149927,37 +150671,347 @@ ${reglas}`;
     }
   });
 
+  // shared/ventas/catalogoPrecios.js
+  var require_catalogoPrecios = __commonJS({
+    "shared/ventas/catalogoPrecios.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function(fabrica) {
+        const API = fabrica();
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.CATALOGO_VENTAS = API;
+      })(() => {
+        const TARIFA_DIA = 600;
+        const OBRAS_INCLUIDAS = 10;
+        const CARGA_OBRAS = { clave: "cargaObras", precio: 5e3, dias: 8 };
+        const GMAO = { incluidos: 20, hasta: 40, porUsuario: 80 };
+        const TOPE_PERSONALIZACION_COMPLETO = 5e4;
+        const MODULOS = [
+          {
+            clave: "base",
+            mes: 1500,
+            personalizacion: 8e3,
+            dias: 13,
+            obligatorio: true,
+            es: { nombre: "Base", que: "Importa los presupuestos de Excel, PDF, BC3 o Presto con sus cap\xEDtulos, cierra PEM \u2192 PEC y monta el Gantt y el personal de cada obra." },
+            en: { nombre: "Core", que: "Imports budgets from Excel, PDF, BC3 or Presto with their chapters, closes PEM \u2192 PEC and builds each job\u2019s Gantt and staffing." },
+            adapta: { es: "Alta de la empresa, roles, usuarios, plantillas comunes, presupuesto, formaci\xF3n y obra piloto.", en: "Company set-up, roles, users, common templates, budget, training and pilot job." }
+          },
+          {
+            clave: "compras",
+            mes: 2e3,
+            personalizacion: 8e3,
+            dias: 13,
+            es: { nombre: "Compras", que: "Comparativo de ofertas por paquete de compra, pedidos, lectura de albaranes, inventario y aviso de mejor precio entre obras." },
+            en: { nombre: "Procurement", que: "Bid comparison by purchase package, purchase orders, delivery-note reading, inventory and best-price alerts across jobs." },
+            adapta: { es: "Formato de pedido y de solicitud de oferta, paquetes de compra, comparativo, albaranes y facturas, proveedores y precios hist\xF3ricos, circuito de aprobaci\xF3n.", en: "Purchase order and request-for-quote formats, purchase packages, comparison, delivery notes and invoices, suppliers and historic prices, approval workflow." }
+          },
+          {
+            clave: "produccion",
+            mes: 1500,
+            personalizacion: 6e3,
+            dias: 10,
+            es: { nombre: "Producci\xF3n", que: "Plan de costes, certificaciones al cliente y a subcontratas, avance sobre plano y proyecci\xF3n del cierre de obra." },
+            en: { nombre: "Production", que: "Cost plan, valuations to the client and to subcontractors, progress on drawings and job-close forecast." },
+            adapta: { es: "Formato de certificaci\xF3n al cliente y a subcontrata, parte diario, Gantt y exportaci\xF3n a Project, informe mensual de obra.", en: "Client and subcontractor valuation formats, daily report, Gantt and Project export, monthly job report." }
+          },
+          {
+            clave: "calidad",
+            mes: 1e3,
+            personalizacion: 4e3,
+            dias: 7,
+            es: { nombre: "Calidad", que: "No conformidades, puntos de inspecci\xF3n, incidencias con foto sobre el plano y registro de seguridad y medio ambiente." },
+            en: { nombre: "Quality", que: "Non-conformances, inspection points, issues with photos pinned on the drawing and HSE records." },
+            adapta: { es: "PPI y checklists propios, formato de NCR, recorridos de zona y su informe, registro QHSE.", en: "Own ITPs and checklists, NCR format, area walk-downs and their report, QHSE register." }
+          },
+          {
+            clave: "cxGmao",
+            mes: 3e3,
+            personalizacion: 12e3,
+            dias: 20,
+            gmao: true,
+            es: { nombre: "Commissioning + GMAO", que: "Fichas de puesta en marcha, balanceo y estanqueidad equipo a equipo, entrega a la direcci\xF3n facultativa y, despu\xE9s, el mantenimiento (RITE, F-gas y \xF3rdenes de trabajo)." },
+            en: { nombre: "Commissioning + CMMS", que: "Start-up sheets, balancing and pressure tests equipment by equipment, handover to the design team and then maintenance (regulations, F-gas and work orders)." },
+            adapta: { es: "Hojas por familia de equipo, tolerancias, dossier de entrega en 4 idiomas, planos por estado, app m\xF3vil Cx, plan de mantenimiento, gamas y \xF3rdenes del GMAO.", en: "Sheets per equipment family, tolerances, 4-language handover dossier, drawings by status, Cx mobile app, maintenance plan, routines and CMMS work orders." }
+          },
+          {
+            clave: "estudios",
+            mes: 800,
+            personalizacion: 3e3,
+            dias: 5,
+            es: { nombre: "Estudios", que: "Licitaciones y c\xE1lculo de ofertas con descompuestos y precios de referencia de la propia empresa." },
+            en: { nombre: "Estimating", que: "Tenders and bid pricing with cost breakdowns and the company\u2019s own reference prices." },
+            adapta: { es: "Plantilla de oferta y de descompuesto, precios de referencia propios.", en: "Bid and cost-breakdown templates, own reference prices." }
+          },
+          {
+            clave: "documentacion",
+            mes: 1e3,
+            personalizacion: 4e3,
+            dias: 7,
+            es: { nombre: "Documentaci\xF3n", que: "Documentos de cada obra ordenados solos, planos de delineaci\xF3n y entrega documental." },
+            en: { nombre: "Documents", que: "Each job\u2019s documents filed automatically, drafting drawings and document handover." },
+            adapta: { es: "Estructura de carpetas de SharePoint, \xEDndice documental, planos desde AutoCAD y PDF con sus capas y bloques.", en: "SharePoint folder structure, document index, drawings from AutoCAD and PDF with own layers and blocks." }
+          },
+          {
+            clave: "reclamaciones",
+            mes: 1200,
+            personalizacion: 4e3,
+            dias: 7,
+            es: { nombre: "Reclamaciones", que: "Expediente de reclamaci\xF3n con hechos, pruebas y costes, listo para presentar." },
+            en: { nombre: "Claims", que: "Claim file with facts, evidence and costs, ready to submit." },
+            adapta: { es: "Formato del dossier de reclamaci\xF3n y de los escritos, c\xE1lculo de costes de obra.", en: "Claim dossier and letter formats, job cost calculation." }
+          },
+          {
+            clave: "management",
+            mes: 500,
+            personalizacion: 2e3,
+            dias: 3,
+            es: { nombre: "Management", que: "Cuadro de mando por departamentos, saturaci\xF3n de equipos e informe a direcci\xF3n." },
+            en: { nombre: "Management", que: "Dashboard by department, team workload and report to management." },
+            adapta: { es: "Cuadro de mando de direcci\xF3n con los indicadores que pida la empresa.", en: "Management dashboard with the indicators the company asks for." }
+          },
+          {
+            clave: "iarvis",
+            mes: 2e3,
+            personalizacion: 6e3,
+            dias: 10,
+            es: { nombre: "Iarvis", que: "Asistente por rol en escritorio, web y m\xF3vil: responde, prepara ficheros y hace operaciones de la app, siempre dentro de lo que su puesto puede ver." },
+            en: { nombre: "Iarvis", que: "Role-based assistant on desktop, web and mobile: answers, prepares files and runs app operations, always within what the role may see." },
+            adapta: { es: "Se entrena con los datos y documentos de la empresa; sus ficheros salen con la plantilla propia, en el idioma y seg\xFAn el rol de quien pide.", en: "Trained on the company\u2019s data and documents; its files use the company template, in the language and for the role of whoever asks." }
+          }
+        ];
+        const POR_CLAVE = Object.fromEntries(MODULOS.map((m) => [m.clave, m]));
+        const TODAS = MODULOS.map((m) => m.clave);
+        const PAQUETES = [
+          {
+            clave: "completoIarvis",
+            mes: 12e3,
+            completo: true,
+            modulos: TODAS,
+            es: "Paquete completo con Iarvis",
+            en: "Full package with Iarvis"
+          },
+          {
+            clave: "completo",
+            mes: 1e4,
+            completo: true,
+            modulos: TODAS.filter((c) => c !== "iarvis"),
+            es: "Paquete completo sin Iarvis",
+            en: "Full package without Iarvis"
+          },
+          {
+            clave: "obra",
+            mes: 5e3,
+            modulos: ["base", "compras", "produccion", "calidad"],
+            es: "Paquete Obra",
+            en: "Job package"
+          }
+        ];
+        const BLOQUES_COMUNES = [
+          { clave: "altaEmpresa", letra: "A", dias: 2, es: ["Alta de la empresa", "Empresa y unidades de negocio; logo, colores, nombre, pie y firma en la app y en todos los ficheros. Idioma por usuario."], en: ["Company set-up", "Company and business units; logo, colours, name, footer and signature in the app and every file. Language per user."] },
+          { clave: "m365", letra: "A", dias: 1, es: ["Microsoft 365", "Acceso con la cuenta corporativa (Entra ID); lectura de SharePoint y del correo de las obras para la documentaci\xF3n autom\xE1tica."], en: ["Microsoft 365", "Sign-in with the corporate account (Entra ID); reading SharePoint and job mailboxes for automatic filing."] },
+          { clave: "roles", letra: "B", dias: 2, es: ["Roles", "Se parte de los roles de la app; se renombran a los cargos de la empresa y se ajusta qu\xE9 ve cada uno."], en: ["Roles", "Starting from the app roles, renamed to the company\u2019s positions, adjusting what each one sees."] },
+          { clave: "mando", letra: "B", dias: 1, es: ["Cadena de mando", "Director \u203A jefe de departamento \u203A obra. Qui\xE9n aprueba pedidos, certificaciones, vacaciones, partes y cierres de NCR."], en: ["Chain of command", "Director \u203A head of department \u203A job. Who approves orders, valuations, holidays, reports and NCR close-outs."] },
+          { clave: "usuarios", letra: "B", dias: 1, es: ["Usuarios y licencias", "Alta de la primera tanda de usuarios con su rol y sus obras; licencia por m\xF3dulo, tambi\xE9n en el m\xF3vil."], en: ["Users and licences", "First batch of users with their role and jobs; licence per module, also on mobile."] },
+          { clave: "plantillas", letra: "C", dias: 2, es: ["Plantillas comunes", "Plantilla \xFAnica de PDF y Excel con la marca de la empresa: portada, cabecera, pie y firmas."], en: ["Common templates", "Single PDF and Excel template with the company brand: cover, header, footer and signatures."] },
+          { clave: "presupuesto", letra: "D", dias: 2, es: ["Presupuesto", "Importar los presupuestos (Excel, PDF, BC3, Presto) con su estructura de cap\xEDtulos y el formato de su oferta."], en: ["Budget", "Importing budgets (Excel, PDF, BC3, Presto) with their chapter structure and bid format."] },
+          { clave: "piloto", letra: "E", dias: 2, es: ["Formaci\xF3n y obra piloto", "Una obra real cargada; formaci\xF3n por rol y uso acompa\xF1ado."], en: ["Training and pilot job", "One real job loaded; training by role and supported use."] },
+          { clave: CARGA_OBRAS.clave, letra: "F", dias: CARGA_OBRAS.dias, precio: CARGA_OBRAS.precio, es: ["Carga de obras terminadas", "Se cargan las obras ya acabadas (presupuestos, compras, equipos, documentaci\xF3n y entregas) para tener el hist\xF3rico desde el primer d\xEDa."], en: ["Loading of completed jobs", "Completed jobs are loaded (budgets, purchases, equipment, documents and handovers) so the history is there from day one."] }
+        ];
+        const CONDICIONES = {
+          es: [
+            "Licencia de uso por unidad de negocio; el c\xF3digo es y sigue siendo de Vidaire.",
+            "Usuarios ilimitados, salvo los de GMAO (20 incluidos; de 21 a 40, +80 \u20AC/usuario/mes; m\xE1s de 40, a medida).",
+            "Hasta 10 obras activas por unidad de negocio; m\xE1s de 10, a medida.",
+            "Precios sin IVA. La suscripci\xF3n es mensual; la personalizaci\xF3n se paga una vez.",
+            "La suscripci\xF3n incluye servidores en la UE, copias diarias, actualizaciones, soporte, web, escritorio y app m\xF3vil."
+          ],
+          en: [
+            "Licence of use per business unit; the code is and remains Vidaire\u2019s.",
+            "Unlimited users, except CMMS users (20 included; 21 to 40, +\u20AC80/user/month; over 40, bespoke).",
+            "Up to 10 active jobs per business unit; over 10, bespoke.",
+            "Prices exclude VAT. The subscription is monthly; the personalisation is a one-off payment.",
+            "The subscription includes EU servers, daily backups, updates, support, web, desktop and mobile app."
+          ]
+        };
+        const TEXTOS = {
+          es: { mes: "\u20AC/mes", anio: "\u20AC/a\xF1o", personalizacion: "Personalizaci\xF3n (pago \xFAnico)", primerAnio: "Total primer a\xF1o", aMedida: "a medida", bolsa: "Bolsa de cambios", aparte: "Aparte (d\xEDas \xD7 600 \u20AC)", paquete: "Paquete", ahorro: "Ahorro", alaCarta: "A la carta", unidades: "Unidades de negocio", obras: "Obras activas por unidad", usuariosGmao: "Usuarios GMAO por unidad", modulos: "M\xF3dulos", condiciones: "Condiciones", observaciones: "Observaciones", dias: "d\xEDas" },
+          en: { mes: "\u20AC/month", anio: "\u20AC/year", personalizacion: "Personalisation (one-off)", primerAnio: "First-year total", aMedida: "bespoke", bolsa: "Change allowance", aparte: "Separate (days \xD7 \u20AC600)", paquete: "Package", ahorro: "Saving", alaCarta: "\xC0 la carte", unidades: "Business units", obras: "Active jobs per unit", usuariosGmao: "CMMS users per unit", modulos: "Modules", condiciones: "Conditions", observaciones: "Remarks", dias: "days" }
+        };
+        const ESTADOS = ["borrador", "enviada", "aceptada", "rechazada"];
+        const BOLSA_POR_DEFECTO = "20 cambios al mes";
+        const BOLSA_EXPLICA = {
+          es: "Entran modificaciones de aspecto (pantallas, informes y plantillas) y ajustes de desarrollo que no supongan funcionalidades nuevas; las funcionalidades nuevas se valoran aparte. Los cambios que no se usan en un mes no pasan al siguiente.",
+          en: "It covers changes of appearance (screens, reports and templates) and development adjustments that do not add new functionality; new functionality is quoted separately. Changes not used in a month do not carry over to the next."
+        };
+        const bolsaEn = (v, i) => i === "en" && (!v || v === BOLSA_POR_DEFECTO) ? "20 changes per month" : v || BOLSA_POR_DEFECTO;
+        const entero = (v, min, def) => {
+          const n = Math.floor(Number(v));
+          return Number.isFinite(n) && n >= min ? n : def;
+        };
+        const idiomaDe = (i) => i === "en" ? "en" : "es";
+        function ofertaNueva(datos = {}) {
+          return {
+            bloques: {},
+            aparte: [],
+            paquete: "auto",
+            bolsa: BOLSA_POR_DEFECTO,
+            observaciones: "",
+            ...datos,
+            cliente: { empresa: "", contacto: "", unidades: 1, obras: 10, usuariosGmao: 20, idioma: "es", ...datos.cliente || {} },
+            modulos: { ...datos.modulos || {}, base: { nota: "", ...(datos.modulos || {}).base || {}, si: true } }
+          };
+        }
+        function elegidos(oferta) {
+          const m = oferta && oferta.modulos || {};
+          return TODAS.filter((c) => POR_CLAVE[c].obligatorio || m[c] && m[c].si);
+        }
+        function mejorOpcion(claves, permitirPaquete = true) {
+          const suma = (l) => l.reduce((s, c) => s + POR_CLAVE[c].mes, 0);
+          const alaCarta = suma(claves);
+          let mejor = { paquete: null, mes: alaCarta, modulos: [...claves], resto: [...claves] };
+          const sugerencias = [];
+          if (!permitirPaquete) return { alaCarta, mejor, sugerencias };
+          for (const p of PAQUETES) {
+            const resto = claves.filter((c) => !p.modulos.includes(c));
+            const mes = p.mes + suma(resto);
+            const contiene = p.modulos.every((c) => claves.includes(c));
+            const extra = p.modulos.filter((c) => !claves.includes(c));
+            if (mes < mejor.mes || mes === mejor.mes && contiene && mejor.paquete === null) {
+              mejor = { paquete: p.clave, mes, modulos: TODAS.filter((c) => claves.includes(c) || p.modulos.includes(c)), resto };
+            } else if (mes === alaCarta && extra.length) {
+              sugerencias.push({ paquete: p.clave, mes, extra });
+            }
+          }
+          return { alaCarta, mejor, sugerencias: sugerencias.filter((s) => s.paquete !== mejor.paquete && s.mes <= mejor.mes) };
+        }
+        function calcularOferta(oferta) {
+          const o = ofertaNueva(oferta || {});
+          const unidades = entero(o.cliente.unidades, 1, 1);
+          const obras = entero(o.cliente.obras, 0, 0);
+          const usuariosGmao = entero(o.cliente.usuariosGmao, 0, 0);
+          const claves = elegidos(o);
+          const { alaCarta, mejor, sugerencias } = mejorOpcion(claves, o.paquete !== "ninguno");
+          const paquete = mejor.paquete ? PAQUETES.find((p) => p.clave === mejor.paquete) : null;
+          const aMedida = [];
+          if (obras > OBRAS_INCLUIDAS) aMedida.push("obras");
+          let extraGmao = 0;
+          if (mejor.modulos.includes("cxGmao") && usuariosGmao > GMAO.incluidos) {
+            extraGmao = (Math.min(usuariosGmao, GMAO.hasta) - GMAO.incluidos) * GMAO.porUsuario;
+            if (usuariosGmao > GMAO.hasta) aMedida.push("gmao");
+          }
+          const mesUnidad = mejor.mes + extraGmao;
+          const mensual = mesUnidad * unidades;
+          const sumaPers = mejor.modulos.reduce((s, c) => s + POR_CLAVE[c].personalizacion, 0);
+          const persModulos = paquete && paquete.completo ? Math.min(sumaPers, TOPE_PERSONALIZACION_COMPLETO) : sumaPers;
+          const personalizacion = persModulos + CARGA_OBRAS.precio;
+          const lineasAparte = (Array.isArray(o.aparte) ? o.aparte : []).map((l) => ({ concepto: String(l && l.concepto || "").trim(), dias: Math.max(0, Number(l && l.dias) || 0), nota: String(l && l.nota || "") })).filter((l) => l.concepto || l.dias).map((l) => ({ ...l, importe: Math.round(l.dias * TARIFA_DIA * 100) / 100 }));
+          const aparte = lineasAparte.reduce((s, l) => s + l.importe, 0);
+          return {
+            unidades,
+            obras,
+            usuariosGmao,
+            claves,
+            modulos: mejor.modulos,
+            alaCartaMes: alaCarta,
+            paquete: paquete ? paquete.clave : null,
+            paqueteMes: paquete ? paquete.mes : null,
+            ahorroMes: (alaCarta - mejor.mes) * unidades,
+            sugerencias,
+            extraGmao,
+            mesUnidad,
+            mensual,
+            anual: mensual * 12,
+            personalizacionModulos: persModulos,
+            cargaObras: CARGA_OBRAS.precio,
+            personalizacion,
+            lineasAparte,
+            aparte,
+            primerAnio: mensual * 12 + personalizacion + aparte,
+            aMedida
+          };
+        }
+        function esEdicionVidaire(perfil) {
+          return Boolean(perfil && perfil.id === "vidaire" && perfil.tipoEmpresa === "vidaire");
+        }
+        function veVentasVidaire(rol, perfil) {
+          return (rol === "admin" || rol === "administrador") && esEdicionVidaire(perfil);
+        }
+        const euros = (n, idioma = "es") => `${new Intl.NumberFormat(idioma === "en" ? "en-GB" : "es-ES", { maximumFractionDigits: 0, useGrouping: true }).format(Math.round(Number(n) || 0))} \u20AC`;
+        const nombreModulo = (clave, idioma) => POR_CLAVE[clave] ? POR_CLAVE[clave][idiomaDe(idioma)].nombre : clave;
+        const nombrePaquete = (clave, idioma) => {
+          const p = PAQUETES.find((x) => x.clave === clave);
+          return p ? p[idiomaDe(idioma)] : "";
+        };
+        return {
+          TARIFA_DIA,
+          OBRAS_INCLUIDAS,
+          CARGA_OBRAS,
+          GMAO,
+          TOPE_PERSONALIZACION_COMPLETO,
+          MODULOS,
+          POR_CLAVE,
+          PAQUETES,
+          BLOQUES_COMUNES,
+          CONDICIONES,
+          TEXTOS,
+          ESTADOS,
+          BOLSA_POR_DEFECTO,
+          BOLSA_EXPLICA,
+          bolsaEn,
+          ofertaNueva,
+          elegidos,
+          mejorOpcion,
+          calcularOferta,
+          esEdicionVidaire,
+          veVentasVidaire,
+          euros,
+          nombreModulo,
+          nombrePaquete,
+          idiomaDe
+        };
+      });
+    }
+  });
+
   // shared/licencias.js
   var require_licencias = __commonJS({
     "shared/licencias.js"(exports, module) {
       "use strict";
       init_define_CX_LICENCIAS();
       var import_buffer_global10 = __toESM(require_buffer_global());
-      (function iniciarLicencias(R) {
+      (function iniciarLicencias(R, C) {
         const MES = 12;
-        const TARIFA_MES = {
-          base: 1e3,
-          compras: 1e3,
-          produccion: 800,
-          cxMantenimiento: 1800,
-          calidad: 700,
-          documentacion: 500,
-          reclamaciones: 500
-        };
-        const TARIFA_EXTRA_MES = { estudios: 400, iarvis: 1e3, management: 150 };
+        const EN_CATALOGO = { cxMantenimiento: "cxGmao" };
+        const mesDe = (id) => C.POR_CLAVE[EN_CATALOGO[id] || id].mes;
+        const CONTRATABLES = ["base", "compras", "produccion", "cxMantenimiento", "calidad", "documentacion", "reclamaciones"];
+        const EXTRA = ["estudios", "iarvis", "management"];
+        const TARIFA_MES = Object.fromEntries(CONTRATABLES.map((id) => [id, mesDe(id)]));
+        const TARIFA_EXTRA_MES = Object.fromEntries(EXTRA.map((id) => [id, mesDe(id)]));
         const NOMBRES_EXTRA = { estudios: "Estudios", iarvis: "Iarvis", management: "Management" };
-        const PAQUETE_OBRA_MES = 3e3;
-        const PAQUETE_COMPLETO_CON_IARVIS_MES = 6e3;
-        const PAQUETE_COMPLETO_SIN_IARVIS_MES = 5e3;
+        const NOMBRES_CORTOS = { base: "Base", compras: "Compras", produccion: "Produc.", cxMantenimiento: "Cx + GMAO", calidad: "Calidad", documentacion: "Docs", reclamaciones: "Reclam." };
+        const paqueteDe = (clave) => C.PAQUETES.find((p) => p.clave === clave);
+        const PAQUETE_OBRA_MES = paqueteDe("obra").mes;
+        const PAQUETE_COMPLETO_CON_IARVIS_MES = paqueteDe("completoIarvis").mes;
+        const PAQUETE_COMPLETO_SIN_IARVIS_MES = paqueteDe("completo").mes;
         const porAnio = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, v * MES]));
         const TARIFA = porAnio(TARIFA_MES);
         const TARIFA_EXTRA = porAnio(TARIFA_EXTRA_MES);
-        const IDS_PAQUETE_OBRA = ["base", "compras", "produccion", "calidad"];
+        const IDS_PAQUETE_OBRA = paqueteDe("obra").modulos.map((c) => c === "cxGmao" ? "cxMantenimiento" : c);
         const PAQUETE_OBRA = PAQUETE_OBRA_MES * MES;
         const PAQUETE_COMPLETO_CON_IARVIS = PAQUETE_COMPLETO_CON_IARVIS_MES * MES;
         const PAQUETE_COMPLETO = PAQUETE_COMPLETO_SIN_IARVIS_MES * MES;
-        const MINIMO_CX_MES = 800;
-        const ESCALONES = { hastaTabla: 10, hastaRecargo: 25, recargo: 0.3, porObraExtraMes: 250 };
+        const ESCALONES = { hastaTabla: C.OBRAS_INCLUIDAS };
+        const USUARIOS_GMAO = {
+          modulo: "cxMantenimiento",
+          incluidos: C.GMAO.incluidos,
+          hastaPorUsuario: C.GMAO.hasta,
+          porUsuarioExtraMes: C.GMAO.porUsuario,
+          verbos: ["crear", "editar", "aprobar"],
+          noCuentan: ["administrador"]
+        };
+        const TOPE_MAXIMO = 9999;
         const TIPOS = [{ id: "departamento", nombre: "Departamento" }, { id: "delegacion", nombre: "Delegaci\xF3n" }];
         const GESTIONAN = ["gerente", "administrador"];
         const gestiona = (idRol) => GESTIONAN.includes(idRol);
@@ -149980,6 +151034,36 @@ ${reglas}`;
           }
           return r;
         }
+        function limpiarTope(v) {
+          if (v === null || v === void 0 || v === "") return null;
+          const n = Number(v);
+          return Number.isFinite(n) && n >= 1 ? Math.min(TOPE_MAXIMO, Math.floor(n)) : null;
+        }
+        function esUsuarioGmao(idRol) {
+          if (!idRol || USUARIOS_GMAO.noCuentan.includes(idRol)) return false;
+          return USUARIOS_GMAO.verbos.some((v) => R.puede(idRol, "ordenesMant", v));
+        }
+        function contarUsuariosGmao(personas) {
+          return (personas || []).filter((p) => p && p.activo !== 0 && p.activo !== false && esUsuarioGmao(p.rol)).length;
+        }
+        function usuariosGmao(unidad, usuarios = 0, escalon = USUARIOS_GMAO) {
+          const u = limpiarUnidad(unidad);
+          const n = Math.max(0, Math.floor(Number(usuarios) || 0));
+          const tope = u.topeUsuariosGmao || escalon.incluidos;
+          if (!u.modulos.includes(escalon.modulo)) {
+            return { incluye: false, usuarios: n, tope, libres: 0, alTope: false, extra: 0, extraMes: 0, extraAnual: 0, aMedida: false, aviso: null };
+          }
+          const hasta = Math.max(escalon.hastaPorUsuario, tope);
+          const extra = Math.max(0, n - tope);
+          const cobrables = Math.max(0, Math.min(n, hasta) - tope);
+          const extraMes = cobrables * escalon.porUsuarioExtraMes;
+          const aMedida = n > hasta;
+          let aviso = null;
+          if (aMedida) aviso = `${n} usuarios del GMAO: con m\xE1s de ${hasta}, la licencia es a medida. Hay que ampliarla.`;
+          else if (extra) aviso = `${n} de ${tope} usuarios del GMAO: ${extra} de m\xE1s. Hay que ampliar la licencia (+${extraMes} \u20AC al mes).`;
+          else if (n === tope) aviso = `${n} de ${tope} usuarios del GMAO: se ha llegado al tope. El siguiente obliga a ampliar la licencia.`;
+          return { incluye: true, usuarios: n, tope, libres: Math.max(0, tope - n), alTope: n >= tope, extra, extraMes, extraAnual: extraMes * 12, aMedida, aviso };
+        }
         function limpiarUnidad(u) {
           const o = u && typeof u === "object" ? u : {};
           const obras = Number(o.obrasActivas);
@@ -149990,6 +151074,7 @@ ${reglas}`;
             modulos: R.normalizarContrato(leerJson(o.modulos, [])) || ["base"],
             precios: limpiarPrecios(o.precios),
             obrasActivas: Number.isFinite(obras) && obras >= 0 ? Math.min(999, Math.floor(obras)) : 0,
+            topeUsuariosGmao: limpiarTope(o.topeUsuariosGmao),
             activa: o.activa === void 0 || o.activa === null ? true : Boolean(Number(o.activa) || o.activa === true)
           };
         }
@@ -150005,11 +151090,10 @@ ${reglas}`;
           const p = limpiarPrecios(unidad && unidad.precios);
           return numOk(p[id]) ? p[id] : TARIFA[id];
         }
-        function precioUnidad(unidad) {
+        function precioUnidad(unidad, usuarios = 0) {
           const u = limpiarUnidad(unidad);
           const lineas = u.modulos.map((id) => {
-            let anual2 = precioModulo(u, id);
-            if (id === "cxMantenimiento") anual2 = Math.max(anual2, MINIMO_CX_MES * 12);
+            const anual2 = precioModulo(u, id);
             return { id, nombre: R.MODULOS_CONTRATABLES.find((m) => m.id === id).nombre, anual: anual2, propio: numOk(u.precios[id]) };
           });
           const suma = lineas.reduce((a, l) => a + l.anual, 0);
@@ -150022,22 +151106,46 @@ ${reglas}`;
           const descuentoObra = paqueteObra && sumaObra > PAQUETE_OBRA ? sumaObra - PAQUETE_OBRA : 0;
           const neto = paquete ? PAQUETE_COMPLETO : suma - descuentoObra;
           const n = u.obrasActivas;
-          const recargo = n > ESCALONES.hastaTabla ? Math.round(neto * ESCALONES.recargo * 100) / 100 : 0;
-          const extraObras = n > ESCALONES.hastaRecargo ? (n - ESCALONES.hastaRecargo) * ESCALONES.porObraExtraMes * 12 : 0;
-          const anual = Math.round((neto + recargo + extraObras) * 100) / 100;
-          return { lineas, suma, paquete, paqueteObra: descuentoObra > 0, recargo, extraObras, anual, mensual: Math.round(anual / 12 * 100) / 100, aMedida: n > ESCALONES.hastaRecargo };
+          const recargo = 0;
+          const extraObras = 0;
+          const gmao = usuariosGmao(u, usuarios);
+          const extraUsuarios = gmao.extraAnual;
+          const anual = Math.round((neto + recargo + extraObras + extraUsuarios) * 100) / 100;
+          return {
+            lineas,
+            suma,
+            paquete,
+            paqueteObra: descuentoObra > 0,
+            recargo,
+            extraObras,
+            extraUsuarios,
+            gmao,
+            anual,
+            mensual: Math.round(anual / 12 * 100) / 100,
+            aMedida: n > ESCALONES.hastaTabla || gmao.aMedida
+          };
         }
         function resumen(idRol, unidades, personas = []) {
           if (!gestiona(idRol)) return null;
           const filas = (unidades || []).map((x) => {
             const u = limpiarUnidad(x);
-            const p = precioUnidad(u);
-            const gente = (personas || []).filter((q) => q && q.unidadNegocioId === u.id).length;
+            const suyas = (personas || []).filter((q) => q && q.unidadNegocioId === u.id);
+            const p = precioUnidad(u, contarUsuariosGmao(suyas));
+            const gente = suyas.length;
             return { ...u, ...p, personas: gente, porPersona: gente ? Math.round(p.anual / gente) : null };
           });
           const activas = filas.filter((f) => f.activa);
-          const sinUnidad = (personas || []).filter((q) => q && !activas.some((u) => u.id === q.unidadNegocioId)).length;
+          const sueltas = (personas || []).filter((q) => q && !activas.some((u) => u.id === q.unidadNegocioId));
+          const sinUnidad = sueltas.length;
+          const conGmao = activas.filter((f) => f.gmao.incluye);
           return {
+            gmao: {
+              usuarios: conGmao.reduce((a, f) => a + f.gmao.usuarios, 0),
+              tope: conGmao.reduce((a, f) => a + f.gmao.tope, 0),
+              extraMes: conGmao.reduce((a, f) => a + f.gmao.extraMes, 0),
+              avisos: conGmao.filter((f) => f.gmao.aviso).map((f) => ({ unidadId: f.id, nombre: f.nombre, aviso: f.gmao.aviso })),
+              sinUnidad: contarUsuariosGmao(sueltas)
+            },
             unidades: filas,
             total: { anual: activas.reduce((a, f) => a + f.anual, 0), mensual: activas.reduce((a, f) => a + f.mensual, 0), unidades: activas.length },
             sinUnidad
@@ -150048,22 +151156,27 @@ ${reglas}`;
           return { id: u.id, nombre: u.nombre, tipo: u.tipo, modulos: u.modulos, activa: u.activa };
         });
         const API = {
+          MES,
           TARIFA,
           TARIFA_MES,
           TARIFA_EXTRA,
           TARIFA_EXTRA_MES,
           NOMBRES_EXTRA,
+          NOMBRES_CORTOS,
           PAQUETE_OBRA,
           PAQUETE_OBRA_MES,
           PAQUETE_COMPLETO_CON_IARVIS,
           PAQUETE_COMPLETO_CON_IARVIS_MES,
           PAQUETE_COMPLETO,
           PAQUETE_COMPLETO_SIN_IARVIS_MES,
-          MINIMO_CX_MES,
           ESCALONES,
+          USUARIOS_GMAO,
           TIPOS,
           GESTIONAN,
           gestiona,
+          esUsuarioGmao,
+          contarUsuariosGmao,
+          usuariosGmao,
           limpiarPrecios,
           limpiarUnidad,
           contratoDe,
@@ -150074,7 +151187,10 @@ ${reglas}`;
         };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.LICENCIAS = API;
-      })(typeof module !== "undefined" && module.exports ? require_roles() : window.ROLES);
+      })(
+        typeof module !== "undefined" && module.exports ? require_roles() : window.ROLES,
+        typeof module !== "undefined" && module.exports ? require_catalogoPrecios() : window.CATALOGO_VENTAS
+      );
     }
   });
 
@@ -150171,6 +151287,7 @@ ${reglas}`;
               { que: "Cap\xEDtulos de coste ocultos en la oferta, fundidos en una l\xEDnea o repercutidos en los precios", cuando: "Al sacar la oferta", editable: true, como: "Se elige por presupuesto qu\xE9 se oculta y c\xF3mo." },
               { que: "L\xEDneas de medici\xF3n desde plantillas (local, tramo de conducto, montante\u2026) con nombre en cada l\xEDnea", cuando: "Al usar una plantilla", editable: true, como: "Son l\xEDneas normales." },
               { que: "Cuentas en las casillas de cantidad (12,5*4+3, (M-ANT)/2\u2026)", cuando: "Al teclear", editable: true },
+              { que: "Iarvis saca el presupuesto de la obra en Excel o BC3 si se le pide (\xABdame el presupuesto en Excel\xBB, \xABs\xE1came el BC3\xBB); a quien no ve precios, solo mediciones y nunca el BC3", cuando: "Al ped\xEDrselo a Iarvis en el ordenador o la web", editable: false, como: "Mira la licencia de la unidad de negocio y el permiso de exportar del puesto." },
               { que: "Versi\xF3n nueva con la marca m\xE1s barata por familia (alternativas de marca)", cuando: "Al pedirla", editable: true, como: "Es una versi\xF3n aparte; el presupuesto vivo no se toca." }
             ]
           },
@@ -150406,6 +151523,7 @@ ${reglas}`;
             cubre: ["gantt"],
             queHace: "Una barra por paquete del control de costes; se arrastra, se estira o se teclean las fechas.",
             automatico: [
+              { que: "Iarvis saca el programa de obra en Excel, PDF o XML de Microsoft Project (\xABexporta el Gantt a MS Project\xBB), y el Gantt de commissioning en Project", cuando: "Al ped\xEDrselo a Iarvis en el ordenador o la web", editable: false, como: "Son los mismos ficheros que los botones de la pantalla; sin el m\xF3dulo contratado no se generan." },
               { que: "Una barra por cada subcap\xEDtulo final del control de costes", cuando: "Al abrir la obra", editable: true, como: "Fechas y avance se cambian arrastrando o tecleando." },
               { que: "Cap\xEDtulo sin fechas propias toma las de la obra (barra discontinua)", cuando: "Mientras no se le den", editable: true },
               { que: "L\xEDnea base: el plazo del Gantt de Estudios o, si no se hizo, las primeras fechas que se le dieron", cuando: "Al poner fechas la primera vez", editable: false },
@@ -150551,7 +151669,8 @@ ${reglas}`;
             cubre: ["planCompras"],
             queHace: "Lo comprado, lo que queda por comprar y la mejora sobre estudio.",
             automatico: [
-              { que: "Comprado, por comprar, mejora y margen, contra el coste de estudio", cuando: "Siempre", editable: false }
+              { que: "Comprado, por comprar, mejora y margen, contra el coste de estudio", cuando: "Siempre", editable: false },
+              { que: "Peque\xF1o material (torniller\xEDa, varilla, abrazaderas, soldadura\u2026): previsto por partida con el % del banco de recursos, lo ya pedido descontado y lo que queda repartido en 1, 3 o 4 pedidos con art\xEDculos y precios de los pedidos anteriores", cuando: "Al abrir la pesta\xF1a \xABPeque\xF1o material\xBB", editable: false, como: "Lo que no tiene fuente (equipos, partidas sin desglosar) no suma: queda por confirmar. No cambia el presupuesto." }
             ]
           },
           {
@@ -150594,6 +151713,20 @@ ${reglas}`;
               { que: "Inventario: lo recibido y a\xFAn no certificado, con su importe", cuando: "Siempre", editable: "parcial", como: "Se asigna a mano la partida de cada l\xEDnea." },
               { que: "Propuesta de obra, pedido y proveedor para cada correo", cuando: "Al archivar correos", editable: true },
               { que: "Qu\xE9 es cada correo de la bandeja (certificaci\xF3n, factura, pedido, oferta, albar\xE1n, orden de cambio, acta, NCR, PRL, planos, legalizaci\xF3n) con el apartado al que va, y el aviso de \xABposible claim\xBB si habla de retrasos, esperas, accesos, trabajos fuera de alcance o penalizaciones", cuando: "Al leer la bandeja en Mi correo", editable: true, como: "Es una propuesta con su motivo: se filtra por tipo y se archiva donde diga la persona." }
+            ]
+          },
+          {
+            area: "Obra \xB7 Compras",
+            titulo: "Cruce y almac\xE9n",
+            dondeEsta: "Compras \u203A Inventario \u203A Cruce y almac\xE9n",
+            cubre: ["cruceCompras"],
+            queHace: "Cruza cada factura con su pedido y sus albaranes, lleva el almac\xE9n central con los traspasos del sobrante entre obras y sigue las devoluciones al proveedor hasta su abono.",
+            automatico: [
+              { que: "Cruce a tres v\xEDas: factura de material sin recibir, pagada dos veces, n\xFAmero repetido del mismo proveedor y diferencias de precio o de cantidad frente al pedido", cuando: "Siempre", editable: false, como: "Se corrige la factura, el pago o el albar\xE1n; el aviso se va solo." },
+              { que: "Sobrante de cada pedido: lo recibido menos lo traspasado y lo devuelto", cuando: "Siempre", editable: false },
+              { que: "Traspaso al almac\xE9n central o a otra obra, con su salida en el origen y su entrada en el destino", cuando: "Al traspasar", editable: false, como: "Un traspaso equivocado se deshace con el contrario." },
+              { que: "Antes de pedir: lo que ya hay en el almac\xE9n central o traspasado a la obra y cubre un pedido en borrador", cuando: "Siempre", editable: false },
+              { que: "Devoluci\xF3n pendiente de abono, y aviso si pasan 30 d\xEDas sin \xE9l", cuando: "Siempre", editable: false, como: "Se cierra al apuntar el abono del proveedor, que se casa con su devoluci\xF3n." }
             ]
           },
           {
@@ -150778,6 +151911,19 @@ ${reglas}`;
           },
           {
             area: "Toda la app",
+            titulo: "Gasto de Iarvis",
+            dondeEsta: "Vidaire Gestor \u203A Administraci\xF3n \u203A Usuarios y accesos \u203A Gasto de Iarvis; el modo y el tope, tambi\xE9n en la ficha de Iarvis de Licencias",
+            cubre: [],
+            queHace: "Lo que costar\xEDa y lo que cuesta de verdad la IA cada mes, por licencia, por modelo y por petici\xF3n. Cada licencia va en un modo: \xABSin coste\xBB (solo el modelo propio), \xABClave del cliente\xBB (Claude con la clave del cliente, que paga \xE9l) o \xABDesarrollo\xBB (solo Vidaire).",
+            automatico: [
+              { que: "Iarvis elige el modelo seg\xFAn lo dif\xEDcil que sea cada petici\xF3n: las sencillas al peque\xF1o, las de razonar al mediano y las de criterio fino al grande; en \xABSin coste\xBB, a un modelo propio m\xE1s grande o por pasos, nunca a uno de pago", cuando: "En cada petici\xF3n", editable: false, como: "El reparto es de la app; el modo de la licencia lo elige el jefe de la empresa." },
+              { que: "Apunta de cada petici\xF3n el modelo, los tokens de entrada y de salida, lo que habr\xEDa costado con Claude y lo que ha pagado Vidaire o el cliente", cuando: "En cada petici\xF3n", editable: false, como: "Los precios van en una sola tabla." },
+              { que: "Tope de gasto del mes por licencia: al 80 % avisa y al 100 % baja al modelo propio o al m\xE1s barato, sin cortar", cuando: "Al llegar al 80 % y al 100 % del tope", editable: true, como: "El tope se cambia en la ficha de la licencia de Iarvis." },
+              { que: "Aviso si una licencia comercial le cuesta algo a Vidaire, o si est\xE1 en \xABClave del cliente\xBB sin la clave puesta", cuando: "Al abrir la pantalla", editable: false, como: "Se arregla cambiando el modo de esa licencia." }
+            ]
+          },
+          {
+            area: "Toda la app",
             titulo: "Historial de cambios",
             dondeEsta: "Gesti\xF3n \u203A Historial de cambios; pesta\xF1a \xABHistorial\xBB de cada ficha",
             cubre: ["trazabilidad"],
@@ -150811,6 +151957,21 @@ ${reglas}`;
             automatico: [
               { que: "Paquete con solo lo que su rol ve, sin importes", cuando: "Al exportar", editable: false },
               { que: "Al volver, gana lo m\xE1s nuevo; los choques se cuentan como conflicto", cuando: "Al importar", editable: "parcial", como: "Los conflictos se resuelven a mano." }
+            ]
+          },
+          {
+            /* 19-nov (JC): solo el administrador de la instalación de Vidaire; el de una empresa cliente no lo abre. */
+            area: "Toda la app",
+            titulo: "Configurador de ofertas",
+            dondeEsta: "Administraci\xF3n \u203A Presentaciones \u203A Configurador de ofertas",
+            cubre: ["ofertas:configurador"],
+            soloVidaire: true,
+            queHace: "Vidaire monta con el cliente su oferta: marca los m\xF3dulos que quiere, apunta lo que pide en cada uno, repasa la personalizaci\xF3n bloque a bloque, a\xF1ade lo que va aparte y saca el PDF en espa\xF1ol o en ingl\xE9s. Se guarda como borrador y se sigue su estado.",
+            automatico: [
+              { que: "Si un paquete sale igual o m\xE1s barato que la suma de m\xF3dulos, lo propone y ense\xF1a el ahorro", cuando: "Al marcar o quitar m\xF3dulos", editable: true, como: "Se puede no aplicar el paquete." },
+              { que: "La carga de obras terminadas entra siempre en la personalizaci\xF3n y no se puede quitar", cuando: "En toda oferta", editable: false },
+              { que: "Los usuarios de GMAO por encima de los incluidos suman por tramo; por encima del \xFAltimo, la oferta queda \xABa medida\xBB", cuando: "Al cambiar los usuarios", editable: false },
+              { que: "El PDF con la plantilla de los informes y la marca de Vidaire", cuando: "Al pulsar PDF", editable: false }
             ]
           }
         ];
@@ -151796,8 +152957,14 @@ ${reglas}`;
         const FASES_AHORRO = [
           /* POR OBRA Y MES: lo que se ahorra cada mes que la obra está viva. */
           { id: "compras", bloque: "obra", nombre: "Compras de obra", lineas: [
-            { rol: "jefeObra", h: 8, que: "Comprometido, gastado y desv\xEDo del control de costes desde pedidos, albaranes y facturas (96 h/a\xF1o)." },
-            { rol: "encargadoObra", h: 1, que: "Albaranes casados con su pedido (~5 min cada uno)." }
+            /* 19-nov (JC): horas al mes del JEFE DE OBRA en compras, 56 h por obra. Sustituyen a las antiguas
+               jefe de obra 8 h («control de costes desde pedidos, albaranes y facturas») y encargado 1 h (albaranes). */
+            { rol: "jefeObra", sub: "inventario", h: 15, que: "Gesti\xF3n de inventario." },
+            { rol: "jefeObra", sub: "albaranes", h: 15, que: "Cruce de albaranes con pedidos." },
+            { rol: "jefeObra", sub: "prepInventario", h: 20, que: "Preparaci\xF3n y gesti\xF3n de inventario." },
+            { rol: "jefeObra", sub: "reclamacionesProv", h: 6, que: "Documentaci\xF3n para reclamaciones a proveedores." },
+            /* 18-nov (JC): el pequeño material. PROPUESTA: las horas son una estimación por confirmar con quien pide. */
+            { rol: "jefeProduccion", sub: "pequeno", h: 2, confirmar: true, que: "Propuesta: peque\xF1o material (torniller\xEDa, varilla, abrazaderas, soldadura) en 3 o 4 pedidos grandes previstos desde el presupuesto, en vez de pedidos sueltos de urgencia (~6 pedidos menos al mes \xD7 20 min). El coste queda asociado a las partidas y avisa si se pasa de lo previsto." }
           ] },
           { id: "obra", bloque: "obra", nombre: "Obra", lineas: [
             { rol: "jefeObra", h: 28, que: "Certificaciones 6 \xB7 informe semanal 6 \xB7 avance sobre plano 4 \xB7 CAE 4 \xB7 planificaci\xF3n 3 \xB7 NCR y PPI 3 \xB7 normativa 2." },
@@ -163322,6 +164489,100 @@ ${reglas}`;
     }
   });
 
+  // shared/obra/actaPdf.js
+  var require_actaPdf = __commonJS({
+    "shared/obra/actaPdf.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var { crearInforme } = require_plantillaPdf();
+      var M = require_actas();
+      var llano = (v) => String(v ?? "").trim();
+      var fechaEs = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "";
+      var T2 = 7.5;
+      var TONO_PUNTO = { abierto: "mal", enCurso: "aviso", cerrado: "bien" };
+      var PERFIL = () => {
+        try {
+          return require_perfilObra();
+        } catch {
+          return { titularO: (x) => x };
+        }
+      };
+      async function actaPdf(acta, obra = {}, { categorias = M.CATEGORIAS, veDinero = true, marca = null, logo = void 0 } = {}) {
+        const a = acta;
+        const tipo = (M.TIPOS_REUNION.find((t) => t.id === a.tipo) || {}).nombre || a.titulo || "Reuni\xF3n";
+        const puntos = (a.puntos || []).map((p, i) => ({ ...p, origen: p.origen || `${M.numeroActa(a.numero)}.${i + 1}` })).filter((p) => p.id || !/:\s*$/.test(p.texto || ""));
+        const arrastrados = puntos.filter((p) => p.arrastrado);
+        const nuevos = puntos.filter((p) => !p.arrastrado);
+        const orden = [...categorias, ...new Set(nuevos.map((p) => p.categoria || "Otros").filter((c) => !categorias.includes(c)))];
+        const porCategoria = orden.map((c) => [c, nuevos.filter((p) => (p.categoria || "Otros") === c)]).filter(([, l]) => l.length);
+        const asist = a.asistentes || [];
+        const proxima = a.proximaReunion ? `${fechaEs(a.proximaReunion)}${String(a.proximaReunion).length > 10 ? ` \xB7 ${String(a.proximaReunion).slice(11, 16)} h` : ""}` : "Por fijar";
+        const nombreObra = [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
+        const titulo = `Acta n\xBA ${M.numeroActa(a.numero)} \xB7 ${tipo}`;
+        const inf = await crearInforme({ marca, obra, logo, titulo, subtitulo: `${nombreObra}${a.estado === "cerrada" ? "" : " \xB7 BORRADOR"}`, pie: `${titulo} \xB7 ${nombreObra}` });
+        inf.datos([
+          [["FECHA", `${fechaEs(a.fecha)}${a.hora ? ` \xB7 ${llano(a.hora)} h` : ""}`], ["LUGAR", llano(a.lugar) || "-"]],
+          [["TIPO DE REUNI\xD3N", tipo], ["CONVOCA", llano(a.convocante) || "-"]],
+          [["PR\xD3XIMA REUNI\xD3N", proxima], null]
+        ], { rotulo: 96 });
+        const seccion = (t) => {
+          inf.cabe(60);
+          inf.banda(t);
+        };
+        seccion("Asistentes");
+        await inf.tabla(
+          [{ t: "Nombre" }, { t: "Empresa", w: 140 }, { t: "Cargo", w: 120 }, { t: "Asistencia", w: 64 }],
+          asist.map((x) => [
+            { texto: llano(x.nombre), tam: T2, negrita: true },
+            { texto: llano(x.empresa), tam: T2 },
+            { texto: llano(x.cargo), tam: T2 },
+            x.asiste === false ? { pastilla: "neutra", rotulo: "Excusa" } : { pastilla: "bien", rotulo: "Asiste" }
+          ]),
+          { vacio: "Sin asistentes apuntados." }
+        );
+        const descripcion = (p, conHistorial) => {
+          const l = [llano(p.texto)];
+          if (conHistorial) {
+            for (const h of p.historial || []) {
+              l.push(`Acta n\xBA ${M.numeroActa(h.acta)} (${fechaEs(h.fecha)})${h.texto ? `: ${llano(h.texto)}` : ""}${h.estado ? ` \xB7 ${M.ESTADOS_PUNTO[h.estado] || h.estado}` : ""}`);
+            }
+          }
+          if (p.comentario) l.push(`Hoy: ${llano(p.comentario)}`);
+          if (p.efecto) {
+            const ef = p.efectoAplicado && p.efectoAplicado.texto ? p.efectoAplicado.texto : M.textoEfecto(p.efecto, { veDinero });
+            l.push(`${p.efectoAplicado ? "Aplicado" : "Al cerrar el acta"}: ${llano(ef)}`);
+          }
+          return { texto: l.filter(Boolean).join("\n"), tam: T2, saltos: true };
+        };
+        const fila = (p, conHistorial) => [
+          { texto: llano(p.origen), tam: T2, negrita: true },
+          descripcion(p, conHistorial),
+          { texto: llano(p.responsable && p.responsable.nombre), tam: T2 },
+          { texto: fechaEs(p.fechaLimite), tam: T2 },
+          { pastilla: TONO_PUNTO[p.estado || "abierto"] || "neutra", rotulo: M.ESTADOS_PUNTO[p.estado || "abierto"] || "" }
+        ];
+        const COLS = [{ t: "N\xBA", w: 36 }, { t: "Descripci\xF3n" }, { t: "Responsable", w: 110 }, { t: "Fecha l\xEDmite", w: 58 }, { t: "Estado", w: 62 }];
+        seccion("Pendientes de actas anteriores");
+        await inf.tabla(COLS, arrastrados.map((p) => fila(p, true)), { vacio: "Ninguno." });
+        seccion("Puntos tratados");
+        const cuerpo = [];
+        for (const [c, l] of porCategoria) {
+          cuerpo.push({ grupo: c });
+          for (const p of l) cuerpo.push(fila(p, false));
+        }
+        await inf.tabla(COLS, cuerpo, { vacio: "Ning\xFAn punto nuevo." });
+        await inf.firmas([`Por ${PERFIL().titularO("el contratista")}`, "Por la propiedad / DF", "Por los industriales"], { porFila: 3 });
+        inf.parrafo(
+          "Los puntos no cerrados pasan a la siguiente acta con su n\xFAmero. \xABAplicado\xBB: cambio ya aplicado en el proyecto \xB7 \xABAl cerrar el acta\xBB: se aplica al cerrarla.",
+          { tam: 7, color: inf.colores.suave }
+        );
+        return inf.cerrar();
+      }
+      module.exports = { actaPdf };
+    }
+  });
+
   // electron/obra/data/actas.js
   var require_actas2 = __commonJS({
     "electron/obra/data/actas.js"(exports, module) {
@@ -164256,8 +165517,9 @@ ${reglas}`;
         const a = recortarActa(deActa(repo.leer("actasObra", sesion, id)), sesion.rol);
         if (!a) return { ok: false, error: "No se encuentra el acta." };
         const o = repo.leer("obras", sesion, a.obraId) || {};
-        const html = M.documento(a, o, { categorias: categoriasDe(repo, sesion, a.obraId), veDinero: !sinDinero(sesion.rol) });
-        return { ok: true, html, nombre: `Acta ${M.numeroActa(a.numero)} - ${o.codigo || "obra"}.pdf` };
+        const op = { categorias: categoriasDe(repo, sesion, a.obraId), veDinero: !sinDinero(sesion.rol) };
+        const html = M.documento(a, o, op);
+        return { ok: true, html, pdf: () => require_actaPdf().actaPdf(a, o, op), nombre: `Acta ${M.numeroActa(a.numero)} - ${o.codigo || "obra"}.pdf` };
       }
       function documentoOrden(repo, sesion, id, modelo = "valorada") {
         if (sinDinero(sesion.rol)) return { ok: false, error: "La orden de cambio para el cliente lleva importes: la saca quien ve el dinero de la obra." };
@@ -173074,495 +174336,6 @@ Estado: ${ESTADO}`);
     }
   });
 
-  // shared/incidencias/parteDeHoras.js
-  var require_parteDeHoras = __commonJS({
-    "shared/incidencias/parteDeHoras.js"(exports, module) {
-      "use strict";
-      init_define_CX_LICENCIAS();
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const enNode = typeof module !== "undefined" && module.exports;
-        const PAPEL = enNode ? require_papel() : window.PAPEL;
-        const INF = enNode ? require_informeReparaciones() : window.INFORME_REPARACIONES;
-        const llano = (v) => String(v ?? "").trim();
-        const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-        const fechaEs = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "";
-        const numero = (v) => v === null || v === void 0 || v === "" || !Number.isFinite(Number(v)) ? null : Number(v);
-        const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
-        const fmt = (n, dec = 2) => Number(n || 0).toLocaleString("es-ES", { minimumFractionDigits: dec, maximumFractionDigits: dec });
-        const euros = (n) => n === null || n === void 0 ? "" : `${fmt(n)} \u20AC`;
-        const horasTxt = (n) => `${fmt(n)} h`;
-        const CATEGORIA = { oficial: "Oficial", operario: "Operario" };
-        const repercusionDe = (r) => r.costeCalc && r.costeCalc.repercusion || r.repercusion || "no";
-        const equipoDe = (r) => r.equipo ? r.equipo.tag : "";
-        function lineasDe(r, { tarifaDe = null } = {}) {
-          const modo = repercusionDe(r);
-          const c = r.costeCalc || {};
-          if (modo === "no") return { modo, horas: [], material: [], pactado: [] };
-          if (modo === "parcial") {
-            const imp = numero(r.importeRepercutido) ?? numero(c.venta);
-            return { modo, horas: [], material: [], pactado: [{ descripcion: "Importe pactado con el cliente", cantidad: 1, unidad: "ud", precio: imp, importe: imp === null ? null : r2(imp) }] };
-          }
-          const cobro = numero(c.precioCobroH);
-          const grupos = /* @__PURE__ */ new Map();
-          for (const l of ((r.recuento || {}).lineas || []).filter((x) => x.cuenta !== false)) {
-            const h = Number(l.horas) || 0;
-            if (!h) continue;
-            const precio = cobro !== null ? cobro : numero(l.tarifa) ?? (tarifaDe ? numero(tarifaDe(l)) : null);
-            const cat = l.categoria === "oficial" ? "oficial" : "operario";
-            const k = [llano(l.operario), llano(l.empresa), cat, precio].join("\0");
-            const g = grupos.get(k) || { operario: llano(l.operario), empresa: llano(l.empresa), categoria: cat, precio, cantidad: 0 };
-            g.cantidad += h;
-            grupos.set(k, g);
-          }
-          const horas = [...grupos.values()].map((g) => ({
-            descripcion: [CATEGORIA[g.categoria], g.operario, g.empresa ? `(${g.empresa})` : ""].filter(Boolean).join(" "),
-            operario: g.operario,
-            empresa: g.empresa,
-            categoria: g.categoria,
-            cantidad: r2(g.cantidad),
-            unidad: "h",
-            precio: g.precio,
-            importe: g.precio === null ? null : r2(g.cantidad * g.precio),
-            origen: cobro !== null ? "cobro" : "tarifa"
-          }));
-          const extra = numero(c.costeExtra) ?? numero(r.costeExtra) ?? 0;
-          const material = extra ? [{ descripcion: llano(r.costeExtraConcepto) || "Material y extras", cantidad: 1, unidad: "ud", precio: r2(extra), importe: r2(extra) }] : [];
-          return { modo, horas, material, pactado: [] };
-        }
-        function calcular(reparaciones = [], { tarifaDe = null } = {}) {
-          const bloques = [];
-          const sinCargo = [];
-          for (const r of reparaciones) {
-            const l = lineasDe(r, { tarifaDe });
-            if (l.modo === "no") {
-              sinCargo.push(r);
-              continue;
-            }
-            const todas = [...l.horas, ...l.material, ...l.pactado];
-            bloques.push({
-              id: r.id,
-              codigo: r.codigo,
-              titulo: r.titulo,
-              equipo: equipoDe(r),
-              fecha: INF.fechaHecha(r),
-              modo: l.modo,
-              horas: l.horas,
-              material: l.material,
-              pactado: l.pactado,
-              subtotal: r2(todas.reduce((a, x) => a + (x.importe || 0), 0)),
-              sinPrecio: todas.some((x) => x.importe === null)
-            });
-          }
-          const todasHoras = bloques.flatMap((b) => b.horas);
-          const horas = r2(todasHoras.reduce((a, x) => a + x.cantidad, 0));
-          const importeHoras = r2(todasHoras.reduce((a, x) => a + (x.importe || 0), 0));
-          const importeMaterial = r2(bloques.flatMap((b) => b.material).reduce((a, x) => a + x.importe, 0));
-          const importePactado = r2(bloques.flatMap((b) => b.pactado).reduce((a, x) => a + (x.importe || 0), 0));
-          const tecnicos = /* @__PURE__ */ new Map();
-          for (const x of todasHoras) if (x.operario) tecnicos.set(`${x.operario}\0${x.empresa}`, { nombre: x.operario, empresa: x.empresa });
-          const origenes = new Set(todasHoras.map((x) => x.origen));
-          return {
-            bloques,
-            sinCargo,
-            horas,
-            importeHoras,
-            importeMaterial,
-            importePactado,
-            total: r2(importeHoras + importeMaterial + importePactado),
-            tecnicos: [...tecnicos.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
-            empresas: [...new Set(todasHoras.map((x) => x.empresa).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es")),
-            precioHoras: origenes.size === 1 ? [...origenes][0] : origenes.size ? "mixto" : null,
-            sinPrecio: bloques.some((b) => b.sinPrecio)
-          };
-        }
-        function filaLinea(x) {
-          return `<tr class="lineaParte"><td class="desc">${esc(x.descripcion)}</td>
-    <td class="num">${x.unidad === "h" ? horasTxt(x.cantidad) : fmt(x.cantidad, 0)}</td>
-    <td class="num">${x.precio === null ? '<span class="sinPrecio">sin precio</span>' : `${euros(x.precio)}${x.unidad === "h" ? "/h" : ""}`}</td>
-    <td class="num">${euros(x.importe)}</td></tr>`;
-        }
-        function filasBloque(b) {
-          const grupo = (titulo, lineas) => lineas.length ? `<tr class="apartadoParte"><td colspan="4">${titulo}</td></tr>${lineas.map(filaLinea).join("")}` : "";
-          return `<tbody class="bloqueParte">
-    <tr class="reparacionParte"><th colspan="3">${esc(b.codigo)}${b.equipo ? ` \xB7 ${esc(b.equipo)}` : ""} \xB7 ${esc(b.titulo)}${b.fecha ? ` <span class="cuando">${esc(fechaEs(b.fecha))}</span>` : ""}</th>
-      <th class="num">${euros(b.subtotal)}</th></tr>
-    ${grupo("Horas de operario", b.horas)}${grupo("Material", b.material)}${grupo("Importe pactado", b.pactado)}
-  </tbody>`;
-        }
-        function notaPrecios(c, precioCobroH) {
-          if (c.precioHoras === "cobro") return `Horas al precio de cobro de la obra (${euros(precioCobroH)}/h).`;
-          if (c.precioHoras === "tarifa") return "Horas a la tarifa \u20AC/h de cada empresa: la obra no tiene precio de cobro.";
-          if (c.precioHoras === "mixto") return "Horas al precio de cobro de la obra o, si falta, a la tarifa de la empresa.";
-          return "";
-        }
-        function cuerpoParte({ obra = {}, cliente = "", direccion = "", jefeObra = "", periodo = "", hoy = "", precioCobroH = null } = {}, c) {
-          const dato = (k, v) => llano(v) ? `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>` : "";
-          const tecnicos = c.tecnicos.map((t) => t.nombre).join(", ");
-          const nota = [
-            notaPrecios(c, precioCobroH),
-            "Importes sin IVA.",
-            c.sinCargo.length ? `${c.sinCargo.length} ${c.sinCargo.length === 1 ? "reparaci\xF3n elegida va" : "reparaciones elegidas van"} sin cargo al cliente y no ${c.sinCargo.length === 1 ? "entra" : "entran"} en el parte (${c.sinCargo.map((r) => r.codigo).join(", ")}).` : "",
-            c.sinPrecio ? "Hay l\xEDneas sin precio: faltan el precio de cobro de la obra y la tarifa de la empresa." : ""
-          ].filter(Boolean).join(" ");
-          const firma = (rol, nombre) => `<div class="firmaParte"><p class="rolFirma">${rol}</p>
-    <div class="huecoFirma"></div>
-    <dl><div><dt>Nombre</dt><dd>${esc(nombre) || "&nbsp;"}</dd></div><div><dt>Fecha</dt><dd>&nbsp;</dd></div></dl></div>`;
-          return `<section class="parteHoras">
-    <header class="cabeceraParte">
-      <p class="tipoParte">Parte de horas</p>
-      <h1>${esc([obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ") || "Obra")}</h1>
-      <dl class="datosParte">
-        ${dato("C\xF3digo de obra", obra.codigo)}${dato("Obra", obra.nombre)}${dato("Cliente", cliente)}${dato("Direcci\xF3n", direccion)}
-        ${dato(c.tecnicos.length === 1 ? "T\xE9cnico" : "T\xE9cnicos", tecnicos)}${dato(c.empresas.length === 1 ? "Empresa" : "Empresas", c.empresas.join(", "))}
-        ${dato("Periodo", periodo)}${dato("Fecha", fechaEs(hoy))}
-      </dl>
-    </header>
-    ${c.bloques.length ? `<table class="tablaParte">
-      <colgroup><col class="cDesc"><col class="cNum"><col class="cNum"><col class="cNum"></colgroup>
-      <thead><tr><th>Descripci\xF3n</th><th class="num">Cantidad</th><th class="num">Precio</th><th class="num">Importe</th></tr></thead>
-      ${c.bloques.map(filasBloque).join("")}
-      <tfoot>
-        ${c.importeHoras ? `<tr class="parcial"><th>Horas de operario</th><th class="num">${horasTxt(c.horas)}</th><th></th><th class="num">${euros(c.importeHoras)}</th></tr>` : ""}
-        ${c.importeMaterial ? `<tr class="parcial"><th>Material</th><th></th><th></th><th class="num">${euros(c.importeMaterial)}</th></tr>` : ""}
-        ${c.importePactado ? `<tr class="parcial"><th>Importes pactados</th><th></th><th></th><th class="num">${euros(c.importePactado)}</th></tr>` : ""}
-        <tr class="totalParte"><th>TOTAL</th><th></th><th></th><th class="num">${euros(c.total)}</th></tr>
-      </tfoot>
-    </table>` : '<p class="nota">Ninguna de las reparaciones elegidas se cobra al cliente.</p>'}
-    ${nota ? `<p class="nota">${esc(nota)}</p>` : ""}
-    <div class="firmasParte">${firma("Jefe de obra", jefeObra)}${firma("Cliente", "")}</div>
-  </section>`;
-        }
-        function html(datos = {}, { modo = "parteConReportes", tarifaDe = null } = {}) {
-          const { obra = {}, reparaciones = [], hoy = "" } = datos;
-          const c = calcular(reparaciones, { tarifaDe });
-          const nombreObra = [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
-          const anexo = modo === "parteConReportes" && reparaciones.length ? `<section class="anexoParte"><p class="tipoParte">Anexo</p><h2>Reportes de las reparaciones</h2>${INF.cuerpo(reparaciones)}</section>` : "";
-          const cuerpo = `<article class="informeReparaciones">${cuerpoParte(datos, c)}${anexo}</article>`;
-          return PAPEL.hoja({ documento: "Parte de horas", obra: nombreObra, fecha: hoy, cuerpo, clase: "papelParteHoras", marca: obra });
-        }
-        const ESTILOS_WORD = `
-body { font-family: Calibri, Arial, sans-serif; font-size: 10pt; color: #1A1A1A; }
-.tipoParte { font-size: 8pt; letter-spacing: 1px; text-transform: uppercase; color: #003F2D; font-weight: bold; margin: 0; }
-h1 { font-size: 16pt; color: #003F2D; margin: 2pt 0 8pt; }
-.datosParte div { margin: 0 0 2pt; } .datosParte dt { display: inline; color: #435254; font-size: 8pt; text-transform: uppercase; }
-.datosParte dt:after { content: ': '; } .datosParte dd { display: inline; margin: 0; font-weight: bold; }
-table.tablaParte { width: 100%; border-collapse: collapse; margin-top: 10pt; }
-.tablaParte th, .tablaParte td { padding: 3pt 5pt; border-bottom: 0.5pt solid #CAD1D3; text-align: left; }
-.tablaParte thead th { background: #003F2D; color: #FFFFFF; font-size: 8pt; text-transform: uppercase; }
-.tablaParte .num { text-align: right; }
-.tablaParte .reparacionParte th { background: #C0D4CB; color: #003F2D; }
-.tablaParte .apartadoParte td { color: #538184; font-size: 8pt; text-transform: uppercase; font-weight: bold; }
-.tablaParte .desc { padding-left: 14pt; }
-.tablaParte tfoot th { border-top: 0.5pt solid #538184; }
-.tablaParte .totalParte th { background: #003F2D; color: #FFFFFF; font-size: 11pt; }
-.nota { font-size: 8pt; color: #435254; }
-table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; vertical-align: top; padding-right: 18pt; }
-.rolFirma { font-size: 8pt; text-transform: uppercase; color: #003F2D; font-weight: bold; margin: 0 0 40pt; }
-.lineaFirma { border-top: 0.5pt solid #538184; padding-top: 3pt; font-size: 9pt; }`;
-        function word(datos = {}, { tarifaDe = null } = {}) {
-          const c = calcular(datos.reparaciones || [], { tarifaDe });
-          const titulo = `Parte de horas ${[datos.obra && datos.obra.codigo].filter(Boolean).join("")}`;
-          const cuerpo = cuerpoParte(datos, c).replace(/<div class="firmasParte">[\s\S]*<\/div>\s*<\/section>$/, `<table class="firmas"><tr>
-      <td><p class="rolFirma">Jefe de obra</p><p class="lineaFirma">Nombre: ${esc(datos.jefeObra || "")}<br>Fecha:</p></td>
-      <td><p class="rolFirma">Cliente</p><p class="lineaFirma">Nombre:<br>Fecha:</p></td></tr></table></section>`);
-          return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-<head><meta charset="utf-8"/><title>${esc(titulo)}</title>
-<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
-<style>${ESTILOS_WORD}</style></head><body>${cuerpo}</body></html>`;
-        }
-        (function exportar(API) {
-          if (enNode) module.exports = API;
-          if (typeof window !== "undefined") window.PARTE_DE_HORAS = API;
-        })({ lineasDe, calcular, html, word, MODOS: ["parteConReportes", "parte", "reportes"] });
-      })();
-    }
-  });
-
-  // shared/incidencias/tipoEquipo.js
-  var require_tipoEquipo = __commonJS({
-    "shared/incidencias/tipoEquipo.js"(exports, module) {
-      "use strict";
-      init_define_CX_LICENCIAS();
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const TIPOS = [
-          { id: "split", nombre: "Splits", familias: ["PANASONIC_SPLIT"], re: /split|\bs-\d{3,}pk|\bcs-|\bcu-/i },
-          { id: "vrf", nombre: "VRF", familias: ["PANASONIC_VRF"], re: /\bvrf\b/i },
-          { id: "crac", nombre: "CRAC", familias: ["PANASONIC_CRACS"], re: /\bcrac/i },
-          { id: "uta", nombre: "UTAs", familias: ["TROX_UTA"], re: /\buta\b|uta-|climatizador|\.ste\./i },
-          { id: "fancoil", nombre: "Fan coils", familias: ["AIRLAN_FANCOIL"], re: /fan ?-?coil|fancoil|cassette|\bfc[-\s]|\.cfb\./i },
-          { id: "rooftop", nombre: "Rooftops", familias: ["CARRIER_ROOFTOPS"], re: /roof ?top|compacto/i },
-          { id: "recuperador", nombre: "Recuperadores", familias: ["AIRLAN_HRU"], re: /recuper|\bhru\b/i },
-          { id: "enfriadora", nombre: "Enfriadoras", familias: ["CARRIER_CHILLERS"], re: /chiller|enfriad|bomba de calor/i },
-          { id: "bomba", nombre: "Bombas", familias: ["WILO_GP", "WILO_PUMPS"], re: /bomba|bombeo|wilo/i },
-          { id: "ventilador", nombre: "Ventiladores", familias: ["SP_PARKING", "SP_VENTILACION", "SP_PRESURIZACION"], re: /ventil|extract|presuriz/i }
-        ];
-        const OTROS = { id: "otro", nombre: "Otros equipos" };
-        const SIN_EQUIPO = { id: "sinEquipo", nombre: "Sin equipo" };
-        function tipoDe(equipo) {
-          if (!equipo) return SIN_EQUIPO;
-          const fam = String(equipo.familia || "").toUpperCase();
-          if (fam) {
-            const t = TIPOS.find((x) => x.familias.includes(fam));
-            if (t) return t;
-          }
-          const texto = [equipo.grupo, equipo.denominacion, equipo.tag, equipo.modelo, equipo.plantillaPM].filter(Boolean).join(" ");
-          return TIPOS.find((x) => x.re.test(texto)) || OTROS;
-        }
-        function tiposConIncidencias(filas) {
-          const cuenta = /* @__PURE__ */ new Map();
-          for (const f of filas || []) {
-            const t = tipoDe(f.equipo);
-            const c = cuenta.get(t.id) || { id: t.id, nombre: t.nombre, total: 0, activas: 0 };
-            c.total += 1;
-            if (f.calc && f.calc.activa) c.activas += 1;
-            cuenta.set(t.id, c);
-          }
-          return [...TIPOS, OTROS, SIN_EQUIPO].map((t) => cuenta.get(t.id)).filter(Boolean);
-        }
-        function nombreDeTipo(id) {
-          const t = [...TIPOS, OTROS, SIN_EQUIPO].find((x) => x.id === id);
-          return t ? t.nombre : String(id ?? "");
-        }
-        const API = { TIPOS, tipoDe, tiposConIncidencias, nombreDeTipo };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.TIPO_EQUIPO_INCIDENCIA = API;
-      })();
-    }
-  });
-
-  // shared/incidencias/equiposPorEstado.js
-  var require_equiposPorEstado = __commonJS({
-    "shared/incidencias/equiposPorEstado.js"(exports, module) {
-      "use strict";
-      init_define_CX_LICENCIAS();
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const llano = (v) => String(v ?? "").trim();
-        const dia = (v) => v ? String(v).slice(0, 10) : "";
-        const fechaEs = (d) => d ? dia(d).split("-").reverse().join("/") : "";
-        const ABIERTAS = ["abierta", "enCurso", "terminada"];
-        const NOMBRE_ESTADO = { abierta: "Abierta", enCurso: "En curso", terminada: "Por revisar" };
-        function tipos() {
-          if (typeof __require !== "undefined") {
-            try {
-              return require_tipoEquipo();
-            } catch {
-            }
-          }
-          return typeof window !== "undefined" ? window.TIPO_EQUIPO_INCIDENCIA : null;
-        }
-        function papel() {
-          if (typeof __require !== "undefined") {
-            try {
-              return require_papel();
-            } catch {
-            }
-          }
-          return typeof window !== "undefined" ? window.PAPEL : null;
-        }
-        const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-        const menor = (a, b) => !a ? b : !b ? a : a < b ? a : b;
-        const mayor = (a, b) => !a ? b : !b ? a : a > b ? a : b;
-        function dias(desde, hasta) {
-          if (!desde || !hasta) return null;
-          const a = Date.parse(`${dia(desde)}T00:00:00Z`);
-          const b = Date.parse(`${dia(hasta)}T00:00:00Z`);
-          return Number.isFinite(a) && Number.isFinite(b) ? Math.max(0, Math.round((b - a) / 864e5)) : null;
-        }
-        function agrupar(filas, { hoy = "" } = {}) {
-          const T2 = tipos();
-          const porEquipo = /* @__PURE__ */ new Map();
-          let sinEquipo = 0;
-          for (const f of filas || []) {
-            if (!f || f.estado === "anulada" || f.borrado) continue;
-            if (!f.equipo || !f.equipo.id) {
-              sinEquipo += 1;
-              continue;
-            }
-            const e = f.equipo;
-            if (!porEquipo.has(e.id)) {
-              const t = T2 ? T2.tipoDe(e) : { id: "otro", nombre: "" };
-              porEquipo.set(e.id, {
-                id: e.id,
-                tag: llano(e.tag),
-                unidades: Array.isArray(e.unidades) ? e.unidades : null,
-                tipoId: t.id,
-                tipo: t.nombre,
-                marca: llano(e.marca),
-                modelo: llano(e.modelo),
-                planta: "",
-                zona: "",
-                sitio: "",
-                total: 0,
-                abiertas: 0,
-                enCurso: 0,
-                porRevisar: 0,
-                cerradas: 0,
-                primera: "",
-                ultima: "",
-                abiertaMasAntigua: "",
-                fechaCierre: "",
-                codigos: [],
-                codigosAbiertas: [],
-                vencidas: 0
-              });
-            }
-            const g = porEquipo.get(e.id);
-            g.total += 1;
-            g.codigos.push(f.codigo);
-            g.primera = menor(g.primera, dia(f.fechaApertura));
-            g.ultima = mayor(g.ultima, dia(f.fechaApertura));
-            g.planta = g.planta || llano(f.planta) || llano(e.planta);
-            g.zona = g.zona || llano(f.zona) || llano(e.zona);
-            g.sitio = g.sitio || llano(f.ubicacion) || llano(e.sala) || llano(e.codSala);
-            if (ABIERTAS.includes(f.estado)) {
-              g.codigosAbiertas.push(f.codigo);
-              if (f.estado === "abierta") g.abiertas += 1;
-              else if (f.estado === "enCurso") g.enCurso += 1;
-              else g.porRevisar += 1;
-              g.abiertaMasAntigua = menor(g.abiertaMasAntigua, dia(f.fechaApertura));
-              if (f.calc && f.calc.vencida) g.vencidas += 1;
-            } else if (f.estado === "cerrada") {
-              g.cerradas += 1;
-              g.fechaCierre = mayor(g.fechaCierre, dia(f.fechaCierre));
-            }
-          }
-          const conIncidencias = [];
-          const cerrados = [];
-          for (const g of porEquipo.values()) {
-            const sinCerrar = g.abiertas + g.enCurso + g.porRevisar;
-            if (sinCerrar) {
-              g.sinCerrar = sinCerrar;
-              g.estado = g.abiertas ? "abierta" : g.enCurso ? "enCurso" : "terminada";
-              g.estadoTexto = NOMBRE_ESTADO[g.estado];
-              g.diasAbierto = dias(g.abiertaMasAntigua, hoy);
-              g.fechaCierre = "";
-              conIncidencias.push(g);
-            } else if (g.cerradas) {
-              g.sinCerrar = 0;
-              g.estado = "cerrada";
-              g.estadoTexto = "Cerrado";
-              cerrados.push(g);
-            }
-          }
-          const porTag = (a, b) => a.tag.localeCompare(b.tag, "es", { numeric: true });
-          conIncidencias.sort((a, b) => (a.abiertaMasAntigua || "9").localeCompare(b.abiertaMasAntigua || "9") || porTag(a, b));
-          cerrados.sort((a, b) => (b.fechaCierre || "").localeCompare(a.fechaCierre || "") || porTag(a, b));
-          return { conIncidencias, cerrados, sinEquipo };
-        }
-        function filtrar(lista, { tipo = "todos", texto = "" } = {}) {
-          const t = llano(texto).toLowerCase();
-          return (lista || []).filter((g) => !tipo || tipo === "todos" || g.tipoId === tipo).filter((g) => !t || [g.tag, ...g.unidades || [], g.planta, g.zona, g.sitio, g.marca, g.modelo, g.tipo, ...g.codigos].some((v) => String(v || "").toLowerCase().includes(t)));
-        }
-        const conjuntoDe = (g) => g.unidades && g.unidades.length > 1 ? g.unidades.join(" + ") : g.tag;
-        function hojas(lista, que, { obra = {}, hoy = "", alcance = "" } = {}) {
-          const cerr = que === "cerrados";
-          const cab = cerr ? ["Equipo", "Conjunto", "Tipo", "Planta", "Zona", "Sala / sitio", "Marca", "Modelo", "N\xBA incidencias", "Primera", "\xDAltima", "Fecha de cierre", "Estado", "Incidencias"] : [
-            "Equipo",
-            "Conjunto",
-            "Tipo",
-            "Planta",
-            "Zona",
-            "Sala / sitio",
-            "Marca",
-            "Modelo",
-            "Sin cerrar",
-            "Abiertas",
-            "En curso",
-            "Por revisar",
-            "Cerradas",
-            "Total",
-            "M\xE1s antigua",
-            "M\xE1s reciente",
-            "D\xEDas",
-            "Vencidas",
-            "Estado",
-            "Incidencias sin cerrar"
-          ];
-          const filas = (lista || []).map((g) => cerr ? [g.tag, conjuntoDe(g), g.tipo, g.planta, g.zona, g.sitio, g.marca, g.modelo, g.total, fechaEs(g.primera), fechaEs(g.ultima), fechaEs(g.fechaCierre), g.estadoTexto, g.codigos.join(", ")] : [
-            g.tag,
-            conjuntoDe(g),
-            g.tipo,
-            g.planta,
-            g.zona,
-            g.sitio,
-            g.marca,
-            g.modelo,
-            g.sinCerrar,
-            g.abiertas,
-            g.enCurso,
-            g.porRevisar,
-            g.cerradas,
-            g.total,
-            fechaEs(g.abiertaMasAntigua),
-            fechaEs(g.ultima),
-            g.diasAbierto ?? "",
-            g.vencidas || "",
-            g.estadoTexto,
-            g.codigosAbiertas.join(", ")
-          ]);
-          const nombre = cerr ? "Equipos cerrados" : "Equipos con incidencias";
-          return [
-            {
-              nombre,
-              marca: true,
-              filtro: true,
-              filas: [cab, ...filas],
-              anchos: cerr ? [22, 30, 14, 8, 12, 24, 14, 16, 10, 11, 11, 13, 10, 40] : [22, 30, 14, 8, 12, 24, 14, 16, 9, 9, 9, 10, 9, 7, 11, 11, 6, 8, 11, 40]
-            },
-            { nombre: "Datos", filas: [
-              ["Dato", "Valor"],
-              ["Obra", [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ")],
-              ["Listado", nombre],
-              ["Fecha", fechaEs(hoy)],
-              ["Alcance", alcance || "Todos los equipos"],
-              ["Equipos", (lista || []).length],
-              ["Criterio", cerr ? "Todas sus incidencias (sin contar las anuladas) est\xE1n cerradas; la fecha de cierre es la de la \xFAltima que se cerr\xF3." : "Al menos una incidencia sin cerrar: abierta, en curso o terminada por el encargado y pendiente de cerrar."]
-            ], anchos: [16, 90] }
-          ];
-        }
-        function html(lista, que, { obra = {}, hoy = "", alcance = "" } = {}) {
-          const P = papel();
-          const cerr = que === "cerrados";
-          const titulo = cerr ? "Equipos cerrados" : "Equipos con incidencias";
-          const nombreObra = [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
-          const l = lista || [];
-          const n = l.length;
-          const total = `Total \xB7 ${n} ${n === 1 ? "equipo" : "equipos"}`;
-          const cab = cerr ? ["Equipo", "Tipo", "Planta", "Zona", "Sala / sitio", "N\xBA inc.", "Primera", "\xDAltima", "Cierre", "Incidencias"] : ["Equipo", "Tipo", "Planta", "Zona", "Sala / sitio", "Sin cerrar", "Total", "M\xE1s antigua", "D\xEDas", "M\xE1s reciente", "Estado", "Incidencias sin cerrar"];
-          const num = new Set(cerr ? ["N\xBA inc."] : ["Sin cerrar", "Total", "D\xEDas"]);
-          const fila = (g) => {
-            const equipo = `<td class="tag"><span class="codigo">${esc(g.tag)}</span>${g.unidades && g.unidades.length > 1 ? `<br><span class="mismo">+ ${esc(g.unidades.filter((t) => t !== g.tag).join(", "))}</span>` : ""}</td>`;
-            const comun = `${equipo}<td>${esc(g.tipo)}</td><td>${esc(g.planta)}</td><td>${esc(g.zona)}</td><td class="sitio">${esc(g.sitio)}</td>`;
-            return cerr ? `<tr>${comun}<td class="num">${g.total}</td><td class="fecha">${fechaEs(g.primera)}</td><td class="fecha">${fechaEs(g.ultima)}</td><td class="fecha">${fechaEs(g.fechaCierre)}</td><td>${esc(g.codigos.join(", "))}</td></tr>` : `<tr>${comun}<td class="num">${g.sinCerrar}</td><td class="num">${g.total}</td><td class="fecha">${fechaEs(g.abiertaMasAntigua)}</td><td class="num">${g.diasAbierto ?? ""}</td><td class="fecha">${fechaEs(g.ultima)}</td><td>${esc(g.estadoTexto)}${g.vencidas ? " \xB7 vencida" : ""}</td><td>${esc(g.codigosAbiertas.join(", "))}</td></tr>`;
-          };
-          const tabla = `<table class="tablaServTec tablaEqEstado">
-    <thead><tr>${cab.map((c) => `<th${num.has(c) ? ' class="num"' : ""}>${esc(c)}</th>`).join("")}</tr></thead>
-    <tbody>${l.map(fila).join("")}</tbody>
-    <!-- El total, una sola vez al final: como table-row-group no se repite al pie de cada hoja (el thead s\xED). -->
-    <tfoot style="display: table-row-group"><tr><th colspan="${cab.length}">${total}</th></tr></tfoot>
-  </table>`;
-          const criterio = cerr ? "Todas sus incidencias cerradas (las anuladas no cuentan); cierre = la \xFAltima que se cerr\xF3." : "Al menos una incidencia sin cerrar: abierta, en curso o terminada pendiente de cerrar.";
-          const cuerpo = `<article class="informeServTec informeEqEstado">
-    ${P.portada({
-            tipo: titulo,
-            titulo: nombreObra || "Obra",
-            subtitulo: `${criterio}${alcance ? ` \xB7 ${alcance}` : ""}`,
-            datos: [["Fecha", fechaEs(hoy)], ["Equipos", String(n)]]
-          })}
-    ${n ? tabla : '<p class="nota">No hay equipos en este listado.</p>'}
-  </article>`;
-          return P.hoja({ documento: titulo, obra: nombreObra, fecha: hoy, cuerpo, pie: `${titulo} \xB7 ${nombreObra}`, clase: "apaisado papelServTec", marca: obra });
-        }
-        const API = { agrupar, filtrar, hojas, html, dias };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.EQUIPOS_POR_ESTADO_INC = API;
-      })();
-    }
-  });
-
   // shared/incidencias/listadoIncidencias.js
   var require_listadoIncidencias = __commonJS({
     "shared/incidencias/listadoIncidencias.js"(exports, module) {
@@ -173902,6 +174675,804 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         return inf.cerrar();
       }
       module.exports = { listadoPdf, informeReparacionesPdf, hojaReparacion, bytesDe, TONO_ESTADO, TONO_PRIORIDAD };
+    }
+  });
+
+  // shared/incidencias/documentoPdf.js
+  var require_documentoPdf = __commonJS({
+    "shared/incidencias/documentoPdf.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var { crearInforme } = require_plantillaPdf();
+      var DOC = require_documento();
+      var CV = require_motor4();
+      var { bytesDe, TONO_ESTADO, TONO_PRIORIDAD } = require_reparacionPdf();
+      var llano = (v) => String(v ?? "").trim();
+      var fechaEs = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "";
+      var euros = (n) => n === null || n === void 0 || Number.isNaN(Number(n)) ? "\u2014" : `${Number(n).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} \u20AC`;
+      var horas = (n) => `${Number(n || 0).toLocaleString("es-ES", { maximumFractionDigits: 2 })} h`;
+      var ESTADO_TEXTO = { abierta: "Abierta", enCurso: "En curso", terminada: "Terminada", cerrada: "Cerrada", anulada: "Anulada" };
+      var PRIORIDAD = { alta: "Alta", media: "Media", baja: "Baja" };
+      var TIPO_TEXTO = { feedback: "Lo hecho", comentario: "Comentario", estado: "Estado" };
+      var RESULTADO_TEXTO = Object.fromEntries(Object.entries(CV.RESULTADOS).map(([k, v]) => [k, v.nombre]));
+      async function documentoPdf({ incidencia: i = {}, comentarios = [], obra = {}, fotos = [], conDinero = false, hoy = "", marca = null, logo = void 0, titulo = "Incidencia de equipos" } = {}) {
+        const nombreObra = [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
+        const inf = await crearInforme({ marca, obra, logo, titulo, subtitulo: `${llano(i.codigo)} \u2014 ${llano(i.titulo)}`, pie: `Incidencia ${llano(i.codigo)} \xB7 ${nombreObra}` });
+        const rec = i.recuento || { lineas: [], total: 0 };
+        const c = conDinero ? i.costeCalc || null : null;
+        const repercusion = DOC.REPERCUSION_TEXTO[i.repercusion] ? i.repercusion : Number(i.repercutir) === 1 ? "si" : "no";
+        const equipo = i.equipo ? [i.equipo.tag, i.equipo.denominacion || [i.equipo.marca, i.equipo.modelo].filter(Boolean).join(" ")].filter(Boolean).join(" \xB7 ") : "";
+        inf.cabe(16);
+        let x = inf.MARGEN;
+        x += inf.pastilla(TONO_ESTADO[i.estado] || "neutra", ESTADO_TEXTO[i.estado] || llano(i.estado) || "Sin estado", x, inf.y - 13) + 6;
+        if (i.prioridad) x += inf.pastilla(TONO_PRIORIDAD[i.prioridad] || "neutra", `Prioridad ${(PRIORIDAD[i.prioridad] || i.prioridad).toLowerCase()}`, x, inf.y - 13) + 6;
+        const rv = i.resultadoVigente && RESULTADO_TEXTO[i.resultadoVigente.resultado];
+        if (rv) inf.pastilla("aviso", `${rv} (${fechaEs(i.resultadoVigente.fecha)})`, x, inf.y - 13);
+        inf.y -= 18;
+        const pares = [
+          ["OBRA", nombreObra],
+          ["FECHA", fechaEs(hoy)],
+          ["EQUIPO", equipo],
+          ["UBICACI\xD3N", i.ubicacion],
+          ["PLANTA", i.planta],
+          ["ZONA", i.zona],
+          ["OPERARIO", i.operario],
+          ["ENCARGADO", i.encargado],
+          ["ABIERTA EL", fechaEs(i.fechaApertura)],
+          ["FECHA L\xCDMITE", fechaEs(i.fechaLimite)],
+          ["CERRADA EL", fechaEs(i.fechaCierre)],
+          ["REPERCUTE AL CLIENTE", DOC.REPERCUSION_TEXTO[repercusion]]
+        ].filter(([, v]) => llano(v));
+        const filas = [];
+        for (let k = 0; k < pares.length; k += 2) filas.push([pares[k], pares[k + 1] || null]);
+        inf.datos(filas, { rotulo: 106 });
+        if (llano(i.descripcion)) {
+          inf.banda("Qu\xE9 le pasa");
+          inf.parrafo(i.descripcion);
+        }
+        if (llano(i.instrucciones)) {
+          inf.banda("Lo que se encarga");
+          inf.parrafo(i.instrucciones);
+        }
+        if (comentarios.length) {
+          inf.banda("Conversaci\xF3n y seguimiento");
+          const orden2 = [...comentarios].sort((a, b) => String(a.creadoEn).localeCompare(String(b.creadoEn)));
+          await inf.tabla(
+            [{ t: "Fecha", w: 78 }, { t: "Qui\xE9n", w: 84 }, { t: "Tipo", w: 60 }, { t: "Qu\xE9 se ha hecho / se ha dicho" }],
+            orden2.map((m) => [
+              `${fechaEs(m.creadoEn)} ${String(m.creadoEn || "").slice(11, 16)}`.trim(),
+              llano(m.persona),
+              TIPO_TEXTO[m.tipo] || "",
+              RESULTADO_TEXTO[m.resultado] ? { texto: `${RESULTADO_TEXTO[m.resultado]}. ${llano(m.texto)}` } : llano(m.texto)
+            ])
+          );
+        }
+        const lineas = (rec.lineas || []).filter((l) => l.cuenta !== false);
+        if (lineas.length) {
+          inf.banda("Horas");
+          await inf.tabla(
+            [{ t: "Fecha", w: 66 }, { t: "Operario" }, { t: "Empresa" }, { t: "Categor\xEDa", w: 80 }, { t: "Horas", w: 56, alinear: "derecha" }],
+            [
+              ...lineas.map((l) => [fechaEs(l.fecha), llano(l.operario), llano(l.empresa), llano(l.categoria), horas(l.horas)]),
+              [{ texto: "Total", negrita: true }, "", "", "", { texto: horas(rec.total), negrita: true }]
+            ]
+          );
+        }
+        if (c) {
+          inf.banda("Coste y repercusi\xF3n al cliente");
+          const venta = c.repercusion === "no" ? euros(0) : c.venta === null ? "sin importe" : euros(c.venta);
+          const aCargo = c.repercusion === "no" ? euros(c.coste) : c.margen === null ? "\u2014" : euros(Math.max(0, -c.margen));
+          await inf.tabla([{ t: "Concepto" }, { t: "Importe", w: 90, alinear: "derecha" }], [
+            [`Horas \xD7 tarifa de cada empresa${c.sinTarifa && c.sinTarifa.length ? ` (sin tarifa: ${c.sinTarifa.join(", ")})` : ""}`, euros(c.costeHoras)],
+            [`Coste extra${llano(i.costeExtraConcepto) ? ` (${llano(i.costeExtraConcepto)})` : ""}`, euros(c.costeExtra)],
+            [{ texto: "Coste total", negrita: true }, { texto: euros(c.coste), negrita: true }],
+            [`Se repercute al cliente: ${DOC.REPERCUSION_TEXTO[c.repercusion] || ""}${c.repercusion === "si" && c.precioCobroH !== null && c.precioCobroH !== void 0 ? ` (${horas(rec.total)} \xD7 ${euros(c.precioCobroH)}/h + coste extra)` : ""}`, venta],
+            ["Queda a cargo de la obra", aCargo]
+          ]);
+        }
+        const pie = (f) => [f.nombre, f.fecha, f.autor].filter(Boolean).join(" \xB7 ");
+        const grupo = (f) => f.momento === "antes" ? "Antes" : f.momento === "despues" ? "Despu\xE9s" : fotos.some((g) => g.momento) ? "Otras fotos" : "Foto";
+        const orden = [...fotos.filter((f) => f.momento === "antes"), ...fotos.filter((f) => f.momento === "despues"), ...fotos.filter((f) => f.momento !== "antes" && f.momento !== "despues")];
+        const sinFoto = orden.filter((f) => !f.src);
+        if (sinFoto.length) {
+          inf.banda("Fotos no disponibles en este equipo");
+          for (const f of sinFoto) inf.parrafo(`${grupo(f)} \xB7 ${pie(f) || "sin nombre"}${f.motivo ? ` \u2014 ${f.motivo}` : ""}`, { despues: 2 });
+        }
+        const losas = orden.filter((f) => f.src).map((f) => ({ texto: `${llano(i.codigo)} \xB7 ${grupo(f)}`, bytes: bytesDe(f.src), pie: pie(f) }));
+        if (losas.length) await inf.anexo("Anexo \xB7 fotos", losas, { subtitulo: `Anexo \xB7 fotos \xB7 ${llano(i.codigo)}` });
+        return inf.cerrar();
+      }
+      async function modeloPdf({ ejemplo = false, obra = {}, hoy = "", marca = null, logo = void 0 } = {}) {
+        if (ejemplo) return documentoPdf({ ...DOC.incidenciaEjemplo(), obra, hoy, fotos: [], marca, logo, titulo: "Incidencia de equipos \xB7 EJEMPLO" });
+        const nombreObra = [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
+        const inf = await crearInforme({ marca, obra, logo, titulo: "Incidencia de equipos \xB7 modelo en blanco", subtitulo: "INC-____ \u2014 ________________________________", pie: `Incidencia de equipos \xB7 modelo \xB7 ${nombreObra}` });
+        const caja = (alto) => {
+          inf.cabe(alto + 6);
+          inf.pagina.drawRectangle({ x: inf.MARGEN, y: inf.y - alto, width: inf.ANCHO, height: alto, borderColor: inf.hex("#999999"), borderWidth: 0.8 });
+          inf.y -= alto + 8;
+        };
+        inf.datos([[["OBRA", nombreObra], ["FECHA", fechaEs(hoy)]]], { rotulo: 106 });
+        const campos = ["ESTADO", "PRIORIDAD", "EQUIPO (TAG)", "UBICACI\xD3N", "ENCARGADO", "ABIERTA EL", "FECHA L\xCDMITE", "CERRADA EL", "REPERCUTE AL CLIENTE"];
+        const filas = [];
+        for (let k = 0; k < campos.length; k += 2) filas.push([[campos[k], ""], campos[k + 1] ? [campos[k + 1], ""] : null]);
+        inf.datos(filas, { rotulo: 106 });
+        inf.parrafo("Se repercute al cliente: s\xED / no / parcial.", { tam: 7, color: inf.colores.suave });
+        inf.banda("Qu\xE9 le pasa");
+        caja(62);
+        inf.banda("Lo que se encarga");
+        caja(51);
+        inf.banda("Conversaci\xF3n y seguimiento");
+        inf.parrafo("Cada visita o gesti\xF3n, aunque no se haya podido reparar. Resultado: No se ha podido reparar \xB7 Pendiente de material \xB7 Pendiente de servicio t\xE9cnico \xB7 Reparada parcialmente \xB7 Reparada.", { tam: 7.5, color: inf.colores.suave });
+        await inf.tabla(
+          [{ t: "Fecha", w: 62 }, { t: "Qui\xE9n", w: 80 }, { t: "Resultado", w: 85 }, { t: "Qu\xE9 se ha hecho / qu\xE9 falta" }],
+          Array.from({ length: 9 }, () => ["", "", "", ""]),
+          { altoMin: 25 }
+        );
+        inf.cabe(200);
+        inf.banda("Horas");
+        await inf.tabla(
+          [{ t: "Fecha", w: 66 }, { t: "Operario" }, { t: "Empresa" }, { t: "Categor\xEDa", w: 80 }, { t: "Horas", w: 56, alinear: "derecha" }],
+          [...Array.from({ length: 6 }, () => ["", "", "", "", ""]), [{ texto: "Total", negrita: true }, "", "", "", ""]],
+          { altoMin: 22 }
+        );
+        inf.banda("Coste extra y repercusi\xF3n");
+        caja(40);
+        await inf.firmas([{ rotulo: "Encargado", nombre: "Nombre, firma y fecha" }, { rotulo: DOC.firmaJefeObra(), nombre: "Nombre, firma y fecha" }], { porFila: 2 });
+        return inf.cerrar();
+      }
+      module.exports = { documentoPdf, modeloPdf };
+    }
+  });
+
+  // shared/incidencias/parteDeHoras.js
+  var require_parteDeHoras = __commonJS({
+    "shared/incidencias/parteDeHoras.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const enNode = typeof module !== "undefined" && module.exports;
+        const PAPEL = enNode ? require_papel() : window.PAPEL;
+        const INF = enNode ? require_informeReparaciones() : window.INFORME_REPARACIONES;
+        const llano = (v) => String(v ?? "").trim();
+        const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        const fechaEs = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "";
+        const numero = (v) => v === null || v === void 0 || v === "" || !Number.isFinite(Number(v)) ? null : Number(v);
+        const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
+        const fmt = (n, dec = 2) => Number(n || 0).toLocaleString("es-ES", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+        const euros = (n) => n === null || n === void 0 ? "" : `${fmt(n)} \u20AC`;
+        const horasTxt = (n) => `${fmt(n)} h`;
+        const CATEGORIA = { oficial: "Oficial", operario: "Operario" };
+        const repercusionDe = (r) => r.costeCalc && r.costeCalc.repercusion || r.repercusion || "no";
+        const equipoDe = (r) => r.equipo ? r.equipo.tag : "";
+        function lineasDe(r, { tarifaDe = null } = {}) {
+          const modo = repercusionDe(r);
+          const c = r.costeCalc || {};
+          if (modo === "no") return { modo, horas: [], material: [], pactado: [] };
+          if (modo === "parcial") {
+            const imp = numero(r.importeRepercutido) ?? numero(c.venta);
+            return { modo, horas: [], material: [], pactado: [{ descripcion: "Importe pactado con el cliente", cantidad: 1, unidad: "ud", precio: imp, importe: imp === null ? null : r2(imp) }] };
+          }
+          const cobro = numero(c.precioCobroH);
+          const grupos = /* @__PURE__ */ new Map();
+          for (const l of ((r.recuento || {}).lineas || []).filter((x) => x.cuenta !== false)) {
+            const h = Number(l.horas) || 0;
+            if (!h) continue;
+            const precio = cobro !== null ? cobro : numero(l.tarifa) ?? (tarifaDe ? numero(tarifaDe(l)) : null);
+            const cat = l.categoria === "oficial" ? "oficial" : "operario";
+            const k = [llano(l.operario), llano(l.empresa), cat, precio].join("\0");
+            const g = grupos.get(k) || { operario: llano(l.operario), empresa: llano(l.empresa), categoria: cat, precio, cantidad: 0 };
+            g.cantidad += h;
+            grupos.set(k, g);
+          }
+          const horas = [...grupos.values()].map((g) => ({
+            descripcion: [CATEGORIA[g.categoria], g.operario, g.empresa ? `(${g.empresa})` : ""].filter(Boolean).join(" "),
+            operario: g.operario,
+            empresa: g.empresa,
+            categoria: g.categoria,
+            cantidad: r2(g.cantidad),
+            unidad: "h",
+            precio: g.precio,
+            importe: g.precio === null ? null : r2(g.cantidad * g.precio),
+            origen: cobro !== null ? "cobro" : "tarifa"
+          }));
+          const extra = numero(c.costeExtra) ?? numero(r.costeExtra) ?? 0;
+          const material = extra ? [{ descripcion: llano(r.costeExtraConcepto) || "Material y extras", cantidad: 1, unidad: "ud", precio: r2(extra), importe: r2(extra) }] : [];
+          return { modo, horas, material, pactado: [] };
+        }
+        function calcular(reparaciones = [], { tarifaDe = null } = {}) {
+          const bloques = [];
+          const sinCargo = [];
+          for (const r of reparaciones) {
+            const l = lineasDe(r, { tarifaDe });
+            if (l.modo === "no") {
+              sinCargo.push(r);
+              continue;
+            }
+            const todas = [...l.horas, ...l.material, ...l.pactado];
+            bloques.push({
+              id: r.id,
+              codigo: r.codigo,
+              titulo: r.titulo,
+              equipo: equipoDe(r),
+              fecha: INF.fechaHecha(r),
+              modo: l.modo,
+              horas: l.horas,
+              material: l.material,
+              pactado: l.pactado,
+              subtotal: r2(todas.reduce((a, x) => a + (x.importe || 0), 0)),
+              sinPrecio: todas.some((x) => x.importe === null)
+            });
+          }
+          const todasHoras = bloques.flatMap((b) => b.horas);
+          const horas = r2(todasHoras.reduce((a, x) => a + x.cantidad, 0));
+          const importeHoras = r2(todasHoras.reduce((a, x) => a + (x.importe || 0), 0));
+          const importeMaterial = r2(bloques.flatMap((b) => b.material).reduce((a, x) => a + x.importe, 0));
+          const importePactado = r2(bloques.flatMap((b) => b.pactado).reduce((a, x) => a + (x.importe || 0), 0));
+          const tecnicos = /* @__PURE__ */ new Map();
+          for (const x of todasHoras) if (x.operario) tecnicos.set(`${x.operario}\0${x.empresa}`, { nombre: x.operario, empresa: x.empresa });
+          const origenes = new Set(todasHoras.map((x) => x.origen));
+          return {
+            bloques,
+            sinCargo,
+            horas,
+            importeHoras,
+            importeMaterial,
+            importePactado,
+            total: r2(importeHoras + importeMaterial + importePactado),
+            tecnicos: [...tecnicos.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+            empresas: [...new Set(todasHoras.map((x) => x.empresa).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es")),
+            precioHoras: origenes.size === 1 ? [...origenes][0] : origenes.size ? "mixto" : null,
+            sinPrecio: bloques.some((b) => b.sinPrecio)
+          };
+        }
+        function filaLinea(x) {
+          return `<tr class="lineaParte"><td class="desc">${esc(x.descripcion)}</td>
+    <td class="num">${x.unidad === "h" ? horasTxt(x.cantidad) : fmt(x.cantidad, 0)}</td>
+    <td class="num">${x.precio === null ? '<span class="sinPrecio">sin precio</span>' : `${euros(x.precio)}${x.unidad === "h" ? "/h" : ""}`}</td>
+    <td class="num">${euros(x.importe)}</td></tr>`;
+        }
+        function filasBloque(b) {
+          const grupo = (titulo, lineas) => lineas.length ? `<tr class="apartadoParte"><td colspan="4">${titulo}</td></tr>${lineas.map(filaLinea).join("")}` : "";
+          return `<tbody class="bloqueParte">
+    <tr class="reparacionParte"><th colspan="3">${esc(b.codigo)}${b.equipo ? ` \xB7 ${esc(b.equipo)}` : ""} \xB7 ${esc(b.titulo)}${b.fecha ? ` <span class="cuando">${esc(fechaEs(b.fecha))}</span>` : ""}</th>
+      <th class="num">${euros(b.subtotal)}</th></tr>
+    ${grupo("Horas de operario", b.horas)}${grupo("Material", b.material)}${grupo("Importe pactado", b.pactado)}
+  </tbody>`;
+        }
+        function notaPrecios(c, precioCobroH) {
+          if (c.precioHoras === "cobro") return `Horas al precio de cobro de la obra (${euros(precioCobroH)}/h).`;
+          if (c.precioHoras === "tarifa") return "Horas a la tarifa \u20AC/h de cada empresa: la obra no tiene precio de cobro.";
+          if (c.precioHoras === "mixto") return "Horas al precio de cobro de la obra o, si falta, a la tarifa de la empresa.";
+          return "";
+        }
+        function cuerpoParte({ obra = {}, cliente = "", direccion = "", jefeObra = "", periodo = "", hoy = "", precioCobroH = null } = {}, c) {
+          const dato = (k, v) => llano(v) ? `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>` : "";
+          const tecnicos = c.tecnicos.map((t) => t.nombre).join(", ");
+          const nota = [
+            notaPrecios(c, precioCobroH),
+            "Importes sin IVA.",
+            c.sinCargo.length ? `${c.sinCargo.length} ${c.sinCargo.length === 1 ? "reparaci\xF3n elegida va" : "reparaciones elegidas van"} sin cargo al cliente y no ${c.sinCargo.length === 1 ? "entra" : "entran"} en el parte (${c.sinCargo.map((r) => r.codigo).join(", ")}).` : "",
+            c.sinPrecio ? "Hay l\xEDneas sin precio: faltan el precio de cobro de la obra y la tarifa de la empresa." : ""
+          ].filter(Boolean).join(" ");
+          const firma = (rol, nombre) => `<div class="firmaParte"><p class="rolFirma">${rol}</p>
+    <div class="huecoFirma"></div>
+    <dl><div><dt>Nombre</dt><dd>${esc(nombre) || "&nbsp;"}</dd></div><div><dt>Fecha</dt><dd>&nbsp;</dd></div></dl></div>`;
+          return `<section class="parteHoras">
+    <header class="cabeceraParte">
+      <p class="tipoParte">Parte de horas</p>
+      <h1>${esc([obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ") || "Obra")}</h1>
+      <dl class="datosParte">
+        ${dato("C\xF3digo de obra", obra.codigo)}${dato("Obra", obra.nombre)}${dato("Cliente", cliente)}${dato("Direcci\xF3n", direccion)}
+        ${dato(c.tecnicos.length === 1 ? "T\xE9cnico" : "T\xE9cnicos", tecnicos)}${dato(c.empresas.length === 1 ? "Empresa" : "Empresas", c.empresas.join(", "))}
+        ${dato("Periodo", periodo)}${dato("Fecha", fechaEs(hoy))}
+      </dl>
+    </header>
+    ${c.bloques.length ? `<table class="tablaParte">
+      <colgroup><col class="cDesc"><col class="cNum"><col class="cNum"><col class="cNum"></colgroup>
+      <thead><tr><th>Descripci\xF3n</th><th class="num">Cantidad</th><th class="num">Precio</th><th class="num">Importe</th></tr></thead>
+      ${c.bloques.map(filasBloque).join("")}
+      <tfoot>
+        ${c.importeHoras ? `<tr class="parcial"><th>Horas de operario</th><th class="num">${horasTxt(c.horas)}</th><th></th><th class="num">${euros(c.importeHoras)}</th></tr>` : ""}
+        ${c.importeMaterial ? `<tr class="parcial"><th>Material</th><th></th><th></th><th class="num">${euros(c.importeMaterial)}</th></tr>` : ""}
+        ${c.importePactado ? `<tr class="parcial"><th>Importes pactados</th><th></th><th></th><th class="num">${euros(c.importePactado)}</th></tr>` : ""}
+        <tr class="totalParte"><th>TOTAL</th><th></th><th></th><th class="num">${euros(c.total)}</th></tr>
+      </tfoot>
+    </table>` : '<p class="nota">Ninguna de las reparaciones elegidas se cobra al cliente.</p>'}
+    ${nota ? `<p class="nota">${esc(nota)}</p>` : ""}
+    <div class="firmasParte">${firma("Jefe de obra", jefeObra)}${firma("Cliente", "")}</div>
+  </section>`;
+        }
+        function html(datos = {}, { modo = "parteConReportes", tarifaDe = null } = {}) {
+          const { obra = {}, reparaciones = [], hoy = "" } = datos;
+          const c = calcular(reparaciones, { tarifaDe });
+          const nombreObra = [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
+          const anexo = modo === "parteConReportes" && reparaciones.length ? `<section class="anexoParte"><p class="tipoParte">Anexo</p><h2>Reportes de las reparaciones</h2>${INF.cuerpo(reparaciones)}</section>` : "";
+          const cuerpo = `<article class="informeReparaciones">${cuerpoParte(datos, c)}${anexo}</article>`;
+          return PAPEL.hoja({ documento: "Parte de horas", obra: nombreObra, fecha: hoy, cuerpo, clase: "papelParteHoras", marca: obra });
+        }
+        const ESTILOS_WORD = `
+body { font-family: Calibri, Arial, sans-serif; font-size: 10pt; color: #1A1A1A; }
+.tipoParte { font-size: 8pt; letter-spacing: 1px; text-transform: uppercase; color: #003F2D; font-weight: bold; margin: 0; }
+h1 { font-size: 16pt; color: #003F2D; margin: 2pt 0 8pt; }
+.datosParte div { margin: 0 0 2pt; } .datosParte dt { display: inline; color: #435254; font-size: 8pt; text-transform: uppercase; }
+.datosParte dt:after { content: ': '; } .datosParte dd { display: inline; margin: 0; font-weight: bold; }
+table.tablaParte { width: 100%; border-collapse: collapse; margin-top: 10pt; }
+.tablaParte th, .tablaParte td { padding: 3pt 5pt; border-bottom: 0.5pt solid #CAD1D3; text-align: left; }
+.tablaParte thead th { background: #003F2D; color: #FFFFFF; font-size: 8pt; text-transform: uppercase; }
+.tablaParte .num { text-align: right; }
+.tablaParte .reparacionParte th { background: #C0D4CB; color: #003F2D; }
+.tablaParte .apartadoParte td { color: #538184; font-size: 8pt; text-transform: uppercase; font-weight: bold; }
+.tablaParte .desc { padding-left: 14pt; }
+.tablaParte tfoot th { border-top: 0.5pt solid #538184; }
+.tablaParte .totalParte th { background: #003F2D; color: #FFFFFF; font-size: 11pt; }
+.nota { font-size: 8pt; color: #435254; }
+table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; vertical-align: top; padding-right: 18pt; }
+.rolFirma { font-size: 8pt; text-transform: uppercase; color: #003F2D; font-weight: bold; margin: 0 0 40pt; }
+.lineaFirma { border-top: 0.5pt solid #538184; padding-top: 3pt; font-size: 9pt; }`;
+        function word(datos = {}, { tarifaDe = null } = {}) {
+          const c = calcular(datos.reparaciones || [], { tarifaDe });
+          const titulo = `Parte de horas ${[datos.obra && datos.obra.codigo].filter(Boolean).join("")}`;
+          const cuerpo = cuerpoParte(datos, c).replace(/<div class="firmasParte">[\s\S]*<\/div>\s*<\/section>$/, `<table class="firmas"><tr>
+      <td><p class="rolFirma">Jefe de obra</p><p class="lineaFirma">Nombre: ${esc(datos.jefeObra || "")}<br>Fecha:</p></td>
+      <td><p class="rolFirma">Cliente</p><p class="lineaFirma">Nombre:<br>Fecha:</p></td></tr></table></section>`);
+          return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"/><title>${esc(titulo)}</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>${ESTILOS_WORD}</style></head><body>${cuerpo}</body></html>`;
+        }
+        (function exportar(API) {
+          if (enNode) module.exports = API;
+          if (typeof window !== "undefined") window.PARTE_DE_HORAS = API;
+        })({ lineasDe, calcular, html, word, MODOS: ["parteConReportes", "parte", "reportes"] });
+      })();
+    }
+  });
+
+  // shared/incidencias/equiposServicioPdf.js
+  var require_equiposServicioPdf = __commonJS({
+    "shared/incidencias/equiposServicioPdf.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var { crearInforme } = require_plantillaPdf();
+      var IST = require_informeServicioTecnico();
+      var { bytesDe, TONO_ESTADO } = require_reparacionPdf();
+      var llano = (v) => String(v ?? "").trim();
+      var fechaEs = (d) => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "";
+      var nombreObraDe = (obra) => [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
+      var pares = (lista) => {
+        const f = [];
+        for (let i = 0; i < lista.length; i += 2) f.push([lista[i], lista[i + 1] || null]);
+        return f;
+      };
+      var T2 = 7;
+      async function equiposPorEstadoPdf(lista, que, { obra = {}, hoy = "", alcance = "", marca = null, logo = void 0 } = {}) {
+        const cerr = que === "cerrados";
+        const titulo = cerr ? "Equipos cerrados" : "Equipos con incidencias";
+        const nombreObra = nombreObraDe(obra);
+        const l = lista || [];
+        const n = l.length;
+        const inf = await crearInforme({ marca, obra, logo, apaisado: true, titulo, subtitulo: nombreObra || "Obra", pie: `${titulo} \xB7 ${nombreObra}` });
+        const criterio = cerr ? "Todas sus incidencias cerradas (las anuladas no cuentan); cierre = la \xFAltima que se cerr\xF3." : "Al menos una incidencia sin cerrar: abierta, en curso o terminada pendiente de cerrar.";
+        inf.datos(pares([["FECHA", fechaEs(hoy)], ["EQUIPOS", String(n)]]));
+        inf.parrafo(`${criterio}${alcance ? ` \xB7 ${alcance}` : ""}`, { color: inf.colores.suave });
+        if (!n) {
+          inf.parrafo("No hay equipos en este listado.");
+          return inf.cerrar();
+        }
+        if (!cerr) {
+          const sinCerrar = l.reduce((a, g) => a + (g.sinCerrar || 0), 0);
+          const vencidos = l.filter((g) => g.vencidas).length;
+          inf.franja([[n, n === 1 ? "equipo" : "equipos"], [sinCerrar, "incidencias sin cerrar"], ...vencidos ? [[vencidos, vencidos === 1 ? "con vencida" : "con vencidas"]] : []]);
+        } else inf.franja([[n, n === 1 ? "equipo cerrado" : "equipos cerrados"]]);
+        const equipo = (g) => ({ texto: `${llano(g.tag)}${g.unidades && g.unidades.length > 1 ? ` + ${g.unidades.filter((t) => t !== g.tag).join(", ")}` : ""}`, tam: T2, negrita: true });
+        const comun = (g) => [equipo(g), { texto: llano(g.tipo), tam: T2 }, { texto: llano(g.planta), tam: T2 }, { texto: llano(g.zona), tam: T2 }, { texto: llano(g.sitio), tam: T2 }];
+        if (cerr) {
+          await inf.tabla([
+            { t: "Equipo", w: 120 },
+            { t: "Tipo", w: 80 },
+            { t: "Planta", w: 40 },
+            { t: "Zona", w: 60 },
+            { t: "Sala / sitio" },
+            { t: "N\xBA inc.", w: 36, alinear: "derecha" },
+            { t: "Primera", w: 50 },
+            { t: "\xDAltima", w: 50 },
+            { t: "Cierre", w: 50 },
+            { t: "Incidencias", w: 150 }
+          ], l.map((g) => [
+            ...comun(g),
+            { texto: String(g.total), tam: T2 },
+            { texto: fechaEs(g.primera), tam: T2 },
+            { texto: fechaEs(g.ultima), tam: T2 },
+            { texto: fechaEs(g.fechaCierre), tam: T2 },
+            { texto: (g.codigos || []).join(", "), tam: T2 }
+          ]));
+        } else {
+          await inf.tabla([
+            { t: "Equipo", w: 110 },
+            { t: "Tipo", w: 70 },
+            { t: "Planta", w: 38 },
+            { t: "Zona", w: 54 },
+            { t: "Sala / sitio" },
+            { t: "Sin cerrar", w: 36, alinear: "derecha" },
+            { t: "Total", w: 30, alinear: "derecha" },
+            { t: "M\xE1s antigua", w: 50 },
+            { t: "D\xEDas", w: 28, alinear: "derecha" },
+            { t: "M\xE1s reciente", w: 50 },
+            { t: "Estado", w: 72 },
+            { t: "Incidencias sin cerrar", w: 120 }
+          ], l.map((g) => [
+            ...comun(g),
+            { texto: String(g.sinCerrar), tam: T2 },
+            { texto: String(g.total), tam: T2 },
+            { texto: fechaEs(g.abiertaMasAntigua), tam: T2 },
+            { texto: g.diasAbierto === null || g.diasAbierto === void 0 ? "" : String(g.diasAbierto), tam: T2 },
+            { texto: fechaEs(g.ultima), tam: T2 },
+            { pastilla: TONO_ESTADO[g.estado] || "neutra", rotulo: llano(g.estadoTexto), ...g.vencidas ? { sub: "vencida" } : {} },
+            { texto: (g.codigosAbiertas || []).join(", "), tam: T2 }
+          ]));
+        }
+        inf.parrafo(`Total \xB7 ${n} ${n === 1 ? "equipo" : "equipos"}`, { f: inf.fuentes.b });
+        return inf.cerrar();
+      }
+      var plantaDe = (r) => r.planta || r.equipo && r.equipo.planta || "";
+      var zonaDe = (r) => r.zona || r.equipo && r.equipo.zona || "";
+      function sitioDe(r) {
+        const ya = new Set([plantaDe(r), zonaDe(r)].map((v) => llano(v).toLowerCase()).filter(Boolean));
+        const s = llano(r.ubicacion).split("\xB7").map(llano).filter((p) => p && !ya.has(p.toLowerCase())).join(" \xB7 ");
+        return s || [r.equipo && r.equipo.sala, r.equipo && r.equipo.codSala].filter(Boolean).join(" \xB7 ");
+      }
+      var diasDe = (r) => r.calc && r.calc.diasAbierta !== null && r.calc.diasAbierta !== void 0 ? String(r.calc.diasAbierta) : "";
+      var fallaDe = (r) => llano(r.falla) || llano(r.titulo);
+      var marcaModelo = (u) => [u.marca, u.modelo].map(llano).filter(Boolean).join(" \xB7 ");
+      async function servicioTecnicoPdf({ obra = {}, cliente = "", reparaciones = [], alcance = "", hoy = "", marca = null, logo = void 0 } = {}) {
+        const nombreObra = nombreObraDe(obra);
+        const reps = reparaciones || [];
+        const c = IST.cuentas(reps);
+        const titulo = "Informe para el servicio t\xE9cnico";
+        const inf = await crearInforme({ marca, obra, logo, apaisado: true, titulo, subtitulo: nombreObra || "Obra", pie: `${titulo} \xB7 ${nombreObra}` });
+        inf.parrafo(`Unidades pendientes de servicio t\xE9cnico${alcance ? ` \xB7 ${alcance}` : ""}`, { f: inf.fuentes.b });
+        inf.datos(pares([["CLIENTE", cliente], ["FECHA", fechaEs(hoy)], ["UNIDADES", String(c.unidades)], ["REPARACIONES", String(c.reparaciones)], ["SIN N\xBA DE SERIE", String(c.sinSerie)]]), { rotulo: 90 });
+        if (!reps.length) {
+          inf.parrafo("No hay reparaciones pendientes de servicio t\xE9cnico.");
+          return inf.cerrar();
+        }
+        inf.franja([[c.unidades, c.unidades === 1 ? "unidad" : "unidades"], [c.reparaciones, c.reparaciones === 1 ? "reparaci\xF3n" : "reparaciones"], ...c.sinSerie ? [[c.sinSerie, "sin n\xBA de serie"]] : []]);
+        if (c.sinSerie) inf.veredicto(`${c.sinSerie} ${c.sinSerie === 1 ? "unidad no tiene" : "unidades no tienen"} n\xBA de serie en la lista de equipos: van en rojo.`, "mal");
+        const losas = [];
+        const filas = IST.lineas(reps).map(({ r, u, primera, n }) => {
+          const fotos = (r.fotos || []).filter((f) => f.src);
+          if (primera) {
+            fotos.forEach((f) => losas.push({
+              texto: `${llano(r.codigo)} \xB7 ${f.momento === "despues" ? "Despu\xE9s" : "Antes"}`,
+              bytes: bytesDe(f.src),
+              pie: [u && u.tag, f.fecha].filter(Boolean).join(" \xB7 ")
+            }));
+          }
+          const serie = u ? llano(u.numSerie) ? { texto: llano(u.numSerie), tam: T2, negrita: true } : { texto: "sin n\xBA de serie", tam: T2, negrita: true, color: "#9C2B2B" } : "";
+          return [
+            primera ? { texto: llano(r.codigo), tam: T2, negrita: true } : "",
+            primera ? { texto: plantaDe(r), tam: T2 } : "",
+            primera ? { texto: zonaDe(r), tam: T2 } : "",
+            primera ? { texto: sitioDe(r), tam: T2 } : "",
+            { texto: u && u.rotulo ? u.rotulo : "", tam: T2 },
+            { texto: u ? llano(u.tag) : "", tam: T2, negrita: true },
+            { texto: u ? marcaModelo(u) : "", tam: T2 },
+            serie,
+            primera ? { texto: fallaDe(r), tam: T2 } : { texto: n > 1 ? '"' : "", tam: T2, color: "#888888" },
+            primera ? { texto: fechaEs(r.fechaApertura), tam: T2 } : "",
+            primera ? { texto: diasDe(r), tam: T2 } : "",
+            primera && fotos.length ? { foto: bytesDe(fotos[0].src) } : ""
+          ];
+        });
+        await inf.tabla([
+          { t: "C\xF3digo", w: 48 },
+          { t: "Planta", w: 32 },
+          { t: "Zona", w: 46 },
+          { t: "Sala / sitio", w: 70 },
+          { t: "Unidad", w: 34 },
+          { t: "Tag", w: 120 },
+          { t: "Marca \xB7 modelo", w: 96 },
+          { t: "N\xBA de serie", w: 70 },
+          { t: "Qu\xE9 falla" },
+          { t: "Abierta", w: 46 },
+          { t: "D\xEDas", w: 26, alinear: "derecha" },
+          { t: "Fotos", w: 50 }
+        ], filas);
+        inf.parrafo(`Total \xB7 ${c.unidades} ${c.unidades === 1 ? "unidad" : "unidades"} en ${c.reparaciones} ${c.reparaciones === 1 ? "reparaci\xF3n" : "reparaciones"}${c.sinSerie ? ` \xB7 ${c.sinSerie} sin n\xBA de serie` : ""}`, { f: inf.fuentes.b });
+        if (losas.length) {
+          inf.parrafo(`Fotos: ${losas.length} en el anexo, con el c\xF3digo de la reparaci\xF3n.`, { tam: 7, color: inf.colores.suave });
+          await inf.anexo("Anexo \xB7 fotos", losas, { subtitulo: `Anexo \xB7 fotos \xB7 ${titulo}` });
+        }
+        return inf.cerrar();
+      }
+      module.exports = { equiposPorEstadoPdf, servicioTecnicoPdf };
+    }
+  });
+
+  // shared/incidencias/tipoEquipo.js
+  var require_tipoEquipo = __commonJS({
+    "shared/incidencias/tipoEquipo.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const TIPOS = [
+          { id: "split", nombre: "Splits", familias: ["PANASONIC_SPLIT"], re: /split|\bs-\d{3,}pk|\bcs-|\bcu-/i },
+          { id: "vrf", nombre: "VRF", familias: ["PANASONIC_VRF"], re: /\bvrf\b/i },
+          { id: "crac", nombre: "CRAC", familias: ["PANASONIC_CRACS"], re: /\bcrac/i },
+          { id: "uta", nombre: "UTAs", familias: ["TROX_UTA"], re: /\buta\b|uta-|climatizador|\.ste\./i },
+          { id: "fancoil", nombre: "Fan coils", familias: ["AIRLAN_FANCOIL"], re: /fan ?-?coil|fancoil|cassette|\bfc[-\s]|\.cfb\./i },
+          { id: "rooftop", nombre: "Rooftops", familias: ["CARRIER_ROOFTOPS"], re: /roof ?top|compacto/i },
+          { id: "recuperador", nombre: "Recuperadores", familias: ["AIRLAN_HRU"], re: /recuper|\bhru\b/i },
+          { id: "enfriadora", nombre: "Enfriadoras", familias: ["CARRIER_CHILLERS"], re: /chiller|enfriad|bomba de calor/i },
+          { id: "bomba", nombre: "Bombas", familias: ["WILO_GP", "WILO_PUMPS"], re: /bomba|bombeo|wilo/i },
+          { id: "ventilador", nombre: "Ventiladores", familias: ["SP_PARKING", "SP_VENTILACION", "SP_PRESURIZACION"], re: /ventil|extract|presuriz/i }
+        ];
+        const OTROS = { id: "otro", nombre: "Otros equipos" };
+        const SIN_EQUIPO = { id: "sinEquipo", nombre: "Sin equipo" };
+        function tipoDe(equipo) {
+          if (!equipo) return SIN_EQUIPO;
+          const fam = String(equipo.familia || "").toUpperCase();
+          if (fam) {
+            const t = TIPOS.find((x) => x.familias.includes(fam));
+            if (t) return t;
+          }
+          const texto = [equipo.grupo, equipo.denominacion, equipo.tag, equipo.modelo, equipo.plantillaPM].filter(Boolean).join(" ");
+          return TIPOS.find((x) => x.re.test(texto)) || OTROS;
+        }
+        function tiposConIncidencias(filas) {
+          const cuenta = /* @__PURE__ */ new Map();
+          for (const f of filas || []) {
+            const t = tipoDe(f.equipo);
+            const c = cuenta.get(t.id) || { id: t.id, nombre: t.nombre, total: 0, activas: 0 };
+            c.total += 1;
+            if (f.calc && f.calc.activa) c.activas += 1;
+            cuenta.set(t.id, c);
+          }
+          return [...TIPOS, OTROS, SIN_EQUIPO].map((t) => cuenta.get(t.id)).filter(Boolean);
+        }
+        function nombreDeTipo(id) {
+          const t = [...TIPOS, OTROS, SIN_EQUIPO].find((x) => x.id === id);
+          return t ? t.nombre : String(id ?? "");
+        }
+        const API = { TIPOS, tipoDe, tiposConIncidencias, nombreDeTipo };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.TIPO_EQUIPO_INCIDENCIA = API;
+      })();
+    }
+  });
+
+  // shared/incidencias/equiposPorEstado.js
+  var require_equiposPorEstado = __commonJS({
+    "shared/incidencias/equiposPorEstado.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const llano = (v) => String(v ?? "").trim();
+        const dia = (v) => v ? String(v).slice(0, 10) : "";
+        const fechaEs = (d) => d ? dia(d).split("-").reverse().join("/") : "";
+        const ABIERTAS = ["abierta", "enCurso", "terminada"];
+        const NOMBRE_ESTADO = { abierta: "Abierta", enCurso: "En curso", terminada: "Por revisar" };
+        function tipos() {
+          if (typeof __require !== "undefined") {
+            try {
+              return require_tipoEquipo();
+            } catch {
+            }
+          }
+          return typeof window !== "undefined" ? window.TIPO_EQUIPO_INCIDENCIA : null;
+        }
+        function papel() {
+          if (typeof __require !== "undefined") {
+            try {
+              return require_papel();
+            } catch {
+            }
+          }
+          return typeof window !== "undefined" ? window.PAPEL : null;
+        }
+        const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        const menor = (a, b) => !a ? b : !b ? a : a < b ? a : b;
+        const mayor = (a, b) => !a ? b : !b ? a : a > b ? a : b;
+        function dias(desde, hasta) {
+          if (!desde || !hasta) return null;
+          const a = Date.parse(`${dia(desde)}T00:00:00Z`);
+          const b = Date.parse(`${dia(hasta)}T00:00:00Z`);
+          return Number.isFinite(a) && Number.isFinite(b) ? Math.max(0, Math.round((b - a) / 864e5)) : null;
+        }
+        function agrupar(filas, { hoy = "" } = {}) {
+          const T2 = tipos();
+          const porEquipo = /* @__PURE__ */ new Map();
+          let sinEquipo = 0;
+          for (const f of filas || []) {
+            if (!f || f.estado === "anulada" || f.borrado) continue;
+            if (!f.equipo || !f.equipo.id) {
+              sinEquipo += 1;
+              continue;
+            }
+            const e = f.equipo;
+            if (!porEquipo.has(e.id)) {
+              const t = T2 ? T2.tipoDe(e) : { id: "otro", nombre: "" };
+              porEquipo.set(e.id, {
+                id: e.id,
+                tag: llano(e.tag),
+                unidades: Array.isArray(e.unidades) ? e.unidades : null,
+                tipoId: t.id,
+                tipo: t.nombre,
+                marca: llano(e.marca),
+                modelo: llano(e.modelo),
+                planta: "",
+                zona: "",
+                sitio: "",
+                total: 0,
+                abiertas: 0,
+                enCurso: 0,
+                porRevisar: 0,
+                cerradas: 0,
+                primera: "",
+                ultima: "",
+                abiertaMasAntigua: "",
+                fechaCierre: "",
+                codigos: [],
+                codigosAbiertas: [],
+                vencidas: 0
+              });
+            }
+            const g = porEquipo.get(e.id);
+            g.total += 1;
+            g.codigos.push(f.codigo);
+            g.primera = menor(g.primera, dia(f.fechaApertura));
+            g.ultima = mayor(g.ultima, dia(f.fechaApertura));
+            g.planta = g.planta || llano(f.planta) || llano(e.planta);
+            g.zona = g.zona || llano(f.zona) || llano(e.zona);
+            g.sitio = g.sitio || llano(f.ubicacion) || llano(e.sala) || llano(e.codSala);
+            if (ABIERTAS.includes(f.estado)) {
+              g.codigosAbiertas.push(f.codigo);
+              if (f.estado === "abierta") g.abiertas += 1;
+              else if (f.estado === "enCurso") g.enCurso += 1;
+              else g.porRevisar += 1;
+              g.abiertaMasAntigua = menor(g.abiertaMasAntigua, dia(f.fechaApertura));
+              if (f.calc && f.calc.vencida) g.vencidas += 1;
+            } else if (f.estado === "cerrada") {
+              g.cerradas += 1;
+              g.fechaCierre = mayor(g.fechaCierre, dia(f.fechaCierre));
+            }
+          }
+          const conIncidencias = [];
+          const cerrados = [];
+          for (const g of porEquipo.values()) {
+            const sinCerrar = g.abiertas + g.enCurso + g.porRevisar;
+            if (sinCerrar) {
+              g.sinCerrar = sinCerrar;
+              g.estado = g.abiertas ? "abierta" : g.enCurso ? "enCurso" : "terminada";
+              g.estadoTexto = NOMBRE_ESTADO[g.estado];
+              g.diasAbierto = dias(g.abiertaMasAntigua, hoy);
+              g.fechaCierre = "";
+              conIncidencias.push(g);
+            } else if (g.cerradas) {
+              g.sinCerrar = 0;
+              g.estado = "cerrada";
+              g.estadoTexto = "Cerrado";
+              cerrados.push(g);
+            }
+          }
+          const porTag = (a, b) => a.tag.localeCompare(b.tag, "es", { numeric: true });
+          conIncidencias.sort((a, b) => (a.abiertaMasAntigua || "9").localeCompare(b.abiertaMasAntigua || "9") || porTag(a, b));
+          cerrados.sort((a, b) => (b.fechaCierre || "").localeCompare(a.fechaCierre || "") || porTag(a, b));
+          return { conIncidencias, cerrados, sinEquipo };
+        }
+        function filtrar(lista, { tipo = "todos", texto = "" } = {}) {
+          const t = llano(texto).toLowerCase();
+          return (lista || []).filter((g) => !tipo || tipo === "todos" || g.tipoId === tipo).filter((g) => !t || [g.tag, ...g.unidades || [], g.planta, g.zona, g.sitio, g.marca, g.modelo, g.tipo, ...g.codigos].some((v) => String(v || "").toLowerCase().includes(t)));
+        }
+        const conjuntoDe = (g) => g.unidades && g.unidades.length > 1 ? g.unidades.join(" + ") : g.tag;
+        function hojas(lista, que, { obra = {}, hoy = "", alcance = "" } = {}) {
+          const cerr = que === "cerrados";
+          const cab = cerr ? ["Equipo", "Conjunto", "Tipo", "Planta", "Zona", "Sala / sitio", "Marca", "Modelo", "N\xBA incidencias", "Primera", "\xDAltima", "Fecha de cierre", "Estado", "Incidencias"] : [
+            "Equipo",
+            "Conjunto",
+            "Tipo",
+            "Planta",
+            "Zona",
+            "Sala / sitio",
+            "Marca",
+            "Modelo",
+            "Sin cerrar",
+            "Abiertas",
+            "En curso",
+            "Por revisar",
+            "Cerradas",
+            "Total",
+            "M\xE1s antigua",
+            "M\xE1s reciente",
+            "D\xEDas",
+            "Vencidas",
+            "Estado",
+            "Incidencias sin cerrar"
+          ];
+          const filas = (lista || []).map((g) => cerr ? [g.tag, conjuntoDe(g), g.tipo, g.planta, g.zona, g.sitio, g.marca, g.modelo, g.total, fechaEs(g.primera), fechaEs(g.ultima), fechaEs(g.fechaCierre), g.estadoTexto, g.codigos.join(", ")] : [
+            g.tag,
+            conjuntoDe(g),
+            g.tipo,
+            g.planta,
+            g.zona,
+            g.sitio,
+            g.marca,
+            g.modelo,
+            g.sinCerrar,
+            g.abiertas,
+            g.enCurso,
+            g.porRevisar,
+            g.cerradas,
+            g.total,
+            fechaEs(g.abiertaMasAntigua),
+            fechaEs(g.ultima),
+            g.diasAbierto ?? "",
+            g.vencidas || "",
+            g.estadoTexto,
+            g.codigosAbiertas.join(", ")
+          ]);
+          const nombre = cerr ? "Equipos cerrados" : "Equipos con incidencias";
+          return [
+            {
+              nombre,
+              marca: true,
+              filtro: true,
+              filas: [cab, ...filas],
+              anchos: cerr ? [22, 30, 14, 8, 12, 24, 14, 16, 10, 11, 11, 13, 10, 40] : [22, 30, 14, 8, 12, 24, 14, 16, 9, 9, 9, 10, 9, 7, 11, 11, 6, 8, 11, 40]
+            },
+            { nombre: "Datos", filas: [
+              ["Dato", "Valor"],
+              ["Obra", [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ")],
+              ["Listado", nombre],
+              ["Fecha", fechaEs(hoy)],
+              ["Alcance", alcance || "Todos los equipos"],
+              ["Equipos", (lista || []).length],
+              ["Criterio", cerr ? "Todas sus incidencias (sin contar las anuladas) est\xE1n cerradas; la fecha de cierre es la de la \xFAltima que se cerr\xF3." : "Al menos una incidencia sin cerrar: abierta, en curso o terminada por el encargado y pendiente de cerrar."]
+            ], anchos: [16, 90] }
+          ];
+        }
+        function html(lista, que, { obra = {}, hoy = "", alcance = "" } = {}) {
+          const P = papel();
+          const cerr = que === "cerrados";
+          const titulo = cerr ? "Equipos cerrados" : "Equipos con incidencias";
+          const nombreObra = [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
+          const l = lista || [];
+          const n = l.length;
+          const total = `Total \xB7 ${n} ${n === 1 ? "equipo" : "equipos"}`;
+          const cab = cerr ? ["Equipo", "Tipo", "Planta", "Zona", "Sala / sitio", "N\xBA inc.", "Primera", "\xDAltima", "Cierre", "Incidencias"] : ["Equipo", "Tipo", "Planta", "Zona", "Sala / sitio", "Sin cerrar", "Total", "M\xE1s antigua", "D\xEDas", "M\xE1s reciente", "Estado", "Incidencias sin cerrar"];
+          const num = new Set(cerr ? ["N\xBA inc."] : ["Sin cerrar", "Total", "D\xEDas"]);
+          const fila = (g) => {
+            const equipo = `<td class="tag"><span class="codigo">${esc(g.tag)}</span>${g.unidades && g.unidades.length > 1 ? `<br><span class="mismo">+ ${esc(g.unidades.filter((t) => t !== g.tag).join(", "))}</span>` : ""}</td>`;
+            const comun = `${equipo}<td>${esc(g.tipo)}</td><td>${esc(g.planta)}</td><td>${esc(g.zona)}</td><td class="sitio">${esc(g.sitio)}</td>`;
+            return cerr ? `<tr>${comun}<td class="num">${g.total}</td><td class="fecha">${fechaEs(g.primera)}</td><td class="fecha">${fechaEs(g.ultima)}</td><td class="fecha">${fechaEs(g.fechaCierre)}</td><td>${esc(g.codigos.join(", "))}</td></tr>` : `<tr>${comun}<td class="num">${g.sinCerrar}</td><td class="num">${g.total}</td><td class="fecha">${fechaEs(g.abiertaMasAntigua)}</td><td class="num">${g.diasAbierto ?? ""}</td><td class="fecha">${fechaEs(g.ultima)}</td><td>${esc(g.estadoTexto)}${g.vencidas ? " \xB7 vencida" : ""}</td><td>${esc(g.codigosAbiertas.join(", "))}</td></tr>`;
+          };
+          const tabla = `<table class="tablaServTec tablaEqEstado">
+    <thead><tr>${cab.map((c) => `<th${num.has(c) ? ' class="num"' : ""}>${esc(c)}</th>`).join("")}</tr></thead>
+    <tbody>${l.map(fila).join("")}</tbody>
+    <!-- El total, una sola vez al final: como table-row-group no se repite al pie de cada hoja (el thead s\xED). -->
+    <tfoot style="display: table-row-group"><tr><th colspan="${cab.length}">${total}</th></tr></tfoot>
+  </table>`;
+          const criterio = cerr ? "Todas sus incidencias cerradas (las anuladas no cuentan); cierre = la \xFAltima que se cerr\xF3." : "Al menos una incidencia sin cerrar: abierta, en curso o terminada pendiente de cerrar.";
+          const cuerpo = `<article class="informeServTec informeEqEstado">
+    ${P.portada({
+            tipo: titulo,
+            titulo: nombreObra || "Obra",
+            subtitulo: `${criterio}${alcance ? ` \xB7 ${alcance}` : ""}`,
+            datos: [["Fecha", fechaEs(hoy)], ["Equipos", String(n)]]
+          })}
+    ${n ? tabla : '<p class="nota">No hay equipos en este listado.</p>'}
+  </article>`;
+          return P.hoja({ documento: titulo, obra: nombreObra, fecha: hoy, cuerpo, pie: `${titulo} \xB7 ${nombreObra}`, clase: "apaisado papelServTec", marca: obra });
+        }
+        const API = { agrupar, filtrar, hojas, html, dias };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.EQUIPOS_POR_ESTADO_INC = API;
+      })();
     }
   });
 
@@ -174833,8 +176404,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       function modeloDocumento(repo, sesion, obraId, { ejemplo = false } = {}) {
         if (!puede(sesion.rol, "commissioning", "ver") && !puede(sesion.rol, "incidencias", "ver")) return { error: "Tu rol no ve este documento." };
         const o = obraId ? repo.leer("obras", sesion, obraId) : null;
-        const html = DOC.modelo({ ejemplo, obra: o ? { codigo: o.codigo, nombre: o.nombre } : {}, hoy: hoy() });
-        return { html, nombreArchivo: `${DOC.nombreArchivo(ejemplo)}.pdf` };
+        const args = { ejemplo, obra: o ? { codigo: o.codigo, nombre: o.nombre } : {}, hoy: hoy() };
+        const html = DOC.modelo(args);
+        return { html, nombreArchivo: `${DOC.nombreArchivo(ejemplo)}.pdf`, pdf: () => require_documentoPdf().modeloPdf(args) };
       }
       function documento(repo, sesion, id, { rutas = null } = {}) {
         const f = ficha(repo, sesion, id);
@@ -174952,7 +176524,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           unidades: c.unidades,
           sinSerie: c.sinSerie,
           nombre,
-          ...formato === "excel" ? { hojas: require_papel().excelConLogo(IST.hojas(datos), d.obra) } : { html: IST.html(datos) }
+          /* `pdf`: el escritorio lo dibuja sobre la plantilla común con los mismos datos (19-nov, shared/incidencias/equiposServicioPdf.js). */
+          ...formato === "excel" ? { hojas: require_papel().excelConLogo(IST.hojas(datos), d.obra) } : { html: IST.html(datos), pdf: () => require_equiposServicioPdf().servicioTecnicoPdf(datos) }
         };
       }
       function equiposPorEstado(repo, sesion, obraId, { que = null, tipo = "todos", texto = "", formato = null } = {}) {
@@ -174966,7 +176539,10 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const lista = EP.filtrar(cerr ? r.cerrados : r.conIncidencias, { tipo, texto });
         const alcance = [tipo && tipo !== "todos" ? `Tipo ${lista[0] && lista[0].tipo || require_tipoEquipo().nombreDeTipo(tipo)}` : "", llano(texto) ? `\xAB${llano(texto)}\xBB` : ""].filter(Boolean).join(" \xB7 ");
         const nombre = `${d.obra.codigo} ${cerr ? "equipos cerrados" : "equipos con incidencias"} ${hoy()}`.replace(/[\\/:*?"<>|]/g, "-");
-        if (formato === "pdf") return { n: lista.length, nombre, html: EP.html(lista, cerr ? "cerrados" : "abiertos", { obra: d.obra, hoy: hoy(), alcance }) };
+        if (formato === "pdf") {
+          const args = [lista, cerr ? "cerrados" : "abiertos", { obra: d.obra, hoy: hoy(), alcance }];
+          return { n: lista.length, nombre, html: EP.html(...args), pdf: () => require_equiposServicioPdf().equiposPorEstadoPdf(...args) };
+        }
         return {
           n: lista.length,
           nombre,
@@ -179593,18 +181169,10 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         const d = leer(repo, sesion, id);
         if (!d) return { error: "No se encuentra el parte." };
         const dinero = conDinero && d.veDinero;
-        const html = M.html({
-          parte: d.parte,
-          lineas: d.lineas,
-          obra: d.obra,
-          cuentas: d.cuentas,
-          conDinero: dinero,
-          hoy: hoyLocal(),
-          nombres: d.nombres,
-          enlace: d.enlace
-        });
+        const datos = { parte: d.parte, lineas: d.lineas, obra: d.obra, cuentas: d.cuentas, conDinero: dinero, hoy: hoyLocal(), nombres: d.nombres, enlace: d.enlace };
+        const html = M.html(datos);
         const nombreArchivo = `${d.obra.codigo} ${d.parte.codigo} parte de trabajo${dinero ? " (valorado)" : ""}.pdf`.replace(/[\\/:*?"<>|]/g, "-");
-        return { html, nombreArchivo };
+        return { html, datos, nombreArchivo };
       }
       function correo(repo, sesion, id, { conDinero = false } = {}) {
         const d = leer(repo, sesion, id);
@@ -188721,6 +190289,206 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
     }
   });
 
+  // shared/commissioning/fotoGeo.js
+  var require_fotoGeo = __commonJS({
+    "shared/commissioning/fotoGeo.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const PZ = typeof module !== "undefined" && module.exports ? require_posicionEnPlano() : window.POSICION_PLANO;
+        const UMBRAL_PRECISION_M = 10;
+        const R = 63710088e-1;
+        const num = (v) => v === null || v === void 0 || v === "" ? NaN : Number(v);
+        const fin = Number.isFinite;
+        function normalizar(g) {
+          if (!g) return null;
+          const lat = num(g.lat ?? g.latitude);
+          const lon = num(g.lon ?? g.longitude);
+          if (!fin(lat) || !fin(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+          const p = num(g.precision ?? g.accuracy);
+          return {
+            lat: Math.round(lat * 1e7) / 1e7,
+            lon: Math.round(lon * 1e7) / 1e7,
+            precision: fin(p) && p >= 0 ? Math.round(p * 10) / 10 : null,
+            tomadaEn: g.tomadaEn ? String(g.tomadaEn).slice(0, 30) : null,
+            origen: g.origen === "exif" ? "exif" : "dispositivo"
+          };
+        }
+        function distanciaM(lat1, lon1, lat2, lon2) {
+          const r = Math.PI / 180;
+          const a = Math.sin((lat2 - lat1) * r / 2) ** 2 + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin((lon2 - lon1) * r / 2) ** 2;
+          return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+        }
+        function leerExifGps(bytes) {
+          try {
+            const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+            if (b[0] !== 255 || b[1] !== 216) return null;
+            const dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
+            let o = 2;
+            while (o + 4 < b.length && b[o] === 255) {
+              const m = b[o + 1];
+              const len = dv.getUint16(o + 2);
+              if (m === 225 && b[o + 4] === 69 && b[o + 5] === 120) {
+                const t = o + 10;
+                const le = b[t] === 73;
+                const u16 = (p) => dv.getUint16(t + p, le);
+                const u322 = (p) => dv.getUint32(t + p, le);
+                const ifd = (p, f) => {
+                  const n = u16(p);
+                  for (let i = 0; i < n; i++) f(p + 2 + i * 12);
+                };
+                let gps = 0;
+                ifd(u322(4), (e) => {
+                  if (u16(e) === 34853) gps = u322(e + 8);
+                });
+                if (!gps) return null;
+                const racional = (e) => {
+                  const p = u322(e + 8);
+                  const v = [];
+                  for (let i = 0; i < 3; i++) {
+                    const d = u322(p + i * 8 + 4);
+                    v.push(d ? u322(p + i * 8) / d : 0);
+                  }
+                  return v[0] + v[1] / 60 + v[2] / 3600;
+                };
+                const ref = (e) => String.fromCharCode(b[t + e + 8]);
+                let lat = null, lon = null, rl = "N", ro = "E";
+                ifd(gps, (e) => {
+                  const tag = u16(e);
+                  if (tag === 1) rl = ref(e);
+                  else if (tag === 2) lat = racional(e);
+                  else if (tag === 3) ro = ref(e);
+                  else if (tag === 4) lon = racional(e);
+                });
+                if (lat === null || lon === null) return null;
+                return normalizar({ lat: rl === "S" ? -lat : lat, lon: ro === "W" ? -lon : lon, origen: "exif" });
+              }
+              o += 2 + len;
+            }
+          } catch {
+          }
+          return null;
+        }
+        function decidir(geo, foto, actual = null, { umbral = UMBRAL_PRECISION_M } = {}) {
+          const f = normalizar(foto);
+          if (!f) return { accion: "nada", motivo: "sinCoordenadas" };
+          if (!geo || !geo.ok) return { accion: "nada", motivo: "sinCalibracion" };
+          const p = PZ.geoAPlano(geo, f.lat, f.lon);
+          if (!p || !fin(p.x) || !fin(p.y)) return { accion: "nada", motivo: "sinCalibracion" };
+          if (p.x < 0 || p.x > 1 || p.y < 0 || p.y > 1) return { accion: "nada", motivo: "fueraDelPlano", x: p.x, y: p.y };
+          let d = null;
+          if (actual && fin(actual.x) && fin(actual.y)) {
+            const g = PZ.planoAGeo(geo, actual.x, actual.y);
+            if (g) d = Math.round(distanciaM(f.lat, f.lon, g.lat, g.lon));
+          }
+          const buena = f.precision !== null && f.precision <= umbral;
+          return { accion: buena ? "mover" : "proponer", motivo: buena ? "precisionBuena" : "precisionMala", x: p.x, y: p.y, distanciaM: d, precision: f.precision };
+        }
+        const API = { UMBRAL_PRECISION_M, normalizar, distanciaM, leerExifGps, decidir };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.FOTO_GEO = API;
+      })();
+    }
+  });
+
+  // electron/obra/data/posicionPorFoto.js
+  var require_posicionPorFoto = __commonJS({
+    "electron/obra/data/posicionPorFoto.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PZ = require_posicionEnPlano();
+      var FG = require_fotoGeo();
+      var { colocarEnModelo } = require_planosIfc();
+      var ORIGEN = "foto GPS";
+      var leerJson = (t, otro) => {
+        try {
+          const o = typeof t === "string" ? JSON.parse(t) : t;
+          return o ?? otro;
+        } catch {
+          return otro;
+        }
+      };
+      function planoDe(repo, ses, eq) {
+        const pp = leerJson(eq.posicionPlano, null);
+        const filas = repo.listar("plantasIfc", ses, { condicion: "obraId = ?", params: [eq.obraId] });
+        if (pp && pp.ifc) return filas.find((f) => f.id === pp.ifc) || null;
+        const q = String(eq.planta || "").trim().toLowerCase();
+        return q ? filas.find((f) => String(f.nombre || "").trim().toLowerCase() === q) || null : null;
+      }
+      function geoDe(repo, ses, obraId, fila) {
+        if (!fila) return null;
+        const cfg = repo.listar("configCommissioning", ses, { condicion: "obraId = ?", params: [obraId], limite: 1 })[0];
+        if (!cfg) return null;
+        return PZ.deGuardado(cfg.georreferencia, `ifc:${fila.id}`) || PZ.deGuardado(cfg.georreferencia, fila.id);
+      }
+      var fotoGeoDe = (f) => FG.normalizar({ lat: f.lat, lon: f.lon, precision: f.precision, tomadaEn: f.tomadaEn });
+      function mover(repo, ses, eq, fila, x, y, fotoId) {
+        const previa = leerJson(eq.posicionPlano, null);
+        const anterior = previa ? { ...previa, anterior: void 0 } : null;
+        return colocarEnModelo(
+          repo,
+          ses,
+          eq.obraId,
+          fila.id,
+          "equipo",
+          eq.id,
+          Math.min(1, Math.max(0, x)),
+          Math.min(1, Math.max(0, y)),
+          null,
+          { origen: ORIGEN, anterior, fotoId }
+        );
+      }
+      function alGuardarFoto(repo, ses, eq, foto) {
+        const f = fotoGeoDe(foto);
+        if (!f) return { accion: "nada", motivo: "sinCoordenadas" };
+        const fila = planoDe(repo, ses, eq);
+        const geo = geoDe(repo, ses, eq.obraId, fila);
+        const pp = leerJson(eq.posicionPlano, null);
+        const d = FG.decidir(geo, f, pp && pp.ifc === (fila && fila.id) ? pp : null);
+        if (d.accion !== "mover") return d;
+        const r = mover(repo, ses, eq, fila, d.x, d.y, foto.id);
+        return r.ok ? { ...d, movido: true } : { accion: "nada", motivo: r.error };
+      }
+      function estadoFoto(repo, ses, eq0) {
+        const eq = repo.leer("equiposObra", ses, eq0.id) || eq0;
+        const fotos = repo.listar("fotosEquipo", ses, { condicion: "equipoId = ? AND lat IS NOT NULL", params: [eq.id], orden: "creadoEn" });
+        const ultima = fotos[fotos.length - 1];
+        if (!ultima) return null;
+        const f = fotoGeoDe(ultima);
+        if (!f) return null;
+        const fila = planoDe(repo, ses, eq);
+        const geo = geoDe(repo, ses, eq.obraId, fila);
+        const pp = leerJson(eq.posicionPlano, null);
+        const base = { fotoId: ultima.id, lat: f.lat, lon: f.lon, precision: f.precision, tomadaEn: f.tomadaEn, estado: "soloCoordenadas" };
+        if (!geo) return base;
+        const d = FG.decidir(geo, f, pp && fila && pp.ifc === fila.id ? pp : null);
+        if (d.accion === "nada") return base;
+        if (pp && pp.origen === ORIGEN && pp.fotoId === ultima.id) return { ...base, estado: "movido", distanciaM: 0, anterior: Boolean(pp.anterior) };
+        return { ...base, estado: d.accion === "mover" && d.distanciaM !== null && d.distanciaM <= Math.max(f.precision || 0, 3) ? "coincide" : "propuesta", distanciaM: d.distanciaM, planoId: fila.id };
+      }
+      function aceptar(repo, ses, eq, fotoId) {
+        const foto = repo.leer("fotosEquipo", ses, String(fotoId || ""));
+        if (!foto || foto.equipoId !== eq.id) return { ok: false, error: "No se encuentra esa foto." };
+        const f = fotoGeoDe(foto);
+        if (!f) return { ok: false, error: "Esa foto no tiene coordenadas." };
+        const fila = planoDe(repo, ses, eq);
+        const d = FG.decidir(geoDe(repo, ses, eq.obraId, fila), f, null, { umbral: Infinity });
+        if (d.x === void 0 || d.accion === "nada") return { ok: false, error: "Este plano no est\xE1 calibrado o la foto cae fuera de \xE9l." };
+        return mover(repo, ses, eq, fila, d.x, d.y, foto.id);
+      }
+      function deshacer(repo, ses, eq) {
+        const pp = leerJson(eq.posicionPlano, null);
+        if (!pp || pp.origen !== ORIGEN) return { ok: false, error: "Este equipo no se movi\xF3 por una foto." };
+        const ant = pp.anterior && pp.anterior.ifc && Number.isFinite(pp.anterior.x) ? pp.anterior : null;
+        repo.modificar("equiposObra", ses, eq.id, { posicionPlano: ant ? JSON.stringify(ant) : null });
+        return { ok: true, restaurada: Boolean(ant) };
+      }
+      module.exports = { ORIGEN, planoDe, geoDe, alGuardarFoto, estadoFoto, aceptar, deshacer };
+    }
+  });
+
   // electron/movil/rutasBocaManual.js
   var require_rutasBocaManual = __commonJS({
     "electron/movil/rutasBocaManual.js"(exports, module) {
@@ -190709,6 +192477,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       var { crearRutasFichas, PERMISOS_FICHAS } = require_rutasFichas();
       var { crearRutasPlanoEquipos, PERMISOS_PLANO_EQUIPOS } = require_rutasPlanoEquipos();
       var { crearRutasPosicionPlano, PERMISOS_POSICION_PLANO } = require_rutasPosicionPlano();
+      var FG = require_fotoGeo();
+      var PF = require_posicionPorFoto();
       var { crearRutasBocaManual, PERMISOS_BOCA_MANUAL } = require_rutasBocaManual();
       var BMAK = require_bocaManual();
       var PERMISOS_OBRA = {
@@ -190740,6 +192510,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         "GET api/equipo/foto": [["commissioning", "ver"]],
         /* Las fotos del equipo y de su conjunto, ligeras, para la hoja del plano de commissioning (17-nov-2026). */
         "GET api/equipo/fotos/lista": [["commissioning", "ver"]],
+        "POST api/equipo/foto-colocar": [["planoEquipos", "editar"]],
+        "POST api/equipo/foto-deshacer": [["planoEquipos", "editar"]],
         /* Las firmas del cliente y del jefe de obra (28-oct-2026). */
         "POST api/equipo/firma": [["commissioning", "editar"]],
         "GET api/equipo/plano": [["commissioning", "ver"]],
@@ -191185,6 +192957,13 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
               }
             })(),
             fotos: fotosDelEquipo(ses, d.equipo, linea, dosier),
+            posicionFoto: (() => {
+              try {
+                return PF.estadoFoto(repo, ses, d.equipo);
+              } catch {
+                return null;
+              }
+            })(),
             fichasConFotos: fichasDelEquipo(d.equipo, dosier),
             /* Las firmas del cliente y del jefe de obra (las del conjunto, si es un split o un VRF). */
             firmas: FIR.firmasDeEquipo(repo, ses, d.equipo.id, fechaPM),
@@ -191421,7 +193200,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         }
         const MAX_FOTOS_EQUIPO = 30;
         const carpetaEquipos = (obraId) => path.join(carpeta, "commissioning", String(obraId).replace(/[^A-Za-z0-9_-]/g, "_"), "equipos");
-        const fotosDe = (ses, equipoId) => repo.listar("fotosEquipo", ses, { condicion: "equipoId = ?", params: [equipoId], orden: "creadoEn" }).map((f) => ({ id: f.id, pie: f.pie || "", hora: f.hora || "" }));
+        const fotosDe = (ses, equipoId) => repo.listar("fotosEquipo", ses, { condicion: "equipoId = ?", params: [equipoId], orden: "creadoEn" }).map((f) => ({ id: f.id, pie: f.pie || "", hora: f.hora || "", ...f.lat != null && f.lon != null ? { lat: f.lat, lon: f.lon, precision: f.precision ?? null, tomadaEn: f.tomadaEn || null } : {} }));
         const ultimaFoto = (ses, equipoId) => {
           const f = fotosDe(ses, equipoId).pop();
           return f ? { ...f, url: `api/equipo/foto?id=${encodeURIComponent(f.id)}` } : null;
@@ -191482,8 +193261,16 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
                 equipoId: eq.id,
                 ruta: destino,
                 pie: llano(nuevas[i].pie).slice(0, 120) || null,
-                hora: llano(nuevas[i].hora).slice(0, 20) || null
+                hora: llano(nuevas[i].hora).slice(0, 20) || null,
+                ...FG.normalizar(nuevas[i]) ? (({ lat, lon, precision, tomadaEn }) => ({ lat, lon, precision, tomadaEn }))(FG.normalizar(nuevas[i])) : {}
               }, { verbo: "editar" });
+              const idFila = repo.db.prepare("SELECT id FROM fotosEquipo WHERE ruta = ?").get(destino);
+              if (idFila && FG.normalizar(nuevas[i])) {
+                try {
+                  PF.alGuardarFoto(repo, ses, repo.leer("equiposObra", ses, eq.id), { ...FG.normalizar(nuevas[i]), id: idFila.id });
+                } catch {
+                }
+              }
             });
           } catch (err) {
             for (const x of escritas) {
@@ -191562,7 +193349,20 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const ids = INC.conjuntosDeObra(repo, eq.obraId).get(eq.id) || [eq.id];
           const tags = new Map(repo.db.prepare("SELECT id, tag FROM equiposObra WHERE obraId = ?").all(eq.obraId).map((x) => [x.id, x.tag]));
           const fotos = [eq.id, ...ids.filter((x) => x !== eq.id)].flatMap((id) => fotosDe(ses, id).map((f) => ({ ...f, equipoId: id, tag: id === eq.id ? null : tags.get(id) || null, url: `api/equipo/foto?id=${encodeURIComponent(f.id)}` })));
-          return { ok: true, fotos };
+          return { ok: true, fotos, posicionFoto: PF.estadoFoto(repo, ses, eq) };
+        }
+        function fotoColocar({ ses, json }) {
+          const e = json();
+          const eq = repo.leer("equiposObra", ses, llano(e.equipoId));
+          if (!eq) return { ok: false, error: "No se encuentra el equipo." };
+          const r = PF.aceptar(repo, ses, eq, llano(e.fotoId));
+          return r.ok ? { ok: true, posicionFoto: PF.estadoFoto(repo, ses, repo.leer("equiposObra", ses, eq.id)) } : r;
+        }
+        function fotoDeshacer({ ses, json }) {
+          const eq = repo.leer("equiposObra", ses, llano(json().equipoId));
+          if (!eq) return { ok: false, error: "No se encuentra el equipo." };
+          const r = PF.deshacer(repo, ses, eq);
+          return r.ok ? { ok: true, posicionFoto: PF.estadoFoto(repo, ses, repo.leer("equiposObra", ses, eq.id)) } : r;
         }
         async function equipoFoto({ ses, query }) {
           const f = repo.leer("fotosEquipo", ses, llano(query.id));
@@ -191923,6 +193723,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "POST api/equipo/documento": equipoDocumento,
           "GET api/equipo/foto": equipoFoto,
           "GET api/equipo/fotos/lista": equipoFotosLista,
+          "POST api/equipo/foto-colocar": fotoColocar,
+          "POST api/equipo/foto-deshacer": fotoDeshacer,
           "POST api/equipo/firma": equipoFirma,
           "GET api/equipo/plano": equipoPlano,
           "GET api/equipo/plano-ifc": equipoPlanoIfc,
@@ -212743,6 +214545,7 @@ No cambia ning\xFAn importe hasta que se pase a la valoraci\xF3n.`,
             parametros: S({ filtro: { type: "string", enum: ["abiertas", "vencidas", "porVerificar", "observacion", "enCurso", "cerradas", "todas", "resumen"] } })
           },
           { id: "consultarReparaciones", familia: "consultar", descripcion: "Las reparaciones abiertas de la obra.", modulo: "incidencias", verbo: "ver", escribe: false, confirmar: false, parametros: S({}) },
+          { id: "consultarIndicadoresMant", familia: "consultar", descripcion: "Indicadores del mantenimiento (GMAO) de la obra: MTTR, MTBF, cumplimiento del preventivo, backlog y SLA de las correctivas (vencidas y en riesgo).", modulo: "ordenesMant", verbo: "ver", escribe: false, confirmar: false, parametros: S({}) },
           { id: "consultarTareas", familia: "consultar", descripcion: "Mis tareas (\xF3rdenes de mantenimiento) pendientes.", modulo: "ordenesMant", verbo: "ver", escribe: false, confirmar: false, parametros: S({}) },
           { id: "consultarJornada", familia: "consultar", descripcion: "Mi jornada de hoy: si he fichado y cu\xE1nto llevo.", modulo: "jornada", verbo: "ver", escribe: false, confirmar: false, parametros: S({}) },
           { id: "consultarPersonal", familia: "consultar", descripcion: "Qui\xE9n est\xE1 hoy en la obra.", modulo: "partes", verbo: "ver", escribe: false, confirmar: false, parametros: S({}) },
@@ -213150,6 +214953,7 @@ No cambia ning\xFAn importe hasta que se pase a la valoraci\xF3n.`,
           }
           if (/\bquien (esta|hay|ha venido|ha fichado)\b|\bpersonal de hoy\b|\bcuant\w* (gente|personas|operarios|trabajadores) hay\b/.test(t)) return { id: "consultarPersonal", parametros: {} };
           if (/\balbaran\w*\b/.test(t) && /\b(pendientes?|sin registrar|por registrar|cuant\w*|hay)\b/.test(t)) return { id: "consultarAlbaranes", parametros: {} };
+          if (/\b(sla|mttr|mtbf|backlog)\b|\b(indicadores|kpis?) (del? )?(mantenimiento|gmao)\b|\bcorrectivas? (vencidas?|fuera de plazo|en riesgo)\b/.test(t)) return { id: "consultarIndicadoresMant", parametros: {} };
           if (/\b(que|cuales|cuantas) (tareas|ordenes)\b|\bmis tareas\b/.test(t) && PREGUNTA.test(t)) return { id: "consultarTareas", parametros: {} };
           if (/\bque (tengo|me toca)( que hacer)?( hoy)?\b/.test(t)) return { id: "consultarTareas", parametros: {} };
           if (/\bplanos?\b/.test(t) && (VERBO_IR.test(t) || /\bplanta\b/.test(t)) && !/\bplanificacion\b/.test(t)) {
@@ -213260,7 +215064,7 @@ No cambia ning\xFAn importe hasta que se pase a la valoraci\xF3n.`,
           planoEquipos: { nombre: "Plano de equipos", modulo: "planoEquipos", re: "plano de equipos" },
           balanceo: { nombre: "Balanceo de caudales", modulo: "balanceo", re: "balanceo( de caudales)?" },
           pruebasEstanqueidad: { nombre: "Pruebas de estanqueidad", modulo: "pruebasEstanqueidad", re: "pruebas( de estanqueidad)?|estanqueidad" },
-          mantenimiento: { nombre: "Mantenimiento preventivo", modulo: "mantenimiento", re: "mantenimiento( preventivo)?" },
+          mantenimiento: { nombre: "Mantenimiento preventivo", modulo: "mantenimiento", re: "mantenimiento( preventivo)?|gmao" },
           certificaciones: { nombre: "Certificaciones", modulo: "certificaciones", re: "certificaciones|certificados? de obra" },
           compras: { nombre: "Compras y pedidos", modulo: "compras", re: "compras( y pedidos)?" },
           pedidos: { nombre: "Pedidos y entregas", modulo: "pedidos", re: "pedidos( y entregas)?" },
@@ -228830,6 +230634,2718 @@ ${f.map((x) => `- ${x.tipoNombre}: modelo ${n(x.plano)} \xB7 presupuesto ${x.ppt
     }
   });
 
+  // shared/ia/ficheros.js
+  var require_ficheros = __commonJS({
+    "shared/ia/ficheros.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function(raiz, fabrica) {
+        const API = fabrica(raiz);
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.IarvisFicheros = API;
+      })(typeof globalThis !== "undefined" ? globalThis : exports, (raiz) => {
+        const ROLES = typeof __require === "function" && typeof module !== "undefined" ? require_roles() : raiz.ROLES;
+        const normal = (v) => String(v ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[¿?¡!,;«»"()]/g, " ").replace(/\s+/g, " ").trim();
+        const FICHEROS = {
+          "presupuesto.excel": { que: "presupuesto", formato: "excel", modulo: "presupuestos", permiso: ["presupuestos", "exportar"], ext: "xlsx", mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+          "presupuesto.bc3": { que: "presupuesto", formato: "bc3", modulo: "presupuestos", permiso: ["presupuestos", "exportar"], conDinero: true, ext: "bc3", mime: "application/octet-stream" },
+          "programa.excel": { que: "programa", formato: "excel", modulo: "gantt", permiso: ["costsPlan", "ver"], ext: "xlsx", mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+          "programa.pdf": { que: "programa", formato: "pdf", modulo: "gantt", permiso: ["costsPlan", "ver"], ext: "pdf", mime: "application/pdf" },
+          "programa.project": { que: "programa", formato: "project", modulo: "gantt", permiso: ["costsPlan", "ver"], ext: "xml", mime: "application/vnd.ms-project" },
+          "ganttCx.project": { que: "ganttCx", formato: "project", modulo: "commissioning", permiso: ["commissioning", "ver"], ext: "xml", mime: "application/vnd.ms-project" }
+        };
+        const FORMATO = [
+          ["bc3", /\b(bc3|fiebdc\w*|presto)\b/],
+          ["project", /\b(ms ?project|microsoft project|project|mpp|mspdi)\b/],
+          ["excel", /\b(excel|xlsx?|hoja de calculo)\b/],
+          ["pdf", /\bpdf\b/]
+        ];
+        const PIDE = /\b(dame|damelo|da me|saca\w*|genera\w*|exporta\w*|pasa\w*|descarga\w*|baja\w*|quiero|necesito|hazme|haz|crea\w*|prepara\w*|manda\w*|envia\w*|give|export|download|generate)\b|\b(en|a|como|in|to) (formato )?(excel|xlsx|pdf|bc3|fiebdc|presto|ms ?project|microsoft project|project|xml)\b/;
+        const IMPORTA = /\b(importa\w*|carga\w*|sube|subir|subo|lee|leer|abre (este|el) (archivo|fichero))\b|\b(desde|a partir de|con) (el |este |un |mi )?(excel|xlsx|bc3|fiebdc|archivo|fichero|presto)\b/;
+        const DUDA = /^(como|donde|por que|para que)\b|\bcomo (se|puedo|hago)\b/;
+        const QUE_CX = /\b(gantt|programa|planificacion|planning|calendario) (de |del )?(commissioning|cx|puesta en marcha|puestas en marcha)\b|\bgantt cx\b/;
+        const QUE_PROGRAMA = /\b(gantt|programa( de obra)?|planning|cronograma|diagrama de gantt|planificacion de (la )?obra|plan de obra)\b/;
+        const QUE_PRESUPUESTO = /\b(presupuestos?|mediciones|partidas|costs ?plan)\b/;
+        function entender(pregunta) {
+          const t = normal(pregunta);
+          if (!t || DUDA.test(t) || IMPORTA.test(t)) return null;
+          const formato = (FORMATO.find(([, re]) => re.test(t)) || [])[0] || null;
+          if (!formato || !PIDE.test(t)) return null;
+          let que = null;
+          if (QUE_CX.test(t)) que = "ganttCx";
+          else if (QUE_PRESUPUESTO.test(t)) que = "presupuesto";
+          else if (QUE_PROGRAMA.test(t)) que = "programa";
+          else if (formato === "bc3") que = "presupuesto";
+          else if (formato === "project") que = "programa";
+          if (!que) return null;
+          const id = `${que}.${formato}`;
+          if (FICHEROS[id]) return { id, que, formato };
+          if (que === "ganttCx") return null;
+          return { noHay: id, que, formato };
+        }
+        const sinDineroDe = (rol) => Boolean(ROLES && (ROLES.campoVetado(rol, "precioCoste") || ROLES.campoVetado(rol, "importeVenta")));
+        function permiso({ rol, contrato = null } = {}, id) {
+          const f = FICHEROS[id];
+          if (!f || !ROLES || !rol) return { ok: false, motivo: "rol" };
+          if (!ROLES.contratoPermite(contrato, f.modulo)) return { ok: false, motivo: "licencia", contratable: ROLES.contratableDe(f.modulo) };
+          if (!ROLES.puede(rol, f.permiso[0], f.permiso[1])) return { ok: false, motivo: "rol" };
+          const sinDinero = sinDineroDe(rol);
+          if (sinDinero && f.conDinero) return { ok: false, motivo: "dinero" };
+          return { ok: true, sinDinero };
+        }
+        const NOMBRE = {
+          es: { presupuesto: "el presupuesto", programa: "el programa de obra", ganttCx: "el Gantt de commissioning", excel: "Excel", pdf: "PDF", bc3: "BC3", project: "XML de Microsoft Project" },
+          en: { presupuesto: "the budget", programa: "the works programme", ganttCx: "the commissioning Gantt", excel: "Excel", pdf: "PDF", bc3: "BC3", project: "Microsoft Project XML" },
+          ca: { presupuesto: "el pressupost", programa: "el programa d'obra", ganttCx: "el Gantt de commissioning", excel: "Excel", pdf: "PDF", bc3: "BC3", project: "XML de Microsoft Project" },
+          pt: { presupuesto: "o or\xE7amento", programa: "o programa de obra", ganttCx: "o Gantt de comissionamento", excel: "Excel", pdf: "PDF", bc3: "BC3", project: "XML do Microsoft Project" },
+          de: { presupuesto: "das Leistungsverzeichnis", programa: "den Bauzeitenplan", ganttCx: "das Commissioning-Gantt", excel: "Excel", pdf: "PDF", bc3: "BC3", project: "Microsoft-Project-XML" },
+          fr: { presupuesto: "le devis", programa: "le planning de chantier", ganttCx: "le Gantt de commissioning", excel: "Excel", pdf: "PDF", bc3: "BC3", project: "XML Microsoft Project" }
+        };
+        const TEXTOS = {
+          es: {
+            aqui: "Aqu\xED tienes {que} en {formato}.",
+            aquiSinDinero: "Aqu\xED tienes {que} en {formato}, solo con mediciones: tu puesto no ve precios ni importes.",
+            sinLicencia: "Tu unidad de negocio no tiene contratado el m\xF3dulo \xAB{modulo}\xBB, as\xED que no puedo sacarte {que}. Lo da de alta el administrador a petici\xF3n de tu jefe.",
+            sinPermiso: "Tu puesto no puede sacar {que} en {formato}.",
+            sinDinero: "El {formato} lleva los precios dentro y tu puesto no los ve; te lo puedo dar en Excel solo con mediciones.",
+            sinObra: "Elige primero la obra arriba a la izquierda y te saco el archivo.",
+            fueraAlcance: "Esa obra no est\xE1 entre las tuyas, as\xED que no te saco nada de ella.",
+            sinPresupuesto: "Esta obra a\xFAn no tiene presupuesto. Cr\xE9alo o vinc\xFAlalo en Presupuesto y te lo saco.",
+            sinPartidas: "El presupuesto de esta obra a\xFAn no tiene partidas. Cuando las tenga, te lo saco.",
+            sinPrograma: "Esta obra a\xFAn no tiene programa de obra. Cr\xE9alo en Diagrama de Gantt y te lo saco.",
+            programaSinFechas: "El programa de obra a\xFAn no tiene ninguna tarea con fecha. Ponle fechas en Diagrama de Gantt y te lo saco.",
+            sinCx: "A\xFAn no hay intervenciones de commissioning con fecha en esta obra. Planif\xEDcalas en Commissioning y te saco el Gantt.",
+            movil: "El archivo te lo saco desde el ordenador o la web; en el tel\xE9fono no se descarga.",
+            noPude: "No he podido sacar el archivo ahora; \xE1brelo desde la pantalla.",
+            noHay: "{que} no lo saco en {formato}. Te lo doy en {otros}.",
+            abrirPresupuesto: "Abrir Presupuesto",
+            abrirGantt: "Abrir Diagrama de Gantt",
+            abrirCx: "Abrir Commissioning",
+            fuera: "{n} partida(s) sin planificar no van en el fichero"
+          },
+          en: {
+            aqui: "Here is {que} as {formato}.",
+            aquiSinDinero: "Here is {que} as {formato}, with quantities only: your role does not see prices or amounts.",
+            sinLicencia: "Your business unit has not licensed the \xAB{modulo}\xBB module, so I cannot export {que}. The administrator enables it when your manager asks.",
+            sinPermiso: "Your role cannot export {que} as {formato}.",
+            sinDinero: "The {formato} file carries the prices and your role does not see them; I can give it to you in Excel with quantities only.",
+            sinObra: "Pick the project at the top left first and I will export the file.",
+            fueraAlcance: "That project is not one of yours, so I will not export anything from it.",
+            sinPresupuesto: "This project has no budget yet. Create or link it in Budget and I will export it.",
+            sinPartidas: "This project's budget has no items yet. Once it has, I will export it.",
+            sinPrograma: "This project has no works programme yet. Create it in the Gantt chart and I will export it.",
+            programaSinFechas: "The works programme has no dated tasks yet. Add dates in the Gantt chart and I will export it.",
+            sinCx: "There are no dated commissioning activities in this project yet. Schedule them in Commissioning and I will export the Gantt.",
+            movil: "I export the file from the computer or the web; it cannot be downloaded on the phone.",
+            noPude: "I could not export the file right now; open it from the screen.",
+            noHay: "I do not export {que} as {formato}. I can give it to you as {otros}.",
+            abrirPresupuesto: "Open Budget",
+            abrirGantt: "Open Gantt chart",
+            abrirCx: "Open Commissioning",
+            fuera: "{n} unscheduled item(s) are not in the file"
+          },
+          ca: {
+            aqui: "Aqu\xED tens {que} en {formato}.",
+            aquiSinDinero: "Aqu\xED tens {que} en {formato}, nom\xE9s amb amidaments: el teu lloc no veu preus ni imports.",
+            sinLicencia: "La teva unitat de negoci no t\xE9 contractat el m\xF2dul \xAB{modulo}\xBB, aix\xED que no et puc treure {que}.",
+            sinPermiso: "El teu lloc no pot treure {que} en {formato}.",
+            sinDinero: "El {formato} porta els preus i el teu lloc no els veu; te'l puc donar en Excel nom\xE9s amb amidaments.",
+            sinObra: "Tria primer l'obra a dalt a l'esquerra i et trec el fitxer.",
+            fueraAlcance: "Aquesta obra no \xE9s de les teves, aix\xED que no et trec res.",
+            sinPresupuesto: "Aquesta obra encara no t\xE9 pressupost. Crea'l o vincula'l a Pressupost i te'l trec.",
+            sinPartidas: "El pressupost d'aquesta obra encara no t\xE9 partides. Quan en tingui, te'l trec.",
+            sinPrograma: "Aquesta obra encara no t\xE9 programa d'obra. Crea'l al Diagrama de Gantt i te'l trec.",
+            programaSinFechas: "El programa d'obra encara no t\xE9 cap tasca amb data. Posa-li dates al Diagrama de Gantt i te'l trec.",
+            sinCx: "Encara no hi ha intervencions de commissioning amb data en aquesta obra. Planifica-les a Commissioning i et trec el Gantt.",
+            movil: "El fitxer te'l trec des de l'ordinador o la web; al tel\xE8fon no es descarrega.",
+            noPude: "No he pogut treure el fitxer ara; obre'l des de la pantalla.",
+            noHay: "{que} no el trec en {formato}. Te'l dono en {otros}.",
+            abrirPresupuesto: "Obrir Pressupost",
+            abrirGantt: "Obrir Diagrama de Gantt",
+            abrirCx: "Obrir Commissioning",
+            fuera: "{n} partida(es) sense planificar no van al fitxer"
+          },
+          pt: {
+            aqui: "Aqui tens {que} em {formato}.",
+            aquiSinDinero: "Aqui tens {que} em {formato}, s\xF3 com medi\xE7\xF5es: o teu cargo n\xE3o v\xEA pre\xE7os nem valores.",
+            sinLicencia: "A tua unidade de neg\xF3cio n\xE3o tem o m\xF3dulo \xAB{modulo}\xBB contratado, por isso n\xE3o posso exportar {que}.",
+            sinPermiso: "O teu cargo n\xE3o pode exportar {que} em {formato}.",
+            sinDinero: "O {formato} leva os pre\xE7os e o teu cargo n\xE3o os v\xEA; posso dar-to em Excel s\xF3 com medi\xE7\xF5es.",
+            sinObra: "Escolhe primeiro a obra no canto superior esquerdo e exporto o ficheiro.",
+            fueraAlcance: "Essa obra n\xE3o \xE9 das tuas, por isso n\xE3o exporto nada dela.",
+            sinPresupuesto: "Esta obra ainda n\xE3o tem or\xE7amento. Cria-o ou associa-o em Or\xE7amento e eu exporto-o.",
+            sinPartidas: "O or\xE7amento desta obra ainda n\xE3o tem partidas. Quando tiver, exporto-o.",
+            sinPrograma: "Esta obra ainda n\xE3o tem programa de obra. Cria-o no Diagrama de Gantt e eu exporto-o.",
+            programaSinFechas: "O programa de obra ainda n\xE3o tem nenhuma tarefa com data. P\xF5e datas no Diagrama de Gantt e eu exporto-o.",
+            sinCx: "Ainda n\xE3o h\xE1 interven\xE7\xF5es de comissionamento com data nesta obra. Planeia-as em Comissionamento e exporto o Gantt.",
+            movil: "O ficheiro exporto-o a partir do computador ou da web; no telefone n\xE3o se descarrega.",
+            noPude: "N\xE3o consegui exportar o ficheiro agora; abre-o a partir do ecr\xE3.",
+            noHay: "N\xE3o exporto {que} em {formato}. Dou-to em {otros}.",
+            abrirPresupuesto: "Abrir Or\xE7amento",
+            abrirGantt: "Abrir Diagrama de Gantt",
+            abrirCx: "Abrir Comissionamento",
+            fuera: "{n} partida(s) sem planeamento n\xE3o v\xE3o no ficheiro"
+          },
+          de: {
+            aqui: "Hier ist {que} als {formato}.",
+            aquiSinDinero: "Hier ist {que} als {formato}, nur mit Mengen: Ihre Rolle sieht keine Preise oder Betr\xE4ge.",
+            sinLicencia: "Ihre Gesch\xE4ftseinheit hat das Modul \xAB{modulo}\xBB nicht lizenziert; ich kann {que} nicht exportieren.",
+            sinPermiso: "Ihre Rolle darf {que} nicht als {formato} exportieren.",
+            sinDinero: "Die {formato}-Datei enth\xE4lt die Preise, die Ihre Rolle nicht sieht; ich kann sie als Excel nur mit Mengen geben.",
+            sinObra: "W\xE4hlen Sie zuerst oben links das Projekt, dann exportiere ich die Datei.",
+            fueraAlcance: "Dieses Projekt geh\xF6rt nicht zu Ihren, daher exportiere ich daraus nichts.",
+            sinPresupuesto: "Dieses Projekt hat noch kein Leistungsverzeichnis. Legen Sie es an oder verkn\xFCpfen Sie es, dann exportiere ich es.",
+            sinPartidas: "Das Leistungsverzeichnis dieses Projekts hat noch keine Positionen. Sobald es welche hat, exportiere ich es.",
+            sinPrograma: "Dieses Projekt hat noch keinen Bauzeitenplan. Legen Sie ihn im Gantt-Diagramm an, dann exportiere ich ihn.",
+            programaSinFechas: "Der Bauzeitenplan hat noch keine Aufgabe mit Datum. Tragen Sie im Gantt-Diagramm Termine ein, dann exportiere ich ihn.",
+            sinCx: "In diesem Projekt gibt es noch keine terminierten Commissioning-Eins\xE4tze. Planen Sie sie unter Commissioning, dann exportiere ich das Gantt.",
+            movil: "Die Datei exportiere ich am Computer oder im Web; auf dem Telefon wird sie nicht heruntergeladen.",
+            noPude: "Ich konnte die Datei gerade nicht exportieren; \xF6ffnen Sie sie \xFCber den Bildschirm.",
+            noHay: "{que} exportiere ich nicht als {formato}. Ich gebe es Ihnen als {otros}.",
+            abrirPresupuesto: "Leistungsverzeichnis \xF6ffnen",
+            abrirGantt: "Gantt-Diagramm \xF6ffnen",
+            abrirCx: "Commissioning \xF6ffnen",
+            fuera: "{n} ungeplante Position(en) sind nicht in der Datei"
+          },
+          fr: {
+            aqui: "Voici {que} en {formato}.",
+            aquiSinDinero: "Voici {que} en {formato}, avec les m\xE9tr\xE9s seulement : votre poste ne voit ni prix ni montants.",
+            sinLicencia: "Votre unit\xE9 n'a pas souscrit le module \xAB{modulo}\xBB, je ne peux donc pas exporter {que}.",
+            sinPermiso: "Votre poste ne peut pas exporter {que} en {formato}.",
+            sinDinero: "Le fichier {formato} contient les prix et votre poste ne les voit pas ; je peux vous le donner en Excel avec les m\xE9tr\xE9s seulement.",
+            sinObra: "Choisissez d'abord le chantier en haut \xE0 gauche et j'exporte le fichier.",
+            fueraAlcance: "Ce chantier ne fait pas partie des v\xF4tres, je n'en exporte donc rien.",
+            sinPresupuesto: "Ce chantier n'a pas encore de devis. Cr\xE9ez-le ou liez-le dans Devis et je l'exporte.",
+            sinPartidas: "Le devis de ce chantier n'a pas encore de lots. D\xE8s qu'il en aura, je l'exporte.",
+            sinPrograma: "Ce chantier n'a pas encore de planning. Cr\xE9ez-le dans le Diagramme de Gantt et je l'exporte.",
+            programaSinFechas: "Le planning n'a encore aucune t\xE2che dat\xE9e. Ajoutez des dates dans le Diagramme de Gantt et je l'exporte.",
+            sinCx: "Il n'y a pas encore d'interventions de commissioning dat\xE9es sur ce chantier. Planifiez-les dans Commissioning et j'exporte le Gantt.",
+            movil: "J'exporte le fichier depuis l'ordinateur ou le web ; il ne se t\xE9l\xE9charge pas sur le t\xE9l\xE9phone.",
+            noPude: "Je n'ai pas pu exporter le fichier maintenant ; ouvrez-le depuis l'\xE9cran.",
+            noHay: "Je n'exporte pas {que} en {formato}. Je vous le donne en {otros}.",
+            abrirPresupuesto: "Ouvrir Devis",
+            abrirGantt: "Ouvrir Diagramme de Gantt",
+            abrirCx: "Ouvrir Commissioning",
+            fuera: "{n} lot(s) non planifi\xE9(s) ne sont pas dans le fichier"
+          }
+        };
+        const lengua = (idioma) => TEXTOS[String(idioma || "").slice(0, 2)] ? String(idioma).slice(0, 2) : "es";
+        const mayus = (s) => s ? s[0].toUpperCase() + s.slice(1) : s;
+        function texto(idioma, clave, datos = {}) {
+          const l = lengua(idioma);
+          const n = NOMBRE[l];
+          const plantilla = TEXTOS[l][clave] || TEXTOS.es[clave] || "";
+          const vals = { ...datos };
+          if (datos.que) vals.que = n[datos.que] || datos.que;
+          if (datos.formato) vals.formato = n[datos.formato] || datos.formato;
+          if (Array.isArray(datos.otros)) vals.otros = datos.otros.map((f) => n[f] || f).join(" / ");
+          const r = plantilla.replace(/\{(\w+)\}/g, (_m, k) => vals[k] == null ? "" : String(vals[k]));
+          return /^\{que\}/.test(plantilla) ? mayus(r) : r;
+        }
+        const formatosDe = (que) => Object.values(FICHEROS).filter((f) => f.que === que).map((f) => f.formato);
+        const r2 = (v) => Number.isFinite(Number(v)) ? Math.round(Number(v) * 100) / 100 : "";
+        const r3 = (v) => Number.isFinite(Number(v)) ? Math.round(Number(v) * 1e3) / 1e3 : "";
+        function hojasPresupuesto(arbol, { sinDinero = false } = {}) {
+          const cab = sinDinero ? ["C\xF3digo", "Tipo", "Resumen", "Ud", "Cantidad"] : ["C\xF3digo", "Tipo", "Resumen", "Ud", "Cantidad", "Precio (\u20AC)", "Importe (\u20AC)"];
+          const filas = [cab];
+          let total = 0;
+          (function recorrer(nodos, nivel) {
+            for (const n of nodos || []) {
+              const cap = n.tipo === "capitulo";
+              const base = [n.codigo || "", cap ? "Cap\xEDtulo" : "Partida", `${"  ".repeat(nivel)}${n.resumen || ""}`, cap ? "" : n.unidad || "", cap ? "" : r3(n.cantidad)];
+              filas.push(sinDinero ? base : [...base, cap ? "" : r2(n.precio), r2(n.importe)]);
+              if (cap) recorrer(n.hijos, nivel + 1);
+              else total += Number(n.importe) || 0;
+            }
+          })(arbol, 0);
+          if (!sinDinero) filas.push(["", "", "Total ejecuci\xF3n material", "", "", "", r2(total)]);
+          const anchos = sinDinero ? [12, 10, 70, 6, 12] : [12, 10, 70, 6, 12, 12, 14];
+          return [{ nombre: "Presupuesto", filas, anchos, filtro: true }];
+        }
+        const limpioNombre = (s) => String(s || "").replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, " ").trim();
+        const PALABRA = { presupuesto: "Presupuesto", programa: "Programa", ganttCx: "Gantt Cx" };
+        function nombreArchivo(obra, id, hoy) {
+          const f = FICHEROS[id];
+          const codigo = String(obra && (obra.codigo || obra.nombre) || "Obra").replace(/^OBR-/, "");
+          const dia = hoy || new Date(Date.now() - (/* @__PURE__ */ new Date()).getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+          return `${limpioNombre(`${codigo} ${PALABRA[f.que]} ${dia}`)}.${f.ext}`;
+        }
+        return { FICHEROS, entender, permiso, texto, formatosDe, hojasPresupuesto, nombreArchivo, sinDineroDe };
+      });
+    }
+  });
+
+  // electron/obra/data/unidadesNegocio.js
+  var require_unidadesNegocio = __commonJS({
+    "electron/obra/data/unidadesNegocio.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var crypto2 = require_crypto();
+      var L = require_licencias();
+      var NO = { ok: false, error: "Solo para el gerente o el administrador." };
+      var puede = (sesion) => Boolean(sesion && sesion.personaId && L.gestiona(sesion.rol));
+      var hayTabla = (db) => {
+        try {
+          return Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'unidadesNegocio'").get());
+        } catch {
+          return false;
+        }
+      };
+      var hayColumna = (db) => {
+        try {
+          return db.prepare("PRAGMA table_info(personas)").all().some((c) => c.name === "unidadNegocioId");
+        } catch {
+          return false;
+        }
+      };
+      var hayTope = (db) => {
+        try {
+          return db.prepare("PRAGMA table_info(unidadesNegocio)").all().some((c) => c.name === "topeUsuariosGmao");
+        } catch {
+          return false;
+        }
+      };
+      function filas(db) {
+        if (!hayTabla(db)) return [];
+        return db.prepare("SELECT * FROM unidadesNegocio ORDER BY activa DESC, nombre").all().map((f) => ({ ...L.limpiarUnidad(f), creadoEn: f.creadoEn, modificadoEn: f.modificadoEn }));
+      }
+      function personasCon(db) {
+        const conUnidad = hayColumna(db);
+        return db.prepare(`SELECT id, nombre, rol, departamento${conUnidad ? ", unidadNegocioId" : ""} FROM personas WHERE activo = 1 ORDER BY nombre`).all().map((p) => ({ ...p, unidadNegocioId: p.unidadNegocioId || null }));
+      }
+      function publicas(db) {
+        return L.sinPrecios(filas(db));
+      }
+      function listar(repo, sesion) {
+        if (!puede(sesion)) return NO;
+        const unidades = filas(repo.db);
+        const personas = personasCon(repo.db);
+        return { ok: true, ...L.resumen(sesion.rol, unidades, personas), personas, tarifa: L.TARIFA, paqueteCompleto: L.PAQUETE_COMPLETO };
+      }
+      function guardar(repo, sesion, datos) {
+        if (!puede(sesion)) return NO;
+        const u = L.limpiarUnidad(datos);
+        if (!u.nombre) return { ok: false, error: "La unidad de negocio necesita un nombre." };
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        const id = u.id || crypto2.randomUUID();
+        repo.db.prepare(`INSERT INTO unidadesNegocio (id, nombre, tipo, modulos, precios, obrasActivas, activa, modificadoPor, creadoEn, modificadoEn)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET nombre = excluded.nombre, tipo = excluded.tipo, modulos = excluded.modulos, precios = excluded.precios,
+      obrasActivas = excluded.obrasActivas, activa = excluded.activa, modificadoPor = excluded.modificadoPor, modificadoEn = excluded.modificadoEn`).run(id, u.nombre, u.tipo, JSON.stringify(u.modulos), JSON.stringify(u.precios), u.obrasActivas, u.activa ? 1 : 0, sesion.personaId, ahora, ahora);
+        if (hayTope(repo.db)) repo.db.prepare("UPDATE unidadesNegocio SET topeUsuariosGmao = ? WHERE id = ?").run(u.topeUsuariosGmao, id);
+        return { ok: true, id, unidad: L.limpiarUnidad({ ...u, id }) };
+      }
+      function borrar(repo, sesion, id) {
+        if (!puede(sesion)) return NO;
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        if (hayColumna(repo.db)) repo.db.prepare("UPDATE personas SET unidadNegocioId = NULL, modificadoEn = ? WHERE unidadNegocioId = ?").run(ahora, id);
+        const r = repo.db.prepare("DELETE FROM unidadesNegocio WHERE id = ?").run(id);
+        return { ok: true, borradas: r.changes };
+      }
+      function asignar(repo, sesion, personaId, unidadId) {
+        if (!puede(sesion)) return NO;
+        const destino = unidadId || null;
+        if (destino && !repo.db.prepare("SELECT 1 FROM unidadesNegocio WHERE id = ?").get(destino)) return { ok: false, error: "No existe esa unidad de negocio." };
+        const r = repo.db.prepare("UPDATE personas SET unidadNegocioId = ?, modificadoEn = ? WHERE id = ?").run(destino, (/* @__PURE__ */ new Date()).toISOString(), personaId);
+        if (!r.changes) return { ok: false, error: "No se encuentra la persona." };
+        const salida = { ok: true };
+        if (destino) {
+          const u = filas(repo.db).find((x) => x.id === destino);
+          const g = u && L.usuariosGmao(u, L.contarUsuariosGmao(personasCon(repo.db).filter((p) => p.unidadNegocioId === destino)));
+          if (g && g.aviso) salida.aviso = g.aviso;
+        }
+        return salida;
+      }
+      module.exports = { listar, guardar, borrar, asignar, publicas };
+    }
+  });
+
+  // shared/presupuesto/bc3.js
+  var require_bc3 = __commonJS({
+    "shared/presupuesto/bc3.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var _modeloBC3 = typeof __require !== "undefined" ? require_modelo() : window.MODELO;
+      var _textoBC3 = typeof __require !== "undefined" ? require_texto() : window.TEXTO;
+      var aBytes = (x) => x instanceof Uint8Array ? x : new Uint8Array(x);
+      var bytesDeTexto = (t) => new TextEncoder().encode(String(t ?? ""));
+      var utf8DeBytes = (b) => new TextDecoder("utf-8").decode(aBytes(b));
+      var latin1DeBytes = (b) => {
+        const a = aBytes(b);
+        let salida = "";
+        for (let i = 0; i < a.length; i += 8192) {
+          salida += String.fromCharCode.apply(null, a.subarray(i, i + 8192));
+        }
+        return salida;
+      };
+      var ALTOS_CP1252 = "\u20AC\x81\u201A\u0192\u201E\u2026\u2020\u2021\u02C6\u2030\u0160\u2039\u0152\x8D\u017D\x8F\x90\u2018\u2019\u201C\u201D\u2022\u2013\u2014\u02DC\u2122\u0161\u203A\u0153\x9D\u017E\u0178\xA0\xA1\xA2\xA3\xA4\xA5\xA6\xA7\xA8\xA9\xAA\xAB\xAC\xAD\xAE\xAF\xB0\xB1\xB2\xB3\xB4\xB5\xB6\xB7\xB8\xB9\xBA\xBB\xBC\xBD\xBE\xBF\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDA\xDB\xDC\xDD\xDE\xDF\xE0\xE1\xE2\xE3\xE4\xE5\xE6\xE7\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF0\xF1\xF2\xF3\xF4\xF5\xF6\xF7\xF8\xF9\xFA\xFB\xFC\xFD\xFE\xFF";
+      var ALTOS_CP850 = "\xC7\xFC\xE9\xE2\xE4\xE0\xE5\xE7\xEA\xEB\xE8\xEF\xEE\xEC\xC4\xC5\xC9\xE6\xC6\xF4\xF6\xF2\xFB\xF9\xFF\xD6\xDC\xF8\xA3\xD8\xD7\u0192\xE1\xED\xF3\xFA\xF1\xD1\xAA\xBA\xBF\xAE\xAC\xBD\xBC\xA1\xAB\xBB\u2591\u2592\u2593\u2502\u2524\xC1\xC2\xC0\xA9\u2563\u2551\u2557\u255D\xA2\xA5\u2510\u2514\u2534\u252C\u251C\u2500\u253C\xE3\xC3\u255A\u2554\u2569\u2566\u2560\u2550\u256C\xA4\xF0\xD0\xCA\xCB\xC8\u0131\xCD\xCE\xCF\u2518\u250C\u2588\u2584\xA6\xCC\u2580\xD3\xDF\xD4\xD2\xF5\xD5\xB5\xFE\xDE\xDA\xDB\xD9\xFD\xDD\xAF\xB4\xAD\xB1\u2017\xBE\xB6\xA7\xF7\xB8\xB0\xA8\xB7\xB9\xB3\xB2\u25A0\xA0";
+      function normalizarJuego(juego) {
+        const j = String(juego || "").toUpperCase().replace(/[\s._-]/g, "");
+        if (j === "UTF8" || j === "UTF" || j === "UNICODE") return "UTF-8";
+        if (j === "850" || j === "CP850" || j === "IBM850" || j === "OEM850" || j === "DOS850") return "850";
+        if (j === "437" || j === "CP437" || j === "IBM437") return "850";
+        if (!j) return "";
+        return "ANSI";
+      }
+      function tablaDe(juego) {
+        const j = normalizarJuego(juego);
+        if (j === "UTF-8") return null;
+        if (j === "850") return ALTOS_CP850;
+        return ALTOS_CP1252;
+      }
+      var INVERSOS = /* @__PURE__ */ new Map();
+      function mapaInverso(tabla) {
+        let m = INVERSOS.get(tabla);
+        if (m) return m;
+        m = /* @__PURE__ */ new Map();
+        for (let i = 0; i < tabla.length; i++) {
+          if (!m.has(tabla[i])) m.set(tabla[i], 128 + i);
+        }
+        INVERSOS.set(tabla, m);
+        return m;
+      }
+      var quitarBOM = (t) => t.charCodeAt(0) === 65279 ? t.slice(1) : t;
+      function decodificarBytes(bytes, juego) {
+        const buf = aBytes(bytes);
+        const tabla = tablaDe(juego);
+        if (!tabla) return quitarBOM(utf8DeBytes(buf));
+        const trozos = [];
+        for (let i = 0; i < buf.length; i++) {
+          const b = buf[i];
+          trozos.push(b < 128 ? String.fromCharCode(b) : tabla[b - 128]);
+        }
+        return quitarBOM(trozos.join(""));
+      }
+      function codificarTexto(texto, juego) {
+        const t = String(texto ?? "");
+        const tabla = tablaDe(juego);
+        if (!tabla) return bytesDeTexto(t);
+        const inverso = mapaInverso(tabla);
+        const esAnsi = tabla === ALTOS_CP1252;
+        const bytes = [];
+        for (const caracter of t) {
+          const punto = caracter.codePointAt(0);
+          if (punto < 128) {
+            bytes.push(punto);
+            continue;
+          }
+          const b = inverso.get(caracter);
+          if (b !== void 0) {
+            bytes.push(b);
+            continue;
+          }
+          bytes.push(esAnsi && punto <= 255 ? punto : 63);
+        }
+        return Uint8Array.from(bytes);
+      }
+      function juegoDelEncabezado(textoCrudo) {
+        const m = /(?:^|[\r\n])~V\|([^\r\n]*)/.exec(textoCrudo);
+        if (!m) return "";
+        const campos = m[1].split("|");
+        return (campos[4] || "").trim();
+      }
+      function pareceUTF8(buf) {
+        let altos = false;
+        for (let i = 0; i < buf.length; i++) if (buf[i] >= 128) {
+          altos = true;
+          break;
+        }
+        if (!altos) return true;
+        return !utf8DeBytes(buf).includes("\uFFFD");
+      }
+      function repararMojibake(texto) {
+        if (!/[Â-Ã][-¿]/.test(texto)) return texto;
+        const vuelta = utf8DeBytes(codificarTexto(texto, "ANSI"));
+        if (vuelta.includes("\uFFFD")) return texto;
+        return vuelta;
+      }
+      function numeroBC3(valor, porDefecto = 0) {
+        let t = String(valor ?? "").replace(/[\s €]/g, "");
+        if (t === "") return porDefecto;
+        let negativo = false;
+        if (/^\(.*\)$/.test(t)) {
+          negativo = true;
+          t = t.slice(1, -1);
+        }
+        if (/^[-+]/.test(t)) {
+          negativo = t[0] === "-";
+          t = t.slice(1);
+        }
+        if (t === "") return porDefecto;
+        const ultimaComa = t.lastIndexOf(",");
+        const ultimoPunto = t.lastIndexOf(".");
+        if (ultimaComa >= 0 && ultimoPunto >= 0) {
+          t = ultimaComa > ultimoPunto ? t.replace(/\./g, "").replace(",", ".") : t.replace(/,/g, "");
+        } else if (ultimaComa >= 0) {
+          const cuantas = (t.match(/,/g) || []).length;
+          t = cuantas > 1 ? t.replace(/,/g, "") : t.replace(",", ".");
+        } else if (ultimoPunto >= 0) {
+          if ((t.match(/\./g) || []).length > 1) t = t.replace(/\./g, "");
+        }
+        if (!/^[0-9]*\.?[0-9]*$/.test(t)) return porDefecto;
+        const n = Number(t);
+        if (!Number.isFinite(n)) return porDefecto;
+        return negativo ? -n : n;
+      }
+      function numeroOpcional(valor) {
+        const t = String(valor ?? "").trim();
+        if (t === "") return null;
+        const n = numeroBC3(t, NaN);
+        return Number.isFinite(n) ? n : null;
+      }
+      function fechaBC3(valor) {
+        const t = String(valor ?? "").replace(/\D/g, "");
+        let d;
+        let m;
+        let a;
+        if (t.length === 8) {
+          d = t.slice(0, 2);
+          m = t.slice(2, 4);
+          a = t.slice(4, 8);
+        } else if (t.length === 6) {
+          d = t.slice(0, 2);
+          m = t.slice(2, 4);
+          const dos = Number(t.slice(4, 6));
+          a = String(dos <= 70 ? 2e3 + dos : 1900 + dos);
+        } else {
+          return null;
+        }
+        const nd = Number(d);
+        const nm = Number(m);
+        if (nd < 1 || nd > 31 || nm < 1 || nm > 12) return null;
+        return `${a}-${m}-${d}`;
+      }
+      function fechaABC3(valor) {
+        if (!valor) return "";
+        if (valor instanceof Date) {
+          if (Number.isNaN(valor.getTime())) return "";
+          const dd = String(valor.getDate()).padStart(2, "0");
+          const mm = String(valor.getMonth() + 1).padStart(2, "0");
+          return `${dd}${mm}${valor.getFullYear()}`;
+        }
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(valor).trim());
+        if (m) return `${m[3]}${m[2]}${m[1]}`;
+        const soloDigitos = String(valor).replace(/\D/g, "");
+        return soloDigitos.length === 8 ? soloDigitos : "";
+      }
+      function numeroAtexto(valor, decimales = 6) {
+        const n = _modeloBC3.redondear(Number(valor) || 0, decimales);
+        if (!Number.isFinite(n) || n === 0) return "0";
+        const s = String(n);
+        return s.includes("e") ? n.toFixed(decimales) : s;
+      }
+      var saneaCampo = (v) => String(v ?? "").replace(/[~|\\]/g, " ").replace(/[\r\n\t]+/g, " ").replace(/ {2,}/g, " ").trim();
+      var saneaTextoLargo = (v) => String(v ?? "").replace(/\r\n?/g, "\n").replace(/[|\\]/g, "/").replace(/^~/gm, "-").trim();
+      var limpiaCodigo = (c) => String(c ?? "").replace(/[~|\\]/g, "").replace(/#+$/, "").trim();
+      var GRAVEDAD_BC3 = { BLOQUEANTE: "bloqueante", AVISO: "aviso", SUGERENCIA: "sugerencia" };
+      function nuevoAviso(clave, mensaje, gravedad = GRAVEDAD_BC3.AVISO, extra = {}) {
+        return { clave, gravedad, mensaje, ...extra };
+      }
+      function registrosDe(texto) {
+        const salida = [];
+        const trozos = String(texto).split(/(?:\r\n|\r|\n)~/);
+        for (let i = 0; i < trozos.length; i++) {
+          let bruto = trozos[i];
+          if (i === 0) {
+            const p = bruto.indexOf("~");
+            if (p === -1) continue;
+            bruto = bruto.slice(p + 1);
+          }
+          bruto = bruto.replace(/[\r\n]+$/, "");
+          if (!bruto.trim()) continue;
+          if (bruto.endsWith("|")) bruto = bruto.slice(0, -1);
+          const campos = bruto.split("|");
+          const tipo = (campos[0] || "").trim().toUpperCase();
+          if (!tipo) continue;
+          salida.push({ tipo, campos });
+        }
+        return salida;
+      }
+      var textoDesde = (campos, desde) => campos.slice(desde).join("|");
+      var NATURALEZA_POR_TIPO = {
+        0: _modeloBC3.NATURALEZA.MATERIAL,
+        // sin clasificar: se cuenta como material
+        1: _modeloBC3.NATURALEZA.MANO_OBRA,
+        2: _modeloBC3.NATURALEZA.MAQUINARIA,
+        // maquinaria y medios auxiliares
+        3: _modeloBC3.NATURALEZA.MATERIAL,
+        4: _modeloBC3.NATURALEZA.MATERIAL
+        // residuos
+      };
+      var TIPOS_BASICOS = /* @__PURE__ */ new Set(["1", "2", "3", "4"]);
+      var PROFUNDIDAD_MAXIMA = 40;
+      var bibliotecaMemorizada;
+      function biblioteca() {
+        if (bibliotecaMemorizada === void 0) {
+          try {
+            const b = typeof __require !== "undefined" ? require_biblioteca() : window.BIBLIOTECA;
+            bibliotecaMemorizada = typeof b.clasificar === "function" ? b : null;
+          } catch {
+            bibliotecaMemorizada = null;
+          }
+        }
+        return bibliotecaMemorizada;
+      }
+      function clasificarPartida(resumen, unidad) {
+        const b = biblioteca();
+        if (!b) return null;
+        try {
+          const c = b.clasificar(resumen, unidad);
+          if (!c || c.confianza === "baja") return null;
+          return { disciplina: c.disciplina || "", subdisciplina: c.subdisciplina ?? null };
+        } catch {
+          return null;
+        }
+      }
+      var SEPARADOR_CLAVE = "";
+      var claveMedicion = (padre, hijo) => `${padre}${SEPARADOR_CLAVE}${hijo}`;
+      var SUBCAMPOS_MEDICION = ["uds", "largo", "ancho", "alto"];
+      var valorDeSubcampo = (v) => {
+        if (v === null || v === void 0 || v === "") return null;
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      };
+      function signoDeLinea(valores, signoDeclarado) {
+        const negativos = valores.filter((v) => v !== null && v < 0).length;
+        const negativoEscrito = negativos % 2 === 1;
+        const negativoDeclarado = signoDeclarado === -1;
+        return negativoEscrito !== negativoDeclarado ? -1 : 1;
+      }
+      function normalizarEntrada(entrada, avisos, opciones) {
+        if (entrada instanceof Uint8Array || Array.isArray(entrada) || typeof Buffer !== "undefined" && Buffer.isBuffer(entrada) || entrada instanceof ArrayBuffer) {
+          const buf = aBytes(entrada instanceof ArrayBuffer ? new Uint8Array(entrada) : entrada);
+          const asomo = latin1DeBytes(buf);
+          const declarado2 = opciones.juegoCaracteres || juegoDelEncabezado(asomo);
+          let juego = normalizarJuego(declarado2);
+          if (!juego) {
+            juego = pareceUTF8(buf) ? "UTF-8" : "ANSI";
+            avisos.push(nuevoAviso(
+              "JUEGO_SIN_DECLARAR",
+              `El archivo no declara juego de caracteres en el registro ~V. Se ha le\xEDdo como ${juego}. Si ve tildes o e\xF1es raras, vuelva a importarlo indicando el juego.`
+            ));
+          }
+          let texto2 = decodificarBytes(buf, juego);
+          if (juego === "UTF-8" && texto2.includes("\uFFFD")) {
+            juego = "ANSI";
+            texto2 = decodificarBytes(buf, "ANSI");
+            avisos.push(nuevoAviso(
+              "JUEGO_MAL_DECLARADO",
+              "El registro ~V declara UTF-8 pero el contenido no lo es. Se ha le\xEDdo como ANSI (Windows-1252)."
+            ));
+          }
+          return { texto: texto2, juego, declarado: String(declarado2 || "").trim() };
+        }
+        let texto = quitarBOM(String(entrada ?? ""));
+        const declarado = opciones.juegoCaracteres || juegoDelEncabezado(texto);
+        const reparado = repararMojibake(texto);
+        if (reparado !== texto) {
+          texto = reparado;
+          avisos.push(nuevoAviso(
+            "TEXTO_REPARADO",
+            "El texto ven\xEDa con las tildes y las e\xF1es rotas (un archivo UTF-8 le\xEDdo como ANSI). Se han recompuesto."
+          ));
+        }
+        return {
+          texto,
+          juego: normalizarJuego(declarado) || "ANSI",
+          declarado: String(declarado || "").trim()
+        };
+      }
+      function parsearBC3(entrada, opciones = {}) {
+        const avisos = [];
+        const { texto, juego, declarado } = normalizarEntrada(entrada, avisos, opciones);
+        const conceptos = /* @__PURE__ */ new Map();
+        const descomposicion = /* @__PURE__ */ new Map();
+        const mediciones = /* @__PURE__ */ new Map();
+        const desconocidos = /* @__PURE__ */ new Map();
+        const obra = {
+          codigo: "",
+          titulo: "",
+          descripcion: "",
+          propiedad: "",
+          version: "",
+          fecha: null,
+          programa: "",
+          cabecera: "",
+          juegoCaracteres: juego,
+          juegoDeclarado: declarado,
+          comentario: "",
+          tipoInformacion: ""
+        };
+        const ficha = (codigo) => {
+          let c = conceptos.get(codigo);
+          if (!c) {
+            c = {
+              codigo,
+              codigoBruto: codigo,
+              unidad: "",
+              resumen: "",
+              precio: null,
+              precioPlanificado: null,
+              fecha: null,
+              tipo: "",
+              descripcion: "",
+              pliego: "",
+              adicional: [],
+              declarado: false
+            };
+            conceptos.set(codigo, c);
+          }
+          return c;
+        };
+        for (const { tipo, campos } of registrosDe(texto)) {
+          switch (tipo) {
+            case "V": {
+              obra.propiedad = (campos[1] || "").trim();
+              const [version, fechaV] = (campos[2] || "").split("\\");
+              obra.version = (version || "").trim();
+              obra.fecha = fechaBC3(fechaV);
+              obra.programa = (campos[3] || "").trim();
+              obra.cabecera = saneaCampo(campos[4]);
+              obra.comentario = (campos[6] || "").trim();
+              obra.tipoInformacion = (campos[7] || "").trim();
+              break;
+            }
+            case "C": {
+              const codigos = (campos[1] || "").split("\\").map((c) => c.trim()).filter(Boolean);
+              if (!codigos.length) break;
+              const precios = (campos[4] || "").split("\\");
+              const fechas = (campos[5] || "").split("\\");
+              for (const bruto of codigos) {
+                const codigo = limpiaCodigo(bruto);
+                if (!codigo) continue;
+                const c = ficha(codigo);
+                c.codigoBruto = bruto;
+                c.declarado = true;
+                if ((campos[2] || "").trim()) c.unidad = (campos[2] || "").trim();
+                if ((campos[3] || "").trim()) c.resumen = saneaCampo(campos[3]);
+                const p0 = numeroOpcional(precios[0]);
+                if (p0 !== null) c.precio = p0;
+                const p1 = numeroOpcional(precios[1]);
+                if (p1 !== null) c.precioPlanificado = p1;
+                const f0 = fechaBC3(fechas[0]);
+                if (f0) c.fecha = f0;
+                const t = (campos[6] || "").trim();
+                if (t) c.tipo = t;
+              }
+              break;
+            }
+            case "D":
+            case "Y": {
+              const padre = limpiaCodigo(campos[1]);
+              if (!padre) break;
+              const partes = (campos[2] || "").split("\\");
+              const lista = tipo === "Y" ? descomposicion.get(padre) || [] : [];
+              for (let i = 0; i < partes.length; i += 3) {
+                const hijo = limpiaCodigo(partes[i]);
+                if (!hijo) continue;
+                const factor = numeroOpcional(partes[i + 1]);
+                const rendimiento = numeroOpcional(partes[i + 2]);
+                lista.push({
+                  codigo: hijo,
+                  factor: factor === null ? 1 : factor,
+                  rendimiento: rendimiento === null ? 1 : rendimiento
+                });
+              }
+              descomposicion.set(padre, lista);
+              break;
+            }
+            case "T": {
+              const codigo = limpiaCodigo(campos[1]);
+              if (!codigo) break;
+              ficha(codigo).descripcion = textoDesde(campos, 2).replace(/\r\n?/g, "\n").trim();
+              break;
+            }
+            case "L": {
+              const codigo = limpiaCodigo(campos[1]);
+              if (!codigo) break;
+              const cuerpo = textoDesde(campos, 2).replace(/\r\n?/g, "\n").replace(/\\/g, "\n").trim();
+              if (!cuerpo) break;
+              const c = ficha(codigo);
+              c.pliego = c.pliego ? `${c.pliego}
+${cuerpo}` : cuerpo;
+              break;
+            }
+            case "A": {
+              const codigo = limpiaCodigo(campos[1]);
+              if (!codigo) break;
+              const partes = textoDesde(campos, 2).split("\\");
+              while (partes.length && partes[partes.length - 1].trim() === "") partes.pop();
+              if (!partes.length) break;
+              const c = ficha(codigo);
+              for (let i = 0; i < partes.length; i += 2) {
+                const primero = saneaCampo(partes[i]);
+                if (i + 1 >= partes.length) {
+                  if (primero) c.adicional.push({ clave: "", valor: primero });
+                  break;
+                }
+                const valor = saneaCampo(partes[i + 1]);
+                if (!primero && !valor) continue;
+                c.adicional.push({ clave: primero, valor });
+              }
+              break;
+            }
+            case "M": {
+              const referencia = (campos[1] || "").split("\\").map((c) => limpiaCodigo(c)).filter(Boolean);
+              if (!referencia.length) break;
+              const hijo = referencia[referencia.length - 1];
+              const padre = referencia.length > 1 ? referencia[referencia.length - 2] : "";
+              const partes = (campos[4] || "").split("\\");
+              while (partes.length % 5 !== 0 && partes.length && partes[partes.length - 1] === "") partes.pop();
+              if (partes.length % 5 !== 0) {
+                avisos.push(nuevoAviso(
+                  "MEDICION_INCOMPLETA",
+                  `La medici\xF3n de \xAB${hijo}\xBB no viene en grupos de cinco subcampos. Se han le\xEDdo las l\xEDneas completas y se ha descartado el resto.`,
+                  GRAVEDAD_BC3.AVISO,
+                  { concepto: hijo }
+                ));
+              }
+              const lineas = [];
+              for (let i = 0; i + 5 <= partes.length; i += 5) {
+                const comentario = saneaCampo(partes[i]);
+                const crudos = SUBCAMPOS_MEDICION.map((_, j) => numeroOpcional(partes[i + 1 + j]));
+                const vacia = comentario === "" && crudos.every((v) => v === null);
+                if (vacia) continue;
+                const linea = { comentario, signo: signoDeLinea(crudos, 1) };
+                SUBCAMPOS_MEDICION.forEach((clave2, j) => {
+                  linea[clave2] = crudos[j] === null ? null : Math.abs(crudos[j]);
+                });
+                lineas.push(linea);
+              }
+              const clave = claveMedicion(padre, hijo);
+              const total = numeroOpcional(campos[3]);
+              const previa = mediciones.get(clave);
+              if (previa) {
+                previa.lineas.push(...lineas);
+                if (total !== null) previa.total = total;
+              } else {
+                mediciones.set(clave, { total, lineas });
+              }
+              break;
+            }
+            default:
+              desconocidos.set(tipo, (desconocidos.get(tipo) || 0) + 1);
+          }
+        }
+        if (desconocidos.size) {
+          const lista = [...desconocidos.entries()].map(([t, n]) => `~${t} (${n})`).join(", ");
+          avisos.push(nuevoAviso(
+            "REGISTROS_IGNORADOS",
+            `El archivo trae registros que esta aplicaci\xF3n no interpreta: ${lista}. El presupuesto se ha importado sin ellos.`,
+            GRAVEDAD_BC3.SUGERENCIA
+          ));
+        }
+        const preciosCalculados = /* @__PURE__ */ new Map();
+        function precioEfectivo(codigo, enCurso = /* @__PURE__ */ new Set()) {
+          const c = conceptos.get(codigo);
+          if (c && c.precio !== null) return c.precio;
+          if (preciosCalculados.has(codigo)) return preciosCalculados.get(codigo);
+          if (enCurso.has(codigo)) return 0;
+          enCurso.add(codigo);
+          let suma = 0;
+          for (const h of descomposicion.get(codigo) || []) {
+            suma += h.factor * h.rendimiento * precioEfectivo(h.codigo, enCurso);
+          }
+          enCurso.delete(codigo);
+          const valor = _modeloBC3.redondear(suma, 4);
+          preciosCalculados.set(codigo, valor);
+          return valor;
+        }
+        function esCapitulo(concepto, hijos) {
+          if (/#+$/.test(String(concepto.codigoBruto || ""))) return true;
+          if (!hijos.length) return false;
+          if (concepto.unidad) return false;
+          const todosBasicos = hijos.every((h) => {
+            const c = conceptos.get(h.codigo);
+            if (!c) return false;
+            if ((descomposicion.get(h.codigo) || []).length) return false;
+            return TIPOS_BASICOS.has(String(c.tipo || "").trim()) || c.unidad === "%";
+          });
+          return !todosBasicos;
+        }
+        const sinFichaAvisados = /* @__PURE__ */ new Set();
+        function avisarSinFicha(codigo) {
+          if (sinFichaAvisados.has(codigo)) return;
+          sinFichaAvisados.add(codigo);
+          avisos.push(nuevoAviso(
+            "CONCEPTO_SIN_FICHA",
+            `El concepto \xAB${codigo}\xBB se usa en la descomposici\xF3n pero no tiene ficha ~C: se importa sin resumen ni precio.`,
+            GRAVEDAD_BC3.AVISO,
+            { concepto: codigo }
+          ));
+        }
+        function lineaDescompuesto(h) {
+          const c = conceptos.get(h.codigo) || {};
+          if (!c.declarado) avisarSinFicha(h.codigo);
+          const rendimiento = h.factor * h.rendimiento;
+          if ((c.unidad || "") === "%") {
+            return {
+              codigo: h.codigo,
+              resumen: c.resumen || h.codigo,
+              unidad: "%",
+              naturaleza: _modeloBC3.NATURALEZA.AUXILIAR,
+              tipoBC3: String(c.tipo || "").trim() || "2",
+              esPorcentaje: true,
+              porcentaje: rendimiento,
+              rendimiento: 0,
+              precio: 0
+            };
+          }
+          const tipoBC3 = String(c.tipo || "").trim() || "0";
+          return {
+            codigo: h.codigo,
+            resumen: c.resumen || h.codigo,
+            unidad: c.unidad || "",
+            naturaleza: NATURALEZA_POR_TIPO[tipoBC3] || _modeloBC3.NATURALEZA.MATERIAL,
+            tipoBC3,
+            esPorcentaje: false,
+            porcentaje: 0,
+            rendimiento,
+            precio: precioEfectivo(h.codigo)
+          };
+        }
+        const visitados = /* @__PURE__ */ new Set();
+        const ciclosAvisados = /* @__PURE__ */ new Set();
+        const sinClasificar = [];
+        function nodoDe(codigo, cantidad, padre, enCamino, profundidad) {
+          if (enCamino.has(codigo)) {
+            if (!ciclosAvisados.has(codigo)) {
+              ciclosAvisados.add(codigo);
+              avisos.push(nuevoAviso(
+                "CICLO",
+                `El concepto \xAB${codigo}\xBB se descompone en s\xED mismo. Se ha cortado ah\xED para no entrar en bucle: revise ese punto del presupuesto.`,
+                GRAVEDAD_BC3.BLOQUEANTE,
+                { concepto: codigo }
+              ));
+            }
+            return null;
+          }
+          if (profundidad > PROFUNDIDAD_MAXIMA) {
+            avisos.push(nuevoAviso(
+              "DEMASIADA_PROFUNDIDAD",
+              `El presupuesto pasa de ${PROFUNDIDAD_MAXIMA} niveles en \xAB${codigo}\xBB. Se ha cortado ah\xED.`,
+              GRAVEDAD_BC3.BLOQUEANTE,
+              { concepto: codigo }
+            ));
+            return null;
+          }
+          const existente = conceptos.get(codigo);
+          if (!existente || !existente.declarado) avisarSinFicha(codigo);
+          const concepto = existente || ficha(codigo);
+          visitados.add(codigo);
+          const hijos = descomposicion.get(codigo) || [];
+          const base = {
+            codigo,
+            resumen: concepto.resumen || codigo,
+            descripcion: concepto.descripcion || "",
+            informacionAdicional: concepto.adicional.slice(),
+            pliego: concepto.pliego || "",
+            precioPlanificado: concepto.precioPlanificado,
+            fecha: concepto.fecha || null,
+            tipoBC3: String(concepto.tipo || "").trim() || "0"
+          };
+          if (esCapitulo(concepto, hijos)) {
+            enCamino.add(codigo);
+            const crios = [];
+            for (const h of hijos) {
+              const n = nodoDe(h.codigo, h.factor * h.rendimiento, codigo, enCamino, profundidad + 1);
+              if (n) crios.push(n);
+            }
+            enCamino.delete(codigo);
+            if (!crios.length) {
+              avisos.push(nuevoAviso(
+                "CAPITULO_VACIO",
+                `El cap\xEDtulo \xAB${codigo} ${base.resumen}\xBB se ha quedado sin partidas.`,
+                GRAVEDAD_BC3.AVISO,
+                { concepto: codigo }
+              ));
+            }
+            return {
+              tipo: _modeloBC3.TIPOS.CAPITULO,
+              ...base,
+              unidad: "",
+              cantidad: null,
+              precio: null,
+              hijos: crios,
+              medicion: [],
+              descompuesto: []
+            };
+          }
+          enCamino.add(codigo);
+          const descompuesto = hijos.map(lineaDescompuesto);
+          enCamino.delete(codigo);
+          const medida = mediciones.get(claveMedicion(padre, codigo)) || mediciones.get(claveMedicion("", codigo));
+          let medicion = [];
+          let cantidadFinal = cantidad === null || cantidad === void 0 ? 0 : cantidad;
+          if (medida) {
+            medicion = medida.lineas;
+            if (medicion.length) {
+              const suma = _modeloBC3.cantidadMedida(medicion);
+              if (medida.total !== null && Math.abs(medida.total - suma) >= 5e-3) {
+                avisos.push(nuevoAviso(
+                  "MEDICION_DESCUADRADA",
+                  `En \xAB${codigo} ${base.resumen}\xBB el total declarado (${medida.total}) no coincide con la suma de sus l\xEDneas (${suma}). Manda la medici\xF3n detallada.`,
+                  GRAVEDAD_BC3.AVISO,
+                  { concepto: codigo }
+                ));
+              }
+              cantidadFinal = suma;
+            } else if (medida.total !== null) {
+              cantidadFinal = medida.total;
+            }
+          }
+          if (concepto.precio === null && !descompuesto.length) {
+            avisos.push(nuevoAviso(
+              "PARTIDA_SIN_PRECIO",
+              `La partida \xAB${codigo} ${base.resumen}\xBB viene sin precio en el BC3.`,
+              GRAVEDAD_BC3.AVISO,
+              { concepto: codigo }
+            ));
+          }
+          const unidad = concepto.unidad || "";
+          const clase = clasificarPartida(base.resumen, unidad);
+          if (!clase) sinClasificar.push(codigo);
+          return {
+            tipo: _modeloBC3.TIPOS.PARTIDA,
+            ...base,
+            unidad,
+            disciplina: clase ? clase.disciplina : "",
+            subdisciplina: clase ? clase.subdisciplina : null,
+            cantidad: cantidadFinal,
+            precio: concepto.precio === null ? precioEfectivo(codigo) : concepto.precio,
+            hijos: [],
+            medicion,
+            descompuesto
+          };
+        }
+        const referidos = /* @__PURE__ */ new Set();
+        for (const lista of descomposicion.values()) for (const h of lista) referidos.add(h.codigo);
+        let raices = [...conceptos.values()].filter((c) => /##$/.test(String(c.codigoBruto || "").trim())).map((c) => c.codigo);
+        if (!raices.length) {
+          raices = [...descomposicion.keys()].filter((c) => !referidos.has(c));
+        }
+        const utiles = [...conceptos.values()].filter((c) => c.declarado && !raices.includes(c.codigo));
+        let arbol = [];
+        let reconstruido = false;
+        if (raices.length) {
+          obra.codigo = raices[0];
+          obra.titulo = conceptos.get(raices[0])?.resumen || obra.cabecera || raices[0];
+          obra.descripcion = conceptos.get(raices[0])?.descripcion || "";
+        }
+        if (raices.length && descomposicion.size) {
+          if (raices.length > 1) {
+            avisos.push(nuevoAviso(
+              "VARIAS_RAICES",
+              `El archivo trae ${raices.length} presupuestos (${raices.join(", ")}). Se han importado todos, uno detr\xE1s de otro.`
+            ));
+          }
+          for (const codigoRaiz of raices) {
+            visitados.add(codigoRaiz);
+            const enCamino = /* @__PURE__ */ new Set([codigoRaiz]);
+            for (const h of descomposicion.get(codigoRaiz) || []) {
+              const n = nodoDe(h.codigo, h.factor * h.rendimiento, codigoRaiz, enCamino, 1);
+              if (n) arbol.push(n);
+            }
+          }
+        } else if (utiles.length) {
+          arbol = arbolPorCodigo(utiles, conceptos, mediciones, avisos, sinClasificar);
+          reconstruido = true;
+          avisos.push(nuevoAviso(
+            "JERARQUIA_POR_CODIGO",
+            "El archivo no trae descomposici\xF3n (~D), as\xED que la jerarqu\xEDa se ha reconstruido a partir de los c\xF3digos (01, 01.02, 01.02.03). Revise que los cap\xEDtulos han quedado donde tienen que estar."
+          ));
+        } else if (!conceptos.size) {
+          avisos.push(nuevoAviso(
+            "SIN_CONTENIDO",
+            "El archivo no contiene ning\xFAn concepto (~C): no parece un BC3 v\xE1lido.",
+            GRAVEDAD_BC3.BLOQUEANTE
+          ));
+        }
+        if (!reconstruido) {
+          const huerfanos = [...conceptos.values()].filter((c) => c.declarado && !visitados.has(c.codigo) && !referidos.has(c.codigo) && !/#+$/.test(String(c.codigoBruto || "").trim())).map((c) => c.codigo);
+          if (huerfanos.length) {
+            const muestra = huerfanos.slice(0, 5).join(", ");
+            avisos.push(nuevoAviso(
+              "CONCEPTOS_HUERFANOS",
+              `Hay ${_textoBC3.plural(huerfanos.length, "concepto que no cuelga", "conceptos que no cuelgan")} de ning\xFAn cap\xEDtulo y no se usan en ninguna descomposici\xF3n (${muestra}${huerfanos.length > 5 ? "\u2026" : ""}). No se han importado: m\xE9talos a mano si hacen falta.`,
+              GRAVEDAD_BC3.AVISO
+            ));
+          }
+        }
+        if (sinClasificar.length) {
+          const muestra = sinClasificar.slice(0, 5).join(", ");
+          avisos.push(nuevoAviso(
+            biblioteca() ? "SIN_CLASIFICAR" : "SIN_BIBLIOTECA",
+            biblioteca() ? `Hay ${_textoBC3.plural(sinClasificar.length, "partida cuya disciplina no est\xE1 clara", "partidas cuya disciplina no est\xE1 clara")} (${muestra}${sinClasificar.length > 5 ? "\u2026" : ""}). Se han dejado sin clasificar a prop\xF3sito: as\xEDgnelas a mano antes de fiarse de los pesos por disciplina.` : `No se ha podido cargar la biblioteca de partidas, as\xED que las ${sinClasificar.length} partidas importadas entran sin disciplina. Los pesos por disciplina saldr\xE1n todos en \xABotros\xBB hasta que se asignen.`,
+            GRAVEDAD_BC3.AVISO
+          ));
+        }
+        comprobarPrecios(arbol, conceptos, avisos);
+        if (!obra.titulo) obra.titulo = obra.cabecera || "";
+        const totalesDeclarados = (raices || []).map((c) => Number(conceptos.get(c)?.precio)).filter((v) => Number.isFinite(v) && v > 0);
+        return { obra, arbol, avisos, totalesDeclarados };
+      }
+      function arbolPorCodigo(utiles, conceptos, mediciones, avisos, sinClasificar) {
+        const codigos = utiles.map((c) => c.codigo).sort((a, b) => a.localeCompare(b, "es", { numeric: true }));
+        const raiz = { codigo: "", hijos: /* @__PURE__ */ new Map(), concepto: null };
+        for (const codigo of codigos) {
+          const ruta = codigo.split(".");
+          let actual = raiz;
+          for (let i = 0; i < ruta.length; i++) {
+            const clave = ruta.slice(0, i + 1).join(".");
+            if (!actual.hijos.has(clave)) {
+              actual.hijos.set(clave, { codigo: clave, hijos: /* @__PURE__ */ new Map(), concepto: null });
+            }
+            actual = actual.hijos.get(clave);
+          }
+          actual.concepto = conceptos.get(codigo);
+        }
+        const convertir = (nodo, padre) => {
+          const c = nodo.concepto || {};
+          const base = {
+            codigo: nodo.codigo,
+            resumen: c.resumen || nodo.codigo,
+            descripcion: c.descripcion || "",
+            informacionAdicional: (c.adicional || []).slice(),
+            pliego: c.pliego || "",
+            precioPlanificado: c.precioPlanificado ?? null,
+            fecha: c.fecha || null,
+            tipoBC3: String(c.tipo || "").trim() || "0"
+          };
+          if (nodo.hijos.size) {
+            return {
+              tipo: _modeloBC3.TIPOS.CAPITULO,
+              ...base,
+              unidad: "",
+              cantidad: null,
+              precio: null,
+              hijos: [...nodo.hijos.values()].map((h) => convertir(h, nodo.codigo)),
+              medicion: [],
+              descompuesto: []
+            };
+          }
+          const medida = mediciones.get(claveMedicion(padre, nodo.codigo)) || mediciones.get(claveMedicion("", nodo.codigo));
+          const medicion = medida ? medida.lineas : [];
+          let cantidad = 0;
+          if (medicion.length) {
+            cantidad = _modeloBC3.cantidadMedida(medicion);
+          } else if (medida && medida.total !== null) {
+            cantidad = medida.total;
+          } else {
+            avisos.push(nuevoAviso(
+              "PARTIDA_SIN_CANTIDAD",
+              `La partida \xAB${nodo.codigo} ${base.resumen}\xBB se queda sin cantidad: el archivo no trae ni descomposici\xF3n (~D) ni medici\xF3n (~M) para ella.`,
+              GRAVEDAD_BC3.AVISO,
+              { concepto: nodo.codigo }
+            ));
+          }
+          const unidad = c.unidad || "";
+          const clase = clasificarPartida(base.resumen, unidad);
+          if (!clase) sinClasificar.push(nodo.codigo);
+          return {
+            tipo: _modeloBC3.TIPOS.PARTIDA,
+            ...base,
+            unidad,
+            disciplina: clase ? clase.disciplina : "",
+            subdisciplina: clase ? clase.subdisciplina : null,
+            cantidad,
+            precio: c.precio ?? 0,
+            hijos: [],
+            medicion,
+            descompuesto: []
+          };
+        };
+        return [...raiz.hijos.values()].map((n) => convertir(n, ""));
+      }
+      function comprobarPrecios(nodos, conceptos, avisos) {
+        for (const n of nodos || []) {
+          if (n.tipo === _modeloBC3.TIPOS.CAPITULO) {
+            comprobarPrecios(n.hijos, conceptos, avisos);
+            continue;
+          }
+          if (!n.descompuesto || !n.descompuesto.length) continue;
+          const c = conceptos.get(n.codigo);
+          if (!c || c.precio === null) continue;
+          const calculado = _modeloBC3.precioDeDescompuesto(n.descompuesto);
+          const declarado = _modeloBC3.redondear(c.precio, 2);
+          if (Math.abs(calculado - declarado) >= 5e-3) {
+            avisos.push(nuevoAviso(
+              "PRECIO_DESCUADRADO",
+              `En \xAB${n.codigo} ${n.resumen}\xBB el precio del archivo (${declarado} \u20AC) no coincide con el que sale de su descompuesto (${calculado} \u20AC). Se usa el del descompuesto.`,
+              GRAVEDAD_BC3.AVISO,
+              { concepto: n.codigo }
+            ));
+          }
+        }
+      }
+      var TIPO_BC3_POR_NATURALEZA = {
+        [_modeloBC3.NATURALEZA.MANO_OBRA]: "1",
+        [_modeloBC3.NATURALEZA.MAQUINARIA]: "2",
+        [_modeloBC3.NATURALEZA.AUXILIAR]: "2",
+        [_modeloBC3.NATURALEZA.MATERIAL]: "3",
+        [_modeloBC3.NATURALEZA.SUBCONTRATA]: "3",
+        /* Los accesorios son material y la elevación, maquinaria: el BC3 no tiene más tipos. */
+        [_modeloBC3.NATURALEZA.ACCESORIO]: "3",
+        [_modeloBC3.NATURALEZA.ELEVACION]: "2"
+      };
+      var etiquetaJuego = (juego) => {
+        const j = normalizarJuego(juego);
+        if (j === "850") return "850";
+        if (j === "UTF-8") return "UTF-8";
+        return "ANSI";
+      };
+      function generarBC3(arbol, opciones = {}) {
+        const obra = opciones.obra || {};
+        const juego = normalizarJuego(opciones.juegoCaracteres || obra.juegoCaracteres || "ANSI") || "ANSI";
+        const codigoObra = limpiaCodigo(opciones.codigoObra || obra.codigo || "OBRA") || "OBRA";
+        const titulo = saneaCampo(opciones.titulo || obra.titulo || "Presupuesto");
+        const propiedad = saneaCampo(opciones.propiedad || obra.propiedad || "Vidaire Obras");
+        const programa = saneaCampo(opciones.programa || obra.programa || "Vidaire Obras");
+        const cabecera = saneaCampo(opciones.cabecera ?? obra.cabecera ?? titulo);
+        const comentario = saneaCampo(opciones.comentario ?? obra.comentario ?? "");
+        const tipoInformacion = saneaCampo(opciones.tipoInformacion ?? obra.tipoInformacion ?? "1");
+        const version = saneaCampo(opciones.version || obra.version || "FIEBDC-3/2016");
+        const fecha = fechaABC3(opciones.fecha || obra.fecha || /* @__PURE__ */ new Date());
+        const calculado = _modeloBC3.calcularArbol(arbol || []);
+        const lineas = [];
+        const registrosD = [];
+        const registrosM = [];
+        const emitidos = /* @__PURE__ */ new Set();
+        let siguienteAuxiliar = 0;
+        const escribirConcepto = (codigo, unidad, resumen, precios, fechaC, tipo, extras = {}) => {
+          if (emitidos.has(codigo)) return;
+          emitidos.add(codigo);
+          lineas.push(`~C|${codigo}|${saneaCampo(unidad)}|${saneaCampo(resumen)}|${precios}|${fechaC}|${tipo}|`);
+          const descripcion = saneaTextoLargo(extras.descripcion);
+          if (descripcion) lineas.push(`~T|${codigo}|${descripcion}|`);
+          const adicional = extras.informacionAdicional || [];
+          if (adicional.length) {
+            const pares = adicional.map((a) => `${saneaCampo(a.clave)}\\${saneaCampo(a.valor)}`).join("\\");
+            lineas.push(`~A|${codigo}|${pares}\\|`);
+          }
+          const pliego = saneaTextoLargo(extras.pliego);
+          if (pliego) lineas.push(`~L|${codigo}|${pliego.replace(/\n/g, "\\")}|`);
+        };
+        const preciosDe = (precio, planificado) => {
+          const p0 = precio === null || precio === void 0 ? "" : numeroAtexto(precio, 6);
+          if (planificado === null || planificado === void 0) return p0;
+          return `${p0}\\${numeroAtexto(planificado, 6)}`;
+        };
+        const codigoRaiz = `${codigoObra}##`;
+        escribirConcepto(codigoRaiz, "", titulo, "", fechaABC3(obra.fecha), "0", {
+          descripcion: obra.descripcion
+        });
+        function recorrer(nodos, codigoPadre) {
+          const trozos = [];
+          (nodos || []).forEach((nodo, indice) => {
+            if (nodo.tipo === _modeloBC3.TIPOS.CAPITULO) {
+              const codigo2 = `${limpiaCodigo(nodo.codigo) || `CAP${indice + 1}`}#`;
+              escribirConcepto(codigo2, "", nodo.resumen, "", fechaABC3(nodo.fecha), "0", nodo);
+              trozos.push(`${codigo2}\\1\\1`);
+              recorrer(nodo.hijos || [], codigo2);
+              return;
+            }
+            const codigo = limpiaCodigo(nodo.codigo) || `PAR${indice + 1}`;
+            escribirConcepto(
+              codigo,
+              nodo.unidad,
+              nodo.resumen,
+              preciosDe(nodo.precio, nodo.precioPlanificado),
+              fechaABC3(nodo.fecha),
+              String(nodo.tipoBC3 ?? "0"),
+              nodo
+            );
+            trozos.push(`${codigo}\\1\\${numeroAtexto(nodo.cantidad, 6)}`);
+            const descompuesto = nodo.descompuesto || [];
+            if (descompuesto.length) {
+              const hijos = [];
+              for (const l of descompuesto) {
+                siguienteAuxiliar += 1;
+                const codigoHijo = limpiaCodigo(l.codigo) || `AUX${String(siguienteAuxiliar).padStart(4, "0")}`;
+                const tipo = String(l.tipoBC3 ?? (TIPO_BC3_POR_NATURALEZA[l.naturaleza] || "3"));
+                if (l.esPorcentaje) {
+                  escribirConcepto(codigoHijo, "%", l.resumen || "Medios auxiliares", "0", "", tipo, l);
+                  hijos.push(`${codigoHijo}\\1\\${numeroAtexto(l.porcentaje, 6)}`);
+                } else {
+                  escribirConcepto(codigoHijo, l.unidad, l.resumen || codigoHijo, numeroAtexto(l.precio, 6), "", tipo, l);
+                  hijos.push(`${codigoHijo}\\1\\${numeroAtexto(l.rendimiento, 6)}`);
+                }
+              }
+              registrosD.push(`~D|${codigo}|${hijos.join("\\")}\\|`);
+            }
+            const medicion = nodo.medicion || [];
+            if (medicion.length) {
+              const opcional = (v) => v === null ? "" : numeroAtexto(v, 6);
+              const grupos = medicion.map((l) => {
+                const crudos = SUBCAMPOS_MEDICION.map((k) => valorDeSubcampo(l[k]));
+                const magnitudes = crudos.map((v) => v === null ? null : Math.abs(v));
+                if (signoDeLinea(crudos, l.signo) === -1) {
+                  const primero = magnitudes.findIndex((v) => v !== null);
+                  if (primero >= 0) magnitudes[primero] = -magnitudes[primero];
+                }
+                return [saneaCampo(l.comentario), ...magnitudes.map(opcional)].join("\\");
+              });
+              registrosM.push(`~M|${codigoPadre}\\${codigo}|${indice + 1}|${numeroAtexto(nodo.cantidad, 6)}|${grupos.join("\\")}\\|`);
+            }
+          });
+          if (trozos.length) registrosD.push(`~D|${codigoPadre}|${trozos.join("\\")}\\|`);
+        }
+        recorrer(calculado, codigoRaiz);
+        const salida = `${[
+          `~V|${propiedad}|${version}\\${fecha}|${programa}|${cabecera}|${etiquetaJuego(juego)}|${comentario}|${tipoInformacion}|`,
+          ...lineas,
+          ...registrosD,
+          ...registrosM
+        ].join("\r\n")}\r
+`;
+        return opciones.comoBuffer ? codificarTexto(salida, juego) : salida;
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.BC3 = API;
+      })({
+        parsearBC3,
+        generarBC3,
+        GRAVEDAD: GRAVEDAD_BC3,
+        // Piezas sueltas: se exportan porque se prueban una a una.
+        numeroBC3,
+        numeroOpcional,
+        fechaBC3,
+        fechaABC3,
+        registrosDe,
+        decodificarBytes,
+        codificarTexto,
+        normalizarJuego,
+        repararMojibake
+      });
+    }
+  });
+
+  // shared/obra/ganttPresupuesto.js
+  var require_ganttPresupuesto = __commonJS({
+    "shared/obra/ganttPresupuesto.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var esFecha = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ""));
+      var entero = (v, def = 0) => {
+        const n = Math.round(Number(v));
+        return Number.isFinite(n) ? n : def;
+      };
+      function lineasDe(filas) {
+        const hijos = /* @__PURE__ */ new Map();
+        const ids = new Set((filas || []).map((f) => f && f.id).filter(Boolean));
+        for (const f of filas || []) {
+          if (!f || !f.id) continue;
+          const p = f.padreId && ids.has(f.padreId) ? f.padreId : null;
+          if (!hijos.has(p)) hijos.set(p, []);
+          hijos.get(p).push(f);
+        }
+        for (const l of hijos.values()) l.sort((a, b) => (Number(a.orden) || 0) - (Number(b.orden) || 0) || String(a.creadoEn || "").localeCompare(String(b.creadoEn || "")));
+        const fuera = [];
+        const vistos = /* @__PURE__ */ new Set();
+        const recorrer = (padre, nivel) => {
+          for (const f of hijos.get(padre) || []) {
+            if (vistos.has(f.id)) continue;
+            vistos.add(f.id);
+            const tipo = f.tipo === "capitulo" ? "capitulo" : "partida";
+            const codigo = String(f.codigo || "").trim();
+            const resumen = String(f.resumen || "").trim();
+            fuera.push({ id: f.id, tipo, codigo, resumen, padreId: padre, nivel, nombre: nombreDe({ codigo, resumen }) });
+            if (tipo === "capitulo") recorrer(f.id, nivel + 1);
+          }
+        };
+        recorrer(null, 0);
+        return fuera;
+      }
+      function nombreDe({ codigo, resumen }) {
+        return `${codigo || ""} ${resumen || ""}`.trim().slice(0, 200) || "Sin nombre";
+      }
+      function sincronizar(doc0, lineas) {
+        const doc = JSON.parse(JSON.stringify(doc0 || {}));
+        doc.tareas = (doc.tareas || []).filter((t) => t && t.id);
+        doc.enlaces = doc.enlaces || [];
+        const cambios = { nuevas: [], huerfanas: [], recuperadas: [], renombradas: [] };
+        const lista = lineas || [];
+        if (!lista.length && !doc.tareas.some((t) => t.origen === "presupuesto")) return { doc, cambios };
+        const deLinea = new Map(lista.map((l) => [l.id, l]));
+        for (const t of doc.tareas) {
+          const l = deLinea.get(t.id);
+          if (l) {
+            if (t.huerfana) {
+              delete t.huerfana;
+              cambios.recuperadas.push(t.id);
+            }
+            t.origen = "presupuesto";
+            if (l.tipo === "partida") t.detalle = true;
+            else delete t.detalle;
+            const ref = t.ref || null;
+            const nombre = nombreDe(l);
+            if (ref && (ref.codigo !== l.codigo || ref.resumen !== l.resumen)) {
+              if (t.nombre === nombreDe(ref) || t.nombre === ref.resumen) {
+                t.nombre = nombre;
+                cambios.renombradas.push(t.id);
+              }
+            }
+            t.ref = { codigo: l.codigo, resumen: l.resumen };
+          } else if (t.origen === "presupuesto" && !t.huerfana) {
+            t.huerfana = true;
+            cambios.huerfanas.push(t.id);
+          }
+        }
+        const ids = new Set(doc.tareas.map((t) => t.id));
+        const hermanas = /* @__PURE__ */ new Map();
+        const lugar = /* @__PURE__ */ new Map();
+        for (const l of lista) {
+          if (!hermanas.has(l.padreId)) hermanas.set(l.padreId, []);
+          const hs0 = hermanas.get(l.padreId);
+          lugar.set(l, hs0.length);
+          hs0.push(l);
+        }
+        const cabeza = { t: null, sig: null };
+        const nodos = /* @__PURE__ */ new Map();
+        let ultimo = cabeza;
+        for (const t of doc.tareas) {
+          const nodo = { t, sig: null };
+          ultimo.sig = nodo;
+          ultimo = nodo;
+          nodos.set(t.id, nodo);
+        }
+        const finDeNodo = (nodo) => {
+          const n = entero(nodo.t.nivel);
+          let x = nodo;
+          while (x.sig && entero(x.sig.t.nivel) > n) x = x.sig;
+          return x;
+        };
+        for (const l of lista) {
+          if (ids.has(l.id)) continue;
+          const hs = hermanas.get(l.padreId) || [];
+          const k = lugar.get(l);
+          let previa = null;
+          for (let j = k - 1; j >= 0; j -= 1) if (nodos.has(hs[j].id)) {
+            previa = hs[j].id;
+            break;
+          }
+          const padreNodo = l.padreId && nodos.has(l.padreId) ? nodos.get(l.padreId) : null;
+          const padre = padreNodo ? padreNodo.t : null;
+          const tras = previa !== null ? finDeNodo(nodos.get(previa)) : padreNodo || cabeza;
+          const nivel = padre ? entero(padre.nivel) + 1 : 0;
+          const t = {
+            id: l.id,
+            nombre: nombreDe(l),
+            nivel,
+            inicio: null,
+            duracion: l.tipo === "partida" ? 1 : 5,
+            avance: 0,
+            responsable: "",
+            retrasos: [],
+            origen: "presupuesto",
+            sinPlanificar: true,
+            ref: { codigo: l.codigo, resumen: l.resumen },
+            ...l.tipo === "partida" ? { detalle: true } : {}
+          };
+          const nodo = { t, sig: tras.sig };
+          tras.sig = nodo;
+          nodos.set(l.id, nodo);
+          ids.add(l.id);
+          cambios.nuevas.push(l.id);
+        }
+        if (cambios.nuevas.length) {
+          const tareas = [];
+          for (let x = cabeza.sig; x; x = x.sig) tareas.push(x.t);
+          doc.tareas = tareas;
+        }
+        return { doc, cambios };
+      }
+      function llevaAlgo(t, enlazadas) {
+        return Boolean(esFecha(t.inicio) || entero(t.avance) || (t.responsable || "").trim() || (t.notas || "").trim() || (t.retrasos || []).length || typeof t.terminada === "boolean" || t.huerfana || !t.sinPlanificar || enlazadas.has(t.id));
+      }
+      function compactar(doc0) {
+        const doc = JSON.parse(JSON.stringify(doc0 || {}));
+        const enlazadas = new Set((doc.enlaces || []).flatMap((e) => [e.de, e.a]));
+        doc.tareas = (doc.tareas || []).filter((t) => !(t && t.detalle && t.origen === "presupuesto" && !llevaAlgo(t, enlazadas)));
+        return doc;
+      }
+      function describir(cambios) {
+        const c = cambios || {};
+        const n = (x, uno, varios) => x.length ? `${x.length} ${x.length === 1 ? uno : varios}` : "";
+        const partes = [
+          n(c.nuevas || [], "l\xEDnea nueva", "l\xEDneas nuevas"),
+          n(c.huerfanas || [], "que ya no est\xE1 (se guarda para revisar)", "que ya no est\xE1n (se guardan para revisar)"),
+          n(c.recuperadas || [], "que vuelve", "que vuelven"),
+          n(c.renombradas || [], "renombrada", "renombradas")
+        ].filter(Boolean);
+        return partes.length ? `Del presupuesto: ${partes.join(", ")}` : "";
+      }
+      var hayCambios = (c) => Boolean(c && ((c.huerfanas || []).length || (c.recuperadas || []).length || (c.renombradas || []).length || (c.nuevas || []).length));
+      module.exports = { lineasDe, nombreDe, sincronizar, compactar, describir, hayCambios };
+    }
+  });
+
+  // shared/obra/ganttFasesTerminadas.js
+  var require_ganttFasesTerminadas = __commonJS({
+    "shared/obra/ganttFasesTerminadas.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PO = require_perfilObra();
+      var reglasDelPerfil = () => {
+        const r = PO.ajuste("reglasFasesTerminadas", []);
+        return Array.isArray(r) ? r : [];
+      };
+      var sinAcentos = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+      var regla = (obraId, reglas = reglasDelPerfil()) => reglas.filter((r) => (r.obras || []).includes(obraId));
+      var dentroDe = (codigo, prefijo) => codigo === prefijo || codigo.startsWith(`${prefijo}.`);
+      function criterioDe(t, r) {
+        const ref = t && t.ref;
+        if (!ref || !ref.codigo) return null;
+        const cod = String(ref.codigo);
+        if (!dentroDe(cod, r.raiz)) return null;
+        const res = sinAcentos(ref.resumen);
+        for (const c of r.pendiente || []) {
+          if ((c.codigos || []).some((p) => dentroDe(cod, p))) return c;
+          if (c.resumen && new RegExp(c.resumen).test(res)) return c;
+        }
+        return null;
+      }
+      function aplicar(doc, obraId, reglas = reglasDelPerfil()) {
+        const rs = regla(obraId, reglas);
+        if (!rs.length || !doc || !Array.isArray(doc.tareas)) return doc;
+        const tareas = doc.tareas.map((t) => {
+          if (!t || !t.ref) return t;
+          let nueva = t;
+          for (const r of rs) {
+            if (t.ref.codigo === r.raiz && typeof t.terminada !== "boolean") nueva = { ...nueva, terminada: true };
+            const c = criterioDe(t, r);
+            if (c) {
+              if (typeof t.terminada !== "boolean") nueva = { ...nueva, terminada: false };
+              if (c.grupo && !t.grupo) nueva = { ...nueva, grupo: c.grupo };
+            }
+          }
+          return nueva;
+        });
+        return { ...doc, tareas };
+      }
+      module.exports = { get REGLAS() {
+        return reglasDelPerfil();
+      }, reglasDelPerfil, regla, criterioDe, aplicar };
+    }
+  });
+
+  // shared/obra/ganttVersionesPdf.js
+  var require_ganttVersionesPdf = __commonJS({
+    "shared/obra/ganttVersionesPdf.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+      var MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+      var deIso = (s) => {
+        const [a, m, d] = String(s).split("-").map(Number);
+        return new Date(Date.UTC(a, m - 1, d));
+      };
+      var dias = (a, b) => Math.round((deIso(b) - deIso(a)) / 864e5);
+      var larga = (s) => s ? `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}` : "\u2014";
+      var corta = (s) => {
+        const d = deIso(s);
+        return `${d.getUTCDate()} ${MESES[d.getUTCMonth()]}`;
+      };
+      var sumar = (s, n) => {
+        const d = deIso(s);
+        d.setUTCDate(d.getUTCDate() + n);
+        return d.toISOString().slice(0, 10);
+      };
+      var conSigno = (n) => n > 0 ? `+${n}` : String(n);
+      var CSS = `
+.docGv { font: 8px/1.25 -apple-system, Helvetica, Arial, sans-serif; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.docGv * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.docGv h2 { font-size: 10.5px; color: #003F2D; margin: 9px 0 3px; text-transform: uppercase; letter-spacing: .04em; border-bottom: 2px solid #17E88F; padding-bottom: 1px; break-after: avoid; }
+.docGv h2:first-child { margin-top: 0; }
+.docGv .cifras { margin: 0 0 5px; font-size: 9px; }
+.docGv .cifras b { font-size: 10px; }
+.docGv .cifras .mal { color: #B42318; }
+.docGv table { width: 100%; border-collapse: collapse; table-layout: fixed; font-variant-numeric: tabular-nums; }
+.docGv th, .docGv td { border: 1px solid #CAD1D3; padding: 1px 3px; text-align: left; vertical-align: middle; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.docGv thead { display: table-header-group; }
+.docGv tr { break-inside: avoid; page-break-inside: avoid; }
+.docGv thead th { background: #003F2D; color: #fff; font-weight: 600; }
+.docGv td.n, .docGv th.n { text-align: right; }
+.docGv tr.res td { font-weight: 700; background: #F2F4F4; }
+.docGv tr.crit td.tarea { color: #B42318; }
+.docGv td.g { padding: 0; position: relative; }
+.docGv .esc { position: relative; height: 11px; }
+.docGv .esc span { position: absolute; top: 0; font-size: 6.5px; color: #fff; border-left: 1px solid rgba(255,255,255,.35); padding-left: 1px; }
+.docGv .pista { position: relative; height: 12px; }
+.docGv .pista i { position: absolute; display: block; }
+.docGv .b { top: 2px; height: 6px; background: #538184; }
+.docGv .b.c { background: #B42318; }
+.docGv .b.r { background: #003F2D; top: 3px; height: 4px; }
+.docGv .av { top: 2px; height: 6px; background: rgba(0,0,0,.35); }
+.docGv .rt { top: 2px; height: 6px; background: repeating-linear-gradient(135deg, #5B9BD5 0 2px, #fff 2px 3px); }
+.docGv .bs { top: 9px; height: 2px; background: #9AA6A8; }
+.docGv .hito { top: 1px; width: 7px; height: 7px; transform: rotate(45deg); background: #003F2D; margin-left: -3px; }
+.docGv .hito.c { background: #B42318; }
+.docGv .hoy { top: 0; bottom: 0; width: 0; border-left: 1px dashed #17E88F; }
+.docGv .sin { color: #7A8A8C; }
+.docGv .leyenda { margin: 3px 0 0; color: #435254; font-size: 7.5px; }
+.docGv .leyenda i { display: inline-block; width: 12px; height: 5px; margin: 0 2px 0 8px; vertical-align: middle; }
+`;
+      function documento(d) {
+        const v = d.ver;
+        const p = v.programa;
+        const filas = d.filtro && d.filtro.ids ? p.filas.filter((f) => d.filtro.ids.includes(f.id)) : p.filas.filter((f) => !(f.detalle && f.sinPlanificar && !f.huerfana) && !f.terminada);
+        const fechas = p.filas.flatMap((f) => [f.inicio, f.fin, f.inicioBase, f.finBase]).filter(Boolean).sort();
+        const ini = fechas[0] || d.hoy;
+        const fin = fechas[fechas.length - 1] || d.hoy;
+        const total = Math.max(7, dias(ini, fin) + 1);
+        const pos = (s) => `${(dias(ini, s) / total * 100).toFixed(2)}%`;
+        const ancho = (a, b) => `${Math.max(0.4, (dias(a, b) + 1) / total * 100).toFixed(2)}%`;
+        const marcas = [];
+        if (total <= 120) {
+          let s = ini;
+          while (s <= fin) {
+            marcas.push(s);
+            s = sumar(s, 7);
+          }
+        } else {
+          let s = `${ini.slice(0, 7)}-01`;
+          while (s <= fin) {
+            if (s >= ini) marcas.push(s);
+            const dd = deIso(s);
+            dd.setUTCMonth(dd.getUTCMonth() + 1);
+            s = dd.toISOString().slice(0, 10);
+          }
+        }
+        const escala = `<div class="esc">${marcas.map((m) => `<span style="left:${pos(m)}">${total <= 120 ? corta(m) : `${MESES[deIso(m).getUTCMonth()]} ${m.slice(2, 4)}`}</span>`).join("")}</div>`;
+        const barra = (f) => {
+          if (!f.inicio) return "";
+          const hoy = d.hoy >= ini && d.hoy <= fin ? `<i class="hoy" style="left:${pos(d.hoy)}"></i>` : "";
+          const base = f.inicioBase && f.finBase ? `<i class="bs" style="left:${pos(f.inicioBase)};width:${ancho(f.inicioBase, f.finBase)}"></i>` : "";
+          if (f.hito) return `<div class="pista">${base}<i class="hito${f.critica ? " c" : ""}" style="left:${pos(f.inicio)}"></i>${hoy}</div>`;
+          const cls = f.resumen ? "b r" : f.critica ? "b c" : "b";
+          const av = !f.resumen && f.avance ? `<i class="av" style="left:${pos(f.inicio)};width:calc(${ancho(f.inicio, f.fin)} * ${f.avance / 100})"></i>` : "";
+          const rt = !f.resumen && f.desplazamiento > 0 && f.finSinRetraso < f.fin ? `<i class="rt" style="left:${pos(sumar(f.finSinRetraso, 1))};width:${ancho(sumar(f.finSinRetraso, 1), f.fin)}"></i>` : "";
+          return `<div class="pista">${base}<i class="${cls}" style="left:${pos(f.inicio)};width:${ancho(f.inicio, f.fin)}"></i>${av}${rt}${hoy}</div>`;
+        };
+        const retraso = (f) => {
+          const t = [];
+          if (f.retrasoPropio) t.push(`+${f.retrasoPropio}`);
+          if (f.retrasoArrastrado && !f.resumen) t.push(`<span class="sin">\u21B3${f.retrasoArrastrado}</span>`);
+          return t.join(" ");
+        };
+        const ddmmaa = (x) => x ? `${x.slice(8, 10)}/${x.slice(5, 7)}/${x.slice(2, 4)}` : "";
+        const cuerpoTabla = filas.map((f) => `<tr class="${f.resumen ? "res" : ""}${f.critica && !f.resumen ? " crit" : ""}">
+    <td class="n">${f.n}</td>
+    <td class="tarea" style="padding-left:${3 + f.nivel * 8}px">${f.hito ? "\u25C6 " : ""}${esc(f.nombre)}</td>
+    <td>${esc(f.responsable)}</td>
+    <td class="n">${f.hito ? "hito" : f.duracion || ""}</td>
+    <td>${ddmmaa(f.inicio)}</td>
+    <td>${ddmmaa(f.fin)}</td>
+    <td>${esc(f.depende)}</td>
+    <td class="n">${f.avance ?? ""}%</td>
+    <td class="n">${retraso(f)}</td>
+    <td class="n">${f.resumen ? "" : f.holgura}</td>
+    <td class="n">${f.desvioBase ? conSigno(f.desvioBase) : ""}</td>
+    <td class="g">${barra(f)}</td></tr>`).join("");
+        const r = p.retrasos;
+        const finH = v.fin || { fecha: p.finObra };
+        const cifras = `<p class="cifras">Fin de obra <b>${finH.fecha ? larga(finH.fecha) : "\u2014"}</b>${finH.fuente === "Planificaci\xF3n Cx" ? " (Planificaci\xF3n de commissioning)" : ""}
+    ${finH.frase ? ` \xB7 <b class="mal">${esc(finH.frase)}</b>` : ""}${finH.contrato ? ` \xB7 contrato ${larga(finH.contrato)}` : ""}${p.terminadas ? ` \xB7 ${p.terminadas} terminada${p.terminadas === 1 ? "" : "s"} (no se imprimen)` : ""}
+    ${p.base ? ` \xB7 Gantt a seguir ${larga(p.base.finObra)} <b class="${p.base.desvio > 0 ? "mal" : ""}">${p.base.desvio ? `${conSigno(p.base.desvio)} d lab.` : "en fecha"}</b>` : " \xB7 sin Gantt a seguir elegido"}
+    \xB7 ${r.length ? `${r.length} retraso${r.length === 1 ? "" : "s"} (${p.retrasoObra ? `${p.retrasoObra} d al fin de obra` : "sin mover el fin"})` : "sin retrasos"}
+    \xB7 camino cr\xEDtico ${p.critica.length} tarea${p.critica.length === 1 ? "" : "s"}
+    \xB7 ${esc(v.nombre)} de ${esc(v.persona)}, revisi\xF3n ${v.revision}${v.aSeguir ? " \xB7 <b>es el Gantt a seguir</b>" : ""}</p>`;
+        const tabla = `<table><colgroup><col style="width:20px"><col style="width:150px"><col style="width:62px"><col style="width:26px"><col style="width:40px"><col style="width:40px"><col style="width:48px"><col style="width:32px"><col style="width:30px"><col style="width:30px"><col style="width:30px"><col></colgroup>
+    <thead><tr><th class="n">#</th><th>Tarea</th><th>Resp.</th><th class="n">Dur.</th><th>Inicio</th><th>Fin</th><th>Depende</th><th class="n">Av.</th><th class="n">Retr.</th><th class="n">Holg.</th><th class="n">Desv.</th><th class="g">${escala}</th></tr></thead>
+    <tbody>${cuerpoTabla}</tbody></table>
+    <p class="leyenda">D\xEDas laborables.<i style="background:#B42318"></i>camino cr\xEDtico<i style="background:#538184"></i>con holgura<i style="background:repeating-linear-gradient(135deg,#5B9BD5 0 2px,#fff 2px 3px)"></i>retraso<i style="background:#9AA6A8;height:2px"></i>Gantt a seguir<i style="background:rgba(0,0,0,.35)"></i>avance \xB7 Retr.: +propio \u21B3arrastrado</p>`;
+        const tablaRetrasos = r.length ? `<h2>Retrasos</h2><table><colgroup><col style="width:20px"><col style="width:180px"><col style="width:30px"><col style="width:40px"><col><col style="width:90px"><col style="width:56px"></colgroup>
+    <thead><tr><th class="n">#</th><th>Tarea</th><th class="n">D\xEDas</th><th>Afecta</th><th>Motivo</th><th>Qui\xE9n</th><th>Cu\xE1ndo</th></tr></thead><tbody>
+    ${r.map((x) => `<tr><td class="n">${x.n}</td><td>${esc(x.tarea)}</td><td class="n">${x.dias}</td><td>${x.afecta === "inicio" ? "inicio" : "fin"}</td><td style="white-space:normal">${esc(x.motivo)}</td><td>${esc(x.porNombre || "")}</td><td>${larga(String(x.fecha || "").slice(0, 10))}</td></tr>`).join("")}</tbody></table>` : "";
+        const tablaElecciones = d.elecciones.length ? `<h2>Gantt a seguir</h2><table><colgroup><col style="width:70px"><col style="width:200px"><col style="width:30px"><col style="width:110px"><col style="width:52px"><col></colgroup>
+    <thead><tr><th>Desde</th><th>Versi\xF3n</th><th class="n">Rev.</th><th>Elegida por</th><th>Fin de obra</th><th>Motivo</th></tr></thead><tbody>
+    ${d.elecciones.map((e) => `<tr><td>${larga(e.en.slice(0, 10))} ${e.en.slice(11, 16)}</td><td>${esc(e.nombre)}</td><td class="n">${e.revision}</td><td>${esc(e.por)}</td><td>${larga(e.finObra)}</td><td style="white-space:normal">${esc(e.motivo)}</td></tr>`).join("")}</tbody></table>` : "";
+        const obra = [d.obra.codigo, d.obra.nombre].filter(Boolean).join(" \xB7 ");
+        const nombreObra = String(d.obra.codigo || d.obra.nombre || "Obra").replace(/^OBR-/, "");
+        return {
+          html: `<style>${CSS}</style><div class="docGv"><h2>Programa de obra</h2>${cifras}${tabla}${tablaRetrasos}${tablaElecciones}</div>`,
+          titulo: `Programa de obra \xB7 ${v.nombre}`,
+          cabecera: obra,
+          /* El logo de la cabecera corrida sale de la obra (shared/papel.js). */
+          marca: d.obra,
+          emitido: larga(d.emitido),
+          nombreArchivo: `${nombreObra} Programa ${v.nombre} rev ${v.revision}.pdf`.replace(/[\\/:*?"<>|]+/g, "_")
+        };
+      }
+      module.exports = { documento, CSS };
+    }
+  });
+
+  // electron/obra/data/ganttVersiones.js
+  var require_ganttVersiones2 = __commonJS({
+    "electron/obra/data/ganttVersiones.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var G = require_ganttVersiones();
+      var GP = require_ganttPresupuesto();
+      var FT = require_ganttFasesTerminadas();
+      var { puede, rol: rolDe } = require_roles();
+      var { nuevoId } = require_repositorio();
+      var historial = require_historial();
+      function resumenCxDe(repo, sesion, obraId, hoy) {
+        try {
+          return require_planificacion3().resumenCx(repo, sesion, obraId, hoy);
+        } catch {
+          return null;
+        }
+      }
+      var hoyIso = () => require_fecha().hoyLocal();
+      var ve = (sesion) => Boolean(sesion && puede(sesion.rol, "costsPlan", "ver"));
+      var eligeRol = (sesion) => Boolean(sesion && puede(sesion.rol, "costsPlan", "editar"));
+      var SIN_VER = null;
+      function obraDe(repo, sesion, obraId) {
+        if (!ve(sesion) || !obraId) return null;
+        try {
+          return repo.leer("obras", sesion, obraId);
+        } catch {
+          return null;
+        }
+      }
+      var leerDoc = (texto) => {
+        try {
+          const d = JSON.parse(texto || "{}");
+          return { calendario: d.calendario || { laborables: [1, 2, 3, 4, 5], festivos: [] }, tareas: d.tareas || [], enlaces: d.enlaces || [] };
+        } catch {
+          return { calendario: { laborables: [1, 2, 3, 4, 5], festivos: [] }, tareas: [], enlaces: [] };
+        }
+      };
+      function festivosObra(repo, obraId) {
+        try {
+          return repo.db.prepare("SELECT fecha FROM festivos WHERE obraId IS NULL OR obraId = ? ORDER BY fecha").all(obraId).map((f) => f.fecha);
+        } catch {
+          return [];
+        }
+      }
+      function nombres(repo) {
+        const m = /* @__PURE__ */ new Map();
+        try {
+          for (const p of repo.db.prepare("SELECT id, nombre, rol FROM personas").all()) m.set(p.id, p);
+        } catch {
+        }
+        return m;
+      }
+      var versionesDe = (repo, obraId) => repo.db.prepare("SELECT * FROM ganttVersiones WHERE obraId = ? ORDER BY creadoEn").all(obraId);
+      var eleccionesDe = (repo, obraId) => repo.db.prepare("SELECT * FROM ganttElecciones WHERE obraId = ? ORDER BY creadoEn DESC, rowid DESC").all(obraId);
+      function lineasObra(repo, obra) {
+        if (!obra || !obra.presupuestoId) return [];
+        try {
+          return GP.lineasDe(repo.db.prepare("SELECT id, padreId, tipo, codigo, resumen, orden, creadoEn FROM lineas WHERE presupuestoId = ?").all(obra.presupuestoId));
+        } catch {
+          return [];
+        }
+      }
+      var conPresupuesto = (doc, lineas) => GP.sincronizar(doc, lineas);
+      function guardarSiCambia(repo, sesion, v, sync) {
+        const guardado = JSON.stringify(GP.compactar(leerDoc(v.datos)));
+        const nuevo = GP.compactar(sync.doc);
+        if (JSON.stringify(nuevo) === guardado) return v;
+        const ids = new Set(nuevo.tareas.map((t) => t.id));
+        const c = sync.cambios;
+        const cambio = GP.describir({ ...c, nuevas: c.nuevas.filter((id) => ids.has(id)) }) || "Del presupuesto: enlazada con las l\xEDneas de la obra";
+        const rev = guardarRevision(repo, sesion, v, nuevo, cambio);
+        return { ...v, datos: JSON.stringify(nuevo), revision: rev };
+      }
+      function desdeGanttObra(repo, sesion, obraId, festivos) {
+        let g = null;
+        try {
+          g = require_costsPlan().gantt(repo, sesion, obraId);
+        } catch {
+          g = null;
+        }
+        if (!g || !g.filas || !g.filas.length) return null;
+        const cal = G.calendario({ festivos }, "2015-01-01");
+        const tareas = [];
+        let prev = null;
+        for (const f of g.filas) {
+          if (f.nodo === "grupo") continue;
+          const resumen = f.nodo === "resumen" || f.hoja === false;
+          const tope = prev ? prev.resumen ? prev.nivel + 1 : prev.nivel : 0;
+          const nivel = Math.max(0, Math.min(Number(f.nivel) || 0, tope));
+          const hito = f.nodo === "hito" || f.nodo === "pedido";
+          const dur = hito ? 0 : f.inicio && f.fin ? Math.max(1, G.desfase(cal, f.inicio, f.fin) + 1) : 5;
+          const nombre = f.nodo === "paquete" && f.codigo ? `${f.codigo} ${f.resumen}` : f.nodo === "pedido" ? `Entrega ${f.codigo || ""} ${f.resumen || ""}`.trim() : f.resumen;
+          tareas.push({
+            id: f.id,
+            nombre: String(nombre || "").trim() || "Sin nombre",
+            nivel,
+            inicio: resumen ? null : f.inicio || null,
+            duracion: resumen ? 1 : dur,
+            avance: f.avance !== null && f.avance !== void 0 ? Math.round(Number(f.avance) || 0) : 0,
+            responsable: (f.recursos || []).map((r) => r.nombre).join(", "),
+            retrasos: []
+          });
+          prev = { nivel, resumen };
+        }
+        const ids = new Set(tareas.map((t) => t.id));
+        const enlaces = (g.enlaces || []).filter((e) => ids.has(e.deId) && ids.has(e.aId)).map((e) => ({ de: e.deId, a: e.aId, tipo: "FC", holgura: Number(e.holgura) || 0 }));
+        return { calendario: { laborables: [1, 2, 3, 4, 5], festivos: [] }, tareas, enlaces };
+      }
+      function vacia(hoy) {
+        return { calendario: { laborables: [1, 2, 3, 4, 5], festivos: [] }, tareas: [{ id: nuevoId(), nombre: "Inicio de obra", nivel: 0, inicio: hoy, duracion: 0, avance: 0, responsable: "", retrasos: [] }], enlaces: [] };
+      }
+      function datos(repo, sesion, obraId, opciones = {}) {
+        const obra = obraDe(repo, sesion, obraId);
+        if (!obra) return SIN_VER;
+        const hoy = opciones.hoy || hoyIso();
+        const gente = nombres(repo);
+        const festivos = festivosObra(repo, obra.id);
+        const lista = versionesDe(repo, obra.id);
+        const elecciones = eleccionesDe(repo, obra.id);
+        const vigente = elecciones[0] || null;
+        const base = vigente ? JSON.parse(vigente.base) : null;
+        const persona = (id) => {
+          const p = gente.get(id);
+          return p ? p.nombre : id ? "Usuario sin ficha" : "\u2014";
+        };
+        const perfil = (id) => {
+          const p = gente.get(id);
+          const r = p && rolDe(p.rol);
+          return r ? r.nombre : "";
+        };
+        const lineas = lineasObra(repo, obra);
+        const editable0 = obra.estado !== "cerrada";
+        for (let k = 0; k < lista.length; k += 1) {
+          const v = lista[k];
+          if (v.personaId !== sesion.personaId || !editable0) continue;
+          try {
+            lista[k] = guardarSiCambia(repo, sesion, v, conPresupuesto(leerDoc(v.datos), lineas));
+          } catch {
+          }
+        }
+        const casado = (texto) => FT.aplicar(conPresupuesto(leerDoc(texto), lineas).doc, obra.id);
+        const calc = /* @__PURE__ */ new Map();
+        const programaDe = (v) => {
+          if (!calc.has(v.id)) calc.set(v.id, G.programar(casado(v.datos), { festivos, hoy, base }));
+          return calc.get(v.id);
+        };
+        const versiones = lista.map((v) => {
+          const p = programaDe(v);
+          return {
+            id: v.id,
+            personaId: v.personaId,
+            persona: persona(v.personaId),
+            perfil: perfil(v.personaId),
+            nombre: v.nombre,
+            revision: v.revision,
+            modificadoEn: v.modificadoEn,
+            propia: v.personaId === sesion.personaId,
+            aSeguir: Boolean(vigente && vigente.versionId === v.id),
+            finObra: p.finObra,
+            retrasoObra: p.retrasoObra,
+            tareas: p.filas.length,
+            retrasos: p.retrasos.length,
+            sinPlanificar: p.sinPlanificar || 0,
+            huerfanas: (p.huerfanas || []).length,
+            desvioBase: p.base ? p.base.desvio : null
+          };
+        });
+        const propia = lista.find((v) => v.personaId === sesion.personaId) || null;
+        const elegida = vigente && lista.find((v) => v.id === vigente.versionId) || null;
+        const vista = lista.find((v) => v.id === opciones.versionId) || propia || elegida || lista[0] || null;
+        const editable = obra.estado !== "cerrada";
+        let ver = null;
+        if (vista) {
+          const revs = repo.db.prepare("SELECT revision, cambio, personaId, creadoEn FROM ganttVersionesRev WHERE versionId = ? ORDER BY revision DESC").all(vista.id).map((r) => ({ ...r, persona: persona(r.personaId) }));
+          const enRevision = opciones.revision && Number(opciones.revision) !== vista.revision ? repo.db.prepare("SELECT * FROM ganttVersionesRev WHERE versionId = ? AND revision = ?").get(vista.id, Number(opciones.revision)) : null;
+          const doc = enRevision ? leerDoc(enRevision.datos) : casado(vista.datos);
+          const programa = G.programar(doc, { festivos, hoy, base });
+          let comparacion = null;
+          const cmp = opciones.comparar === void 0 ? "base" : opciones.comparar;
+          if (cmp && cmp !== "base") {
+            const otra = lista.find((v) => v.id === cmp);
+            if (otra) comparacion = { versionId: otra.id, nombre: `${otra.nombre} \xB7 ${persona(otra.personaId)}`, ...G.comparar(programa, programaDe(otra), { festivos }) };
+          }
+          ver = {
+            id: vista.id,
+            nombre: vista.nombre,
+            personaId: vista.personaId,
+            persona: persona(vista.personaId),
+            perfil: perfil(vista.personaId),
+            revision: enRevision ? enRevision.revision : vista.revision,
+            revisionActual: vista.revision,
+            antigua: Boolean(enRevision),
+            propia: vista.personaId === sesion.personaId,
+            editable: vista.personaId === sesion.personaId && editable && !enRevision,
+            aSeguir: Boolean(vigente && vigente.versionId === vista.id),
+            doc,
+            programa,
+            comparar: cmp || "",
+            comparacion,
+            revisiones: revs,
+            /* El fin de obra honesto: el Gantt junto con la Planificación de commissioning y lo que falta por planificar. */
+            fin: G.finDeObra(programa, { cx: resumenCxDe(repo, sesion, obra.id, hoy), contrato: obra.fechaFin })
+          };
+        }
+        return {
+          hoy,
+          obra: { id: obra.id, codigo: obra.codigo, nombre: obra.nombre, estado: obra.estado, fechaInicio: obra.fechaInicio, fechaFin: obra.fechaFin },
+          yo: { personaId: sesion.personaId, nombre: persona(sesion.personaId) },
+          puede: { crear: editable && !propia, elegir: eligeRol(sesion) && editable },
+          versiones,
+          vigente: vigente ? {
+            versionId: vigente.versionId,
+            revision: vigente.revision,
+            por: persona(vigente.personaId),
+            en: vigente.creadoEn,
+            motivo: vigente.motivo || "",
+            nombre: elegida ? `${elegida.nombre} \xB7 ${persona(elegida.personaId)}` : "(versi\xF3n ya no disponible)",
+            finObra: base ? base.finObra : null
+          } : null,
+          elecciones: elecciones.map((e) => {
+            const v = lista.find((x) => x.id === e.versionId);
+            return { versionId: e.versionId, revision: e.revision, nombre: v ? `${v.nombre} \xB7 ${persona(v.personaId)}` : "\u2014", por: persona(e.personaId), en: e.creadoEn, motivo: e.motivo || "", finObra: (JSON.parse(e.base) || {}).finObra || null };
+          }),
+          festivosObra: festivos,
+          ver
+        };
+      }
+      var revConModificado = (db) => {
+        try {
+          return db.prepare("PRAGMA table_info(ganttVersionesRev)").all().some((c) => c.name === "modificadoEn");
+        } catch {
+          return true;
+        }
+      };
+      function guardarRevision(repo, sesion, v, doc, cambio) {
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        const rev = (v.revision || 0) + 1;
+        const texto = JSON.stringify(doc);
+        const conModif = revConModificado(repo.db);
+        repo.db.exec("SAVEPOINT ganttRevision");
+        try {
+          repo.db.prepare("UPDATE ganttVersiones SET datos = ?, revision = ?, modificadoEn = ? WHERE id = ?").run(texto, rev, ahora, v.id);
+          if (conModif) {
+            repo.db.prepare("INSERT INTO ganttVersionesRev (id, versionId, obraId, revision, datos, cambio, personaId, creadoEn, modificadoEn) VALUES (?,?,?,?,?,?,?,?,?)").run(nuevoId(), v.id, v.obraId, rev, texto, cambio, sesion.personaId || null, ahora, ahora);
+          } else {
+            repo.db.prepare("INSERT INTO ganttVersionesRev (id, versionId, obraId, revision, datos, cambio, personaId, creadoEn) VALUES (?,?,?,?,?,?,?,?)").run(nuevoId(), v.id, v.obraId, rev, texto, cambio, sesion.personaId || null, ahora);
+          }
+          repo.db.exec("RELEASE ganttRevision");
+        } catch (e) {
+          repo.db.exec("ROLLBACK TO ganttRevision");
+          repo.db.exec("RELEASE ganttRevision");
+          throw e;
+        }
+        try {
+          historial.anotar(repo.db, sesion, "ganttVersiones", v.id, "modificar", `revisi\xF3n ${rev}`, null, cambio);
+        } catch {
+        }
+        return rev;
+      }
+      function conIdsDelPresupuesto(doc, lineas) {
+        const porNombre = /* @__PURE__ */ new Map();
+        for (const l of lineas) {
+          const k = l.nombre.toLowerCase();
+          porNombre.set(k, porNombre.has(k) ? null : l.id);
+        }
+        const usados = /* @__PURE__ */ new Set();
+        const cambio = /* @__PURE__ */ new Map();
+        for (const t of doc.tareas) {
+          const id = porNombre.get(String(t.nombre || "").trim().toLowerCase());
+          if (id && !usados.has(id)) {
+            usados.add(id);
+            cambio.set(t.id, id);
+          }
+        }
+        const nuevo = (id) => cambio.get(id) || id;
+        return { ...doc, tareas: doc.tareas.map((t) => ({ ...t, id: nuevo(t.id) })), enlaces: doc.enlaces.map((e) => ({ ...e, de: nuevo(e.de), a: nuevo(e.a) })) };
+      }
+      function versionPropia(repo, sesion, obraId, versionId) {
+        const v = repo.db.prepare("SELECT * FROM ganttVersiones WHERE id = ? AND obraId = ?").get(versionId, obraId);
+        if (!v) return { error: "Esa versi\xF3n ya no est\xE1." };
+        if (v.personaId !== sesion.personaId) return { error: "Es la versi\xF3n de otra persona: se mira y se compara, pero solo la toca ella. Haz la tuya copi\xE1ndola." };
+        return { v };
+      }
+      function accion(repo, sesion, obraId, accion2, d = {}) {
+        const obra = obraDe(repo, sesion, obraId);
+        if (!obra) return { ok: false, error: "No ves esta obra." };
+        if (obra.estado === "cerrada") return { ok: false, error: "La obra est\xE1 cerrada: su programa ya no se toca." };
+        const gente = nombres(repo);
+        const yo = gente.get(sesion.personaId);
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        const festivos = festivosObra(repo, obra.id);
+        switch (accion2) {
+          case "crear": {
+            if (repo.db.prepare("SELECT 1 FROM ganttVersiones WHERE obraId = ? AND personaId = ?").get(obra.id, sesion.personaId)) return { ok: false, error: "Ya tienes tu versi\xF3n en esta obra." };
+            let doc = null;
+            let origen = "";
+            if (d.desde && d.desde !== "gantt" && d.desde !== "vacia") {
+              const o = repo.db.prepare("SELECT * FROM ganttVersiones WHERE id = ? AND obraId = ?").get(d.desde, obra.id);
+              if (o) {
+                doc = leerDoc(o.datos);
+                origen = `copia de \xAB${o.nombre}\xBB de ${(gente.get(o.personaId) || {}).nombre || "otra persona"}`;
+              }
+            }
+            if (!doc && d.desde !== "vacia") {
+              doc = desdeGanttObra(repo, sesion, obra.id, festivos);
+              if (doc) origen = "sacada del Gantt de la obra";
+            }
+            if (!doc) {
+              doc = vacia(hoyIso());
+              origen = "empezada en blanco";
+            }
+            doc = GP.compactar(conPresupuesto(doc, lineasObra(repo, obra)).doc);
+            const id = nuevoId();
+            const nombre = String(d.nombre || "").trim().slice(0, 80) || `Versi\xF3n de ${yo && yo.nombre || "mi perfil"}`;
+            repo.db.prepare("INSERT INTO ganttVersiones (id, obraId, personaId, nombre, datos, revision, creadoEn, modificadoEn) VALUES (?,?,?,?,?,?,?,?)").run(id, obra.id, sesion.personaId, nombre, JSON.stringify(doc), 1, ahora, ahora);
+            repo.db.prepare("INSERT INTO ganttVersionesRev (id, versionId, obraId, revision, datos, cambio, personaId, creadoEn, modificadoEn) VALUES (?,?,?,?,?,?,?,?,?)").run(nuevoId(), id, obra.id, 1, JSON.stringify(doc), `Creada: ${origen}`, sesion.personaId, ahora, ahora);
+            historial.anotar(repo.db, sesion, "ganttVersiones", id, "crear", null, null, `${nombre} (${origen})`);
+            return { ok: true, versionId: id };
+          }
+          case "editar": {
+            const { v, error } = versionPropia(repo, sesion, obra.id, d.versionId);
+            if (error) return { ok: false, error };
+            const antes = conPresupuesto(leerDoc(v.datos), lineasObra(repo, obra)).doc;
+            const r = G.aplicar(antes, d.op || {}, { nuevoId, ahora, personaId: sesion.personaId, personaNombre: yo && yo.nombre || "" });
+            if (!r.ok) return r;
+            const cambio = G.describirCambio(antes, r.doc);
+            if (cambio === "sin cambios") return { ok: true, revision: v.revision, sinCambios: true };
+            const rev = guardarRevision(repo, sesion, v, GP.compactar(r.doc), cambio);
+            return { ok: true, revision: rev, id: r.id, cambio };
+          }
+          case "renombrar": {
+            const { v, error } = versionPropia(repo, sesion, obra.id, d.versionId);
+            if (error) return { ok: false, error };
+            const nombre = String(d.nombre || "").trim().slice(0, 80);
+            if (!nombre) return { ok: false, error: "Ponle nombre." };
+            repo.db.prepare("UPDATE ganttVersiones SET nombre = ?, modificadoEn = ? WHERE id = ?").run(nombre, ahora, v.id);
+            historial.anotar(repo.db, sesion, "ganttVersiones", v.id, "modificar", "nombre", v.nombre, nombre);
+            return { ok: true };
+          }
+          case "copiar": {
+            const { v, error } = versionPropia(repo, sesion, obra.id, d.versionId);
+            if (error) return { ok: false, error };
+            const o = repo.db.prepare("SELECT * FROM ganttVersiones WHERE id = ? AND obraId = ?").get(d.desdeId, obra.id);
+            if (!o) return { ok: false, error: "Esa versi\xF3n ya no est\xE1." };
+            const rev = guardarRevision(repo, sesion, v, leerDoc(o.datos), `Copia de \xAB${o.nombre}\xBB de ${(gente.get(o.personaId) || {}).nombre || "otra persona"} (rev. ${o.revision})`);
+            return { ok: true, revision: rev };
+          }
+          case "restaurar": {
+            const { v, error } = versionPropia(repo, sesion, obra.id, d.versionId);
+            if (error) return { ok: false, error };
+            const r = repo.db.prepare("SELECT * FROM ganttVersionesRev WHERE versionId = ? AND revision = ?").get(v.id, Number(d.revision));
+            if (!r) return { ok: false, error: "Esa revisi\xF3n no est\xE1." };
+            const rev = guardarRevision(repo, sesion, v, leerDoc(r.datos), `Vuelve a la revisi\xF3n ${r.revision}`);
+            return { ok: true, revision: rev };
+          }
+          case "importar": {
+            const { v, error } = versionPropia(repo, sesion, obra.id, d.versionId);
+            if (error) return { ok: false, error };
+            const antes = leerDoc(v.datos);
+            let r = null;
+            for (const h of d.hojas || []) {
+              r = G.desdeExcel(h.filas, { nuevoId, calendario: antes.calendario, festivos });
+              if (r.ok) break;
+            }
+            if (!r || !r.ok) return { ok: false, error: r && r.error || "El Excel no trae hojas." };
+            if (!r.tareas.length) return { ok: false, error: "El Excel no trae tareas." };
+            const doc = conIdsDelPresupuesto({ calendario: antes.calendario, tareas: r.tareas, enlaces: r.enlaces }, lineasObra(repo, obra));
+            if (G.hayCiclo(doc)) return { ok: false, error: "Las dependencias del Excel cierran un c\xEDrculo: rev\xEDsalas." };
+            const rev = guardarRevision(repo, sesion, v, GP.compactar(doc), `Importada de ${/\.xml$/i.test(d.archivo || "") ? "MS Project" : "Excel"}${d.archivo ? ` (${d.archivo})` : ""}: ${r.tareas.length} tareas, ${r.enlaces.length} dependencias`);
+            return { ok: true, revision: rev, tareas: r.tareas.length, enlaces: r.enlaces.length, avisos: r.avisos };
+          }
+          case "elegir": {
+            if (!eligeRol(sesion)) return { ok: false, error: "Elegir el Gantt a seguir es del jefe de obra o de quien lleva el Costs Plan." };
+            const v = repo.db.prepare("SELECT * FROM ganttVersiones WHERE id = ? AND obraId = ?").get(d.versionId, obra.id);
+            if (!v) return { ok: false, error: "Esa versi\xF3n ya no est\xE1." };
+            const actual = eleccionesDe(repo, obra.id)[0];
+            if (actual && actual.versionId === v.id && actual.revision === v.revision) return { ok: false, error: "Ya es el Gantt a seguir, tal como est\xE1." };
+            const p = G.programar(FT.aplicar(conPresupuesto(leerDoc(v.datos), lineasObra(repo, obra)).doc, obra.id), { festivos, hoy: hoyIso() });
+            const base = G.fotoBase(p);
+            const motivo = String(d.motivo || "").trim().slice(0, 300);
+            repo.db.prepare("INSERT INTO ganttElecciones (id, obraId, versionId, revision, base, motivo, personaId, creadoEn, modificadoEn) VALUES (?,?,?,?,?,?,?,?,?)").run(nuevoId(), obra.id, v.id, v.revision, JSON.stringify(base), motivo || null, sesion.personaId, ahora, ahora);
+            const quien = (gente.get(v.personaId) || {}).nombre || "otra persona";
+            historial.anotar(
+              repo.db,
+              sesion,
+              "ganttElecciones",
+              obra.id,
+              "modificar",
+              "Gantt a seguir",
+              actual ? `${actual.versionId} rev. ${actual.revision}` : null,
+              `\xAB${v.nombre}\xBB de ${quien}, rev. ${v.revision}${motivo ? ` \xB7 ${motivo}` : ""}`
+            );
+            return { ok: true, finObra: base.finObra };
+          }
+          default:
+            return { ok: false, error: `No s\xE9 hacer \xAB${accion2}\xBB.` };
+        }
+      }
+      var larga = (f) => f ? f.split("-").reverse().join("/") : "";
+      function documentoExcel(repo, sesion, obraId, opciones = {}) {
+        const d = datos(repo, sesion, obraId, opciones);
+        if (!d || !d.ver) return { ok: false, error: "No hay versi\xF3n que sacar." };
+        const v = d.ver;
+        const p = v.programa;
+        const programa = G.filasExcel(p).map((fila, i) => i === 0 ? fila : fila.map((c, j) => [6, 7, 16, 17].includes(j) && c ? larga(c) : c));
+        const hojas = [
+          { nombre: "Programa", filas: programa, anchos: [5, 6, 44, 9, 18, 10, 11, 11, 14, 9, 10, 36, 10, 30, 10, 8, 11, 11, 9], filtro: true },
+          { nombre: "Retrasos", filas: [
+            ["Id", "Tarea", "D\xEDas", "Afecta a", "Motivo", "Qui\xE9n", "Cu\xE1ndo"],
+            ...p.retrasos.map((r) => [r.n, r.tarea, r.dias, r.afecta === "inicio" ? "inicio" : "fin", r.motivo, r.porNombre || "", larga(String(r.fecha || "").slice(0, 10))])
+          ], anchos: [5, 40, 6, 9, 50, 22, 11] },
+          { nombre: "Historial", filas: [["Revisi\xF3n", "Cu\xE1ndo", "Qui\xE9n", "Qu\xE9 cambi\xF3"], ...v.revisiones.map((r) => [r.revision, `${larga(r.creadoEn.slice(0, 10))} ${r.creadoEn.slice(11, 16)}`, r.persona, r.cambio || ""])], anchos: [9, 16, 22, 90] },
+          { nombre: "Gantt a seguir", filas: [["Desde", "Versi\xF3n", "Revisi\xF3n", "Elegida por", "Fin de obra", "Motivo"], ...d.elecciones.map((e) => [`${larga(e.en.slice(0, 10))} ${e.en.slice(11, 16)}`, e.nombre, e.revision, e.por, larga(e.finObra), e.motivo])], anchos: [16, 40, 9, 22, 11, 50] }
+        ];
+        const nombreObra = String(d.obra.codigo || d.obra.nombre || "Obra").replace(/^OBR-/, "");
+        return { ok: true, hojas: require_papel().excelConLogo(hojas, d.obra), nombre: `${nombreObra} Programa ${v.nombre} rev ${v.revision}`.replace(/[\\/:*?"<>|]+/g, "_") };
+      }
+      function documentoPdf(repo, sesion, obraId, opciones = {}) {
+        const d = datos(repo, sesion, obraId, opciones);
+        if (!d || !d.ver) return null;
+        return require_ganttVersionesPdf().documento({ ...d, emitido: d.hoy, zoom: opciones.zoom, filtro: opciones.filtro });
+      }
+      function documentoProject(repo, sesion, obraId, opciones = {}) {
+        const d = datos(repo, sesion, obraId, opciones);
+        if (!d || !d.ver) return { ok: false, error: "No hay versi\xF3n que sacar." };
+        const v = d.ver;
+        const nombreObra = String(d.obra.codigo || d.obra.nombre || "Obra").replace(/^OBR-/, "");
+        const titulo = `${nombreObra} Programa ${v.nombre} rev ${v.revision}`;
+        const r = require_mspdi().desdeProgramaObra(v.programa, { titulo, emitido: d.hoy });
+        if (!r.xml) return { ok: false, error: "Esta versi\xF3n no tiene ninguna tarea con fecha." };
+        const fuera = r.sinFecha + r.omitidas;
+        return { ok: true, xml: r.xml, nombre: titulo.replace(/[\\/:*?"<>|]+/g, "_"), aviso: fuera ? `${fuera} partida${fuera === 1 ? "" : "s"} sin planificar no van en el fichero` : "" };
+      }
+      module.exports = { datos, accion, documentoExcel, documentoPdf, documentoProject, desdeGanttObra, lineasObra };
+    }
+  });
+
+  // electron/obra/data/iarvisFicheros.js
+  var require_iarvisFicheros = __commonJS({
+    "electron/obra/data/iarvisFicheros.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var F = require_ficheros();
+      var uuid = () => globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `f-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      var fila = (pregunta, extra) => ({ id: uuid(), pregunta, estado: "respondida", local: true, creado: (/* @__PURE__ */ new Date()).toISOString(), acciones: [], ...extra });
+      var hoyLocal = () => require_fecha().hoyLocal();
+      function contratoDe(db, yo) {
+        try {
+          if (!db || !yo || !yo.personaId) return null;
+          const conUnidad = db.prepare("PRAGMA table_info(personas)").all().some((c) => c.name === "unidadNegocioId");
+          if (!conUnidad) return null;
+          const p = db.prepare("SELECT id, unidadNegocioId FROM personas WHERE id = ?").get(yo.personaId);
+          if (!p || !p.unidadNegocioId) return null;
+          return require_licencias().contratoDe(p, require_unidadesNegocio().publicas(db));
+        } catch {
+          return null;
+        }
+      }
+      function presupuestoDe(db, obraId) {
+        const cp = require_iarvisDescompuestos().costsPlanDe(db, obraId);
+        if (cp) return cp;
+        try {
+          const o = db.prepare("SELECT presupuestoId FROM obras WHERE id = ?").get(obraId);
+          return o && o.presupuestoId ? o.presupuestoId : null;
+        } catch {
+          return null;
+        }
+      }
+      var ACCION = {
+        presupuesto: (idioma) => ({ tipo: "ir", destino: "presupuestoObra", texto: F.texto(idioma, "abrirPresupuesto") }),
+        programa: (idioma) => ({ tipo: "ir", destino: "gantt", texto: F.texto(idioma, "abrirGantt") }),
+        ganttCx: (idioma) => ({ tipo: "ir", destino: "commissioning", texto: F.texto(idioma, "abrirCx") })
+      };
+      function construir(repo, yo, obraId, id, { sinDinero, hoy }) {
+        const f = F.FICHEROS[id];
+        const db = repo.db;
+        let obra = null;
+        try {
+          obra = repo.leer("obras", yo, obraId);
+        } catch {
+          obra = null;
+        }
+        if (!obra) return { ok: false, error: "fueraAlcance" };
+        if (f.que === "presupuesto") {
+          const pid = presupuestoDe(db, obraId);
+          if (!pid) return { ok: false, error: "sinPresupuesto" };
+          let pres = null;
+          try {
+            pres = repo.leer("presupuestos", yo, pid);
+          } catch {
+            pres = null;
+          }
+          if (!pres) return { ok: false, error: "fueraAlcance" };
+          const arbol = require_presupuestos().armarArbol(db, pid);
+          if (!arbol.length) return { ok: false, error: "sinPartidas" };
+          const nombre = F.nombreArchivo(obra, id, hoy);
+          if (f.formato === "bc3") {
+            const codigo = String(obra.codigo || "OBRA").replace(/^OBR-/, "");
+            const bytes = require_bc3().generarBC3(arbol, { codigoObra: codigo, titulo: pres.nombre || obra.nombre || "Presupuesto", comoBuffer: true });
+            return { ok: true, nombre, bytes, tipo: f.mime };
+          }
+          const calculado = require_modelo().calcularArbol(arbol);
+          const hojas = require_papel().excelConLogo(F.hojasPresupuesto(calculado, { sinDinero }), obra);
+          return { ok: true, nombre, bytes: require_xlsxEscribir().escribirXlsx(hojas), tipo: f.mime };
+        }
+        if (f.que === "programa") {
+          const GV = require_ganttVersiones2();
+          if (f.formato === "excel") {
+            const r3 = GV.documentoExcel(repo, yo, obraId, {});
+            if (!r3 || !r3.ok) return { ok: false, error: "sinPrograma" };
+            return { ok: true, nombre: `${r3.nombre}.xlsx`, bytes: require_xlsxEscribir().escribirXlsx(r3.hojas), tipo: f.mime };
+          }
+          if (f.formato === "pdf") {
+            const doc = GV.documentoPdf(repo, yo, obraId, {});
+            if (!doc) return { ok: false, error: "sinPrograma" };
+            return { ok: true, nombre: doc.nombreArchivo || F.nombreArchivo(obra, id, hoy), planificacion: doc, tipo: f.mime };
+          }
+          const r2 = GV.documentoProject(repo, yo, obraId, {});
+          if (!r2 || !r2.ok) return { ok: false, error: r2 && /tarea con fecha/.test(String(r2.error || "")) ? "programaSinFechas" : "sinPrograma" };
+          const n = Number(r2.aviso && String(r2.aviso).match(/^\d+/)) || 0;
+          return { ok: true, nombre: `${r2.nombre}.xml`, bytes: Buffer.from(r2.xml, "utf8"), tipo: f.mime, fuera: n };
+        }
+        const r = require_planificacion3().documentoProject(repo, yo, obraId, {});
+        if (!r || !r.ok) return { ok: false, error: "sinCx" };
+        return { ok: true, nombre: `${r.nombre}.xml`, bytes: Buffer.from(r.xml, "utf8"), tipo: f.mime };
+      }
+      async function responder(repo, yo, { pregunta, obraId, idioma = "es" }, opciones = {}) {
+        const q = F.entender(pregunta);
+        if (!q) return null;
+        if (q.noHay) {
+          return fila(pregunta, { respuesta: F.texto(idioma, "noHay", { que: q.que, formato: q.formato, otros: F.formatosDe(q.que) }), acciones: [ACCION[q.que](idioma)] });
+        }
+        const p = F.permiso({ rol: yo && yo.rol, contrato: opciones.contrato !== void 0 ? opciones.contrato : contratoDe(repo && repo.db, yo) }, q.id);
+        if (!p.ok) {
+          if (p.motivo === "licencia") {
+            const modulo = (require_roles().MODULOS_CONTRATABLES || []).find((m) => m.id === p.contratable);
+            return fila(pregunta, { respuesta: F.texto(idioma, "sinLicencia", { que: q.que, modulo: modulo && modulo.nombre || p.contratable }) });
+          }
+          return fila(pregunta, { respuesta: F.texto(idioma, p.motivo === "dinero" ? "sinDinero" : "sinPermiso", { que: q.que, formato: q.formato }) });
+        }
+        const obraElegida = (opciones.obraDe || require_iarvisPlanos().obraDe)(repo, yo, pregunta, obraId);
+        if (!obraElegida) return fila(pregunta, { respuesta: F.texto(idioma, "sinObra") });
+        if (!opciones.sacarArchivo) return fila(pregunta, { respuesta: F.texto(idioma, "movil"), acciones: [ACCION[q.que](idioma)] });
+        let r;
+        try {
+          r = construir(repo, yo, obraElegida, q.id, { sinDinero: p.sinDinero, hoy: opciones.hoy || hoyLocal() });
+        } catch {
+          r = { ok: false, error: null };
+        }
+        if (!r.ok) {
+          return fila(pregunta, { respuesta: F.texto(idioma, r.error || "noPude"), acciones: [ACCION[q.que](idioma)] });
+        }
+        let archivo = null;
+        try {
+          archivo = await opciones.sacarArchivo(r.planificacion ? { nombre: r.nombre, planificacion: r.planificacion } : { nombre: r.nombre, bytes: r.bytes, tipo: r.tipo });
+        } catch {
+          archivo = null;
+        }
+        if (!archivo) return fila(pregunta, { respuesta: F.texto(idioma, "noPude"), acciones: [ACCION[q.que](idioma)] });
+        const conDinero = q.que === "presupuesto" && p.sinDinero;
+        let respuesta = F.texto(idioma, conDinero ? "aquiSinDinero" : "aqui", { que: q.que, formato: q.formato });
+        if (r.fuera) respuesta += ` (${F.texto(idioma, "fuera", { n: r.fuera })}).`;
+        return fila(pregunta, { respuesta, acciones: [archivo, ACCION[q.que](idioma)] });
+      }
+      module.exports = { responder, construir, contratoDe, presupuestoDe };
+    }
+  });
+
+  // shared/compras/reclamacionProveedor.js
+  var require_reclamacionProveedor = __commonJS({
+    "shared/compras/reclamacionProveedor.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var A = typeof __require === "function" ? require_albaranes() : typeof window !== "undefined" ? window.ALBARANES_MOTOR : null;
+      var llano = (v) => String(v ?? "").trim();
+      var cifra = (n) => Number(n).toLocaleString("es-ES", { maximumFractionDigits: 3 });
+      var redondear = (n) => Math.round(Number(n) * 100) / 100;
+      var euros = (n) => `${redondear(n).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} \u20AC`;
+      var fechaEs = (f) => {
+        const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(llano(f));
+        return m ? `${m[3]}/${m[2]}/${m[1]}` : llano(f);
+      };
+      var plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+      var RE_ROTO = /\b(rot[oa]s?|rotur[ao]s?|da[ñn]ad[oa]s?|da[ñn]os?|golpead[oa]s?|golpes?|abollad[oa]s?|defectuos[oa]s?|mal estado|deteriorad[oa]s?|aplastad[oa]s?|partid[oa]s?|fisurad[oa]s?)\b/i;
+      var esRoto = (texto) => RE_ROTO.test(llano(texto));
+      var TIPOS = {
+        falta: "Falta",
+        diferencia: "Diferencia",
+        retraso: "Retraso",
+        roto: "Roto"
+      };
+      function deUnPedido(p, conImporte) {
+        const lineasPedido = Array.isArray(p.lineas) ? p.lineas : [];
+        const albaranes = Array.isArray(p.albaranes) ? p.albaranes : [];
+        const rec = A.recepcion(lineasPedido, albaranes);
+        const calc = p.calc || {};
+        const anulado = llano(p.estado || calc.estado) === "anulado";
+        const lanzado = !["borrador", "anulado", ""].includes(llano(p.estado || calc.estado));
+        const conPrecio = (l) => conImporte && l && l.precio !== null && l.precio !== void 0 && Number.isFinite(Number(l.precio));
+        const lineas = rec.lineas.map((r, i) => {
+          const orig = lineasPedido[i] || {};
+          const precio = conPrecio(orig) ? Number(orig.precio) : null;
+          const f = {
+            n: i + 1,
+            descripcion: llano(r.descripcion),
+            referencia: llano(r.referencia),
+            unidad: llano(r.unidad),
+            pedida: r.pedida,
+            recibida: r.recibida,
+            falta: r.falta,
+            deMas: r.deMas,
+            estado: r.estado,
+            otraUnidad: (r.otraUnidad || []).map((o) => ({ cantidad: o.cantidad, unidad: llano(o.unidad) }))
+          };
+          if (conImporte) {
+            f.precio = precio;
+            f.importePedido = precio !== null && r.pedida !== null ? redondear(precio * r.pedida) : null;
+            f.importeFalta = precio !== null && r.falta ? redondear(precio * r.falta) : r.falta ? null : 0;
+            f.importeDeMas = precio !== null && r.deMas ? redondear(precio * r.deMas) : r.deMas ? null : 0;
+          }
+          return f;
+        });
+        const diferencias = lineas.filter((l) => l.estado === "exceso" || l.estado === "unidad");
+        const extras = rec.extras.map((e) => ({
+          numero: llano(e.numero),
+          fecha: e.fecha,
+          descripcion: llano(e.descripcion),
+          referencia: llano(e.referencia),
+          unidad: llano(e.unidad),
+          cantidad: e.cantidad
+        }));
+        const rotos = albaranes.filter((a) => esRoto(a.notas)).map((a) => ({ numero: llano(a.numero), fecha: a.fecha, nota: llano(a.notas) }));
+        const dias = Number(calc.retrasoDias);
+        const prevista = calc.fechaPrevista || null;
+        let retraso = null;
+        if (!anulado && prevista && Number.isFinite(dias) && dias > 0 && lanzado) {
+          retraso = { prevista, dias, llego: calc.fechaEntrega || null, sigueSinLlegar: !calc.fechaEntrega };
+        }
+        const faltas = lanzado && (albaranes.length || retraso) ? lineas.filter((l) => (l.estado === "pendiente" || l.estado === "parcial") && l.falta > 0) : [];
+        const totalFalta = conImporte && faltas.length ? redondear(faltas.reduce((s, l) => s + (l.importeFalta || 0), 0)) : null;
+        const sinPrecio = conImporte ? faltas.filter((l) => l.importeFalta === null).length : 0;
+        const hay = Boolean(faltas.length || diferencias.length || extras.length || rotos.length || retraso);
+        const fotos = (p.fotos || []).filter(Boolean);
+        return {
+          codigo: llano(p.codigo),
+          titulo: llano(p.titulo),
+          numPedidoProveedor: llano(p.numPedidoProveedor),
+          fechaPedido: p.fechaSolicitud || null,
+          fechaConfirmacion: p.fechaConfirmacion || null,
+          estado: llano(p.estado || calc.estado),
+          lineas,
+          faltas,
+          diferencias,
+          extras,
+          rotos,
+          retraso,
+          hay,
+          albaranes: albaranes.map((a) => ({ id: a.id, numero: llano(a.numero), fecha: a.fecha, notas: llano(a.notas) })),
+          fotos,
+          ...conImporte ? { totalFalta, faltasSinPrecio: sinPrecio, importePedido: p.importe !== void 0 && p.importe !== null ? Number(p.importe) : null } : {}
+        };
+      }
+      function redactar({ pedidos, proveedor, obra, emisor, hoy, conImporte, observaciones }) {
+        const L = [];
+        const nombre = llano(proveedor && proveedor.nombre);
+        L.push(nombre ? `Estimados se\xF1ores de ${nombre}:` : "Estimados se\xF1ores:");
+        L.push("");
+        const refs = pedidos.map((p) => `${p.codigo}${p.numPedidoProveedor ? ` (su pedido ${p.numPedidoProveedor})` : ""}`).join(", ");
+        L.push(`Les escribimos por ${pedidos.length === 1 ? "el pedido" : "los pedidos"} ${refs}${obra && obra.nombre ? ` de la obra ${[obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ")}` : ""}, en los que hemos detectado las siguientes incidencias en la recepci\xF3n:`);
+        for (const p of pedidos) {
+          L.push("");
+          if (pedidos.length > 1) L.push(`Pedido ${p.codigo}${p.titulo ? ` \xB7 ${p.titulo}` : ""}`);
+          if (p.faltas.length) {
+            L.push(`- No ha llegado${p.faltas.length === 1 ? "" : "n"} ${plural(p.faltas.length, "material", "materiales")}:`);
+            for (const l of p.faltas) {
+              L.push(`    \xB7 ${l.descripcion}${l.referencia ? ` (ref. ${l.referencia})` : ""}: faltan ${cifra(l.falta)}${l.unidad ? ` ${l.unidad}` : ""} de ${cifra(l.pedida)} pedidos${conImporte && l.importeFalta ? `, ${euros(l.importeFalta)}` : ""}.`);
+            }
+            if (conImporte && p.totalFalta) L.push(`  Importe de lo pendiente de entrega: ${euros(p.totalFalta)}${p.faltasSinPrecio ? ` (m\xE1s ${plural(p.faltasSinPrecio, "l\xEDnea", "l\xEDneas")} sin precio)` : ""}.`);
+          }
+          if (p.diferencias.length || p.extras.length) {
+            L.push("- Diferencias con lo pedido:");
+            for (const l of p.diferencias) {
+              if (l.estado === "exceso") L.push(`    \xB7 ${l.descripcion}: han llegado ${cifra(l.recibida)} y se pidieron ${cifra(l.pedida)} (${cifra(l.deMas)} de m\xE1s).`);
+              else L.push(`    \xB7 ${l.descripcion}: llega en otra unidad (${l.otraUnidad.map((o) => `${cifra(o.cantidad)} ${o.unidad}`).join(", ")}) y se pidi\xF3 en ${l.unidad || "la unidad del pedido"}.`);
+            }
+            for (const e of p.extras) L.push(`    \xB7 ${e.descripcion}${e.referencia ? ` (ref. ${e.referencia})` : ""}: ${cifra(e.cantidad)}${e.unidad ? ` ${e.unidad}` : ""} que no figura en el pedido${e.numero ? ` (albar\xE1n ${e.numero})` : ""}.`);
+          }
+          if (p.rotos.length) {
+            L.push("- Material recibido roto o da\xF1ado, anotado en el albar\xE1n:");
+            for (const r of p.rotos) L.push(`    \xB7 Albar\xE1n ${r.numero || "s/n"} (${fechaEs(r.fecha)}): ${r.nota}`);
+          }
+          if (p.retraso) {
+            L.push(p.retraso.sigueSinLlegar ? `- Retraso: deb\xEDa entregarse el ${fechaEs(p.retraso.prevista)} y lleva ${plural(p.retraso.dias, "d\xEDa", "d\xEDas")} de retraso sin llegar completo.` : `- Retraso: deb\xEDa entregarse el ${fechaEs(p.retraso.prevista)} y lleg\xF3 el ${fechaEs(p.retraso.llego)}, ${plural(p.retraso.dias, "d\xEDa", "d\xEDas")} tarde.`);
+          }
+        }
+        L.push("");
+        if (llano(observaciones)) {
+          L.push(llano(observaciones));
+          L.push("");
+        }
+        L.push("Les rogamos que revisen lo anterior y nos confirmen por escrito, a la mayor brevedad, la fecha de entrega de lo pendiente y la reposici\xF3n o el abono de lo que no corresponda. Adjuntamos el detalle l\xEDnea a l\xEDnea, con los albaranes y las fotos de la recepci\xF3n.");
+        L.push("");
+        L.push("Quedamos a la espera de su respuesta. Un saludo,");
+        const firma = [emisor && emisor.nombre, emisor && emisor.rol].filter(Boolean).join(" \xB7 ");
+        if (firma) L.push(firma);
+        L.push(`${fechaEs(hoy)}`);
+        return L.join("\n");
+      }
+      function reclamacion({ pedidos = [], proveedor = null, obra = null, emisor = null, hoy = "", conImporte = false, observaciones = "" } = {}) {
+        const todos = pedidos.map((p) => deUnPedido(p, Boolean(conImporte)));
+        const con = todos.filter((p) => p.hay);
+        if (!con.length) {
+          return { ok: false, nada: true, error: todos.length === 1 ? "En este pedido no hay nada que reclamar: lo pedido ha llegado completo y a tiempo." : "En los pedidos de este proveedor no hay nada que reclamar: todo ha llegado completo y a tiempo." };
+        }
+        const resumen = {
+          pedidos: con.length,
+          lineasFalta: con.reduce((s, p) => s + p.faltas.length, 0),
+          lineasDiferencia: con.reduce((s, p) => s + p.diferencias.length + p.extras.length, 0),
+          albaranesRotos: con.reduce((s, p) => s + p.rotos.length, 0),
+          conRetraso: con.filter((p) => p.retraso).length,
+          diasRetrasoMax: con.reduce((m, p) => Math.max(m, p.retraso ? p.retraso.dias : 0), 0)
+        };
+        if (conImporte) {
+          resumen.totalFalta = redondear(con.reduce((s, p) => s + (p.totalFalta || 0), 0));
+          resumen.faltasSinPrecio = con.reduce((s, p) => s + (p.faltasSinPrecio || 0), 0);
+        }
+        const asunto = `Reclamaci\xF3n ${con.length === 1 ? `pedido ${con[0].codigo}` : `de ${con.length} pedidos`}${obra && obra.codigo ? ` \xB7 Obra ${obra.codigo}` : ""}${proveedor && proveedor.nombre ? ` \xB7 ${proveedor.nombre}` : ""}`;
+        return {
+          ok: true,
+          pedidos: con,
+          resumen,
+          conImporte: Boolean(conImporte),
+          asunto,
+          texto: redactar({ pedidos: con, proveedor, obra, emisor, hoy, conImporte: Boolean(conImporte), observaciones })
+        };
+      }
+      module.exports = { reclamacion, deUnPedido, redactar, esRoto, TIPOS, euros, fechaEs, cifra };
+    }
+  });
+
+  // shared/compras/reclamacionProveedorPdf.js
+  var require_reclamacionProveedorPdf = __commonJS({
+    "shared/compras/reclamacionProveedorPdf.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var { crearInforme } = require_plantillaPdf();
+      var R = require_reclamacionProveedor();
+      var llano = (v) => String(v ?? "").trim();
+      var { euros, fechaEs, cifra } = R;
+      var bytesDe = (src) => {
+        const m = /^data:[^;,]+;base64,(.*)$/.exec(String(src || ""));
+        return m ? Buffer.from(m[1], "base64") : null;
+      };
+      var ESTADO = { pendiente: "No ha llegado", parcial: "Llega a medias", completa: "Completa", exceso: "De m\xE1s", unidad: "Otra unidad" };
+      var TONO = { pendiente: "mal", parcial: "aviso", completa: "bien", exceso: "aviso", unidad: "aviso" };
+      async function reclamacionProveedorPdf({ dossier, obra = {}, proveedor = {}, emisor = {}, hoy = "", marca = "app", logo = void 0, pie = "" } = {}) {
+        const d = dossier;
+        const con = Boolean(d.conImporte);
+        const nombreObra = [obra.codigo, obra.nombre].filter(Boolean).join(" \xB7 ");
+        const uno = d.pedidos.length === 1 ? d.pedidos[0] : null;
+        const inf = await crearInforme({
+          marca: marca || "app",
+          obra,
+          logo,
+          titulo: "Reclamaci\xF3n a proveedor",
+          subtitulo: `${llano(proveedor.nombre)}${uno ? ` \xB7 ${uno.codigo}` : ` \xB7 ${d.pedidos.length} pedidos`}`,
+          pie: pie || `Reclamaci\xF3n ${llano(proveedor.nombre)} \xB7 ${nombreObra}`
+        });
+        const pares = [
+          ["PROVEEDOR", proveedor.nombre],
+          ["FECHA", fechaEs(hoy)],
+          ["OBRA", nombreObra],
+          ["LA PREPARA", [emisor.nombre, emisor.rol].filter(Boolean).join(", ")],
+          ["CORREO DEL PROVEEDOR", proveedor.email]
+        ].filter(([, v]) => llano(v));
+        const filas = [];
+        for (let k = 0; k < pares.length; k += 2) filas.push([pares[k], pares[k + 1] || null]);
+        inf.datos(filas, { rotulo: 106 });
+        const r = d.resumen;
+        const cifras = [[r.pedidos, r.pedidos === 1 ? "pedido" : "pedidos"], [r.lineasFalta, "l\xEDneas sin llegar"], [r.lineasDiferencia, "con diferencias"]];
+        if (r.albaranesRotos) cifras.push([r.albaranesRotos, r.albaranesRotos === 1 ? "albar\xE1n con rotos" : "albaranes con rotos"]);
+        if (r.conRetraso) cifras.push([r.diasRetrasoMax, "d\xEDas de retraso"]);
+        if (con && r.totalFalta) cifras.push([euros(r.totalFalta), "pendiente de entregar"]);
+        inf.franja(cifras.map(([v, t]) => [String(v), t]));
+        inf.banda("Texto de la reclamaci\xF3n");
+        inf.parrafo(`Asunto: ${d.asunto}`);
+        for (const linea of d.texto.split("\n")) {
+          if (linea) inf.parrafo(linea, { despues: 1.5 });
+          else inf.parrafo(" ", { tam: 3, despues: 0 });
+        }
+        for (const p of d.pedidos) {
+          inf.banda(`Pedido ${p.codigo}${p.titulo ? ` \xB7 ${p.titulo}` : ""}`);
+          const meta = [
+            p.numPedidoProveedor ? `Pedido del proveedor ${p.numPedidoProveedor}` : "",
+            p.fechaPedido ? `pedido el ${fechaEs(p.fechaPedido)}` : "",
+            p.retraso ? `comprometido para el ${fechaEs(p.retraso.prevista)}` : ""
+          ].filter(Boolean).join(" \xB7 ");
+          if (meta) inf.parrafo(meta, { tam: 8, color: inf.colores.suave });
+          if (p.retraso) {
+            inf.parrafo(p.retraso.sigueSinLlegar ? `Retraso: ${p.retraso.dias} d sobre la fecha comprometida (${fechaEs(p.retraso.prevista)}) y sin llegar completo.` : `Retraso: lleg\xF3 el ${fechaEs(p.retraso.llego)}, ${p.retraso.dias} d tarde sobre la fecha comprometida (${fechaEs(p.retraso.prevista)}).`, { f: inf.fuentes.b });
+          }
+          const cols = [
+            { t: "#", w: 20, alinear: "derecha" },
+            { t: "Material" },
+            { t: "Pedido", w: 46, alinear: "derecha" },
+            { t: "Recibido", w: 48, alinear: "derecha" },
+            { t: "Falta", w: 42, alinear: "derecha" },
+            { t: "De m\xE1s", w: 42, alinear: "derecha" },
+            { t: "Estado", w: 70 },
+            ...con ? [{ t: "Precio", w: 54, alinear: "derecha" }, { t: "Importe falta", w: 62, alinear: "derecha" }] : []
+          ];
+          const filas2 = p.lineas.map((l) => [
+            String(l.n),
+            `${llano(l.descripcion)}${l.referencia ? ` \xB7 ${l.referencia}` : ""}${l.unidad ? ` (${l.unidad})` : ""}`,
+            l.pedida === null ? "\u2014" : cifra(l.pedida),
+            cifra(l.recibida),
+            l.falta ? cifra(l.falta) : "",
+            l.deMas ? cifra(l.deMas) : "",
+            { pastilla: TONO[l.estado] || "neutra", rotulo: ESTADO[l.estado] || l.estado },
+            ...con ? [l.precio === null || l.precio === void 0 ? "\u2014" : euros(l.precio), l.importeFalta ? euros(l.importeFalta) : l.importeFalta === null ? "sin precio" : ""] : []
+          ]);
+          if (con && p.totalFalta) filas2.push(["", { texto: "Total pendiente de entregar", negrita: true }, "", "", "", "", "", "", { texto: euros(p.totalFalta), negrita: true }]);
+          await inf.tabla(cols, filas2);
+          if (p.extras.length) {
+            inf.parrafo("Llegado sin estar en el pedido", { f: inf.fuentes.b });
+            await inf.tabla(
+              [{ t: "Albar\xE1n", w: 70 }, { t: "Fecha", w: 62 }, { t: "Material" }, { t: "Cantidad", w: 60, alinear: "derecha" }],
+              p.extras.map((e) => [e.numero || "s/n", fechaEs(e.fecha), `${llano(e.descripcion)}${e.referencia ? ` \xB7 ${e.referencia}` : ""}`, `${cifra(e.cantidad)}${e.unidad ? ` ${e.unidad}` : ""}`])
+            );
+          }
+          if (p.rotos.length) {
+            inf.parrafo("Anotado como roto o da\xF1ado", { f: inf.fuentes.b });
+            await inf.tabla(
+              [{ t: "Albar\xE1n", w: 70 }, { t: "Fecha", w: 62 }, { t: "Lo que dice el albar\xE1n" }],
+              p.rotos.map((x) => [x.numero || "s/n", fechaEs(x.fecha), x.nota])
+            );
+          }
+          if (p.albaranes.length) {
+            inf.parrafo("Albaranes recibidos", { f: inf.fuentes.b });
+            await inf.tabla([{ t: "Albar\xE1n", w: 90 }, { t: "Fecha", w: 70 }, { t: "Notas" }], p.albaranes.map((a) => [a.numero || "s/n", fechaEs(a.fecha), a.notas]));
+          } else inf.parrafo("Todav\xEDa no hay ning\xFAn albar\xE1n registrado de este pedido.", { tam: 8, color: inf.colores.suave });
+        }
+        const losas = [];
+        for (const p of d.pedidos) {
+          (p.fotos || []).forEach((f, i) => {
+            const bytes = f.bytes || bytesDe(f.src);
+            if (bytes) losas.push({ texto: `${p.codigo} \xB7 Albar\xE1n ${llano(f.albaran) || "s/n"} \xB7 Foto ${i + 1}`, bytes, pie: llano(f.nombre) });
+          });
+        }
+        if (losas.length) await inf.anexo("Anexo \xB7 albaranes y fotos", losas, { subtitulo: "Anexo \xB7 albaranes y fotos" });
+        return inf.cerrar();
+      }
+      module.exports = { reclamacionProveedorPdf };
+    }
+  });
+
+  // electron/obra/data/reclamacionProveedor.js
+  var require_reclamacionProveedor2 = __commonJS({
+    "electron/obra/data/reclamacionProveedor.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fs = require_fs();
+      var path = require_path();
+      var P = require_pedidos2();
+      var R = require_reclamacionProveedor();
+      var { puede, campoVetado, rol } = require_roles();
+      var llano = (v) => String(v ?? "").trim();
+      var hoy = () => require_fecha().hoyLocal();
+      var MAX_FOTOS = 24;
+      var MIME = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png" };
+      var limpioNombre = (t) => llano(t).replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").slice(0, 80);
+      function fotosDe(repo, sesion, fila, cupo) {
+        const fotos = [];
+        let omitidas = 0;
+        const numeroDe = new Map((fila.albaranes || []).map((a) => [a.id, a.numero]));
+        for (const d of fila.documentos || []) {
+          if (d.tipo !== "albaran" || !d.albaranId) continue;
+          const a = P.archivo(repo, sesion, d.id);
+          if (!a || !a.ruta) continue;
+          if (fotos.length >= cupo) {
+            omitidas += 1;
+            continue;
+          }
+          try {
+            if (!MIME[path.extname(a.ruta).toLowerCase()]) {
+              omitidas += 1;
+              continue;
+            }
+            fotos.push({ bytes: fs.readFileSync(a.ruta), nombre: llano(a.nombre || path.basename(a.ruta)), albaran: numeroDe.get(d.albaranId) || "" });
+          } catch {
+            omitidas += 1;
+          }
+        }
+        return { fotos, omitidas };
+      }
+      function preparar(repo, sesion, { pedidoId = null, obraId = null, proveedorId = null, observaciones = "" } = {}) {
+        if (!puede(sesion.rol, "pedidos", "ver")) return { ok: false, error: "Tu rol no puede ver los pedidos." };
+        const conImporte = !campoVetado(sesion.rol, "precioProveedor");
+        let datos;
+        let filas;
+        if (pedidoId) {
+          const f = P.ficha(repo, sesion, llano(pedidoId));
+          if (!f || !f.pedido) return { ok: false, error: "No se encuentra el pedido." };
+          datos = { obra: f.obra };
+          filas = [f.pedido];
+        } else if (obraId && proveedorId) {
+          const o = P.obra(repo, sesion, llano(obraId));
+          if (!o) return { ok: false, error: "No se encuentra la obra." };
+          datos = { obra: o.obra };
+          filas = o.filas.filter((x) => x.proveedorId === llano(proveedorId));
+          if (!filas.length) return { ok: false, error: "Este proveedor no tiene pedidos en esta obra." };
+        } else return { ok: false, error: "Di de qu\xE9 pedido o de qu\xE9 proveedor (y obra) es la reclamaci\xF3n." };
+        const provId = filas[0].proveedorId;
+        if (!provId) return { ok: false, error: "El pedido no tiene proveedor: no se sabe a qui\xE9n reclamar." };
+        const prov = P.proveedoresPorId(repo).get(provId);
+        const proveedor = { id: provId, nombre: prov ? prov.nombre : filas[0].proveedor, email: prov ? prov.email : filas[0].proveedorEmail };
+        const nom = P.nombres(repo);
+        const r = rol(sesion.rol);
+        const emisor = { nombre: nom.get(sesion.personaId) || "", rol: r ? r.nombre : sesion.rol };
+        const hoyDia = hoy();
+        const pedidos = filas.map((f) => ({ ...f, estado: f.calc.estado }));
+        const out = R.reclamacion({ pedidos, proveedor, obra: datos.obra, emisor, hoy: hoyDia, conImporte, observaciones: llano(observaciones).slice(0, 2e3) });
+        if (!out.ok) return out;
+        let omitidas = 0;
+        let cupo = MAX_FOTOS;
+        for (const p of out.pedidos) {
+          const fila = filas.find((f) => f.codigo === p.codigo);
+          const r2 = fotosDe(repo, sesion, fila, cupo);
+          p.fotos = r2.fotos;
+          cupo -= r2.fotos.length;
+          omitidas += r2.omitidas;
+        }
+        const cod = out.pedidos.length === 1 ? out.pedidos[0].codigo : `${out.pedidos.length} pedidos`;
+        return {
+          ok: true,
+          dossier: out,
+          obra: datos.obra,
+          proveedor,
+          emisor,
+          hoy: hoyDia,
+          conImporte,
+          fotosOmitidas: omitidas,
+          nombreArchivo: `Reclamacion ${cod} - ${limpioNombre(proveedor.nombre)}${datos.obra.codigo ? ` - ${limpioNombre(datos.obra.codigo)}` : ""}.pdf`
+        };
+      }
+      async function pdf(repo, sesion, opciones = {}, formato = {}) {
+        const d = preparar(repo, sesion, opciones);
+        if (!d.ok) return d;
+        const { reclamacionProveedorPdf } = require_reclamacionProveedorPdf();
+        const bytes = await reclamacionProveedorPdf({
+          dossier: d.dossier,
+          obra: d.obra,
+          proveedor: d.proveedor,
+          emisor: d.emisor,
+          hoy: d.hoy,
+          marca: formato.marca || "app",
+          logo: formato.logo,
+          pie: formato.pie
+        });
+        return { ...d, bytes: Buffer.from(bytes) };
+      }
+      module.exports = { preparar, pdf };
+    }
+  });
+
+  // electron/obra/data/iarvisReclamacionProveedor.js
+  var require_iarvisReclamacionProveedor = __commonJS({
+    "electron/obra/data/iarvisReclamacionProveedor.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var llano = (v) => String(v ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+      var uuid = () => globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `r-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      var fila = (pregunta, extra) => ({ id: uuid(), pregunta, estado: "respondida", local: true, creado: (/* @__PURE__ */ new Date()).toISOString(), acciones: [], ...extra });
+      var IR = { tipo: "ir", destino: "pedidos", texto: "Abrir Pedidos" };
+      function entender(pregunta) {
+        const q = llano(pregunta);
+        if (!/\breclam/.test(q)) return null;
+        if (/\b(cliente|claim|limak|ncn|certificacion|subcontrata)\b/.test(q) && !/\b(proveedor|pedido|ped[- ]?\d)/.test(q)) return null;
+        const cod = /\bped[- ]?0*(\d{1,5})\b/.exec(q) || /\bpedido\s*(?:n[o.º]*\s*)?0*(\d{1,5})\b/.exec(q);
+        if (cod) return { numero: Number(cod[1]) };
+        if (/\b(proveedor|suministrador|suministros|lo que falta|lo que no ha llegado|no ha llegado|no llego|roto|retras)/.test(q) || /\ba\s+[a-z0-9]/.test(q)) return { proveedor: true };
+        return null;
+      }
+      function proveedorNombrado(pregunta, pedidos, provs) {
+        const q = ` ${llano(pregunta).replace(/[^a-z0-9]+/g, " ")} `;
+        const ids = [...new Set(pedidos.map((p) => p.proveedorId).filter(Boolean))];
+        const nombres = ids.map((id) => ({ id, n: llano((provs.get(id) || {}).nombre).replace(/[^a-z0-9]+/g, " ").trim() })).filter((x) => x.n);
+        const entero = nombres.filter((x) => q.includes(` ${x.n} `));
+        if (entero.length === 1) return entero[0].id;
+        const primera = nombres.filter((x) => {
+          const w = x.n.split(" ")[0];
+          return w.length >= 4 && q.includes(` ${w} `);
+        });
+        return primera.length === 1 ? primera[0].id : entero.length || primera.length ? "ambiguo" : null;
+      }
+      async function responder(repo, yo, { pregunta, obraId }, opciones = {}) {
+        const q = entender(pregunta);
+        if (!q) return null;
+        const R = require_roles();
+        if (!yo || !R.puede(yo.rol, "pedidos", "ver")) return fila(pregunta, { respuesta: "Tu puesto no puede ver los pedidos, as\xED que no puedo prepararte una reclamaci\xF3n a un proveedor." });
+        let contrato = null;
+        try {
+          contrato = opciones.contrato !== void 0 ? opciones.contrato : require_iarvisFicheros().contratoDe(repo.db, yo);
+        } catch {
+          contrato = null;
+        }
+        if (!R.contratoPermite(contrato, "pedidos")) {
+          return fila(pregunta, { respuesta: "Tu unidad de negocio no tiene contratado el m\xF3dulo de compras, as\xED que no puedo prepararte la reclamaci\xF3n. Lo da de alta el administrador a petici\xF3n de tu jefe." });
+        }
+        const obra = (opciones.obraDe || require_iarvisPlanos().obraDe)(repo, yo, pregunta, obraId);
+        if (!obra) return fila(pregunta, { respuesta: "Elige primero la obra arriba a la izquierda y te preparo la reclamaci\xF3n." });
+        if (!opciones.sacarArchivo) return fila(pregunta, { respuesta: "La reclamaci\xF3n en PDF se saca desde el ordenador o la web: abre Pedidos y pulsa \xABReclamar al proveedor\u2026\xBB.", acciones: [IR] });
+        const P = require_pedidos2();
+        const datos = P.obra(repo, yo, obra);
+        if (!datos) return fila(pregunta, { respuesta: "Esa obra no est\xE1 entre las tuyas, as\xED que no te preparo nada de ella." });
+        let consulta;
+        if (q.numero) {
+          const hallados = datos.filas.filter((f) => Number(String(f.codigo || "").replace(/\D/g, "")) === q.numero);
+          if (!hallados.length) return fila(pregunta, { respuesta: `No encuentro el pedido ${q.numero} en esta obra.` });
+          consulta = { pedidoId: hallados[0].id };
+        } else {
+          const id = proveedorNombrado(pregunta, datos.filas, P.proveedoresPorId(repo));
+          if (!id) return fila(pregunta, { respuesta: "Dime a qu\xE9 proveedor o de qu\xE9 pedido es la reclamaci\xF3n (por ejemplo, \xABreclamaci\xF3n del pedido PED-0003\xBB)." });
+          if (id === "ambiguo") return fila(pregunta, { respuesta: "Hay m\xE1s de un proveedor que se parece a ese nombre: dime el nombre entero o el pedido." });
+          consulta = { obraId: obra, proveedorId: id };
+        }
+        let r;
+        try {
+          r = await require_reclamacionProveedor2().pdf(repo, yo, consulta, opciones.formatoPdf || {});
+        } catch {
+          r = { ok: false, error: "No he podido preparar el PDF." };
+        }
+        if (!r.ok) return fila(pregunta, { respuesta: r.error || "No he podido preparar la reclamaci\xF3n.", acciones: [IR] });
+        let archivo = null;
+        try {
+          archivo = await opciones.sacarArchivo({ nombre: r.nombreArchivo, bytes: r.bytes, tipo: "application/pdf" });
+        } catch {
+          archivo = null;
+        }
+        if (!archivo) return fila(pregunta, { respuesta: "No he podido sacar el PDF de la reclamaci\xF3n.", acciones: [IR] });
+        const s = r.dossier.resumen;
+        const partes = [];
+        if (s.lineasFalta) partes.push(`${s.lineasFalta} l\xEDnea${s.lineasFalta === 1 ? "" : "s"} sin llegar`);
+        if (s.lineasDiferencia) partes.push(`${s.lineasDiferencia} con diferencias`);
+        if (s.albaranesRotos) partes.push(`${s.albaranesRotos} albar\xE1n${s.albaranesRotos === 1 ? "" : "es"} con material roto`);
+        if (s.conRetraso) partes.push(`hasta ${s.diasRetrasoMax} d de retraso`);
+        if (r.conImporte && s.totalFalta) partes.push(`${require_reclamacionProveedor().euros(s.totalFalta)} pendientes de entregar`);
+        const respuesta = `Aqu\xED tienes la reclamaci\xF3n a ${r.proveedor.nombre}: ${partes.join(", ")}. Lleva el pedido frente a lo recibido l\xEDnea a l\xEDnea, los albaranes y fotos en anexo y el texto listo para mandar.`;
+        return fila(pregunta, { respuesta, acciones: [archivo, IR] });
+      }
+      module.exports = { responder, entender, proveedorNombrado };
+    }
+  });
+
   // electron/obra/data/iarvisListados.js
   var require_iarvisListados = __commonJS({
     "electron/obra/data/iarvisListados.js"(exports, module) {
@@ -239097,6 +243613,24 @@ Lo otro, las cuentas de la empresa, solo lo ve Direcci\xF3n.` };
           if (m) return m;
         }
         if (repo) {
+          let fi = null;
+          try {
+            fi = await require_iarvisFicheros().responder(repo, yo, { pregunta, obraId, idioma: d.idioma }, { sacarArchivo: opciones.sacarArchivo || null });
+          } catch {
+            fi = null;
+          }
+          if (fi) return fi;
+        }
+        if (repo) {
+          let rp = null;
+          try {
+            rp = await require_iarvisReclamacionProveedor().responder(repo, yo, { pregunta, obraId }, { sacarArchivo: opciones.sacarArchivo || null, formatoPdf: opciones.formatoPdf || null });
+          } catch {
+            rp = null;
+          }
+          if (rp) return rp;
+        }
+        if (repo) {
           let l = null;
           try {
             l = await require_iarvisListados().responder(repo, yo, { pregunta, obraId }, { sacarArchivo: opciones.sacarArchivo || null, destino: opciones.destinoListado });
@@ -241915,7 +246449,13 @@ En el claim, esta l\xEDnea suma su venta: ${eur(venta)}. El plazo (coste indirec
             lunes: lunesSem,
             euros: eurosSem,
             pct: pctSem,
-            textos: TEXTOS_SEM
+            textos: TEXTOS_SEM,
+            /* Para el PDF de la plantilla común (shared/obra/informeSemanalPdf.js, 19-nov): los mismos textos y formatos. */
+            traductor: textosSem,
+            miles: milesSem,
+            signo: signoSem,
+            claseDesvio: claseDesvioSem,
+            CLAVE_GRAVEDAD
           };
           return API2;
         })();
@@ -243387,6 +247927,182 @@ En el claim, esta l\xEDnea suma su venta: ${eur(venta)}. El plazo (coste indirec
     }
   });
 
+  // shared/mantenimiento/sla.js
+  var require_sla = __commonJS({
+    "shared/mantenimiento/sla.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const PLAZOS = {
+          alta: { respuestaH: 2, resolucionH: 24 },
+          media: { respuestaH: 8, resolucionH: 72 },
+          baja: { respuestaH: 24, resolucionH: 168 }
+        };
+        const RIESGO = 0.75;
+        const ESCALADO = [
+          null,
+          { nivel: 1, a: "encargadoMantenimiento", nombre: "Encargado de mantenimiento" },
+          { nivel: 2, a: "jefeMantenimiento", nombre: "Jefe de mantenimiento" },
+          { nivel: 3, a: "direccion", nombre: "Direcci\xF3n" }
+        ];
+        const ESTADOS = {
+          enPlazo: { nombre: "en plazo", clase: "bien", orden: 3 },
+          enRiesgo: { nombre: "en riesgo", clase: "aviso", orden: 2 },
+          vencida: { nombre: "vencida", clase: "mal", orden: 1 },
+          cumplida: { nombre: "cumplida", clase: "bien", orden: 5 },
+          incumplida: { nombre: "incumplida", clase: "mal", orden: 4 }
+        };
+        const HORA = 36e5;
+        const ms = (v) => {
+          if (!v) return null;
+          const t = Date.parse(String(v).length === 10 ? `${v}T23:59:59` : v);
+          return Number.isFinite(t) ? t : null;
+        };
+        const horas = (a, b) => Math.round((b - a) / HORA * 10) / 10;
+        const aplica = (o) => Boolean(o && o.tipo === "correctiva" && o.estado !== "anulada" && ms(o.creadoEn) != null);
+        function plazosDe(orden, plazos = PLAZOS) {
+          return plazos[orden && orden.prioridad] || plazos.media || PLAZOS.media;
+        }
+        function tramo(inicio, fin, limiteH, ahora) {
+          const limite = inicio + limiteH * HORA;
+          if (fin != null) {
+            const h = horas(inicio, fin);
+            return { estado: fin <= limite ? "cumplida" : "incumplida", horas: h, limiteH, quedanH: null, venceEn: new Date(limite).toISOString() };
+          }
+          const gastado = (ahora - inicio) / (limiteH * HORA);
+          const estado = gastado > 1 ? "vencida" : gastado >= RIESGO ? "enRiesgo" : "enPlazo";
+          return { estado, horas: horas(inicio, ahora), limiteH, quedanH: horas(ahora, limite), venceEn: new Date(limite).toISOString() };
+        }
+        function deOrden(orden, ahora = Date.now(), plazos = PLAZOS) {
+          if (!aplica(orden)) return null;
+          const t = typeof ahora === "number" ? ahora : ms(ahora);
+          const p = plazosDe(orden, plazos);
+          const inicio = ms(orden.creadoEn);
+          const hecha = orden.estado === "terminada" || orden.estado === "cerrada";
+          const fin = hecha ? ms(orden.terminadaEn) ?? ms(orden.fechaTerminada) ?? ms(orden.fechaCierre) : null;
+          const empezo = ms(orden.fechaInicio) ?? fin;
+          const respuesta = tramo(inicio, empezo, p.respuestaH, t);
+          const resolucion = tramo(inicio, fin, p.resolucionH, t);
+          const peor = [respuesta, resolucion].sort((a, b) => ESTADOS[a.estado].orden - ESTADOS[b.estado].orden)[0].estado;
+          let nivel = 0;
+          for (const x of [respuesta, resolucion]) {
+            if (x.estado === "enRiesgo") nivel = Math.max(nivel, 1);
+            if (x.estado === "vencida") nivel = Math.max(nivel, x.horas > 2 * x.limiteH ? 3 : 2);
+          }
+          return { respuesta, resolucion, peor, escalado: ESCALADO[nivel] };
+        }
+        function resumen(ordenes, ahora = Date.now(), plazos = PLAZOS) {
+          const filas = (ordenes || []).map((o) => ({ orden: o, sla: deOrden(o, ahora, plazos) })).filter((f) => f.sla);
+          const abierta = (f) => f.sla.resolucion.quedanH != null;
+          const abiertas = filas.filter(abierta);
+          const resueltas = filas.filter((f) => !abierta(f));
+          const cumplidas = resueltas.filter((f) => f.sla.resolucion.estado === "cumplida").length;
+          const respondidas = filas.filter((f) => f.sla.respuesta.quedanH == null);
+          const pct = (n, de) => de ? Math.round(n / de * 1e3) / 10 : null;
+          filas.sort((a, b) => ESTADOS[a.sla.peor].orden - ESTADOS[b.sla.peor].orden || String(a.orden.creadoEn).localeCompare(String(b.orden.creadoEn)));
+          return {
+            total: filas.length,
+            abiertas: abiertas.length,
+            vencidas: abiertas.filter((f) => f.sla.peor === "vencida").length,
+            enRiesgo: abiertas.filter((f) => f.sla.peor === "enRiesgo").length,
+            escaladas: abiertas.filter((f) => f.sla.escalado).length,
+            resueltas: resueltas.length,
+            cumplidas,
+            cumplimientoPct: pct(cumplidas, resueltas.length),
+            respuestaPct: pct(respondidas.filter((f) => f.sla.respuesta.estado === "cumplida").length, respondidas.length),
+            filas
+          };
+        }
+        const API = { PLAZOS, RIESGO, ESCALADO, ESTADOS, aplica, plazosDe, deOrden, resumen };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.SLA_MANT = API;
+      })();
+    }
+  });
+
+  // shared/mantenimiento/kpi.js
+  var require_kpi = __commonJS({
+    "shared/mantenimiento/kpi.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const carga = (ventana, cargar) => {
+          if (typeof window !== "undefined" && window[ventana]) return window[ventana];
+          return cargar();
+        };
+        const S = carga("SLA_MANT", () => require_sla());
+        const DIAS = 365;
+        const JORNADA_SEMANA_H = 40;
+        const HORA = 36e5;
+        const DIA = 24 * HORA;
+        const ms = (v) => {
+          if (!v) return null;
+          const t = Date.parse(String(v).length === 10 ? `${v}T23:59:59` : v);
+          return Number.isFinite(t) ? t : null;
+        };
+        const r1 = (n) => Math.round(n * 10) / 10;
+        const media = (l) => l.length ? l.reduce((a, b) => a + b, 0) / l.length : null;
+        const pct = (n, de) => de ? r1(n / de * 100) : null;
+        const HECHA = (o) => o.estado === "terminada" || o.estado === "cerrada";
+        const VIVA = (o) => o.estado !== "anulada";
+        const finDe = (o) => HECHA(o) ? ms(o.terminadaEn) ?? ms(o.fechaTerminada) ?? ms(o.fechaCierre) : null;
+        const diaMenos = (dia, n) => new Date(Date.parse(`${dia}T12:00:00Z`) - n * DIA).toISOString().slice(0, 10);
+        function indicadores(ordenes, { hoy, ahora, equipos = 0, operarios = 0, dias = DIAS, plazos } = {}) {
+          const dia = hoy || new Date(Date.now() - (/* @__PURE__ */ new Date()).getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+          const t = typeof ahora === "number" ? ahora : ms(ahora) ?? ms(dia);
+          const desde = diaMenos(dia, dias);
+          const todas = (ordenes || []).filter(VIVA);
+          const correctivas = todas.filter((o) => o.tipo === "correctiva" && String(o.creadoEn || "").slice(0, 10) >= desde);
+          const reparadas = correctivas.filter((o) => HECHA(o) && finDe(o) != null && ms(o.creadoEn) != null);
+          const mttrH = media(reparadas.map((o) => Math.max(0, finDe(o) - ms(o.creadoEn)) / HORA));
+          const respuestas = correctivas.filter((o) => ms(o.fechaInicio) != null && ms(o.creadoEn) != null);
+          const respuestaH = media(respuestas.map((o) => Math.max(0, ms(o.fechaInicio) - ms(o.creadoEn)) / HORA));
+          const mtbfDias = correctivas.length && equipos ? equipos * dias / correctivas.length : null;
+          const porEquipo = /* @__PURE__ */ new Map();
+          for (const o of correctivas) {
+            const k = o.equipoTag || o.equipoId;
+            if (k) porEquipo.set(k, (porEquipo.get(k) || 0) + 1);
+          }
+          const repetidores = [...porEquipo].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]))).slice(0, 5).map(([tag, averias]) => ({ tag, averias }));
+          const tocaban = todas.filter((o) => o.tipo !== "correctiva" && o.fechaPrevista && o.fechaPrevista >= desde && o.fechaPrevista <= dia);
+          const hechas = tocaban.filter(HECHA);
+          const aTiempo = hechas.filter((o) => String(o.fechaTerminada || o.terminadaEn || o.fechaCierre || "").slice(0, 10) <= o.fechaPrevista);
+          const pendientes = todas.filter((o) => !HECHA(o));
+          const horasBacklog = pendientes.reduce((a, o) => a + (Number(o.minutosEstimados) || 0), 0) / 60;
+          const atrasadas = pendientes.filter((o) => o.fechaPrevista && o.fechaPrevista < dia);
+          const edades = pendientes.map((o) => ms(o.creadoEn)).filter((x) => x != null).map((x) => Math.max(0, t - x) / DIA);
+          const sla = S.resumen(correctivas, t, plazos);
+          return {
+            periodo: { desde, hasta: dia, dias },
+            mttr: { horas: mttrH == null ? null : r1(mttrH), reparadas: reparadas.length },
+            respuesta: { horas: respuestaH == null ? null : r1(respuestaH), respondidas: respuestas.length },
+            mtbf: { dias: mtbfDias == null ? null : Math.round(mtbfDias), averias: correctivas.length, equipos, repetidores },
+            preventivo: { tocaban: tocaban.length, hechas: hechas.length, aTiempo: aTiempo.length, pct: pct(hechas.length, tocaban.length), aTiempoPct: pct(aTiempo.length, tocaban.length) },
+            backlog: {
+              ordenes: pendientes.length,
+              horas: r1(horasBacklog),
+              atrasadas: atrasadas.length,
+              antiguedadDias: edades.length ? Math.round(media(edades)) : null,
+              semanas: operarios ? r1(horasBacklog / (operarios * JORNADA_SEMANA_H)) : null
+            },
+            sla
+          };
+        }
+        function mtbfTexto(dias, { largo = false } = {}) {
+          if (dias == null) return "\u2014";
+          if (dias < 730) return `${Number(dias).toLocaleString("es-ES", { maximumFractionDigits: 0, useGrouping: "always" })} ${largo ? "d\xEDas" : "d"}`;
+          const a = dias / 365;
+          return `${a.toLocaleString("es-ES", { maximumFractionDigits: a < 100 ? 1 : 0, useGrouping: "always" })} a\xF1os`;
+        }
+        const API = { DIAS, JORNADA_SEMANA_H, indicadores, mtbfTexto };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.KPI_MANT = API;
+      })();
+    }
+  });
+
   // shared/reclamaciones/avisos.js
   var require_avisos = __commonJS({
     "shared/reclamaciones/avisos.js"(exports, module) {
@@ -243945,6 +248661,44 @@ Sin cerrar: ${lista.length}; de ellas ${n} en estado Abierta.`;
           respuesta: `Tienes ${lista.length} tarea${lista.length === 1 ? "" : "s"}:
 ${lineas.join("\n")}${mas}`,
           acciones: [...lista.slice(0, 3).map((t) => ir("misTareas", `Abrir ${t.codigo}`, { abrir: t.id })), ir("misTareas", "Ver todas")]
+        });
+      }
+      async function consultarIndicadoresMant(ctx, accion, pregunta) {
+        if (!ctx.obraId) return fila(pregunta, { respuesta: SIN_OBRA });
+        const OM = require_ordenesMant();
+        const d = OM.obra(ctx.repo, ctx.ses, ctx.obraId);
+        if (!d) return fila(pregunta, { respuesta: NO_PUEDE });
+        let equipos = 0;
+        if (require_roles().puede(ctx.ses.rol, "mantenimiento", "ver")) {
+          try {
+            equipos = (require_mantenimiento().obra(ctx.repo, ctx.ses, ctx.obraId, d.hoy).filas || []).length;
+          } catch {
+            equipos = 0;
+          }
+        }
+        const k = require_kpi().indicadores(d.ordenes, {
+          hoy: d.hoy,
+          ahora: Date.now(),
+          equipos,
+          operarios: d.operarios.filter((o) => o.activo !== 0).length
+        });
+        const abrir = [ir("mantenimiento", "Abrir Mantenimiento")];
+        if (!d.ordenes.length) return fila(pregunta, { respuesta: "Esta obra a\xFAn no tiene \xF3rdenes de trabajo de mantenimiento: no hay indicadores que dar.", acciones: abrir });
+        const n1 = (v) => Number(v).toLocaleString("es-ES", { maximumFractionDigits: 1 });
+        const lineas = [
+          k.mttr.horas == null ? "\xB7 MTTR: sin correctivas reparadas en el \xFAltimo a\xF1o." : `\xB7 MTTR (reparaci\xF3n): ${n1(k.mttr.horas)} h de media en ${k.mttr.reparadas} correctiva${k.mttr.reparadas === 1 ? "" : "s"}.`,
+          k.mtbf.dias == null ? k.mtbf.averias ? "\xB7 MTBF: no lo puedo calcular sin los equipos del plan de mantenimiento." : "\xB7 MTBF: sin aver\xEDas en el \xFAltimo a\xF1o." : `\xB7 MTBF (entre aver\xEDas): ${require_kpi().mtbfTexto(k.mtbf.dias, { largo: true })} (${k.mtbf.averias} aver\xEDas en ${k.mtbf.equipos} equipos).`,
+          k.preventivo.pct == null ? "\xB7 Preventivo: no tocaba ninguna orden en el \xFAltimo a\xF1o." : `\xB7 Preventivo hecho: ${n1(k.preventivo.pct)} % (${k.preventivo.hechas} de ${k.preventivo.tocaban}; ${k.preventivo.aTiempo} en su fecha).`,
+          `\xB7 Backlog: ${k.backlog.ordenes} ${k.backlog.ordenes === 1 ? "orden abierta" : "\xF3rdenes abiertas"} (${n1(k.backlog.horas)} h), ${k.backlog.atrasadas} atrasada${k.backlog.atrasadas === 1 ? "" : "s"}.`,
+          k.sla.total ? `\xB7 SLA de correctivas: ${k.sla.abiertas} abierta${k.sla.abiertas === 1 ? "" : "s"}, ${k.sla.vencidas} con el plazo vencido y ${k.sla.enRiesgo} en riesgo${k.sla.cumplimientoPct == null ? "" : `; ${n1(k.sla.cumplimientoPct)} % de las resueltas dentro de plazo`}.` : "\xB7 SLA: sin correctivas en el \xFAltimo a\xF1o."
+        ];
+        const peores = k.sla.filas.filter((f) => f.sla.escalado).slice(0, 3).map((f) => `\xB7 ${f.orden.codigo}${f.orden.equipoTag ? ` \xB7 ${f.orden.equipoTag}` : ""}: ${f.sla.peor === "vencida" ? "vencida" : "en riesgo"}, escalar a ${f.sla.escalado.nombre.toLowerCase()}.`);
+        return fila(pregunta, {
+          respuesta: `Indicadores de mantenimiento (\xFAltimos ${k.periodo.dias} d\xEDas):
+${lineas.join("\n")}${peores.length ? `
+A escalar:
+${peores.join("\n")}` : ""}`,
+          acciones: abrir
         });
       }
       async function consultarJornada(ctx, accion, pregunta) {
@@ -244599,6 +249353,7 @@ No ha entrado: ${mal.join("; ")}` : ""}`,
         consultarNcr,
         consultarReparaciones,
         consultarTareas,
+        consultarIndicadoresMant,
         consultarJornada,
         consultarPersonal,
         consultarAlbaranes,
@@ -244679,6 +249434,10 @@ No ha entrado: ${mal.join("; ")}` : ""}`,
           { frase: "qu\xE9 equipos de la planta <planta> faltan por instalar", cuando: "equipos por instalar de una planta" },
           { frase: "dame las incidencias abiertas", cuando: "el listado de incidencias o reparaciones (admite tipo de equipo y planta: \xABdame los splits abiertos de la N10\xBB)" },
           { frase: "planificaci\xF3n de commissioning de <periodo>", cuando: "lo planificado de puesta en marcha en un periodo (esta semana, noviembre\u2026)" },
+          { frase: "dame el presupuesto en Excel", cuando: "el presupuesto de la obra en un Excel descargable (sin precios para quien no los ve); solo en el ordenador o la web" },
+          { frase: "s\xE1came el BC3 del presupuesto", cuando: "el presupuesto de la obra en BC3 (FIEBDC-3, lo abre Presto); solo quien ve precios y puede exportar" },
+          { frase: "exporta el Gantt a MS Project", cuando: "el programa de obra (Diagrama de Gantt) en XML de Microsoft Project; tambi\xE9n \xABen Excel\xBB o \xABen PDF\xBB" },
+          { frase: "el Gantt de commissioning en Project", cuando: "el Gantt de puesta en marcha en XML de Microsoft Project (m\xF3dulo Commissioning + Mantenimiento)" },
           { frase: "qu\xE9 equipos reconociste en el plano de CAD", cuando: "lo le\xEDdo de un plano de AutoCAD o PDF: equipos, dudas y por qu\xE9" }
         ];
         const listaCapacidades = () => CAPACIDADES_APP.map((c) => `- \xAB${c.frase}\xBB: ${c.cuando}`).join("\n");

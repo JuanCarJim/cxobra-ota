@@ -1831,6 +1831,10 @@ body { background: var(--fondo-pagina); }
 
 /* FOTOS DEL EQUIPO DEL CONJUNTO (JC, 29-oct): de qué ficha/unidad viene cada
    foto y cuáles siguen solo en el teléfono, sin subir. */
+.fotos-equipo .geo-foto { font-size: 10.5px; color: var(--tenue, #6b7a80); white-space: normal; text-align: center; }
+.fotos-equipo .geo-foto.lejos { color: #8b2d3b; font-weight: 600; }
+.fotos-equipo .geo-foto.cerca { color: var(--acento); }
+.aviso-posicion-foto { margin: 4px 0; }
 .fotos-equipo .origen-foto { font-size: 10.5px; font-weight: 600; color: var(--acento); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fotos-equipo li.en-movil img { outline: 2px dashed var(--borde, currentColor); outline-offset: -2px; }
 .fotos-equipo li { min-width: 0; }
