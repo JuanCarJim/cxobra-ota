@@ -8830,7 +8830,8 @@ globalThis.CX_VARIANTE="cxobra";globalThis.PERFIL_EDICION={"commissioning":{"tol
         /* 2-nov (JC): con el permiso del avance de obra, que es quien los mide (no el de certificar). */
         m2Conductos: { modulo: "avanceObra", etiqueta: "m\xB2 de conductos" },
         /* 9-nov (JC): lo que ha ayudado la app en la obra, medido (horas y errores evitados; € solo dirección). */
-        ayudaObra: { modulo: "obras", etiqueta: "Lo que ha ayudado la app" },
+        /* 19-nov (JC): «esto lo tienes que mover al perfil del administrador solamente». Ni viéndolo «como» otro rol. */
+        ayudaObra: { modulo: "obras", etiqueta: "Lo que ha ayudado la app", solo: "veQueHaceLaApp" },
         /* 9-nov (JC): el ahorro medido por departamento y por proyecto contra lo que cuesta el programa. Solo veAhorroApp. */
         ayudaDireccion: { modulo: "obras", etiqueta: "Ahorro de la app", solo: "veAhorroApp" }
       };
@@ -8920,6 +8921,7 @@ globalThis.CX_VARIANTE="cxobra";globalThis.PERFIL_EDICION={"commissioning":{"tol
           if (!contratoPermite(contrato, m)) return false;
           if (!conLicenciaObra(m)) return false;
           if (a && a.solo === "veAhorroApp" && !veAhorroApp(idRol)) return false;
+          if (a && a.solo === "veQueHaceLaApp" && !veQueHaceLaApp(idRol)) return false;
           if (a && a.tambienCon && (visiblesPorRol.includes(a.tambienCon) || ((porId.get(idRol) || { permisos: {} }).permisos[a.tambienCon] || []).includes("ver"))) return true;
           return (a ? visiblesPorRol : visibles).includes(a ? a.modulo : m);
         };
@@ -10890,7 +10892,7 @@ globalThis.CX_VARIANTE="cxobra";globalThis.PERFIL_EDICION={"commissioning":{"tol
       init_define_CX_LICENCIAS();
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261119.0816" : "0";
+      var VERSION = true ? "20261119.1223" : "0";
       var URL_OTA = "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main" ? "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -31174,6 +31176,11 @@ ${obsO}` : obsO).slice(0, 4e3);
         /* La copia de la foto en la nube (cubo cx-fotos, shared/sync/fotosNube.js): la pone quien sube la foto desde la web o el ordenador, y el teléfono la baja por esta clave. */
         ["fotosEquipo", "rutaNube", "TEXT"],
         ["fotosEquipo", "rutaOrigen", "TEXT"],
+        /* 19-nov (JC): dónde se hizo la foto (EXIF o posición del móvil): para verificar la ubicación del equipo. */
+        ["fotosEquipo", "lat", "REAL"],
+        ["fotosEquipo", "lon", "REAL"],
+        ["fotosEquipo", "precision", "REAL"],
+        ["fotosEquipo", "tomadaEn", "TEXT"],
         ["certIndustriales", "alcances", "TEXT"],
         /* Lo del MES de cada partida, su importe a su precio, lo de origen y quién lo midió. */
         ["lineasCertificacion", "cantidad", "REAL"],
@@ -84167,6 +84174,21 @@ ${subtitulo}`, c[5]] : c.slice())]);
           cebra: hex("#EEF6F4"),
           separador: "linea",
           cifra: hex(E.ACENTO.teal)
+        },
+        /* 19-nov: la de Vidaire para sus ofertas de venta (shared/ventas/ofertaPdf.js): paleta Arena,
+           marino #262b38 en títulos y rótulos, arena #e9bf86 en filete y bandas, granate en las cifras. */
+        vidaire: {
+          tinta: hex("#262b38"),
+          suave: hex("#5c5850"),
+          banda: { fondo: hex("#e9bf86"), texto: hex("#262b38") },
+          subcab: { fondo: null, texto: hex("#262b38"), linea: hex("#e9bf86") },
+          valor: null,
+          filete: hex("#e9bf86"),
+          cebra: hex("#f7f1e6"),
+          separador: "linea",
+          cifra: hex("#8a2b3a"),
+          titulo: hex("#262b38"),
+          rotulo: hex("#262b38")
         }
       };
       var esJpeg = (b) => b && b.length > 3 && b[0] === 255 && b[1] === 216;
@@ -84289,7 +84311,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
           }
           const lado = imgLogo ? 120 : 0;
           const wT = ANCHO2 - lado * 2;
-          const color = m === "app" ? hex(E.ACENTO.marino) : K.tinta;
+          const color = K.titulo || (m === "app" ? hex(E.ACENTO.marino) : K.tinta);
           centrado(String(titulo).toUpperCase(), MARGEN + lado, wT, y - 15, { tam: 11.5, color });
           if (sub) centrado(recortar(String(sub).toUpperCase(), 11.5, wT), MARGEN + lado, wT, y - 30, { tam: 11.5, color });
           y -= ALTO + 6;
@@ -84363,7 +84385,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
                 const x = MARGEN + j * (col + HUECO);
                 const rotulo = typeof f === "string" ? f : f && f.rotulo || "";
                 pag.drawRectangle({ x, y: y - 64, width: col, height: 64, borderColor: hex(E.TOKENS.rejilla), borderWidth: 0.8 });
-                texto(recortar(String(rotulo).toUpperCase(), 7, col - 12, F.b), x + 6, y - 11, { tam: 7, f: F.b, color: m === "app" ? hex(E.ACENTO.teal) : K.tinta });
+                texto(recortar(String(rotulo).toUpperCase(), 7, col - 12, F.b), x + 6, y - 11, { tam: 7, f: F.b, color: K.rotulo || (m === "app" ? hex(E.ACENTO.teal) : K.tinta) });
                 if (f && typeof f === "object") {
                   const img = f.imagen && esPng(f.imagen) ? await meter(f.imagen) : null;
                   if (img) {
@@ -84388,7 +84410,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
                 if (!par) return;
                 const x = MARGEN + i * mitad;
                 const w = anchoDe(i);
-                texto(par[0], x, y - 9, { tam: 7.5, f: m === "app" ? F.b : F.n, color: m === "app" ? hex(E.ACENTO.teal) : K.tinta });
+                texto(par[0], x, y - 9, { tam: 7.5, f: m !== "libro" ? F.b : F.n, color: K.rotulo || (m === "app" ? hex(E.ACENTO.teal) : K.tinta) });
                 const ls = lineas(par[1] || "", 7.5, w - 6);
                 const extra = (Math.max(1, ls.length) - 1) * 9.5;
                 if (K.valor) pag.drawRectangle({ x: x + rotulo, y: y - 12 - extra, width: w, height: 12 + extra, color: K.valor });
@@ -90942,7 +90964,9 @@ ${subtitulo}`, c[5]] : c.slice())]);
             ] },
             /* 15-nov (JC): las presentaciones de Vidaire, solo el administrador (shared/presentaciones.js). */
             { id: "presentaciones", titulo: "Presentaciones", icono: "\u25B6", color: "var(--area-configuracion)", hojas: [
-              { destino: "presentaciones", icono: "\u25B6", nombre: "Presentaciones", desc: "Las presentaciones de Vidaire, a pantalla completa", vista: true, soloRoles: ["admin"] }
+              { destino: "presentaciones", icono: "\u25B6", nombre: "Presentaciones", desc: "Las presentaciones de Vidaire, a pantalla completa", vista: true, soloRoles: ["admin"] },
+              /* 19-nov (JC): el configurador de ofertas de venta, solo el administrador de Vidaire (soloVidaire: renderer/app.js › destinoVetado). */
+              { destino: "ofertasVentas", icono: "\u20AC", nombre: "Configurador de ofertas", desc: "Montar con el cliente su oferta: m\xF3dulos, personalizaci\xF3n, lo aparte y el PDF", vista: true, soloRoles: ["admin"], soloVidaire: true }
             ] }
           ] }
         ];
@@ -125804,6 +125828,9 @@ ${fallos.join("\r\n")}\r
             conContorno: pl.conContorno,
             marcas: ms,
             res: pl.resolucionM,
+            /* 19-nov (JC: «al cambiar de plano debe seguir mostrando la ubicación»): el encuadre de la planta en metros del modelo.
+               Todas las plantas comparten origen; con su caja, el plano fijado con dos puntos en una sirve para las demás. */
+            caja: pl.caja,
             ...mat ? { materiales: mat } : {},
             n: { recintos: contornos.filter((c) => c.espacio).length, equipos: ms.length, conSala: ms.filter((m) => m.s).length, fuera: marcas.length - ms.length, materiales: mat ? mat.n : 0, materialesFuera: mat ? mat.fuera : 0 }
           });
@@ -126600,6 +126627,12 @@ ${fallos.join("\r\n")}\r
         const textos = (l) => Array.isArray(l) && l.length <= 5e3 && l.every((t) => typeof t === "string" && t.length <= 80);
         return !!m && textos(m.capas) && textos(m.fam) && textos(m.dim) && Array.isArray(m.it) && m.it.length <= 6e4 && m.it.every((v) => Array.isArray(v) && v.length >= 10 && v.length <= 34 && v.every(Number.isInteger)) && (m.sis === void 0 || textos(m.sis) && Array.isArray(m.si) && m.si.length === m.it.length && m.si.every((i) => Number.isInteger(i) && i >= -1 && i < m.sis.length));
       }
+      function cajaSegura(c) {
+        if (!c || typeof c !== "object") return null;
+        const r = (v) => Math.round(Number(v) * 1e3) / 1e3;
+        const k = { x0: r(c.x0), y1: r(c.y1), ancho: r(c.ancho), alto: r(c.alto) };
+        return Object.values(k).every(Number.isFinite) && k.ancho > 0 && k.alto > 0 && Math.abs(k.x0) < 1e8 && Math.abs(k.y1) < 1e8 ? k : null;
+      }
       function guardar(repo, ses, obraId, planos, R, { sinModelos = false } = {}) {
         if (!Array.isArray(planos) && !sinModelos) return null;
         const firme = new Map((R && R.casados || []).map((c) => [c.guid, c.equipoId]));
@@ -126622,7 +126655,7 @@ ${fallos.join("\r\n")}\r
             conContorno: p.conContorno ? 1 : 0,
             svg: p.svg,
             marcas: JSON.stringify(marcas),
-            medidas: JSON.stringify({ edificio: String(p.edificio), nivel: String(p.nivel), planta: String(p.nombre || p.nivel), n: p.n || null, res: Number(p.res) || 0.1, ...materialesSeguros(p.materiales) ? { mat: JSON.stringify(p.materiales) } : {} })
+            medidas: JSON.stringify({ edificio: String(p.edificio), nivel: String(p.nivel), planta: String(p.nombre || p.nivel), n: p.n || null, res: Number(p.res) || 0.1, ...cajaSegura(p.caja) ? { caja: cajaSegura(p.caja) } : {}, ...materialesSeguros(p.materiales) ? { mat: JSON.stringify(p.materiales) } : {} })
           };
           const f = porNombre.get(nombre);
           if (f) {
@@ -126885,7 +126918,7 @@ ${fallos.join("\r\n")}\r
         if (tipo === "equipo") {
           const e = repo.leer("equiposObra", ses, String(id || ""));
           if (!e || e.obraId !== obraId) return { ok: false, error: "Ese equipo no es de esta obra." };
-          repo.modificar("equiposObra", ses, e.id, { posicionPlano: quita ? null : JSON.stringify({ ifc: fila.id, x, y, por, en, origen: "manual", ...nota ? { nota: String(nota).slice(0, 120) } : {}, ...extra && extra.g ? { g: String(extra.g).slice(0, 80) } : {} }) });
+          repo.modificar("equiposObra", ses, e.id, { posicionPlano: quita ? null : JSON.stringify({ ifc: fila.id, x, y, por, en, origen: extra && extra.origen || "manual", ...extra && extra.anterior ? { anterior: extra.anterior } : {}, ...extra && extra.fotoId ? { fotoId: String(extra.fotoId).slice(0, 80) } : {}, ...nota ? { nota: String(nota).slice(0, 120) } : {}, ...extra && extra.g ? { g: String(extra.g).slice(0, 80) } : {} }) });
           return { ok: true, por, en };
         }
         if (tipo === "material") {
@@ -126939,7 +126972,7 @@ ${fallos.join("\r\n")}\r
         if (!r.hechos.includes(equipoId)) return { ok: false, error: "Ese elemento del modelo ya es de otro equipo." };
         return colocarEnModelo(repo, ses, obraId, fila.id, "equipo", equipoId, m.x, m.y, `IFC: ${String(motivo || "confirmado").slice(0, 60)}`, { g });
       }
-      module.exports = { guardar, calcular, listar, detalle, colocarEnModelo, materialesSeguros, guardarGuidsIfc, confirmarDesdeIfc };
+      module.exports = { cajaSegura, guardar, calcular, listar, detalle, colocarEnModelo, materialesSeguros, guardarGuidsIfc, confirmarDesdeIfc };
     }
   });
 
@@ -148971,7 +149004,7 @@ ${reglas}`;
           ["qh.licUnidad1", "la unidad", "the unit", "la unitat", "a unidade", "die Einheit", "l\u2019unit\xE9"],
           ["qh.licUnidadN", "las {n} unidades", "the {n} units", "les {n} unitats", "as {n} unidades", "die {n} Einheiten", "les {n} unit\xE9s"],
           ["qh.licSuma", "{a} por {quien}, con usuarios ilimitados: con {p} personas sale a {x} por persona y a\xF1o. Pagando por usuario lo que hoy suma ({c} por usuario y a\xF1o), esas personas costar\xEDan {t}, y solo cubrir\xEDan la planificaci\xF3n.", "{a} for {quien}, with unlimited users: with {p} people it comes to {x} per person per year. Paying per user what is added up today ({c} per user per year), those people would cost {t}, and would only cover planning.", "{a} per {quien}, amb usuaris il\xB7limitats: amb {p} persones surt a {x} per persona i any. Pagant per usuari el que avui suma ({c} per usuari i any), aquestes persones costarien {t}, i nom\xE9s cobririen la planificaci\xF3.", "{a} por {quien}, com utilizadores ilimitados: com {p} pessoas fica a {x} por pessoa e ano. Pagando por utilizador o que hoje soma ({c} por utilizador e ano), essas pessoas custariam {t}, e s\xF3 cobririam o planeamento.", "{a} f\xFCr {quien}, mit unbegrenzten Benutzern: bei {p} Personen sind das {x} pro Person und Jahr. Bei Bezahlung pro Benutzer dessen, was heute zusammenkommt ({c} pro Benutzer und Jahr), w\xFCrden diese Personen {t} kosten und nur die Planung abdecken.", "{a} pour {quien}, avec utilisateurs illimit\xE9s : avec {p} personnes, cela revient \xE0 {x} par personne et par an. En payant par utilisateur ce qui s\u2019additionne aujourd\u2019hui ({c} par utilisateur et par an), ces personnes co\xFBteraient {t}, et ne couvriraient que la planification."],
-          ["qh.licNota", "La licencia es de la unidad de negocio (un departamento o una delegaci\xF3n), no de la persona: cada unidad elige sus m\xF3dulos y su gente ve solo esos. La base va siempre. Hasta {a} obras activas, la tarifa; de {b} a {c}, +{p} %; m\xE1s, a medida.", "The licence belongs to the business unit (a department or a branch), not to the person: each unit chooses its modules and its people see only those. The base is always included. Up to {a} active sites, the list rate; from {b} to {c}, +{p} %; more, custom.", "La llic\xE8ncia \xE9s de la unitat de negoci (un departament o una delegaci\xF3), no de la persona: cada unitat tria els seus m\xF2duls i la seva gent nom\xE9s veu aquests. La base hi va sempre. Fins a {a} obres actives, la tarifa; de {b} a {c}, +{p} %; m\xE9s, a mida.", "A licen\xE7a \xE9 da unidade de neg\xF3cio (um departamento ou uma delega\xE7\xE3o), n\xE3o da pessoa: cada unidade escolhe os seus m\xF3dulos e a sua gente s\xF3 v\xEA esses. A base vai sempre. At\xE9 {a} obras ativas, a tarifa; de {b} a {c}, +{p} %; mais, \xE0 medida.", "Die Lizenz geh\xF6rt der Gesch\xE4ftseinheit (einer Abteilung oder Niederlassung), nicht der Person: Jede Einheit w\xE4hlt ihre Module, und ihre Leute sehen nur diese. Die Basis ist immer dabei. Bis {a} aktive Baustellen der Tarif; von {b} bis {c} +{p} %; dar\xFCber nach Vereinbarung.", "La licence appartient \xE0 l\u2019unit\xE9 op\xE9rationnelle (un service ou une agence), pas \xE0 la personne : chaque unit\xE9 choisit ses modules et ses \xE9quipes ne voient que ceux-l\xE0. La base est toujours incluse. Jusqu\u2019\xE0 {a} chantiers actifs, le tarif ; de {b} \xE0 {c}, +{p} % ; au-del\xE0, sur mesure."],
+          ["qh.licNota", "La licencia es de la unidad de negocio (un departamento o una delegaci\xF3n), no de la persona: cada unidad elige sus m\xF3dulos y su gente ve solo esos. La base va siempre. Hasta {a} obras activas, la tarifa; m\xE1s, a medida.", "The licence belongs to the business unit (a department or a branch), not to the person: each unit chooses its modules and its people see only those. The base is always included. Up to {a} active sites, the list rate; more, custom.", "La llic\xE8ncia \xE9s de la unitat de negoci (un departament o una delegaci\xF3), no de la persona: cada unitat tria els seus m\xF2duls i la seva gent nom\xE9s veu aquests. La base hi va sempre. Fins a {a} obres actives, la tarifa; m\xE9s, a mida.", "A licen\xE7a \xE9 da unidade de neg\xF3cio (um departamento ou uma delega\xE7\xE3o), n\xE3o da pessoa: cada unidade escolhe os seus m\xF3dulos e a sua gente s\xF3 v\xEA esses. A base vai sempre. At\xE9 {a} obras ativas, a tarifa; mais, \xE0 medida.", "Die Lizenz geh\xF6rt der Gesch\xE4ftseinheit (einer Abteilung oder Niederlassung), nicht der Person: Jede Einheit w\xE4hlt ihre Module, und ihre Leute sehen nur diese. Die Basis ist immer dabei. Bis {a} aktive Baustellen der Tarif; dar\xFCber nach Vereinbarung.", "La licence appartient \xE0 l\u2019unit\xE9 op\xE9rationnelle (un service ou une agence), pas \xE0 la personne : chaque unit\xE9 choisit ses modules et ses \xE9quipes ne voient que ceux-l\xE0. La base est toujours incluse. Jusqu\u2019\xE0 {a} chantiers actifs, le tarif ; au-del\xE0, sur mesure."],
           ["qh.licRef", "Sin unidades dadas de alta: se ense\xF1a la de referencia (Base + Cx y Mantenimiento). Se dan de alta en Ajustes \u203A Mi perfil \u203A Licencias.", "No units set up: the reference one is shown (Base + Cx and Maintenance). They are set up in Settings \u203A My profile \u203A Licences.", "Sense unitats donades d\u2019alta: es mostra la de refer\xE8ncia (Base + Cx i Manteniment). Es donen d\u2019alta a Ajustos \u203A El meu perfil \u203A Llic\xE8ncies.", "Sem unidades registadas: mostra-se a de refer\xEAncia (Base + Cx e Manuten\xE7\xE3o). Registam-se em Defini\xE7\xF5es \u203A O meu perfil \u203A Licen\xE7as.", "Keine Einheiten angelegt: Gezeigt wird die Referenz (Basis + Cx und Wartung). Angelegt werden sie unter Einstellungen \u203A Mein Profil \u203A Lizenzen.", "Aucune unit\xE9 cr\xE9\xE9e : celle de r\xE9f\xE9rence est affich\xE9e (Base + Cx et Maintenance). Elles se cr\xE9ent dans R\xE9glages \u203A Mon profil \u203A Licences."],
           ["qh.licUnid", "Las unidades y sus precios, de Ajustes \u203A Mi perfil \u203A Licencias.", "Units and their prices come from Settings \u203A My profile \u203A Licences.", "Les unitats i els seus preus, d\u2019Ajustos \u203A El meu perfil \u203A Llic\xE8ncies.", "As unidades e os seus pre\xE7os, de Defini\xE7\xF5es \u203A O meu perfil \u203A Licen\xE7as.", "Einheiten und Preise aus Einstellungen \u203A Mein Profil \u203A Lizenzen.", "Les unit\xE9s et leurs prix viennent de R\xE9glages \u203A Mon profil \u203A Licences."],
           ["qh.licPersonas", "El n\xFAmero de personas es el de \xABGen\xE9rico\xBB.", "The number of people is the one in \u201CGeneric\u201D.", "El nombre de persones \xE9s el de \xABGen\xE8ric\xBB.", "O n\xFAmero de pessoas \xE9 o de \xABGen\xE9rico\xBB.", "Die Personenzahl ist die aus \u201EGenerisch\u201C.", "Le nombre de personnes est celui de \xAB G\xE9n\xE9rique \xBB."]
@@ -149123,6 +149156,12 @@ ${reglas}`;
           ["Usuarios y accesos", "Users and access", "Usuaris i accessos", "Utilizadores e acessos", "Benutzer und Zug\xE4nge", "Utilisateurs et acc\xE8s"],
           ["\xDAltimos accesos", "Latest sign-ins", "\xDAltims accessos", "\xDAltimos acessos", "Letzte Anmeldungen", "Derniers acc\xE8s"],
           ["Presentaciones", "Presentations", "Presentacions", "Apresenta\xE7\xF5es", "Pr\xE4sentationen", "Pr\xE9sentations"],
+          /* 19-nov: el configurador de ofertas de venta de Vidaire (renderer/ofertasVentas.js). */
+          ["Configurador de ofertas", "Proposal builder", "Configurador d\u2019ofertes", "Configurador de propostas", "Angebotskonfigurator", "Configurateur d\u2019offres"],
+          ["M\xF3dulos", "Modules", "M\xF2duls", "M\xF3dulos", "Module", "Modules"],
+          ["Personalizaci\xF3n", "Personalisation", "Personalitzaci\xF3", "Personaliza\xE7\xE3o", "Anpassung", "Personnalisation"],
+          ["Aparte", "Separate", "A part", "\xC0 parte", "Separat", "\xC0 part"],
+          ["Guardadas", "Saved", "Desades", "Guardadas", "Gespeichert", "Enregistr\xE9es"],
           ["Plantilla", "Staff", "Plantilla", "Quadro de pessoal", "Belegschaft", "Effectif"],
           ["Personas y accesos", "People and access", "Persones i accessos", "Pessoas e acessos", "Personen und Zug\xE4nge", "Personnes et acc\xE8s"],
           ["Consulta", "Reference", "Consulta", "Consulta", "Nachschlagen", "Consultation"],
@@ -150641,43 +150680,343 @@ ${reglas}`;
     }
   });
 
+  // shared/ventas/catalogoPrecios.js
+  var require_catalogoPrecios = __commonJS({
+    "shared/ventas/catalogoPrecios.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function(fabrica) {
+        const API = fabrica();
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.CATALOGO_VENTAS = API;
+      })(() => {
+        const TARIFA_DIA = 600;
+        const OBRAS_INCLUIDAS = 10;
+        const CARGA_OBRAS = { clave: "cargaObras", precio: 5e3, dias: 8 };
+        const GMAO = { incluidos: 20, hasta: 40, porUsuario: 80 };
+        const TOPE_PERSONALIZACION_COMPLETO = 5e4;
+        const MODULOS = [
+          {
+            clave: "base",
+            mes: 1500,
+            personalizacion: 8e3,
+            dias: 13,
+            obligatorio: true,
+            es: { nombre: "Base", que: "Importa los presupuestos de Excel, PDF, BC3 o Presto con sus cap\xEDtulos, cierra PEM \u2192 PEC y monta el Gantt y el personal de cada obra." },
+            en: { nombre: "Core", que: "Imports budgets from Excel, PDF, BC3 or Presto with their chapters, closes PEM \u2192 PEC and builds each job\u2019s Gantt and staffing." },
+            adapta: { es: "Alta de la empresa, roles, usuarios, plantillas comunes, presupuesto, formaci\xF3n y obra piloto.", en: "Company set-up, roles, users, common templates, budget, training and pilot job." }
+          },
+          {
+            clave: "compras",
+            mes: 2e3,
+            personalizacion: 8e3,
+            dias: 13,
+            es: { nombre: "Compras", que: "Comparativo de ofertas por paquete de compra, pedidos, lectura de albaranes, inventario y aviso de mejor precio entre obras." },
+            en: { nombre: "Procurement", que: "Bid comparison by purchase package, purchase orders, delivery-note reading, inventory and best-price alerts across jobs." },
+            adapta: { es: "Formato de pedido y de solicitud de oferta, paquetes de compra, comparativo, albaranes y facturas, proveedores y precios hist\xF3ricos, circuito de aprobaci\xF3n.", en: "Purchase order and request-for-quote formats, purchase packages, comparison, delivery notes and invoices, suppliers and historic prices, approval workflow." }
+          },
+          {
+            clave: "produccion",
+            mes: 1500,
+            personalizacion: 6e3,
+            dias: 10,
+            es: { nombre: "Producci\xF3n", que: "Plan de costes, certificaciones al cliente y a subcontratas, avance sobre plano y proyecci\xF3n del cierre de obra." },
+            en: { nombre: "Production", que: "Cost plan, valuations to the client and to subcontractors, progress on drawings and job-close forecast." },
+            adapta: { es: "Formato de certificaci\xF3n al cliente y a subcontrata, parte diario, Gantt y exportaci\xF3n a Project, informe mensual de obra.", en: "Client and subcontractor valuation formats, daily report, Gantt and Project export, monthly job report." }
+          },
+          {
+            clave: "calidad",
+            mes: 1e3,
+            personalizacion: 4e3,
+            dias: 7,
+            es: { nombre: "Calidad", que: "No conformidades, puntos de inspecci\xF3n, incidencias con foto sobre el plano y registro de seguridad y medio ambiente." },
+            en: { nombre: "Quality", que: "Non-conformances, inspection points, issues with photos pinned on the drawing and HSE records." },
+            adapta: { es: "PPI y checklists propios, formato de NCR, recorridos de zona y su informe, registro QHSE.", en: "Own ITPs and checklists, NCR format, area walk-downs and their report, QHSE register." }
+          },
+          {
+            clave: "cxGmao",
+            mes: 3e3,
+            personalizacion: 12e3,
+            dias: 20,
+            gmao: true,
+            es: { nombre: "Commissioning + GMAO", que: "Fichas de puesta en marcha, balanceo y estanqueidad equipo a equipo, entrega a la direcci\xF3n facultativa y, despu\xE9s, el mantenimiento (RITE, F-gas y \xF3rdenes de trabajo)." },
+            en: { nombre: "Commissioning + CMMS", que: "Start-up sheets, balancing and pressure tests equipment by equipment, handover to the design team and then maintenance (regulations, F-gas and work orders)." },
+            adapta: { es: "Hojas por familia de equipo, tolerancias, dossier de entrega en 4 idiomas, planos por estado, app m\xF3vil Cx, plan de mantenimiento, gamas y \xF3rdenes del GMAO.", en: "Sheets per equipment family, tolerances, 4-language handover dossier, drawings by status, Cx mobile app, maintenance plan, routines and CMMS work orders." }
+          },
+          {
+            clave: "estudios",
+            mes: 800,
+            personalizacion: 3e3,
+            dias: 5,
+            es: { nombre: "Estudios", que: "Licitaciones y c\xE1lculo de ofertas con descompuestos y precios de referencia de la propia empresa." },
+            en: { nombre: "Estimating", que: "Tenders and bid pricing with cost breakdowns and the company\u2019s own reference prices." },
+            adapta: { es: "Plantilla de oferta y de descompuesto, precios de referencia propios.", en: "Bid and cost-breakdown templates, own reference prices." }
+          },
+          {
+            clave: "documentacion",
+            mes: 1e3,
+            personalizacion: 4e3,
+            dias: 7,
+            es: { nombre: "Documentaci\xF3n", que: "Documentos de cada obra ordenados solos, planos de delineaci\xF3n y entrega documental." },
+            en: { nombre: "Documents", que: "Each job\u2019s documents filed automatically, drafting drawings and document handover." },
+            adapta: { es: "Estructura de carpetas de SharePoint, \xEDndice documental, planos desde AutoCAD y PDF con sus capas y bloques.", en: "SharePoint folder structure, document index, drawings from AutoCAD and PDF with own layers and blocks." }
+          },
+          {
+            clave: "reclamaciones",
+            mes: 1200,
+            personalizacion: 4e3,
+            dias: 7,
+            es: { nombre: "Reclamaciones", que: "Expediente de reclamaci\xF3n con hechos, pruebas y costes, listo para presentar." },
+            en: { nombre: "Claims", que: "Claim file with facts, evidence and costs, ready to submit." },
+            adapta: { es: "Formato del dossier de reclamaci\xF3n y de los escritos, c\xE1lculo de costes de obra.", en: "Claim dossier and letter formats, job cost calculation." }
+          },
+          {
+            clave: "management",
+            mes: 500,
+            personalizacion: 2e3,
+            dias: 3,
+            es: { nombre: "Management", que: "Cuadro de mando por departamentos, saturaci\xF3n de equipos e informe a direcci\xF3n." },
+            en: { nombre: "Management", que: "Dashboard by department, team workload and report to management." },
+            adapta: { es: "Cuadro de mando de direcci\xF3n con los indicadores que pida la empresa.", en: "Management dashboard with the indicators the company asks for." }
+          },
+          {
+            clave: "iarvis",
+            mes: 2e3,
+            personalizacion: 6e3,
+            dias: 10,
+            es: { nombre: "Iarvis", que: "Asistente por rol en escritorio, web y m\xF3vil: responde, prepara ficheros y hace operaciones de la app, siempre dentro de lo que su puesto puede ver." },
+            en: { nombre: "Iarvis", que: "Role-based assistant on desktop, web and mobile: answers, prepares files and runs app operations, always within what the role may see." },
+            adapta: { es: "Se entrena con los datos y documentos de la empresa; sus ficheros salen con la plantilla propia, en el idioma y seg\xFAn el rol de quien pide.", en: "Trained on the company\u2019s data and documents; its files use the company template, in the language and for the role of whoever asks." }
+          }
+        ];
+        const POR_CLAVE = Object.fromEntries(MODULOS.map((m) => [m.clave, m]));
+        const TODAS = MODULOS.map((m) => m.clave);
+        const PAQUETES = [
+          {
+            clave: "completoIarvis",
+            mes: 12e3,
+            completo: true,
+            modulos: TODAS,
+            es: "Paquete completo con Iarvis",
+            en: "Full package with Iarvis"
+          },
+          {
+            clave: "completo",
+            mes: 1e4,
+            completo: true,
+            modulos: TODAS.filter((c) => c !== "iarvis"),
+            es: "Paquete completo sin Iarvis",
+            en: "Full package without Iarvis"
+          },
+          {
+            clave: "obra",
+            mes: 5e3,
+            modulos: ["base", "compras", "produccion", "calidad"],
+            es: "Paquete Obra",
+            en: "Job package"
+          }
+        ];
+        const BLOQUES_COMUNES = [
+          { clave: "altaEmpresa", letra: "A", dias: 2, es: ["Alta de la empresa", "Empresa y unidades de negocio; logo, colores, nombre, pie y firma en la app y en todos los ficheros. Idioma por usuario."], en: ["Company set-up", "Company and business units; logo, colours, name, footer and signature in the app and every file. Language per user."] },
+          { clave: "m365", letra: "A", dias: 1, es: ["Microsoft 365", "Acceso con la cuenta corporativa (Entra ID); lectura de SharePoint y del correo de las obras para la documentaci\xF3n autom\xE1tica."], en: ["Microsoft 365", "Sign-in with the corporate account (Entra ID); reading SharePoint and job mailboxes for automatic filing."] },
+          { clave: "roles", letra: "B", dias: 2, es: ["Roles", "Se parte de los roles de la app; se renombran a los cargos de la empresa y se ajusta qu\xE9 ve cada uno."], en: ["Roles", "Starting from the app roles, renamed to the company\u2019s positions, adjusting what each one sees."] },
+          { clave: "mando", letra: "B", dias: 1, es: ["Cadena de mando", "Director \u203A jefe de departamento \u203A obra. Qui\xE9n aprueba pedidos, certificaciones, vacaciones, partes y cierres de NCR."], en: ["Chain of command", "Director \u203A head of department \u203A job. Who approves orders, valuations, holidays, reports and NCR close-outs."] },
+          { clave: "usuarios", letra: "B", dias: 1, es: ["Usuarios y licencias", "Alta de la primera tanda de usuarios con su rol y sus obras; licencia por m\xF3dulo, tambi\xE9n en el m\xF3vil."], en: ["Users and licences", "First batch of users with their role and jobs; licence per module, also on mobile."] },
+          { clave: "plantillas", letra: "C", dias: 2, es: ["Plantillas comunes", "Plantilla \xFAnica de PDF y Excel con la marca de la empresa: portada, cabecera, pie y firmas."], en: ["Common templates", "Single PDF and Excel template with the company brand: cover, header, footer and signatures."] },
+          { clave: "presupuesto", letra: "D", dias: 2, es: ["Presupuesto", "Importar los presupuestos (Excel, PDF, BC3, Presto) con su estructura de cap\xEDtulos y el formato de su oferta."], en: ["Budget", "Importing budgets (Excel, PDF, BC3, Presto) with their chapter structure and bid format."] },
+          { clave: "piloto", letra: "E", dias: 2, es: ["Formaci\xF3n y obra piloto", "Una obra real cargada; formaci\xF3n por rol y uso acompa\xF1ado."], en: ["Training and pilot job", "One real job loaded; training by role and supported use."] },
+          { clave: CARGA_OBRAS.clave, letra: "F", dias: CARGA_OBRAS.dias, precio: CARGA_OBRAS.precio, es: ["Carga de obras terminadas", "Se cargan las obras ya acabadas (presupuestos, compras, equipos, documentaci\xF3n y entregas) para tener el hist\xF3rico desde el primer d\xEDa."], en: ["Loading of completed jobs", "Completed jobs are loaded (budgets, purchases, equipment, documents and handovers) so the history is there from day one."] }
+        ];
+        const CONDICIONES = {
+          es: [
+            "Licencia de uso por unidad de negocio; el c\xF3digo es y sigue siendo de Vidaire.",
+            "Usuarios ilimitados, salvo los de GMAO (20 incluidos; de 21 a 40, +80 \u20AC/usuario/mes; m\xE1s de 40, a medida).",
+            "Hasta 10 obras activas por unidad de negocio; m\xE1s de 10, a medida.",
+            "Precios sin IVA. La suscripci\xF3n es mensual; la personalizaci\xF3n se paga una vez.",
+            "La suscripci\xF3n incluye servidores en la UE, copias diarias, actualizaciones, soporte, web, escritorio y app m\xF3vil."
+          ],
+          en: [
+            "Licence of use per business unit; the code is and remains Vidaire\u2019s.",
+            "Unlimited users, except CMMS users (20 included; 21 to 40, +\u20AC80/user/month; over 40, bespoke).",
+            "Up to 10 active jobs per business unit; over 10, bespoke.",
+            "Prices exclude VAT. The subscription is monthly; the personalisation is a one-off payment.",
+            "The subscription includes EU servers, daily backups, updates, support, web, desktop and mobile app."
+          ]
+        };
+        const TEXTOS = {
+          es: { mes: "\u20AC/mes", anio: "\u20AC/a\xF1o", personalizacion: "Personalizaci\xF3n (pago \xFAnico)", primerAnio: "Total primer a\xF1o", aMedida: "a medida", bolsa: "Bolsa de cambios", aparte: "Aparte (d\xEDas \xD7 600 \u20AC)", paquete: "Paquete", ahorro: "Ahorro", alaCarta: "A la carta", unidades: "Unidades de negocio", obras: "Obras activas por unidad", usuariosGmao: "Usuarios GMAO por unidad", modulos: "M\xF3dulos", condiciones: "Condiciones", observaciones: "Observaciones", dias: "d\xEDas" },
+          en: { mes: "\u20AC/month", anio: "\u20AC/year", personalizacion: "Personalisation (one-off)", primerAnio: "First-year total", aMedida: "bespoke", bolsa: "Change allowance", aparte: "Separate (days \xD7 \u20AC600)", paquete: "Package", ahorro: "Saving", alaCarta: "\xC0 la carte", unidades: "Business units", obras: "Active jobs per unit", usuariosGmao: "CMMS users per unit", modulos: "Modules", condiciones: "Conditions", observaciones: "Remarks", dias: "days" }
+        };
+        const ESTADOS = ["borrador", "enviada", "aceptada", "rechazada"];
+        const BOLSA_POR_DEFECTO = "20 cambios al mes";
+        const BOLSA_EXPLICA = {
+          es: "Entran modificaciones de aspecto (pantallas, informes y plantillas) y ajustes de desarrollo que no supongan funcionalidades nuevas; las funcionalidades nuevas se valoran aparte. Los cambios que no se usan en un mes no pasan al siguiente.",
+          en: "It covers changes of appearance (screens, reports and templates) and development adjustments that do not add new functionality; new functionality is quoted separately. Changes not used in a month do not carry over to the next."
+        };
+        const bolsaEn = (v, i) => i === "en" && (!v || v === BOLSA_POR_DEFECTO) ? "20 changes per month" : v || BOLSA_POR_DEFECTO;
+        const entero = (v, min, def) => {
+          const n = Math.floor(Number(v));
+          return Number.isFinite(n) && n >= min ? n : def;
+        };
+        const idiomaDe = (i) => i === "en" ? "en" : "es";
+        function ofertaNueva(datos = {}) {
+          return {
+            bloques: {},
+            aparte: [],
+            paquete: "auto",
+            bolsa: BOLSA_POR_DEFECTO,
+            observaciones: "",
+            ...datos,
+            cliente: { empresa: "", contacto: "", unidades: 1, obras: 10, usuariosGmao: 20, idioma: "es", ...datos.cliente || {} },
+            modulos: { ...datos.modulos || {}, base: { nota: "", ...(datos.modulos || {}).base || {}, si: true } }
+          };
+        }
+        function elegidos(oferta) {
+          const m = oferta && oferta.modulos || {};
+          return TODAS.filter((c) => POR_CLAVE[c].obligatorio || m[c] && m[c].si);
+        }
+        function mejorOpcion(claves, permitirPaquete = true) {
+          const suma = (l) => l.reduce((s, c) => s + POR_CLAVE[c].mes, 0);
+          const alaCarta = suma(claves);
+          let mejor = { paquete: null, mes: alaCarta, modulos: [...claves], resto: [...claves] };
+          const sugerencias = [];
+          if (!permitirPaquete) return { alaCarta, mejor, sugerencias };
+          for (const p of PAQUETES) {
+            const resto = claves.filter((c) => !p.modulos.includes(c));
+            const mes = p.mes + suma(resto);
+            const contiene = p.modulos.every((c) => claves.includes(c));
+            const extra = p.modulos.filter((c) => !claves.includes(c));
+            if (mes < mejor.mes || mes === mejor.mes && contiene && mejor.paquete === null) {
+              mejor = { paquete: p.clave, mes, modulos: TODAS.filter((c) => claves.includes(c) || p.modulos.includes(c)), resto };
+            } else if (mes === alaCarta && extra.length) {
+              sugerencias.push({ paquete: p.clave, mes, extra });
+            }
+          }
+          return { alaCarta, mejor, sugerencias: sugerencias.filter((s) => s.paquete !== mejor.paquete && s.mes <= mejor.mes) };
+        }
+        function calcularOferta(oferta) {
+          const o = ofertaNueva(oferta || {});
+          const unidades = entero(o.cliente.unidades, 1, 1);
+          const obras = entero(o.cliente.obras, 0, 0);
+          const usuariosGmao = entero(o.cliente.usuariosGmao, 0, 0);
+          const claves = elegidos(o);
+          const { alaCarta, mejor, sugerencias } = mejorOpcion(claves, o.paquete !== "ninguno");
+          const paquete = mejor.paquete ? PAQUETES.find((p) => p.clave === mejor.paquete) : null;
+          const aMedida = [];
+          if (obras > OBRAS_INCLUIDAS) aMedida.push("obras");
+          let extraGmao = 0;
+          if (mejor.modulos.includes("cxGmao") && usuariosGmao > GMAO.incluidos) {
+            extraGmao = (Math.min(usuariosGmao, GMAO.hasta) - GMAO.incluidos) * GMAO.porUsuario;
+            if (usuariosGmao > GMAO.hasta) aMedida.push("gmao");
+          }
+          const mesUnidad = mejor.mes + extraGmao;
+          const mensual = mesUnidad * unidades;
+          const sumaPers = mejor.modulos.reduce((s, c) => s + POR_CLAVE[c].personalizacion, 0);
+          const persModulos = paquete && paquete.completo ? Math.min(sumaPers, TOPE_PERSONALIZACION_COMPLETO) : sumaPers;
+          const personalizacion = persModulos + CARGA_OBRAS.precio;
+          const lineasAparte = (Array.isArray(o.aparte) ? o.aparte : []).map((l) => ({ concepto: String(l && l.concepto || "").trim(), dias: Math.max(0, Number(l && l.dias) || 0), nota: String(l && l.nota || "") })).filter((l) => l.concepto || l.dias).map((l) => ({ ...l, importe: Math.round(l.dias * TARIFA_DIA * 100) / 100 }));
+          const aparte = lineasAparte.reduce((s, l) => s + l.importe, 0);
+          return {
+            unidades,
+            obras,
+            usuariosGmao,
+            claves,
+            modulos: mejor.modulos,
+            alaCartaMes: alaCarta,
+            paquete: paquete ? paquete.clave : null,
+            paqueteMes: paquete ? paquete.mes : null,
+            ahorroMes: (alaCarta - mejor.mes) * unidades,
+            sugerencias,
+            extraGmao,
+            mesUnidad,
+            mensual,
+            anual: mensual * 12,
+            personalizacionModulos: persModulos,
+            cargaObras: CARGA_OBRAS.precio,
+            personalizacion,
+            lineasAparte,
+            aparte,
+            primerAnio: mensual * 12 + personalizacion + aparte,
+            aMedida
+          };
+        }
+        function esEdicionVidaire(perfil) {
+          return Boolean(perfil && perfil.id === "vidaire" && perfil.tipoEmpresa === "vidaire");
+        }
+        function veVentasVidaire(rol, perfil) {
+          return (rol === "admin" || rol === "administrador") && esEdicionVidaire(perfil);
+        }
+        const euros = (n, idioma = "es") => `${new Intl.NumberFormat(idioma === "en" ? "en-GB" : "es-ES", { maximumFractionDigits: 0, useGrouping: true }).format(Math.round(Number(n) || 0))} \u20AC`;
+        const nombreModulo = (clave, idioma) => POR_CLAVE[clave] ? POR_CLAVE[clave][idiomaDe(idioma)].nombre : clave;
+        const nombrePaquete = (clave, idioma) => {
+          const p = PAQUETES.find((x) => x.clave === clave);
+          return p ? p[idiomaDe(idioma)] : "";
+        };
+        return {
+          TARIFA_DIA,
+          OBRAS_INCLUIDAS,
+          CARGA_OBRAS,
+          GMAO,
+          TOPE_PERSONALIZACION_COMPLETO,
+          MODULOS,
+          POR_CLAVE,
+          PAQUETES,
+          BLOQUES_COMUNES,
+          CONDICIONES,
+          TEXTOS,
+          ESTADOS,
+          BOLSA_POR_DEFECTO,
+          BOLSA_EXPLICA,
+          bolsaEn,
+          ofertaNueva,
+          elegidos,
+          mejorOpcion,
+          calcularOferta,
+          esEdicionVidaire,
+          veVentasVidaire,
+          euros,
+          nombreModulo,
+          nombrePaquete,
+          idiomaDe
+        };
+      });
+    }
+  });
+
   // shared/licencias.js
   var require_licencias = __commonJS({
     "shared/licencias.js"(exports, module) {
       "use strict";
       init_define_CX_LICENCIAS();
       var import_buffer_global10 = __toESM(require_buffer_global());
-      (function iniciarLicencias(R) {
+      (function iniciarLicencias(R, C) {
         const MES = 12;
-        const TARIFA_MES = {
-          base: 1e3,
-          compras: 1e3,
-          produccion: 800,
-          cxMantenimiento: 3e3,
-          calidad: 700,
-          documentacion: 500,
-          reclamaciones: 500
-        };
-        const TARIFA_EXTRA_MES = { estudios: 400, iarvis: 1e3, management: 150 };
+        const EN_CATALOGO = { cxMantenimiento: "cxGmao" };
+        const mesDe = (id) => C.POR_CLAVE[EN_CATALOGO[id] || id].mes;
+        const CONTRATABLES = ["base", "compras", "produccion", "cxMantenimiento", "calidad", "documentacion", "reclamaciones"];
+        const EXTRA = ["estudios", "iarvis", "management"];
+        const TARIFA_MES = Object.fromEntries(CONTRATABLES.map((id) => [id, mesDe(id)]));
+        const TARIFA_EXTRA_MES = Object.fromEntries(EXTRA.map((id) => [id, mesDe(id)]));
         const NOMBRES_EXTRA = { estudios: "Estudios", iarvis: "Iarvis", management: "Management" };
         const NOMBRES_CORTOS = { base: "Base", compras: "Compras", produccion: "Produc.", cxMantenimiento: "Cx + GMAO", calidad: "Calidad", documentacion: "Docs", reclamaciones: "Reclam." };
-        const PAQUETE_OBRA_MES = 3e3;
-        const PAQUETE_COMPLETO_CON_IARVIS_MES = 11e3;
-        const PAQUETE_COMPLETO_SIN_IARVIS_MES = 1e4;
+        const paqueteDe = (clave) => C.PAQUETES.find((p) => p.clave === clave);
+        const PAQUETE_OBRA_MES = paqueteDe("obra").mes;
+        const PAQUETE_COMPLETO_CON_IARVIS_MES = paqueteDe("completoIarvis").mes;
+        const PAQUETE_COMPLETO_SIN_IARVIS_MES = paqueteDe("completo").mes;
         const porAnio = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, v * MES]));
         const TARIFA = porAnio(TARIFA_MES);
         const TARIFA_EXTRA = porAnio(TARIFA_EXTRA_MES);
-        const IDS_PAQUETE_OBRA = ["base", "compras", "produccion", "calidad"];
+        const IDS_PAQUETE_OBRA = paqueteDe("obra").modulos.map((c) => c === "cxGmao" ? "cxMantenimiento" : c);
         const PAQUETE_OBRA = PAQUETE_OBRA_MES * MES;
         const PAQUETE_COMPLETO_CON_IARVIS = PAQUETE_COMPLETO_CON_IARVIS_MES * MES;
         const PAQUETE_COMPLETO = PAQUETE_COMPLETO_SIN_IARVIS_MES * MES;
-        const MINIMO_CX_MES = 800;
-        const ESCALONES = { hastaTabla: 10, hastaRecargo: 25, recargo: 0.3, porObraExtraMes: 250 };
+        const ESCALONES = { hastaTabla: C.OBRAS_INCLUIDAS };
         const USUARIOS_GMAO = {
           modulo: "cxMantenimiento",
-          incluidos: 20,
-          hastaPorUsuario: 40,
-          porUsuarioExtraMes: 80,
+          incluidos: C.GMAO.incluidos,
+          hastaPorUsuario: C.GMAO.hasta,
+          porUsuarioExtraMes: C.GMAO.porUsuario,
           verbos: ["crear", "editar", "aprobar"],
           noCuentan: ["administrador"]
         };
@@ -150763,8 +151102,7 @@ ${reglas}`;
         function precioUnidad(unidad, usuarios = 0) {
           const u = limpiarUnidad(unidad);
           const lineas = u.modulos.map((id) => {
-            let anual2 = precioModulo(u, id);
-            if (id === "cxMantenimiento") anual2 = Math.max(anual2, MINIMO_CX_MES * 12);
+            const anual2 = precioModulo(u, id);
             return { id, nombre: R.MODULOS_CONTRATABLES.find((m) => m.id === id).nombre, anual: anual2, propio: numOk(u.precios[id]) };
           });
           const suma = lineas.reduce((a, l) => a + l.anual, 0);
@@ -150777,8 +151115,8 @@ ${reglas}`;
           const descuentoObra = paqueteObra && sumaObra > PAQUETE_OBRA ? sumaObra - PAQUETE_OBRA : 0;
           const neto = paquete ? PAQUETE_COMPLETO : suma - descuentoObra;
           const n = u.obrasActivas;
-          const recargo = n > ESCALONES.hastaTabla ? Math.round(neto * ESCALONES.recargo * 100) / 100 : 0;
-          const extraObras = n > ESCALONES.hastaRecargo ? (n - ESCALONES.hastaRecargo) * ESCALONES.porObraExtraMes * 12 : 0;
+          const recargo = 0;
+          const extraObras = 0;
           const gmao = usuariosGmao(u, usuarios);
           const extraUsuarios = gmao.extraAnual;
           const anual = Math.round((neto + recargo + extraObras + extraUsuarios) * 100) / 100;
@@ -150793,7 +151131,7 @@ ${reglas}`;
             gmao,
             anual,
             mensual: Math.round(anual / 12 * 100) / 100,
-            aMedida: n > ESCALONES.hastaRecargo || gmao.aMedida
+            aMedida: n > ESCALONES.hastaTabla || gmao.aMedida
           };
         }
         function resumen(idRol, unidades, personas = []) {
@@ -150840,7 +151178,6 @@ ${reglas}`;
           PAQUETE_COMPLETO_CON_IARVIS_MES,
           PAQUETE_COMPLETO,
           PAQUETE_COMPLETO_SIN_IARVIS_MES,
-          MINIMO_CX_MES,
           ESCALONES,
           USUARIOS_GMAO,
           TIPOS,
@@ -150859,7 +151196,10 @@ ${reglas}`;
         };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.LICENCIAS = API;
-      })(typeof module !== "undefined" && module.exports ? require_roles() : window.ROLES);
+      })(
+        typeof module !== "undefined" && module.exports ? require_roles() : window.ROLES,
+        typeof module !== "undefined" && module.exports ? require_catalogoPrecios() : window.CATALOGO_VENTAS
+      );
     }
   });
 
@@ -151626,6 +151966,21 @@ ${reglas}`;
             automatico: [
               { que: "Paquete con solo lo que su rol ve, sin importes", cuando: "Al exportar", editable: false },
               { que: "Al volver, gana lo m\xE1s nuevo; los choques se cuentan como conflicto", cuando: "Al importar", editable: "parcial", como: "Los conflictos se resuelven a mano." }
+            ]
+          },
+          {
+            /* 19-nov (JC): solo el administrador de la instalación de Vidaire; el de una empresa cliente no lo abre. */
+            area: "Toda la app",
+            titulo: "Configurador de ofertas",
+            dondeEsta: "Administraci\xF3n \u203A Presentaciones \u203A Configurador de ofertas",
+            cubre: ["ofertas:configurador"],
+            soloVidaire: true,
+            queHace: "Vidaire monta con el cliente su oferta: marca los m\xF3dulos que quiere, apunta lo que pide en cada uno, repasa la personalizaci\xF3n bloque a bloque, a\xF1ade lo que va aparte y saca el PDF en espa\xF1ol o en ingl\xE9s. Se guarda como borrador y se sigue su estado.",
+            automatico: [
+              { que: "Si un paquete sale igual o m\xE1s barato que la suma de m\xF3dulos, lo propone y ense\xF1a el ahorro", cuando: "Al marcar o quitar m\xF3dulos", editable: true, como: "Se puede no aplicar el paquete." },
+              { que: "La carga de obras terminadas entra siempre en la personalizaci\xF3n y no se puede quitar", cuando: "En toda oferta", editable: false },
+              { que: "Los usuarios de GMAO por encima de los incluidos suman por tramo; por encima del \xFAltimo, la oferta queda \xABa medida\xBB", cuando: "Al cambiar los usuarios", editable: false },
+              { que: "El PDF con la plantilla de los informes y la marca de Vidaire", cuando: "Al pulsar PDF", editable: false }
             ]
           }
         ];
@@ -189880,7 +190235,19 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const g = crearGeorreferencia(v.puntos, v);
           return g.ok ? { ...g, por: v.por || "", en: v.en || "" } : null;
         }
-        const API = { COLOR, PRECISION_MAX_M, DIST_MIN_M, aMetros, crearGeorreferencia, geoAPlano, planoAGeo, radioDe, posicionGps, posicionPorContexto, elegir, hora, paraGuardar, deGuardado, puntoLimpio };
+        const cajaValida = (c) => !!c && fin(num(c.x0), num(c.y1), num(c.ancho), num(c.alto)) && num(c.ancho) > 0 && num(c.alto) > 0;
+        function derivarGeorreferencia(geoA, cajaA, cajaB, planoB = {}) {
+          if (!geoA || !geoA.ok) return { ok: false, error: "El plano de referencia no est\xE1 fijado." };
+          if (!cajaValida(cajaA) || !cajaValida(cajaB)) return { ok: false, error: "Falta el encuadre de la planta: vuelve a cargar el IFC." };
+          const puntos = [[0.25, 0.25], [0.75, 0.75]].map(([fx, fy]) => {
+            const X = num(cajaB.x0) + fx * num(cajaB.ancho);
+            const Y = num(cajaB.y1) - fy * num(cajaB.alto);
+            const g = planoAGeo(geoA, (X - num(cajaA.x0)) / num(cajaA.ancho), (num(cajaA.y1) - Y) / num(cajaA.alto));
+            return { lat: g.lat, lon: g.lon, x: fx, y: fy };
+          });
+          return crearGeorreferencia(puntos, planoB);
+        }
+        const API = { COLOR, PRECISION_MAX_M, DIST_MIN_M, aMetros, crearGeorreferencia, geoAPlano, planoAGeo, radioDe, posicionGps, posicionPorContexto, elegir, hora, paraGuardar, deGuardado, puntoLimpio, derivarGeorreferencia, cajaValida };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.POSICION_PLANO = API;
       })();
@@ -189894,6 +190261,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       init_define_CX_LICENCIAS();
       var import_buffer_global10 = __toESM(require_buffer_global());
       var PZ = require_posicionEnPlano();
+      var FONDO = require_fondoIfc();
       var { puede } = require_roles();
       var PERMISOS_POSICION_PLANO = {
         "GET api/plano-equipos/georreferencia": [["planoEquipos", "ver"]],
@@ -189910,12 +190278,44 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       function crearRutasPosicionPlano({ repo }) {
         const cuerpo = (json) => (typeof json === "function" ? json() : json) || {};
         const configDe = (ses, obraId) => repo.listar("configCommissioning", ses, { condicion: "obraId = ?", params: [obraId], limite: 1 })[0] || null;
+        function plantasDe(ses, obra, ids) {
+          if (!ids.length) return /* @__PURE__ */ new Map();
+          let filas = [];
+          try {
+            filas = repo.listar("plantasIfc", ses, { condicion: `obraId = ? AND id IN (${ids.map(() => "?").join(",")})`, params: [obra, ...ids] });
+          } catch {
+            filas = [];
+          }
+          const out = /* @__PURE__ */ new Map();
+          for (const f of filas) {
+            const m = leer(f.medidas);
+            if (typeof m.edificio !== "string" || m.fuente || !PZ.cajaValida(m.caja)) continue;
+            out.set(f.id, { edificio: m.edificio, caja: m.caja, ancho: Number(f.ancho) || 0, alto: Number(f.alto) || 0 });
+          }
+          return out;
+        }
+        function derivada(ses, obra, plano, todo) {
+          if (!FONDO.esFondoIfc(plano)) return null;
+          const fijados = Object.keys(todo).filter((k) => k !== plano && FONDO.esFondoIfc(k) && todo[k] && Array.isArray(todo[k].puntos));
+          if (!fijados.length) return null;
+          const pl = plantasDe(ses, obra, [plano, ...fijados].map(FONDO.idDeFondo));
+          const b = pl.get(FONDO.idDeFondo(plano));
+          if (!b) return null;
+          const candidatos = fijados.map((k) => ({ k, a: pl.get(FONDO.idDeFondo(k)), v: todo[k] })).filter((c) => c.a).sort((x, y) => Number(y.a.edificio === b.edificio) - Number(x.a.edificio === b.edificio) || String(y.v.en || "").localeCompare(String(x.v.en || "")));
+          for (const c of candidatos) {
+            const geoA = PZ.crearGeorreferencia(c.v.puntos, c.v);
+            const g = PZ.derivarGeorreferencia(geoA, c.a.caja, b.caja, { ancho: b.ancho, alto: b.alto });
+            if (g.ok) return { puntos: g.puntos, ancho: g.ancho, alto: g.alto, por: c.v.por || "", en: c.v.en || "", derivadaDe: c.k };
+          }
+          return null;
+        }
         function ver({ ses, query }) {
           const obra = String(query.obra || "");
           const plano = String(query.plano || "");
           if (!obra || !plano) return { ok: false, error: "Falta la obra o el plano." };
           const cfg = configDe(ses, obra);
-          const v = cfg ? leer(cfg.georreferencia)[plano] || null : null;
+          const todo = cfg ? leer(cfg.georreferencia) : {};
+          const v = todo[plano] || derivada(ses, obra, plano, todo) || null;
           return { ok: true, georreferencia: v, puedeFijar: Boolean(puede(ses.rol, "planoEquipos", "editar")) };
         }
         function fijar({ ses, quien, json }) {
@@ -189940,6 +190340,206 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         return { "GET api/plano-equipos/georreferencia": ver, "POST api/plano-equipos/georreferencia": fijar };
       }
       module.exports = { crearRutasPosicionPlano, PERMISOS_POSICION_PLANO };
+    }
+  });
+
+  // shared/commissioning/fotoGeo.js
+  var require_fotoGeo = __commonJS({
+    "shared/commissioning/fotoGeo.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const PZ = typeof module !== "undefined" && module.exports ? require_posicionEnPlano() : window.POSICION_PLANO;
+        const UMBRAL_PRECISION_M = 10;
+        const R = 63710088e-1;
+        const num = (v) => v === null || v === void 0 || v === "" ? NaN : Number(v);
+        const fin = Number.isFinite;
+        function normalizar(g) {
+          if (!g) return null;
+          const lat = num(g.lat ?? g.latitude);
+          const lon = num(g.lon ?? g.longitude);
+          if (!fin(lat) || !fin(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+          const p = num(g.precision ?? g.accuracy);
+          return {
+            lat: Math.round(lat * 1e7) / 1e7,
+            lon: Math.round(lon * 1e7) / 1e7,
+            precision: fin(p) && p >= 0 ? Math.round(p * 10) / 10 : null,
+            tomadaEn: g.tomadaEn ? String(g.tomadaEn).slice(0, 30) : null,
+            origen: g.origen === "exif" ? "exif" : "dispositivo"
+          };
+        }
+        function distanciaM(lat1, lon1, lat2, lon2) {
+          const r = Math.PI / 180;
+          const a = Math.sin((lat2 - lat1) * r / 2) ** 2 + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin((lon2 - lon1) * r / 2) ** 2;
+          return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+        }
+        function leerExifGps(bytes) {
+          try {
+            const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+            if (b[0] !== 255 || b[1] !== 216) return null;
+            const dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
+            let o = 2;
+            while (o + 4 < b.length && b[o] === 255) {
+              const m = b[o + 1];
+              const len = dv.getUint16(o + 2);
+              if (m === 225 && b[o + 4] === 69 && b[o + 5] === 120) {
+                const t = o + 10;
+                const le = b[t] === 73;
+                const u16 = (p) => dv.getUint16(t + p, le);
+                const u322 = (p) => dv.getUint32(t + p, le);
+                const ifd = (p, f) => {
+                  const n = u16(p);
+                  for (let i = 0; i < n; i++) f(p + 2 + i * 12);
+                };
+                let gps = 0;
+                ifd(u322(4), (e) => {
+                  if (u16(e) === 34853) gps = u322(e + 8);
+                });
+                if (!gps) return null;
+                const racional = (e) => {
+                  const p = u322(e + 8);
+                  const v = [];
+                  for (let i = 0; i < 3; i++) {
+                    const d = u322(p + i * 8 + 4);
+                    v.push(d ? u322(p + i * 8) / d : 0);
+                  }
+                  return v[0] + v[1] / 60 + v[2] / 3600;
+                };
+                const ref = (e) => String.fromCharCode(b[t + e + 8]);
+                let lat = null, lon = null, rl = "N", ro = "E";
+                ifd(gps, (e) => {
+                  const tag = u16(e);
+                  if (tag === 1) rl = ref(e);
+                  else if (tag === 2) lat = racional(e);
+                  else if (tag === 3) ro = ref(e);
+                  else if (tag === 4) lon = racional(e);
+                });
+                if (lat === null || lon === null) return null;
+                return normalizar({ lat: rl === "S" ? -lat : lat, lon: ro === "W" ? -lon : lon, origen: "exif" });
+              }
+              o += 2 + len;
+            }
+          } catch {
+          }
+          return null;
+        }
+        function decidir(geo, foto, actual = null, { umbral = UMBRAL_PRECISION_M } = {}) {
+          const f = normalizar(foto);
+          if (!f) return { accion: "nada", motivo: "sinCoordenadas" };
+          if (!geo || !geo.ok) return { accion: "nada", motivo: "sinCalibracion" };
+          const p = PZ.geoAPlano(geo, f.lat, f.lon);
+          if (!p || !fin(p.x) || !fin(p.y)) return { accion: "nada", motivo: "sinCalibracion" };
+          if (p.x < 0 || p.x > 1 || p.y < 0 || p.y > 1) return { accion: "nada", motivo: "fueraDelPlano", x: p.x, y: p.y };
+          let d = null;
+          if (actual && fin(actual.x) && fin(actual.y)) {
+            const g = PZ.planoAGeo(geo, actual.x, actual.y);
+            if (g) d = Math.round(distanciaM(f.lat, f.lon, g.lat, g.lon));
+          }
+          const buena = f.precision !== null && f.precision <= umbral;
+          return { accion: buena ? "mover" : "proponer", motivo: buena ? "precisionBuena" : "precisionMala", x: p.x, y: p.y, distanciaM: d, precision: f.precision };
+        }
+        const API = { UMBRAL_PRECISION_M, normalizar, distanciaM, leerExifGps, decidir };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.FOTO_GEO = API;
+      })();
+    }
+  });
+
+  // electron/obra/data/posicionPorFoto.js
+  var require_posicionPorFoto = __commonJS({
+    "electron/obra/data/posicionPorFoto.js"(exports, module) {
+      "use strict";
+      init_define_CX_LICENCIAS();
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var PZ = require_posicionEnPlano();
+      var FG = require_fotoGeo();
+      var { colocarEnModelo } = require_planosIfc();
+      var ORIGEN = "foto GPS";
+      var leerJson = (t, otro) => {
+        try {
+          const o = typeof t === "string" ? JSON.parse(t) : t;
+          return o ?? otro;
+        } catch {
+          return otro;
+        }
+      };
+      function planoDe(repo, ses, eq) {
+        const pp = leerJson(eq.posicionPlano, null);
+        const filas = repo.listar("plantasIfc", ses, { condicion: "obraId = ?", params: [eq.obraId] });
+        if (pp && pp.ifc) return filas.find((f) => f.id === pp.ifc) || null;
+        const q = String(eq.planta || "").trim().toLowerCase();
+        return q ? filas.find((f) => String(f.nombre || "").trim().toLowerCase() === q) || null : null;
+      }
+      function geoDe(repo, ses, obraId, fila) {
+        if (!fila) return null;
+        const cfg = repo.listar("configCommissioning", ses, { condicion: "obraId = ?", params: [obraId], limite: 1 })[0];
+        if (!cfg) return null;
+        return PZ.deGuardado(cfg.georreferencia, `ifc:${fila.id}`) || PZ.deGuardado(cfg.georreferencia, fila.id);
+      }
+      var fotoGeoDe = (f) => FG.normalizar({ lat: f.lat, lon: f.lon, precision: f.precision, tomadaEn: f.tomadaEn });
+      function mover(repo, ses, eq, fila, x, y, fotoId) {
+        const previa = leerJson(eq.posicionPlano, null);
+        const anterior = previa ? { ...previa, anterior: void 0 } : null;
+        return colocarEnModelo(
+          repo,
+          ses,
+          eq.obraId,
+          fila.id,
+          "equipo",
+          eq.id,
+          Math.min(1, Math.max(0, x)),
+          Math.min(1, Math.max(0, y)),
+          null,
+          { origen: ORIGEN, anterior, fotoId }
+        );
+      }
+      function alGuardarFoto(repo, ses, eq, foto) {
+        const f = fotoGeoDe(foto);
+        if (!f) return { accion: "nada", motivo: "sinCoordenadas" };
+        const fila = planoDe(repo, ses, eq);
+        const geo = geoDe(repo, ses, eq.obraId, fila);
+        const pp = leerJson(eq.posicionPlano, null);
+        const d = FG.decidir(geo, f, pp && pp.ifc === (fila && fila.id) ? pp : null);
+        if (d.accion !== "mover") return d;
+        const r = mover(repo, ses, eq, fila, d.x, d.y, foto.id);
+        return r.ok ? { ...d, movido: true } : { accion: "nada", motivo: r.error };
+      }
+      function estadoFoto(repo, ses, eq0) {
+        const eq = repo.leer("equiposObra", ses, eq0.id) || eq0;
+        const fotos = repo.listar("fotosEquipo", ses, { condicion: "equipoId = ? AND lat IS NOT NULL", params: [eq.id], orden: "creadoEn" });
+        const ultima = fotos[fotos.length - 1];
+        if (!ultima) return null;
+        const f = fotoGeoDe(ultima);
+        if (!f) return null;
+        const fila = planoDe(repo, ses, eq);
+        const geo = geoDe(repo, ses, eq.obraId, fila);
+        const pp = leerJson(eq.posicionPlano, null);
+        const base = { fotoId: ultima.id, lat: f.lat, lon: f.lon, precision: f.precision, tomadaEn: f.tomadaEn, estado: "soloCoordenadas" };
+        if (!geo) return base;
+        const d = FG.decidir(geo, f, pp && fila && pp.ifc === fila.id ? pp : null);
+        if (d.accion === "nada") return base;
+        if (pp && pp.origen === ORIGEN && pp.fotoId === ultima.id) return { ...base, estado: "movido", distanciaM: 0, anterior: Boolean(pp.anterior) };
+        return { ...base, estado: d.accion === "mover" && d.distanciaM !== null && d.distanciaM <= Math.max(f.precision || 0, 3) ? "coincide" : "propuesta", distanciaM: d.distanciaM, planoId: fila.id };
+      }
+      function aceptar(repo, ses, eq, fotoId) {
+        const foto = repo.leer("fotosEquipo", ses, String(fotoId || ""));
+        if (!foto || foto.equipoId !== eq.id) return { ok: false, error: "No se encuentra esa foto." };
+        const f = fotoGeoDe(foto);
+        if (!f) return { ok: false, error: "Esa foto no tiene coordenadas." };
+        const fila = planoDe(repo, ses, eq);
+        const d = FG.decidir(geoDe(repo, ses, eq.obraId, fila), f, null, { umbral: Infinity });
+        if (d.x === void 0 || d.accion === "nada") return { ok: false, error: "Este plano no est\xE1 calibrado o la foto cae fuera de \xE9l." };
+        return mover(repo, ses, eq, fila, d.x, d.y, foto.id);
+      }
+      function deshacer(repo, ses, eq) {
+        const pp = leerJson(eq.posicionPlano, null);
+        if (!pp || pp.origen !== ORIGEN) return { ok: false, error: "Este equipo no se movi\xF3 por una foto." };
+        const ant = pp.anterior && pp.anterior.ifc && Number.isFinite(pp.anterior.x) ? pp.anterior : null;
+        repo.modificar("equiposObra", ses, eq.id, { posicionPlano: ant ? JSON.stringify(ant) : null });
+        return { ok: true, restaurada: Boolean(ant) };
+      }
+      module.exports = { ORIGEN, planoDe, geoDe, alGuardarFoto, estadoFoto, aceptar, deshacer };
     }
   });
 
@@ -191931,6 +192531,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       var { crearRutasFichas, PERMISOS_FICHAS } = require_rutasFichas();
       var { crearRutasPlanoEquipos, PERMISOS_PLANO_EQUIPOS } = require_rutasPlanoEquipos();
       var { crearRutasPosicionPlano, PERMISOS_POSICION_PLANO } = require_rutasPosicionPlano();
+      var FG = require_fotoGeo();
+      var PF = require_posicionPorFoto();
       var { crearRutasBocaManual, PERMISOS_BOCA_MANUAL } = require_rutasBocaManual();
       var BMAK = require_bocaManual();
       var PERMISOS_OBRA = {
@@ -191962,6 +192564,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         "GET api/equipo/foto": [["commissioning", "ver"]],
         /* Las fotos del equipo y de su conjunto, ligeras, para la hoja del plano de commissioning (17-nov-2026). */
         "GET api/equipo/fotos/lista": [["commissioning", "ver"]],
+        "POST api/equipo/foto-colocar": [["planoEquipos", "editar"]],
+        "POST api/equipo/foto-deshacer": [["planoEquipos", "editar"]],
         /* Las firmas del cliente y del jefe de obra (28-oct-2026). */
         "POST api/equipo/firma": [["commissioning", "editar"]],
         "GET api/equipo/plano": [["commissioning", "ver"]],
@@ -192407,6 +193011,13 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
               }
             })(),
             fotos: fotosDelEquipo(ses, d.equipo, linea, dosier),
+            posicionFoto: (() => {
+              try {
+                return PF.estadoFoto(repo, ses, d.equipo);
+              } catch {
+                return null;
+              }
+            })(),
             fichasConFotos: fichasDelEquipo(d.equipo, dosier),
             /* Las firmas del cliente y del jefe de obra (las del conjunto, si es un split o un VRF). */
             firmas: FIR.firmasDeEquipo(repo, ses, d.equipo.id, fechaPM),
@@ -192643,7 +193254,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         }
         const MAX_FOTOS_EQUIPO = 30;
         const carpetaEquipos = (obraId) => path.join(carpeta, "commissioning", String(obraId).replace(/[^A-Za-z0-9_-]/g, "_"), "equipos");
-        const fotosDe = (ses, equipoId) => repo.listar("fotosEquipo", ses, { condicion: "equipoId = ?", params: [equipoId], orden: "creadoEn" }).map((f) => ({ id: f.id, pie: f.pie || "", hora: f.hora || "" }));
+        const fotosDe = (ses, equipoId) => repo.listar("fotosEquipo", ses, { condicion: "equipoId = ?", params: [equipoId], orden: "creadoEn" }).map((f) => ({ id: f.id, pie: f.pie || "", hora: f.hora || "", ...f.lat != null && f.lon != null ? { lat: f.lat, lon: f.lon, precision: f.precision ?? null, tomadaEn: f.tomadaEn || null } : {} }));
         const ultimaFoto = (ses, equipoId) => {
           const f = fotosDe(ses, equipoId).pop();
           return f ? { ...f, url: `api/equipo/foto?id=${encodeURIComponent(f.id)}` } : null;
@@ -192704,8 +193315,16 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
                 equipoId: eq.id,
                 ruta: destino,
                 pie: llano(nuevas[i].pie).slice(0, 120) || null,
-                hora: llano(nuevas[i].hora).slice(0, 20) || null
+                hora: llano(nuevas[i].hora).slice(0, 20) || null,
+                ...FG.normalizar(nuevas[i]) ? (({ lat, lon, precision, tomadaEn }) => ({ lat, lon, precision, tomadaEn }))(FG.normalizar(nuevas[i])) : {}
               }, { verbo: "editar" });
+              const idFila = repo.db.prepare("SELECT id FROM fotosEquipo WHERE ruta = ?").get(destino);
+              if (idFila && FG.normalizar(nuevas[i])) {
+                try {
+                  PF.alGuardarFoto(repo, ses, repo.leer("equiposObra", ses, eq.id), { ...FG.normalizar(nuevas[i]), id: idFila.id });
+                } catch {
+                }
+              }
             });
           } catch (err) {
             for (const x of escritas) {
@@ -192784,7 +193403,20 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           const ids = INC.conjuntosDeObra(repo, eq.obraId).get(eq.id) || [eq.id];
           const tags = new Map(repo.db.prepare("SELECT id, tag FROM equiposObra WHERE obraId = ?").all(eq.obraId).map((x) => [x.id, x.tag]));
           const fotos = [eq.id, ...ids.filter((x) => x !== eq.id)].flatMap((id) => fotosDe(ses, id).map((f) => ({ ...f, equipoId: id, tag: id === eq.id ? null : tags.get(id) || null, url: `api/equipo/foto?id=${encodeURIComponent(f.id)}` })));
-          return { ok: true, fotos };
+          return { ok: true, fotos, posicionFoto: PF.estadoFoto(repo, ses, eq) };
+        }
+        function fotoColocar({ ses, json }) {
+          const e = json();
+          const eq = repo.leer("equiposObra", ses, llano(e.equipoId));
+          if (!eq) return { ok: false, error: "No se encuentra el equipo." };
+          const r = PF.aceptar(repo, ses, eq, llano(e.fotoId));
+          return r.ok ? { ok: true, posicionFoto: PF.estadoFoto(repo, ses, repo.leer("equiposObra", ses, eq.id)) } : r;
+        }
+        function fotoDeshacer({ ses, json }) {
+          const eq = repo.leer("equiposObra", ses, llano(json().equipoId));
+          if (!eq) return { ok: false, error: "No se encuentra el equipo." };
+          const r = PF.deshacer(repo, ses, eq);
+          return r.ok ? { ok: true, posicionFoto: PF.estadoFoto(repo, ses, repo.leer("equiposObra", ses, eq.id)) } : r;
         }
         async function equipoFoto({ ses, query }) {
           const f = repo.leer("fotosEquipo", ses, llano(query.id));
@@ -193145,6 +193777,8 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "POST api/equipo/documento": equipoDocumento,
           "GET api/equipo/foto": equipoFoto,
           "GET api/equipo/fotos/lista": equipoFotosLista,
+          "POST api/equipo/foto-colocar": fotoColocar,
+          "POST api/equipo/foto-deshacer": fotoDeshacer,
           "POST api/equipo/firma": equipoFirma,
           "GET api/equipo/plano": equipoPlano,
           "GET api/equipo/plano-ifc": equipoPlanoIfc,
@@ -232689,7 +233323,7 @@ ${cuerpo}` : cuerpo;
       function entender(pregunta) {
         const q = llano(pregunta);
         if (!/\breclam/.test(q)) return null;
-        if (/\b(cliente|claim|limak|ncn|certificacion|subcontrata)\b/.test(q) && !/\b(proveedor|pedido|ped[- ]?\d)/.test(q)) return null;
+        if (/\b(cliente|claim|certificacion|subcontrata)\b/.test(q) && !/\b(proveedor|pedido|ped[- ]?\d)/.test(q)) return null;
         const cod = /\bped[- ]?0*(\d{1,5})\b/.exec(q) || /\bpedido\s*(?:n[o.º]*\s*)?0*(\d{1,5})\b/.exec(q);
         if (cod) return { numero: Number(cod[1]) };
         if (/\b(proveedor|suministrador|suministros|lo que falta|lo que no ha llegado|no ha llegado|no llego|roto|retras)/.test(q) || /\ba\s+[a-z0-9]/.test(q)) return { proveedor: true };
@@ -232707,9 +233341,24 @@ ${cuerpo}` : cuerpo;
         });
         return primera.length === 1 ? primera[0].id : entero.length || primera.length ? "ambiguo" : null;
       }
+      function clienteNombrado(repo, yo, pregunta) {
+        const q = ` ${llano(pregunta).replace(/[^a-z0-9]+/g, " ")} `;
+        let obras = [];
+        try {
+          obras = repo.listar("obras", yo, {}) || [];
+        } catch {
+          obras = [];
+        }
+        return obras.some((o) => {
+          const c = o && (typeof o.cliente === "string" ? o.cliente : o.cliente && (o.cliente.nombre || o.cliente.empresa) || o.clienteNombre);
+          const k = llano(c).replace(/[^a-z0-9]+/g, " ").trim();
+          return k.length > 2 && q.includes(` ${k} `);
+        });
+      }
       async function responder(repo, yo, { pregunta, obraId }, opciones = {}) {
         const q = entender(pregunta);
         if (!q) return null;
+        if (q.proveedor && !/\b(proveedor|suministrador)/.test(llano(pregunta)) && clienteNombrado(repo, yo, pregunta)) return null;
         const R = require_roles();
         if (!yo || !R.puede(yo.rol, "pedidos", "ver")) return fila(pregunta, { respuesta: "Tu puesto no puede ver los pedidos, as\xED que no puedo prepararte una reclamaci\xF3n a un proveedor." });
         let contrato = null;

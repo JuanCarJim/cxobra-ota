@@ -20,6 +20,7 @@
 
   let $raiz = null; let planta = null; let salas = [];
   let geo = null; let geoDe = ''; let puedeFijar = false; const geoCache = new Map();
+  let geoPide = ''; /* el plano cuya georreferencia está en camino: mientras, no se dice «no está fijado» */
   let gps = null; let vigia = null;
   let ctx = null; /* { equipoId, tag, sala, planta, origen, en } */
   let fijando = null; /* { puntos: [], lat, lon } */
@@ -55,7 +56,12 @@
   .pz-boton[aria-pressed="true"]{border-color:${K.punto};box-shadow:0 0 0 2px ${K.halo},0 1px 4px rgba(0,0,0,.2)}
   .pz-fijar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%;font:500 12px/16px system-ui,sans-serif;border-left:3px solid ${K.punto};padding:4px 0 4px 8px}
   .pz-fijar input{font-size:16px;min-width:0;flex:1 1 160px;padding:4px 6px}
-  .pe-marco.pz-fijando{cursor:crosshair}`;
+  .pe-marco.pz-fijando{cursor:crosshair}
+  .cx-plano .pe-pie:has(.pz-fijar){flex-wrap:wrap}
+  .pe-pie>.pz-fijar{flex:1 0 100%}
+  .cx-plano:has(.pz-fijar) .pz-boton{display:none}
+  .pz-fijar span{flex:1 0 100%}
+  .pz-fijar input{flex:1 1 120px}`;
     document.head.appendChild(s);
   }
 
@@ -66,13 +72,15 @@
     const id = planoId();
     if (!id) { geo = null; geoDe = ''; return; }
     if (geoCache.has(id)) { ({ geo, puedeFijar } = geoCache.get(id)); geoDe = id; return; }
+    geoPide = id;
     try {
       const r = await C.pedir(`api/plano-equipos/georreferencia?obra=${encodeURIComponent(obra())}&plano=${encodeURIComponent(id)}`);
       const g = r && r.ok && r.georreferencia ? PZ.crearGeorreferencia(r.georreferencia.puntos, r.georreferencia) : null;
       const v = { geo: g && g.ok ? g : null, puedeFijar: Boolean(r && r.puedeFijar) };
       geoCache.set(id, v);
+      if (geoPide === id) geoPide = '';
       if (planoId() === id) { ({ geo, puedeFijar } = v); geoDe = id; pintar(); }
-    } catch { geo = null; }
+    } catch { geo = null; if (geoPide === id) geoPide = ''; }
   }
 
   /** planoEquipos.js lo llama al final de cada pintar(): pone el botón, el punto y el aviso sobre lo recién pintado. */
@@ -80,7 +88,9 @@
     estilo();
     leerCtx();
     $raiz = raiz; planta = p; salas = extra.salas || (p && p.plano && p.plano.salas) || [];
-    if (!p || !p.plano) { parar(); return; }
+    /* 19-nov (JC: «al cambiar de plano debe de seguir mostrando la ubicación»): cambiar de planta NO apaga el GPS (solo
+       salir de la app, pagehide); una planta sin dibujo tampoco: al volver a una con plano, el punto sigue. */
+    if (!p || !p.plano) return;
     if (geoDe !== planoId()) { geo = null; traerGeo(); }
     if (window.CX_PLANTA_AUTO) window.CX_PLANTA_AUTO.montar(raiz, p, extra);
     pintar();
@@ -112,7 +122,8 @@
     let capa = l.querySelector('[data-pz-capa]');
     if (!capa) { capa = document.createElement('div'); capa.className = 'pz-capa'; capa.dataset.pzCapa = '1'; l.appendChild(capa); }
     const c = posCtx();
-    const g = !gps ? null : gps.coords ? PZ.posicionGps(geo, gps.coords, { en: gps.en }) : { ...gps.estado, en: gps.en };
+    /* Mientras llega la georreferencia de la planta recién abierta, sin aviso de «no está fijado» (sería falso un instante). */
+    const g = !gps || (!geo && geoPide && geoPide === planoId()) ? null : gps.coords ? PZ.posicionGps(geo, gps.coords, { en: gps.en }) : { ...gps.estado, en: gps.en };
     const { punto, aviso } = PZ.elegir(c, g);
     capa.innerHTML = !punto || fijando ? ''
       : punto.tipo === 'gps' ? `<div class="pz-precision" style="left:${punto.x * 100}%;top:${punto.y * 100}%;width:${punto.radio * 200}%"></div><div class="pz-punto" data-pz-punto="gps" style="left:${punto.x * 100}%;top:${punto.y * 100}%" role="img" aria-label="Estás aquí (±${punto.precision} m)"></div>`
@@ -167,15 +178,22 @@
     const pie = $raiz && $raiz.querySelector('.pe-pie');
     if (!pie) return;
     let f = pie.querySelector('[data-pz-fijar-barra]');
-    if (!fijando) { if (f) f.remove(); return; }
+    if (!fijando) { if (f) { f.remove(); remedir(); } return; }
     if (!f) { f = document.createElement('div'); f.className = 'pz-fijar'; f.dataset.pzFijarBarra = '1'; f.setAttribute('role', 'status'); pie.prepend(f); }
     const n = fijando.puntos.length + 1;
     const valor = fijando.lat != null ? `${fijando.lat.toFixed(6)}, ${fijando.lon.toFixed(6)}` : '';
     if (f.dataset.paso === String(n)) return;
+    const nuevo = !f.dataset.paso;
     f.dataset.paso = String(n);
     f.innerHTML = `<span>Punto <b>${n} de 2</b>: un sitio que reconozcas (esquina, pilar, puerta). Pon sus coordenadas y tócalo en el plano.</span>
       <input type="text" inputmode="decimal" data-pz-coords placeholder="41.380900, 2.122800" aria-label="Latitud, longitud" value="${esc(valor)}">
       <button type="button" class="boton secundario" data-pz-migps>Mi GPS</button><button type="button" class="boton secundario" data-pz-fijar-cancelar>Cancelar</button>`;
+    if (nuevo) remedir();
+  }
+  /* 19-nov (JC): el panel de calibración cambia el alto del pie; el plano se vuelve a encajar para que quepa todo sin scroll. */
+  function remedir() {
+    try { window.scrollTo(0, 0); } catch { /* sin ventana */ }
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
   }
   function leerCoords() {
     const i = $raiz && $raiz.querySelector('[data-pz-coords]');
@@ -192,7 +210,8 @@
     if (fijando.puntos.length < 2) { pintar(); return; }
     const r = await C.postJson('api/plano-equipos/georreferencia', { obra: obra(), plano: planoId(), puntos: fijando.puntos, ancho: planta.plano.ancho, alto: planta.plano.alto }).catch((e) => ({ ok: false, error: e.message }));
     if (!r || !r.ok) { C.aviso((r && r.error) || 'No se ha podido fijar el plano.'); fijando.puntos = []; pintar(); return; }
-    geoCache.delete(planoId()); geoDe = ''; fijando = null;
+    /* Fijar una planta sirve también a las demás del mismo modelo (las deriva el servidor): fuera todo lo recordado. */
+    geoCache.clear(); geoDe = ''; fijando = null;
     C.aviso('Plano fijado: el GPS ya cae en su sitio.');
     await traerGeo(); pintar();
   }
