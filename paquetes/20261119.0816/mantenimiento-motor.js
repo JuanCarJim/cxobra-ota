@@ -33,9 +33,9 @@
     mod
   ));
 
-  // ../../../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js
+  // ../Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js
   var require_sql_wasm_browser = __commonJS({
-    "../../../../../../../Users/juancarlosjimenezlima/Proyectos/Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
+    "../Vidaire_Obras/node_modules/sql.js/dist/sql-wasm-browser.js"(exports, module) {
       var initSqlJsPromise = void 0;
       var initSqlJs2 = function(moduleConfig) {
         if (initSqlJsPromise) {
@@ -6370,8 +6370,8 @@ create table if not exists ajustes (
 
   // cxobra/generado/vidaire-publico.json
   var vidaire_publico_default = {
-    url: "https://kuctmrwyejbzokmudroe.supabase.co",
-    publishableKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1Y3Rtcnd5ZWpiem9rbXVkcm9lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MDY2ODYsImV4cCI6MjEwNjA4MjY4Nn0.Wdpx_549-Mrt-J7NhRcG_YCkciruU45b5gZBxNddc8M"
+    url: "https://dgwqczsbzwblbhbhqkjd.supabase.co",
+    publishableKey: "sb_publishable_yi72T-CIiextCBGIEynNlQ_ChIlMNXB"
   };
 
   // cxobra/mantenimiento/fuente/motor.ts

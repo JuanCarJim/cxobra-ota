@@ -264,6 +264,7 @@
       const r = await C.postJson('api/equipo/placa', { equipoId, accion: 'lectura', fotoId, pasadas, vista });
       if (!r.ok) throw new Error(r.error || 'No se ha guardado la lectura.');
       if (ficha && r.equipo && ficha.equipo.id === r.equipo.id) ficha = r;
+      if (window.CX_POSICION_PLANO && r.equipo) window.CX_POSICION_PLANO.contexto({ equipoId: r.equipo.id, tag: r.equipo.tag, planta: r.equipo.planta, origen: 'placa' });
       if (r.lectura === 'aplicada' && r.numSerie) C.aviso(`Nº de serie leído de la placa: ${r.numSerie}`);
     } catch (e) {
       if (boton) C.aviso(e.message || 'No se ha podido leer la foto.');
@@ -684,6 +685,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       ficha = r;
       hoja = null;
       fichasEq = null;
+      /* 18-nov (JC): abrir un equipo dice dónde estás en el plano (renderer/movil/posicionPlanoCapa.js). */
+      if (!quieto && window.CX_POSICION_PLANO) window.CX_POSICION_PLANO.contexto({ equipoId: r.equipo.id, tag: r.equipo.tag, planta: r.equipo.planta, origen: 'ficha' });
       /* Lo leído antes puede haber cambiado (llegó algo de la oficina): se vuelve
          a pedir. Lo tecleado y sin guardar se queda. */
       for (const [k, t] of tomas) if (!t.cambiada) tomas.delete(k);
