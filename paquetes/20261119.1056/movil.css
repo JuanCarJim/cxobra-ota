@@ -74,7 +74,7 @@ body {
 /* ═══════════════ La cabecera: título grande, como en CoachIn, sin banda de color */
 .barra {
   position: sticky; top: var(--vv-arriba, 0px); z-index: 5;
-  padding: calc(14px + env(safe-area-inset-top)) 20px 10px;
+  padding: calc(14px + var(--arriba-seguro, env(safe-area-inset-top))) 20px 10px;
   background: var(--papel); color: var(--texto);
 }
 html { scroll-padding-top: calc(var(--alto-barra, 120px) + 12px); }
@@ -669,7 +669,7 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .plano-bocas .leyenda i.alto { background: var(--alto); }
 /* Ampliado: a pantalla completa, el plano al 250 % y se arrastra con el dedo. */
 .plano-bocas.grande { position: fixed; inset: 0; z-index: 50; margin: 0; border-radius: 0; display: flex; flex-direction: column;
-  padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+  padding-top: var(--arriba-seguro, env(safe-area-inset-top)); padding-bottom: env(safe-area-inset-bottom); }
 .plano-bocas.grande .plano-marco { flex: 1; display: flex; align-items: center; background: var(--panel2); }
 .plano-bocas.grande .plano-lienzo { width: 250%; flex: none; }
 .plano-bocas.grande .marca-boca .simbolo-boca { height: 30px; }
@@ -849,7 +849,7 @@ details.grupo-lista[open] > summary { margin-bottom: 6px; }
 }
 .vista-pdf-barra {
   display: flex; align-items: center; gap: 10px;
-  padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
+  padding: calc(10px + var(--arriba-seguro, env(safe-area-inset-top))) 12px 10px;
   background: var(--panel); box-shadow: 0 1px 0 rgba(0, 0, 0, .08);
 }
 .vista-pdf-nombre { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
@@ -1003,7 +1003,7 @@ input.mal { box-shadow: 0 0 0 2px var(--mal-fondo) !important; }
 .estado-eq > .fd:nth-child(2) { border-top: 0; }
 .estado-eq > .fd:nth-child(odd) { border-right: 1px solid var(--rejillaSuave); }
 /* Dentro de un equipo, la cabecera de la app se encoge: manda el TAG. */
-body:has(.tag-fijo) .barra { padding-top: calc(6px + env(safe-area-inset-top)); padding-bottom: 6px; }
+body:has(.tag-fijo) .barra { padding-top: calc(6px + var(--arriba-seguro, env(safe-area-inset-top))); padding-bottom: 6px; }
 body:has(.tag-fijo) .barra h1 { font-size: 17px; }
 body:has(.tag-fijo) .obra-movil { display: none; }
 @media (min-width: 700px) { .ir { grid-template-columns: minmax(0, 1fr) 240px 240px; } }
@@ -1053,7 +1053,7 @@ body:has(.tag-fijo) .obra-movil { display: none; }
 #app.densa { --radio-tarjeta: 10px; --radio: 6px; --sombra: none; padding-top: 8px; padding-bottom: 40px; }
 
 /* La cabecera: título corto en vez del titular de 30 px. */
-.barra { padding: calc(8px + env(safe-area-inset-top)) 16px 6px; }
+.barra { padding: calc(8px + var(--arriba-seguro, env(safe-area-inset-top))) 16px 6px; }
 .barra h1 { font-size: 22px; letter-spacing: -.015em; }
 .obra-movil { margin-top: 2px; }
 .obra-movil select { min-height: 30px; font-size: 14px; }
@@ -1384,7 +1384,7 @@ main, #app { min-width: 0; max-width: 100%; }
    deja de ser título: una línea fina y tenue («Commissioning») junto a la
    pastilla, y manda la franja del TAG. En el teléfono es donde se nota. */
 @media (max-width: 699px) {
-  body:has(.tag-fijo) .barra { padding-top: calc(2px + env(safe-area-inset-top)); padding-bottom: 2px; }
+  body:has(.tag-fijo) .barra { padding-top: calc(2px + var(--arriba-seguro, env(safe-area-inset-top))); padding-bottom: 2px; }
   body:has(.tag-fijo) .barra-fila { align-items: center; min-height: 28px; }
   body:has(.tag-fijo) .barra h1 { font-family: inherit; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--textoTenue); }
   body:has(.tag-fijo) .sync-pastilla { transform: scale(.9); transform-origin: right center; }
@@ -1831,6 +1831,10 @@ body { background: var(--fondo-pagina); }
 
 /* FOTOS DEL EQUIPO DEL CONJUNTO (JC, 29-oct): de qué ficha/unidad viene cada
    foto y cuáles siguen solo en el teléfono, sin subir. */
+.fotos-equipo .geo-foto { font-size: 10.5px; color: var(--tenue, #6b7a80); white-space: normal; text-align: center; }
+.fotos-equipo .geo-foto.lejos { color: #8b2d3b; font-weight: 600; }
+.fotos-equipo .geo-foto.cerca { color: var(--acento); }
+.aviso-posicion-foto { margin: 4px 0; }
 .fotos-equipo .origen-foto { font-size: 10.5px; font-weight: 600; color: var(--acento); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fotos-equipo li.en-movil img { outline: 2px dashed var(--borde, currentColor); outline-offset: -2px; }
 .fotos-equipo li { min-width: 0; }
@@ -2280,7 +2284,7 @@ main#app.densa ul.lista-ios.filas-ficha > li { background: transparent; border: 
    Linear: «Cx / OB-1 · Estadio ⌄», la sección en marino y la obra en tenue, sin caja; se toca y sale el selector
    nativo (el select va invisible encima del texto). Sync e Iarvis a la derecha, una línea fina debajo. Ocupa
    ~44 px más la zona segura, para dejar sitio al plano. */
-.barra { padding: calc(6px + env(safe-area-inset-top)) 16px 6px; border-bottom: 1px solid var(--rejilla); }
+.barra { padding: calc(6px + var(--arriba-seguro, env(safe-area-inset-top))) 16px 6px; border-bottom: 1px solid var(--rejilla); }
 .barra-fila { align-items: center; gap: 8px; min-height: 36px; }
 .barra h1 { flex: 0 3 auto; font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
 .barra-fila > .obra-movil {
