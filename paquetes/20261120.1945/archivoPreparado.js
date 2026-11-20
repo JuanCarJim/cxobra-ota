@@ -20,13 +20,17 @@
   if (typeof window !== 'undefined') window.ARCHIVO_PREPARADO = API;
 })((() => {
   /* «A medias» sin un solo dato relleno se contradice (JC, 29-oct): sin datos, «Sin empezar».
-     Y al revés: «2 de 2 datos» y «A medias» se contradicen: entera, «Completa». */
-  const estadoVisible = (estado, medidos, bocasSinMedir) => {
+     Y al revés: «2 de 2 datos» y «A medias» se contradicen: entera, «Completa».
+     19-nov (JC): una toma de datos sin fecha de ensayo ni firma (`sinFechaNiFirma`, de shared/commissioning/fichas.js
+     › fechaOFirma) no es «Completa»: la misma regla que FICHAS_PM.estadoVisible, para el móvil. */
+  const estadoVisible = (estado, medidos, bocasSinMedir, sinFechaNiFirma = false) => {
+    if (sinFechaNiFirma && estado === 'completa') return 'pendiente';
     if (estado !== 'pendiente' || !medidos) return estado;
     if (!medidos.rellenos) return 'sinEmpezar';
+    if (sinFechaNiFirma) return estado;
     return medidos.obligatorios && medidos.rellenos >= medidos.obligatorios && !(bocasSinMedir || []).length ? 'completa' : estado;
   };
-  const esDefinitiva = (x) => Boolean(x) && ['completa', 'firmada'].includes(estadoVisible(x.estado, x.medidos, x.bocasSinMedir));
+  const esDefinitiva = (x) => Boolean(x) && ['completa', 'firmada'].includes(estadoVisible(x.estado, x.medidos, x.bocasSinMedir, x.sinFechaNiFirma));
 
   const esBalanceo = (x) => x.clase === 'balanceo';
 

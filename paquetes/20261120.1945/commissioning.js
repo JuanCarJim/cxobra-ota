@@ -264,6 +264,7 @@
       const r = await C.postJson('api/equipo/placa', { equipoId, accion: 'lectura', fotoId, pasadas, vista });
       if (!r.ok) throw new Error(r.error || 'No se ha guardado la lectura.');
       if (ficha && r.equipo && ficha.equipo.id === r.equipo.id) ficha = r;
+      if (window.CX_POSICION_PLANO && r.equipo) window.CX_POSICION_PLANO.contexto({ equipoId: r.equipo.id, tag: r.equipo.tag, planta: r.equipo.planta, origen: 'placa' });
       if (r.lectura === 'aplicada' && r.numSerie) C.aviso(`Nº de serie leído de la placa: ${r.numSerie}`);
     } catch (e) {
       if (boton) C.aviso(e.message || 'No se ha podido leer la foto.');
@@ -672,6 +673,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       ficha = r;
       hoja = null;
       fichasEq = null;
+      /* 18-nov (JC; paso del Gestor): abrir un equipo dice dónde estás en el plano (renderer/movil/posicionPlanoCapa.js). */
+      if (!quieto && window.CX_POSICION_PLANO) window.CX_POSICION_PLANO.contexto({ equipoId: r.equipo.id, tag: r.equipo.tag, planta: r.equipo.planta, origen: 'ficha' });
       /* Lo leído antes puede haber cambiado (llegó algo de la oficina): se vuelve
          a pedir. Lo tecleado y sin guardar se queda. */
       for (const [k, t] of tomas) if (!t.cambiada) tomas.delete(k);
@@ -1031,7 +1034,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   function htmlPestanasFicha(f) {
     const k = f.checklist || {};
     const fs = fichasDePruebas(f);
-    const hechas = fs.filter(([x]) => ['completa', 'firmada'].includes(estadoVisible(x.estado, x.medidos, x.bocasSinMedir))).length;
+    const hechas = fs.filter(([x]) => ['completa', 'firmada'].includes(estadoVisible(x.estado, x.medidos, x.bocasSinMedir, x.sinFechaNiFirma))).length;
     const docs = [k.ft, k.ce, k.manual, k.fichaPM].filter(Boolean).length;
     const firmas = PAPELES_FIRMA.filter((r) => ((f.firmas || {})[r])).length;
     const nFotos = (f.fotos || []).length;
@@ -1041,7 +1044,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   function htmlFranjaEquipo(f) {
     if (!fichasEq || fichasEq.ok === false) return '';
     const todas = fichasDePruebas(f);
-    const hecha = (x) => ['completa', 'firmada'].includes(estadoVisible(x.estado, x.medidos, x.bocasSinMedir));
+    const hecha = (x) => ['completa', 'firmada'].includes(estadoVisible(x.estado, x.medidos, x.bocasSinMedir, x.sinFechaNiFirma));
     const hechas = todas.filter(([x]) => hecha(x)).length;
     const sig = todas.find(([x]) => !hecha(x));
     const enPlano = window.CX_PLANO_EQUIPOS && f && f.equipo ? `<button type="button" class="boton secundario" data-cx="en-plano" data-eq="${esc(f.equipo.id)}">En plano</button>` : '';
@@ -1603,6 +1606,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       ${htmlConservadas()}`
       : `${htmlFranjaEquipo(f)}
       ${htmlPestanasFicha(f)}
+      ${pestFicha === 'docs' || pestFicha === 'plano' || pestFicha === 'firmas' ? '' : htmlFotosRapidasEquipo(f, puede)}
       ${pestFicha === 'docs' ? checklist(f.checklist, f.medicion, puede, 'docs')
         : pestFicha === 'plano' ? `${htmlPlanoEquipo(f)}${htmlFotosEquipo(f, puede)}`
         : pestFicha === 'firmas' ? checklist(f.checklist, f.medicion, puede, 'firmas')
@@ -1672,19 +1676,49 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   /* La forma de su tipo de difusor o reja (shared/commissioning/simbolosBoca.js). */
   const simbolo = (b) => (window.SIMBOLOS_BOCA ? window.SIMBOLOS_BOCA.svg(b.tipoId, { titulo: b.tipo || '' }) : '');
 
+  /*
+   * EL PLANO DEL MODELO IFC (16-nov-2026, JC: «Para estas cosas lo que yo quiero son los planos de IFC con sus
+   * materiales»). «Plano IFC» cambia la lámina por la red de la máquina dibujada desde el modelo (tamaños de tramo,
+   * rejas, salas, TAG; impulsión y retorno en dos colores) y pone cada boca encima de la reja del modelo con la que
+   * casa. Solo cambia lo que se ve: las bocas guardadas no se mueven.
+   */
+  const planosIfc = new Map(); /* planoId → { cargando } | { ok, svg, pos: Map(bocaId → {x,y}), ver } | { ok: false, motivo } */
+  async function alternarPlanoIfc(b) {
+    const id = b.dataset.plano;
+    const ya = planosIfc.get(id);
+    if (ya && ya.cargando) return;
+    if (ya && ya.ok) { ya.ver = !ya.ver; repintarConScroll(); return; }
+    planosIfc.set(id, { cargando: true }); repintarConScroll();
+    let r;
+    try { r = await C.pedir(`api/equipo/plano-ifc?equipo=${encodeURIComponent(ficha.equipo.id)}&plano=${encodeURIComponent(id)}`); } catch (e) { r = { ok: false, motivo: String((e && e.message) || e) }; }
+    planosIfc.set(id, r && r.ok
+      ? { ok: true, ver: true, svg: r.svg, codigo: r.codigo, pie: r.encaje && r.encaje.casadas ? `${r.encaje.casadas} bocas casadas con las rejas del modelo` : (r.encaje && r.encaje.motivo) || '',
+        pos: new Map((r.bocas || []).filter((x) => !x.fuera && x.x != null).map((x) => [String(x.id), { x: x.x, y: x.y }])) }
+      : { ok: false, motivo: (r && (r.motivo || r.error)) || 'No se ha podido dibujar el plano del modelo.' });
+    repintarConScroll();
+  }
+
   function htmlPlano(p, delCircuito, tol) {
-    const conSitio = (p.todas || p.bocas).filter((b) => b.x !== null && b.x !== undefined && b.y !== null && b.y !== undefined);
-    if (!p.imagen || !conSitio.length) return '';
-    return `<figure class="plano-bocas" data-plano-fig="${esc(p.id)}">
+    const ifc = planosIfc.get(p.id);
+    const conIfc = Boolean(ifc && ifc.ok && ifc.ver);
+    const sitio = (b) => (conIfc ? ifc.pos.get(String(b.id)) || null : b);
+    const conSitio = (p.todas || p.bocas).filter((b) => { const s = sitio(b); return s && s.x !== null && s.x !== undefined && s.y !== null && s.y !== undefined; })
+      .map((b) => (conIfc ? { ...b, ...sitio(b) } : b));
+    if (!p.imagen || !(p.todas || p.bocas).some((b) => b.x !== null && b.x !== undefined)) return '';
+    return `<figure class="plano-bocas${conIfc ? ' plano-ifc' : ''}" data-plano-fig="${esc(p.id)}">
       <div class="plano-marco" data-paleta="vidaire"><div class="plano-lienzo">
-        <img data-src="api/equipo/plano?id=${encodeURIComponent(p.id)}" alt="Plano ${esc(p.nombre)}">
+        ${conIfc ? ifc.svg.replace('<svg ', '<svg class="plano-ifc-svg" ') : `<img data-src="api/equipo/plano?id=${encodeURIComponent(p.id)}" alt="Plano ${esc(p.nombre)}">`}
         ${conSitio.map((b) => { const otro = delCircuito && !delCircuito(b); return `<button class="marca-boca ${claseMarca(estadoPintado(b, tol))}${esRetorno(b) ? ' ret' : ''}${otro ? ' otro-circuito' : ''}" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%"
           data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}"${otro ? ` data-circuito="${esRetorno(b) ? 'retorno' : 'impulsion'}"` : ''} aria-label="Ir a la boca ${esc(b.nombre)}">${simbolo(b)}<span class="rotulo-boca">${esc(b.nombre)}</span></button>`; }).join('')}
-        ${(p.ajenas || []).map((b) => `<span class="marca-boca ajena" aria-hidden="true" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%">${simbolo({ tipoId: b.tipo })}<span class="rotulo-boca">${esc(b.nombre)}</span></span>`).join('')}
+        ${(conIfc ? [] : p.ajenas || []).map((b) => `<span class="marca-boca ajena" aria-hidden="true" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%">${simbolo({ tipoId: b.tipo })}<span class="rotulo-boca">${esc(b.nombre)}</span></span>`).join('')}
       </div></div>
       <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Por debajo <i class="alto"></i>Por encima</span>
         <span class="zoom-botones"><button class="enlace" data-cx="zoom-menos" aria-label="Alejar">−</button><button class="enlace" data-cx="zoom-mas" aria-label="Acercar">+</button>
-        <button class="enlace" data-cx="plano-grande">Ampliar</button></span></figcaption>
+        <button class="enlace" data-cx="plano-ifc" data-plano="${esc(p.id)}" ${ifc && ifc.cargando ? 'disabled' : ''}
+          title="La red de esta máquina dibujada desde el modelo IFC">${ifc && ifc.cargando ? 'Leyendo el modelo…' : conIfc ? 'Ver lámina' : 'Plano IFC'}</button>
+        <button class="enlace" data-cx="plano-grande">Ampliar</button></span>
+        ${conIfc && ifc.pie ? `<span class="plano-ifc-pie">Sistema ${esc(ifc.codigo)} · ${esc(ifc.pie)}</span>` : ''}
+        ${ifc && ifc.ok === false ? `<span class="plano-ifc-pie">${esc(ifc.motivo)}</span>` : ''}</figcaption>
     </figure>`;
   }
 
@@ -1988,6 +2022,47 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   /* De dónde viene cada foto: «Checklist split», «UE»… (nada si es de este mismo equipo). */
   const origenFoto = (x) => [x.ficha ? fichaCorta(x.ficha) : null, x.unidad].filter(Boolean).join(' · ');
   const fichaCorta = (n) => { const t = String(n || '').trim(); return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase(); };
+  /*
+   * FOTOS AL ABRIR EL EQUIPO (16-nov-2026, JC en obra: «echo de menos los botones
+   * para las fotos al abrir el equipo, de la galería y con la cámara»). En la vista
+   * por defecto, bajo las pestañas: «Cámara» (foto al momento) y «Galería» (varias),
+   * con el contador y las últimas miniaturas. Misma función y misma cola sin red
+   * que los botones de la pestaña «Plano · Fotos» (data-cx="foto-equipo").
+   */
+  function htmlFotosRapidasEquipo(f, puede) {
+    if (!puede) return '';
+    const fotos = f.fotos || [];
+    const enCola = fotosEnCola(f);
+    const total = fotos.length + enCola.length;
+    const mini = [...enCola.map((x) => `<img data-local="${esc(x.local)}" alt="${esc(x.pie || 'Foto')}">`),
+      ...fotos.slice(-4).reverse().map((x) => `<img data-src="${esc(x.url || `api/equipo/foto?id=${encodeURIComponent(x.id)}`)}" alt="${esc(x.pie || 'Foto')}">`)].slice(0, 4);
+    return `<div class="fotos-al-abrir" aria-label="Fotos del equipo">
+      <button type="button" class="boton secundario" data-cx="foto-equipo" data-pie="" data-camara="1"><i class="ic ic-camara"></i>Cámara</button>
+      <button type="button" class="boton secundario" data-cx="foto-equipo" data-pie="" data-galeria="1"><i class="ic ic-galeria"></i>Galería</button>
+      <span class="cuenta-fotos"><b class="cifra">${total}</b> foto${total === 1 ? '' : 's'}${enCola.length ? ` · ${enCola.length} sin subir` : ''}</span>
+      ${mini.length ? `<span class="mini-fotos">${mini.join('')}</span>` : ''}
+    </div>`;
+  }
+  /* Dónde se hizo la foto, discreto: cerca / lejos del sitio del equipo en el plano calibrado; sin calibrar, solo las coordenadas. */
+  function geoFoto(x, f) {
+    if (x.lat == null || x.lon == null) return '';
+    const pf = f.posicionFoto;
+    const pre = x.precision != null ? ` ±${Math.round(x.precision)} m` : '';
+    const coord = `${Number(x.lat).toFixed(5)}, ${Number(x.lon).toFixed(5)}${pre}`;
+    if (pf && pf.fotoId === x.id && pf.distanciaM != null) {
+      const cerca = pf.estado === 'coincide' || pf.estado === 'movido' || pf.distanciaM <= Math.max(10, Math.round(x.precision || 0));
+      return `<span class="geo-foto ${cerca ? 'cerca' : 'lejos'}" title="${esc(coord)}">${cerca ? 'En su sitio' : `A ${pf.distanciaM} m del plano`}</span>`;
+    }
+    return `<span class="geo-foto" title="${esc(coord)}">${esc(coord)}</span>`;
+  }
+  /* El equipo según la foto: ya movido (se puede deshacer) o propuesto (se acepta o no). */
+  function avisoPosicionFoto(f, puede) {
+    const pf = f.posicionFoto;
+    if (!pf || !puede) return '';
+    if (pf.estado === 'movido') return `<p class="nota aviso-posicion-foto">Colocado en el plano según la foto (GPS). <button class="enlace" data-cx="foto-deshacer">Deshacer</button></p>`;
+    if (pf.estado === 'propuesta' && pf.distanciaM != null) return `<p class="nota aviso-posicion-foto">Posición según la foto: a ${pf.distanciaM} m; ¿colocar aquí? <button class="enlace" data-cx="foto-colocar" data-foto="${esc(pf.fotoId)}">Colocar</button></p>`;
+    return '';
+  }
   function htmlFotosEquipo(f, puede) {
     const fotos = f.fotos || [];
     const enCola = fotosEnCola(f);
@@ -2002,10 +2077,11 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     const pc = f.localizacionPorConfirmar || [];
     const porConfirmar = pc.length ? `<p class="nota localizacion-por-confirmar">Localización en plano por confirmar: ${esc(pc.map((u) => `${u.etiqueta}${u.planta ? ` (${u.planta})` : ''}`).join(', '))} — ${esc(pc[0].motivo)}.</p>` : '';
     return `<h2>Fotos del equipo <span class="cuenta">${total}</span></h2>
+      ${avisoPosicionFoto(f, puede)}
       ${porConfirmar}
       ${enCola.length ? `<p class="nota">${marcaAG('sinRed')} ${enCola.length === 1 ? 'Una foto está' : `${enCola.length} fotos están`} solo en el móvil: se subirá${enCola.length === 1 ? '' : 'n'} sola${enCola.length === 1 ? '' : 's'} al volver la conexión.</p>` : ''}
       ${total || loc ? `<ul class="fotos-equipo">${loc}${fotos.map((x) => `<li><img data-src="${esc(x.url || `api/equipo/foto?id=${encodeURIComponent(x.id)}`)}" alt="${esc(x.pie || 'Foto')}">
-        <div class="pie"><span>${pieDe(x)}</span>${marca(x)}${puede && (x.origen || 'equipo') === 'equipo' ? `<button class="enlace mal" data-cx="quitar-foto-equipo" data-id="${esc(x.id)}">Quitar</button>` : ''}</div></li>`).join('')}${enCola.map((x) => `<li class="en-movil"><img data-local="${esc(x.local)}" alt="${esc(x.pie || 'Foto')}">
+        <div class="pie"><span>${pieDe(x)}</span>${marca(x)}${geoFoto(x, f)}${puede && (x.origen || 'equipo') === 'equipo' ? `<button class="enlace mal" data-cx="quitar-foto-equipo" data-id="${esc(x.id)}">Quitar</button>` : ''}</div></li>`).join('')}${enCola.map((x) => `<li class="en-movil"><img data-local="${esc(x.local)}" alt="${esc(x.pie || 'Foto')}">
         <div class="pie"><span>${pieDe(x)}</span>${marca(x)}<span class="origen-foto">En el móvil</span></div></li>`).join('')}</ul>` : ''}
       ${puede ? `<div class="fila-botones fotos-rapidas">
         ${PIES_FOTO.map((pie) => `<button class="boton secundario" data-cx="foto-equipo" data-pie="${esc(pie)}"><i class="ic ic-camara"></i>${esc(pie)}</button>`).join('')}
@@ -2046,7 +2122,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     if (!todas.length) return '';
     const abierta = todas.some(([x]) => x.unidadId === f.equipo.id);
     const filas = abierta ? todas.filter(([x]) => x.unidadId === f.equipo.id) : todas;
-    const hecha = (x) => ['completa', 'firmada'].includes(estadoVisible(x.estado, x.medidos, x.bocasSinMedir));
+    const hecha = (x) => ['completa', 'firmada'].includes(estadoVisible(x.estado, x.medidos, x.bocasSinMedir, x.sinFechaNiFirma));
     const completas = todas.filter(([x]) => hecha(x)).length;
     const ue = (cj.unidades || []).find((u) => u.papel === 'UE');
     const corto = (x) => rotuloUi(x.unidadTag) || 'UI';
@@ -2060,7 +2136,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
           : puede ? `<button type="button" class="miniatura-ui hueco" data-cx="foto-equipo" data-equipo="${esc(x.unidadId)}" data-pie="${esc(pieFotoUi(x.unidadTag))}" aria-label="Foto de la placa de ${esc(corto(x))}"><i class="ic ic-camara"></i><span>Foto placa</span></button>`
           : '<span class="miniatura-ui hueco apagada"></span>';
         return `<li class="fila-ui">
-          <div class="ui-datos"><strong>${esc(corto(x))}</strong>${chipFicha(x.estado, x.resultado, x.medidos, x.bocasSinMedir)}<span class="sub">${esc(x.unidadSala || 'Sin sala')} · ${valorSerie((cj.unidades || []).find((y) => y.id === x.unidadId) || { id: x.unidadId, tag: x.unidadTag }, puede, 'Nº serie ')}</span></div>
+          <div class="ui-datos"><strong>${esc(corto(x))}</strong>${chipFicha(x.estado, x.resultado, x.medidos, x.bocasSinMedir, x.sinFechaNiFirma)}<span class="sub">${esc(x.unidadSala || 'Sin sala')} · ${valorSerie((cj.unidades || []).find((y) => y.id === x.unidadId) || { id: x.unidadId, tag: x.unidadTag }, puede, 'Nº serie ')}</span></div>
           <button type="button" class="boton secundario ui-toma" data-cx="hoja" data-i="${i}">${hecha(x) || bloqueosDe(f).length ? 'Ver datos' : 'Toma de datos'}</button>
           ${mini}
         </li>`;
@@ -2186,12 +2262,46 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       C.aviso('Documento guardado.');
     } catch (e) { boton.disabled = false; C.aviso(e.message || 'No se ha podido subir el documento.'); }
   }
+  /* Coordenadas de la foto: las del EXIF si las trae; si no, la posición del móvil (máx. 4 s). Nunca bloquea ni falla. */
+  async function coordenadasDeFoto(archivo) {
+    const FG = window.FOTO_GEO;
+    if (!FG) return null;
+    try {
+      const buf = new Uint8Array(await archivo.slice(0, 131072).arrayBuffer());
+      const ex = FG.leerExifGps(buf);
+      if (ex) return { lat: ex.lat, lon: ex.lon, precision: null, tomadaEn: new Date().toISOString() };
+    } catch { /* sin EXIF legible */ }
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return null;
+    return new Promise((ok) => {
+      const fin = setTimeout(() => ok(null), 4000);
+      try {
+        navigator.geolocation.getCurrentPosition((p) => {
+          clearTimeout(fin);
+          const g = FG.normalizar({ lat: p.coords.latitude, lon: p.coords.longitude, precision: p.coords.accuracy });
+          ok(g ? { lat: g.lat, lon: g.lon, precision: g.precision, tomadaEn: new Date(p.timestamp || Date.now()).toISOString() } : null);
+        }, () => { clearTimeout(fin); ok(null); }, { enableHighAccuracy: true, timeout: 3500, maximumAge: 15000 });
+      } catch { clearTimeout(fin); ok(null); }
+    });
+  }
+  /* Acepta la posición que propone la foto, o la deshace (solo se mueve el equipo fotografiado). */
+  async function colocarPorFoto(boton, que) {
+    boton.disabled = true;
+    try {
+      const r = await C.postJson(que === 'foto-colocar' ? 'api/equipo/foto-colocar' : 'api/equipo/foto-deshacer', { equipoId: ficha.equipo.id, fotoId: boton.dataset.foto || null });
+      if (!r.ok) throw new Error(r.error);
+      C.aviso(que === 'foto-colocar' ? 'Equipo colocado en el plano.' : 'Posición anterior recuperada.');
+      await abrir(ficha.equipo.id, { quieto: true });
+    } catch (e) { C.aviso(e.message || 'No se ha podido.'); boton.disabled = false; }
+  }
   /* Guarda la foto en el teléfono, la sube y la une al equipo (o a la UI de un VRF). */
   async function guardarFotoEquipo(archivo, equipoId, pie, boton = null, { despues = null } = {}) {
     if (!ficha) return;
     const vista = ficha.equipo.id;
     const clave = `fotoEquipo.${equipoId}.${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    /* Dónde se hizo (19-nov, JC): EXIF o posición del móvil; sin permiso o sin señal, la foto se guarda igual sin coordenadas. */
+    const geoP = coordenadasDeFoto(archivo);
     const foto = AG ? await AG.fotoNueva(archivo, { id: null, pie, hora: ahoraEs() }) : { id: null, pie, hora: ahoraEs(), archivo };
+    Object.assign(foto, (await geoP) || {});
     const apuntar = () => { if (AG) AG.guardar(clave, { equipoId, fotos: AG.fotosParaGuardar([foto]) }); };
     apuntar();
     fotosEquipoEnCurso.add(clave);
@@ -2228,7 +2338,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       apuntar();
     };
     if (!foto.id) await subir();
-    const unir = () => C.postJson('api/equipo/fotos', { equipoId, ...(vista ? { vista } : {}), fotos: [{ id: foto.id, pie: foto.pie, hora: foto.hora }] });
+    const unir = () => C.postJson('api/equipo/fotos', { equipoId, ...(vista ? { vista } : {}), fotos: [{ id: foto.id, pie: foto.pie, hora: foto.hora, ...(foto.lat != null ? { lat: foto.lat, lon: foto.lon, precision: foto.precision, tomadaEn: foto.tomadaEn } : {}) }] });
     let r = await unir();
     /* El ordenador olvidó la foto en espera (app cerrada): se vuelve a subir desde el teléfono. */
     if (!r.ok && /ya no está/i.test(String(r.error || ''))) { foto.id = null; await subir(); r = await unir(); }
@@ -2577,22 +2687,26 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   /* «A medias» sin un solo dato relleno se contradice (JC, 29-oct): sin datos, «Sin empezar». */
   /* Y al revés (JC, 29-oct): «2 de 2 datos» y «A medias» se contradicen: entera, «Completa». */
   /* La misma regla está en shared/commissioning/archivoPreparado.js, para «Preparar archivo» (y su ruta). */
-  const estadoVisible = (estado, medidos, bocasSinMedir) => {
+  /* 19-nov (JC): una toma de datos sin fecha de ensayo ni firma (`sinFechaNiFirma`, lo calcula el servidor con
+     shared/commissioning/fichas.js › fechaOFirma) no es «Completa» ni cuenta como puesta en marcha. */
+  const estadoVisible = (typeof window !== 'undefined' && window.ARCHIVO_PREPARADO && window.ARCHIVO_PREPARADO.estadoVisible) || ((estado, medidos, bocasSinMedir, sinFechaNiFirma) => {
+    if (sinFechaNiFirma && estado === 'completa') return 'pendiente';
     if (estado !== 'pendiente' || !medidos) return estado;
     if (!medidos.rellenos) return 'sinEmpezar';
+    if (sinFechaNiFirma) return estado;
     return medidos.obligatorios && medidos.rellenos >= medidos.obligatorios && !(bocasSinMedir || []).length ? 'completa' : estado;
-  };
-  const chipFicha = (estado0, resultado, medidos, bocasSinMedir) => {
-    const estado = estadoVisible(estado0, medidos, bocasSinMedir);
+  });
+  const chipFicha = (estado0, resultado, medidos, bocasSinMedir, sinFechaNiFirma) => {
+    const estado = estadoVisible(estado0, medidos, bocasSinMedir, sinFechaNiFirma);
     const [c, n] = ESTADO_FICHA[estado] || ['neutra', estado || ''];
     const r = resultado && RESULTADO[resultado];
     return `<span class="chip ${c}">${esc(n)}</span>${r ? ` <span class="chip ${r[0]}">${esc(r[1])}</span>` : ''}`;
   };
   /* Punto de estado de una ficha (sin píldoras): verde hecha, ámbar a medias, gris sin empezar. */
   const TONO_PUNTO = { completa: 'bien', firmada: 'bien', enCurso: 'aviso', aMedias: 'aviso', borrador: 'aviso' };
-  const estadoFichaTexto = (x) => { const e = estadoVisible(x.estado, x.medidos, x.bocasSinMedir); const [, n] = ESTADO_FICHA[e] || ['', e || '']; return n; };
+  const estadoFichaTexto = (x) => { const e = estadoVisible(x.estado, x.medidos, x.bocasSinMedir, x.sinFechaNiFirma); const [, n] = ESTADO_FICHA[e] || ['', e || '']; return n; };
   function puntoFicha(x) {
-    const e = estadoVisible(x.estado, x.medidos, x.bocasSinMedir);
+    const e = estadoVisible(x.estado, x.medidos, x.bocasSinMedir, x.sinFechaNiFirma);
     const [c, n] = ESTADO_FICHA[e] || ['neutra', e || ''];
     const tono = c === 'bien' ? 'bien' : c === 'mal' ? 'mal' : c === 'aviso' ? 'aviso' : '';
     return `<i class="fe-punto ${tono}" role="img" aria-label="${esc(n)}" title="${esc(n)}"></i>`;
@@ -2625,9 +2739,9 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
    * con Compartir. Mientras la ficha no esté completa es un BORRADOR y lo dice
    * aquí y en el nombre del PDF (la hoja no lleva marca de agua: JC, 15-oct).
    */
-  const esDefinitiva = (x) => ['completa', 'firmada'].includes(estadoVisible(x.estado, x.medidos, x.bocasSinMedir));
+  const esDefinitiva = (x) => ['completa', 'firmada'].includes(estadoVisible(x.estado, x.medidos, x.bocasSinMedir, x.sinFechaNiFirma));
   function htmlVerHoja(x, i) {
-    if (!x.plantilla || estadoVisible(x.estado, x.medidos, x.bocasSinMedir) === 'sinFicha') return '';
+    if (!x.plantilla || estadoVisible(x.estado, x.medidos, x.bocasSinMedir, x.sinFechaNiFirma) === 'sinFicha') return '';
     const def = esDefinitiva(x);
     return `<div class="ver-hoja"><button type="button" class="enlace" data-cx="ver-hoja" data-i="${i}">Ver hoja${def ? '' : ' (borrador)'}</button></div>`;
   }
@@ -2815,7 +2929,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       <p class="nota">Se hicieron antes de juntar el conjunto: se conservan y se pueden leer; no cuentan para «completo».</p>
       <ul class="lista-ios">${cs.map(([x, i]) => `
         <li><button class="fila-ios" data-cx="hoja" data-i="${i}">
-          <div class="fila-principal"><strong>${esc(nombreFicha(x))}</strong><span>${chipFicha(x.estado, x.resultado, x.medidos, x.bocasSinMedir)}</span></div>
+          <div class="fila-principal"><strong>${esc(nombreFicha(x))}</strong><span>${chipFicha(x.estado, x.resultado, x.medidos, x.bocasSinMedir, x.sinFechaNiFirma)}</span></div>
           <div class="sub">${esc([x.unidadTag, CLASE_FICHA[x.clase] || x.clase, textoMedidos(x)].filter(Boolean).join(' · '))}</div>
         </button>${htmlVerHoja(x, i)}</li>`).join('')}</ul>
     </section>`;
@@ -2829,12 +2943,12 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
    */
   function chipFilaBalanceo(nBocas, medidas, fuera, hoja) {
     if (fuera) return `<span class="chip mal">${fuera} fuera</span>`;
-    const est = hoja ? estadoVisible(hoja.estado, hoja.medidos, hoja.bocasSinMedir) : null;
+    const est = hoja ? estadoVisible(hoja.estado, hoja.medidos, hoja.bocasSinMedir, hoja.sinFechaNiFirma) : null;
     const hojaSin = !hoja || est === 'sinEmpezar' || est === 'sinFicha';
     if (nBocas && medidas < nBocas) {
       return !medidas && hojaSin ? chipFicha('sinEmpezar') : chipFicha('pendiente');
     }
-    if (hoja) return nBocas && hojaSin ? chipFicha('pendiente') : chipFicha(hoja.estado, hoja.resultado, hoja.medidos, hoja.bocasSinMedir);
+    if (hoja) return nBocas && hojaSin ? chipFicha('pendiente') : chipFicha(hoja.estado, hoja.resultado, hoja.medidos, hoja.bocasSinMedir, hoja.sinFechaNiFirma);
     return nBocas ? '<span class="chip bien">Medido</span>' : '';
   }
 
@@ -3426,7 +3540,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     /* Con la red arriba, la fecha y quien mide van plegados en una línea, debajo del plano. */
     const ensayoRed = red ? `<details class="ensayo-plegado"><summary><span class="t">El ensayo</span><span class="tenue">${esc([fechaCorta(cabDe('fechaEnsayo')), cabDe('realizadoPor')].filter(Boolean).join(' · ') || 'fecha y quién lo hace')}</span></summary>${ensayo.replace(/^<h3[^]*?<\/h3>/, '')}</details>` : '';
     const elTag = h.fotoUi && h.fotoUi.tag ? h.fotoUi.tag : ficha ? ficha.equipo.tag : (f.titulo || 'Equipo');
-    const chips = `${chipFicha(f.estado, f.resultado, f.medidos, f.bocasSinMedir)}${f.medidos && f.medidos.obligatorios ? ` <span class="chip neutra">${f.medidos.rellenos}/${f.medidos.obligatorios}</span>` : ''}`;
+    const chips = `${chipFicha(f.estado, f.resultado, f.medidos, f.bocasSinMedir, f.sinFechaNiFirma)}${f.medidos && f.medidos.obligatorios ? ` <span class="chip neutra">${f.medidos.rellenos}/${f.medidos.obligatorios}</span>` : ''}`;
     $app.innerHTML = `
       ${f.plantilla.codigo === 'BALANCEO_CAUDALES' ? tagFijo(elTag, 'Balanceo', 'volver-equipo', red ? '' : chips, true) : tagFijo(elTag, h.nombre || f.plantilla.nombre, 'volver-equipo', chips)}
       <div class="densa${red ? ' con-red' : ''}">
@@ -4438,6 +4552,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       irABoca(b.dataset.boca);
     }
     else if (que === 'plano-grande' && ficha) planoGrande(b);
+    else if (que === 'plano-ifc' && ficha) alternarPlanoIfc(b);
     else if (que === 'lamina-red' && hoja) { hoja.lamina = Number(b.dataset.i) || 0; vistas.delete('red-modelo'); const y = window.scrollY; pintarHoja(); window.scrollTo(0, y); }
     else if (que === 'ir-bocas-red' && hoja) { const li = $app.querySelector('[data-fila-boca]:not(.medida)'); if (li) elegirBocaRed(li.dataset.filaBoca, true); }
     else if (que === 'conducto-guardar' && ficha) guardarConducto(b);
@@ -4468,6 +4583,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     else if (que === 'guardar-firma' && ficha) guardarFirma(b);
     else if (que === 'quitar-firma' && ficha) C.confirmar('¿Quitar la firma guardada?', 'Tendrás que volver a firmar.', 'Sí, quitar').then((ok) => { if (ok) guardarFirma(b, true); });
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
+    else if (que === 'foto-colocar' || que === 'foto-deshacer') colocarPorFoto(b, que);
     else if (que === 'ver-hoja') verHoja(b);
     else if (que === 'ver-doc-equipo') verDocEquipo(b);
     else if (que === 'preparar-archivo' && ficha) prepararArchivo(b);

@@ -71,6 +71,7 @@
     { frase: 'qué estanqueidades quedan por confirmar', cuando: 'las lecturas de presión de las fotos que han quedado dudosas' },
     { frase: 'lee las estanqueidades de las fotos', cuando: 'leer la presión de las fotos del manómetro y rellenar las fichas (pide confirmación)' },
     { frase: 'cuántos equipos hay en la <planta>', cuando: 'el número real de equipos de una planta (censo)' },
+    { frase: 'compara la planta de los equipos con el TAG y el IFC', cuando: 'equipos con la ficha en otra planta que su TAG y el modelo IFC; los conflictos y lo cambiado a mano no se corrigen solos (admite un TAG: «¿por qué <TAG> está en la N10?»)' },
     { frase: 'censo de equipos por planta', cuando: 'el recuento de equipos de toda la obra, por planta' },
     { frase: 'saca los planos de la planta <planta>', cuando: 'el plano de una planta con cada equipo en su estado' },
     { frase: 'qué equipos de la planta <planta> faltan por instalar', cuando: 'equipos por instalar de una planta' },

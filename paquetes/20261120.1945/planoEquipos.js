@@ -33,13 +33,15 @@
   const FA = window.CX_PLANO_FALTAS; /* marcar lo que falta (planoFaltas.js) */
 
   /* 13-nov (JC): los colores del bloque son los de shared/commissioning/colorBloque.js —certificado (azul), Cx hecho
-     (verde), instalado sin Cx (gris, propuesta), no instalado (rojo), sin dato—; sustituyen a «En marcha / Falta doc. /
+     (verde), instalado sin Cx (gris), no instalado (gris claro discontinuo), sin dato—; sustituyen a «En marcha / Falta doc. /
      Sin empezar». La leyenda, el filtro y el recuento de arriba van por ese estado. */
   const CB = window.COLOR_BLOQUE;
-  const ORDEN = CB ? CB.ORDEN_BLOQUE : ['cxHecho', 'instalado', 'sinDato'];
-  const NOMBRE = CB ? Object.fromEntries(CB.ESTADOS_BLOQUE.map((x) => [x.id, x.nombre])) : { cxHecho: 'Commissioning hecho', instalado: 'Instalado, sin Cx', sinDato: 'Sin dato' };
-  /* 14-nov (JC en el iPhone, chips cortados a 390 px): en la pestaña Cx, los nombres cortos. */
-  const CORTO = { certificado: 'Certificado', cxHecho: 'Cx hecho', instalado: 'Instalado', noInstalado: 'No instalado', sinDato: 'Sin dato' };
+  /* 18-nov (JC: «es incoherente cómo se ven los equipos con sus colores en la web y en el móvil»): el orden, los nombres y los
+     nombres cortos (14-nov, chips a 390 px) son los de shared/commissioning/estadoEquipoPlano.js, los mismos que la web. */
+  const EEP = window.ESTADO_EQUIPO_PLANO;
+  const ORDEN = EEP ? EEP.ORDEN : CB ? CB.ORDEN_BLOQUE : ['cxHecho', 'instalado', 'sinDato'];
+  const NOMBRE = EEP ? EEP.NOMBRE : CB ? Object.fromEntries(CB.ESTADOS_BLOQUE.map((x) => [x.id, x.nombre])) : { cxHecho: 'Commissioning hecho', instalado: 'Instalado, sin Cx', sinDato: 'Sin dato' };
+  const CORTO = EEP ? EEP.CORTO : { certificado: 'Certificado', cxHecho: 'Cx hecho', instalado: 'Instalado', noInstalado: 'No instalado', sinDato: 'Sin dato' };
   const bq = (e) => (e && e.bloque) || (e && e.color === 'verde' ? 'cxHecho' : e && e.color === 'azul' ? 'instalado' : 'sinDato');
   const ZOOM_MAX = 30; /* 30-oct, JC: «hay que poder ampliar más» */
   const TAM_EQ = 22; const TAM_EQ_MIN = 18; /* 13-nov, JC: «si son grandes y hago zoom y no se adaptan, nunca podré ver los que hay»: 18–24 px */ const TAM_EQ_ELEGIDO = 30; /* px de pantalla, a cualquier zoom */
@@ -419,7 +421,7 @@
     if (document.getElementById('pe-estilo')) return;
     const s = document.createElement('style');
     s.id = 'pe-estilo';
-    s.textContent = ESTILO + (CB ? `.pe-lienzo .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-lienzo .marca-boca')}.pe-franja .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-franja .marca-boca')}${IP ? IP.css('.pe-lienzo .marca-boca.con-inc', '.pe-lienzo .marca-boca.con-incres', '.pe-lienzo .marca-boca.con-incter') : ''}.pe-punto[class*="bq-punto-"]{border:1px solid rgba(38,43,56,.35)}` : '');
+    s.textContent = ESTILO + (CB ? `.pe-lienzo .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-lienzo .marca-boca')}.pe-franja .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-franja .marca-boca')}${IP ? IP.css('.pe-lienzo .marca-boca.con-inc', '.pe-lienzo .marca-boca.con-incres', '.pe-lienzo .marca-boca.con-incter') : ''}:where(.pe-punto[class*="bq-punto-"]){border:1px solid rgba(38,43,56,.35)}` : ''); /* :where: el discontinuo de «no instalado» (colorBloque) manda. */
     document.head.appendChild(s);
   }
 
@@ -437,6 +439,11 @@
     if (conPdf.has(k)) return false;
     return conModelo.has(k) || !p.plano || Object.keys((p.ifc && p.ifc.pos) || {}).length > 0;
   };
+  /* La ficha de un equipo de otra planta (para el plano que comparten), entre las plantas ya cargadas. */
+  const fichaDeOtra = (id, p) => {
+    for (const x of plantas()) if (x !== p && !x.parcial) { const e = (x.equipos || []).find((q) => q.id === id); if (e) return e; }
+    return null;
+  };
   const vistaIfc = (p) => {
     if (!p || !p.ifc || p.parcial || !usaModelo(p)) return p;
     const ya = vistas.get(p);
@@ -449,10 +456,15 @@
     /* 17-nov (JC: «Desde los IFCs deberías ser capaz de ubicar los equipos»): el casado solo con el modelo y lo propuesto. */
     const prop = p.ifc.propuestos || {}; const solo = p.ifc.desdeIfc || {};
     const delIfc = (e) => ({ ...(prop[e.id] ? { propuesto: prop[e.id] } : {}), ...(solo[e.id] ? { desdeIfc: solo[e.id] } : {}) });
-    const equipos = p.equipos.map((e) => (pos[e.id] ? { ...e, x: pos[e.id][0], y: pos[e.id][1], mano: false, revisar: false, w: 0, h: 0, ...(deFranja.has(e.id) ? { franja: true } : {}), ...(aMano[e.id] ? { aMano: aMano[e.id] } : {}), ...(fijos.has(e.id) ? { delModelo: true } : {}), ...delIfc(e) } : { ...e, x: null, y: null, mano: false, revisar: false, ...delIfc(e) }));
+    /* 18-nov (JC: web y móvil, lo mismo): los que el modelo dibuja en el plano de otra planta se ven allí, no aquí. */
+    const enOtro = new Set(p.ifc.enOtroPlano || []);
+    /* …y los de otra planta que el modelo dibuja en este (S1/S2 comparten plano con N20/N10): su ficha, la de su planta. */
+    const deOtra = (p.ifc.deOtraPlanta || []).map((id) => fichaDeOtra(id, p)).filter(Boolean);
+    const propios = p.equipos.filter((e) => !enOtro.has(e.id));
+    const equipos = (deOtra.length ? propios.concat(deOtra) : propios).map((e) => (pos[e.id] ? { ...e, x: pos[e.id][0], y: pos[e.id][1], mano: false, revisar: false, w: 0, h: 0, ...(deFranja.has(e.id) ? { franja: true } : {}), ...(aMano[e.id] ? { aMano: aMano[e.id] } : {}), ...(fijos.has(e.id) ? { delModelo: true } : {}), ...delIfc(e) } : { ...e, x: null, y: null, mano: false, revisar: false, ...delIfc(e) }));
     const sinUbicar = equipos.filter((q) => q.x === null).map((q) => ({ id: q.id, tag: q.tag, familia: q.familia, sala: q.sala, icono: q.icono }));
     const v = { ...p, plano: p.ifc.plano, equipos, sinUbicar, materiales: (p.materiales || []).map((m) => ({ ...m, x: null, y: null })), faltas: [], esIfc: true,
-      cuentas: { ...p.cuentas, enPlano: equipos.length - sinUbicar.length, sinUbicar: sinUbicar.length, revisar: 0 } };
+      cuentas: { ...p.cuentas, ...((enOtro.size || deOtra.length) && EEP ? (({ bloques, conIncidencia, incResuelta }) => ({ bloques, conIncidencia, incResuelta }))(EEP.cuentas(equipos)) : {}), enPlano: equipos.length - sinUbicar.length, sinUbicar: sinUbicar.length, revisar: 0 } };
     vistas.set(p, v);
     return v;
   };
@@ -1081,6 +1093,7 @@
 
   function elegir(id, { centrarla = false } = {}) {
     elegida = id === elegida ? null : id;
+    if (elegida && window.CX_POSICION_PLANO) { const e = (plantaActual() || { equipos: [] }).equipos.find((x) => x.id === elegida); window.CX_POSICION_PLANO.contexto({ equipoId: elegida, tag: e && e.tag, planta: planta, origen: 'plano' }); }
     if (mat) { mat = null; for (const el of $raiz.querySelectorAll('[data-pe-mat]')) el.classList.remove('elegida'); }
     marcarElegida();
     mostrarHoja();
@@ -1201,6 +1214,8 @@
     C.cargarImagenes($raiz);
     mostrarHoja();
     colocarTags($raiz.querySelector('[data-pe-lienzo]'));
+    /* 18-nov (JC; paso del Gestor): «dónde estoy», una capa aparte encima (renderer/movil/posicionPlanoCapa.js). */
+    if (window.CX_POSICION_PLANO) window.CX_POSICION_PLANO.montar($raiz, p, { salas: salasDe(p) });
     if (compacto || window.innerWidth < 900) ajustarAlto();
     /* 14-nov: hasta que llega la imagen el lienzo no tiene alto; al llegar, los rótulos se recolocan con el de verdad. */
     const img = $raiz.querySelector('[data-pe-lienzo] img');
