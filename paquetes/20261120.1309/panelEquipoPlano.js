@@ -56,6 +56,22 @@
       return { clave: k, titulo: TITULO_FILA[k] || k, estado: clase && k !== 'fichaPM' ? 'falta' : 'noAplica', archivos: [], nota: '', motivo: clase && k !== 'fichaPM' ? 'aún no está cargado' : '', porConfirmar: false };
     });
   }
+  /* ── LOS PAPELES DEL EQUIPO EN LA FICHA DEL MÓVIL (20-nov-2026, JC: «aquí también tiene que estar la ficha técnica del equipo,
+        marcado CE, manual de instrucciones, puesta en marcha del fabricante si la hay»). La misma fuente que el panel del plano
+        (planoEquipos.documentosEquipo: del equipo o de su modelo; la puesta en marcha, solo del equipo) y los mismos títulos;
+        un conjunto trae los de todas sus unidades (`unidadTag`). Cuatro filas fijas: lo que no está sale «falta», nunca se
+        deduce. La hoja del fabricante también: sin ella el equipo no pasa a «En marcha» (control.js › hojaFabricantePM). ── */
+  const PAPELES_MOVIL = ['ft', 'ce', 'manual', 'fichaPM'];
+  function filasDocumentosEquipo(documentos) {
+    const docs = (Array.isArray(documentos) ? documentos : []).filter((x) => x && x.clase && (x.url || x.enOrdenador));
+    return PAPELES_MOVIL.map((k) => {
+      const clase = k === 'fichaPM' ? 'pm' : Object.keys(CLASE_A_COLUMNA).find((q) => CLASE_A_COLUMNA[q] === k);
+      const archivos = docs.filter((y) => y.clase === clase).map((y) => ({ nombre: y.nombre || y.etiqueta || TITULO_FILA[k], url: y.url || '',
+        nivel: y.nivel || 'equipo', unidadTag: y.unidadTag || '', enOrdenador: Boolean(y.enOrdenador && !y.url) }));
+      const titulo = k === 'manual' ? 'Manual de instrucciones' : k === 'fichaPM' ? 'Puesta en marcha del fabricante' : TITULO_FILA[k];
+      return { clave: k, titulo, estado: archivos.length ? 'doc' : 'falta', archivos };
+    });
+  }
   const nombreCorto = (a) => String((a && a.nombre) || '').replace(/\.(pdf|html?|png|jpe?g)$/i, '');
   function filaDocHtml(f, i) {
     let celda;
@@ -214,5 +230,5 @@
       ${(d.notas || []).filter(Boolean).map((t) => `<p class="pesNota">${esc(t)}</p>`).join('')}`;
   }
 
-  return { html, conjuntoAlPulsar, conjuntoHtml, nombreConjunto, incidenciasHtml, documentosHtml, documentosDe, filasDocumentos, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA };
+  return { html, conjuntoAlPulsar, conjuntoHtml, nombreConjunto, incidenciasHtml, documentosHtml, documentosDe, filasDocumentos, filasDocumentosEquipo, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA };
 });

@@ -1832,6 +1832,12 @@ body { background: var(--fondo-pagina); }
 
 /* «Ver hoja» bajo cada ficha: el modelo oficial relleno, Definitiva o Borrador. */
 .ver-hoja { display: flex; align-items: center; gap: 8px; padding: 0 16px 6px; }
+/* 20-nov (JC): versiones anteriores de una hoja NO APTO, plegadas bajo su fila. */
+.versiones-ficha { padding: 0 16px 6px; }
+.versiones-ficha > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--acento-fuerte); padding: 2px 0; }
+.versiones-ficha .lista-ios { margin: 4px 0 0; }
+.nota.version-anterior { border-left: 3px solid var(--mal); padding-left: 10px; }
+.pe-hoja-version { font-weight: 700; }
 .ver-hoja .enlace { padding: 2px 0; font-size: 13px; font-weight: 600; }
 .ver-hoja .chip { font-size: 10.5px; padding: 1px 6px; }
 .densa .ver-hoja { padding: 0 12px 4px; }
@@ -2248,6 +2254,13 @@ button.fila-ios.fila-eq::after{content:none}
 main#app.densa ul.lista-ios.filas-ficha { gap: 0; margin: 0; background: none; border: 0; border-top: 1px solid var(--rejilla); border-radius: 0; overflow: visible; box-shadow: none; }
 main#app.densa ul.lista-ios.filas-ficha > li { background: transparent; border: 0; border-bottom: 1px solid var(--rejilla); border-radius: 0; box-shadow: none; }
 .filas-ficha .fila-ios::after { content: none; }
+/* La Documentación del equipo (20-nov): la misma fila, plegable; dentro, un papel por fila con su sangría. */
+.filas-ficha .docs-equipo > summary { list-style: none; cursor: pointer; }
+.filas-ficha .docs-equipo > summary::-webkit-details-marker { display: none; }
+.filas-ficha .docs-equipo > summary .fe-ir { display: inline-block; transition: transform .15s; }
+.filas-ficha .docs-equipo[open] > summary .fe-ir { transform: rotate(90deg); }
+main#app.densa ul.lista-ios.filas-ficha.docs-lista, #app .filas-ficha.docs-lista { margin: 0 0 0 22px; border-top: 1px solid var(--rejilla); }
+main#app.densa ul.lista-ios.filas-ficha.docs-lista > li:last-child { border-bottom: 0; }
 .foto-manometro { margin: 8px 0 2px; }
 .foto-manometro .boton { flex: 1; width: auto; min-height: 56px; font-size: 17px; }
 .foto-manometro .enlace { white-space: nowrap; }

@@ -11709,7 +11709,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261120.0839" : "0";
+      var VERSION = true ? "20261120.1309" : "0";
       var URL_OTA = "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main" ? "https://raw.githubusercontent.com/JuanCarJim/cxobra-ota/main" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -30711,7 +30711,9 @@ ${obsO}` : obsO).slice(0, 4e3);
         ["descompuestos", "descripcion", "TEXT"],
         ["descompuestos", "paquete", "TEXT"],
         /* El presupuesto anual del mantenimiento cuelga del contrato (contratosMant, 12-nov). */
-        ["presupuestosMant", "contratoId", "TEXT"]
+        ["presupuestosMant", "contratoId", "TEXT"],
+        /* Las versiones anteriores de una toma, un balanceo o una estanqueidad que salió NO APTO (20-nov, JC): JSON congelado; la fila es la actual. */
+        ["fichasPM", "versionesAnteriores", "TEXT"]
       ];
       function a\u00F1adirColumnasQueFalten(db) {
         let alcanceNuevo = false;
@@ -114342,6 +114344,9 @@ ${fallos.join("\r\n")}\r
             /* 20-nov: guardada antes en otra unidad del conjunto; se lee, no cuenta (hojasEquipoPanel.js › conservadas). */
             conservada: Boolean(p.conservada),
             pestana: PESTANA_DE_CLASE[p.clase] || "puesta",
+            /* 20-nov (JC): la versión de la toma (v2 tras un NO APTO) y las anteriores, para el historial plegado. */
+            versionToma: p.versionToma || 1,
+            versiones: Array.isArray(p.versiones) ? p.versiones : [],
             /* 17-nov (JC): para que la sección «Hojas» diga de un vistazo cuándo, quién y qué falta. La fecha es la de la
                toma (cabecera.fechaEnsayo), nunca la de la ficha del fabricante. */
             ...hechoDe(ev)
@@ -161233,17 +161238,26 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           limite: 1
         })[0] || null;
       }
-      function ficha(repo, sesion, obraId, { clave, plantilla } = {}) {
+      function ficha(repo, sesion, obraId, { clave, plantilla, version } = {}) {
         if (!obraVisible(repo, sesion, obraId)) return null;
         const r = resolverClave(repo, sesion, obraId, clave);
         if (r.error) return { ok: false, error: r.error };
         const cat = catalogoDe(repo, sesion);
         const cfg = configDe(repo, sesion, obraId);
         const fila = filaFicha(repo, sesion, obraId, clave, plantilla);
+        const anteriores = fila ? versionesDe(fila) : [];
+        const versionToma = anteriores.length + 1;
+        const pedida = Number(version);
+        const instantanea = Number.isInteger(pedida) && pedida >= 1 && pedida < versionToma ? anteriores[pedida - 1] : null;
         let def;
         let datos;
         let firmas = [];
-        if (fila) {
+        if (instantanea) {
+          def = cat.porVersion.get(`${plantilla}@${instantanea.plantillaVersion}`) || cat.vigentes.get(plantilla);
+          if (!def) return { ok: false, error: `No existe la plantilla ${plantilla}.` };
+          datos = instantanea.datos || {};
+          firmas = Array.isArray(instantanea.firmas) ? instantanea.firmas : [];
+        } else if (fila) {
           def = defDeFila(cat, fila) || cat.vigentes.get(plantilla);
           datos = datosConBalanceo(repo, sesion, def, leerJson(fila.datos, {}), clave);
           firmas = leerJson(fila.firmas, []);
@@ -161251,11 +161265,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         } else {
           def = cat.vigentes.get(plantilla);
           if (!def) return { ok: false, error: `No existe la plantilla ${plantilla}.` };
-          datos = F.rellenarDesdeEquipo(def, F.fichaVacia(cabeceraDe(cfg)), r.dueno || (r.circuito ? { circuito: r.circuito } : {}));
-          datos = conPuntosBms(repo, sesion, def, datos, obraId);
-          if (def.clase === "estanqRefrigerante" && r.dueno) {
-            datos = ERP.prerrellenar(datos, { dueno: r.dueno, afectados: r.afectados, obra: ERP.obraDeConfig(cfg) }).datos;
-          }
+          datos = datosEnBlanco(repo, sesion, obraId, def, r, cfg);
         }
         if (r.dueno) {
           const fam = F.familiaDe(r.dueno, catalogo.FAMILIAS);
@@ -161268,29 +161278,110 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         if (presionPendiente) {
           for (const sec of ev.secciones || []) for (const pt of sec.puntos || []) if (pt.codigo === "p_inicial") pt.pendiente = presionPendiente;
         }
+        const editaCx = puede(sesion.rol, "commissioning", "editar");
+        if (instantanea && instantanea.firmasConformidad) ev.firmasConformidad = instantanea.firmasConformidad;
         return {
           ok: true,
-          presionPendiente,
+          presionPendiente: instantanea ? null : presionPendiente,
           id: fila ? fila.id : null,
           clave,
           guardada: Boolean(fila),
-          modificadoEn: fila ? fila.modificadoEn : null,
+          modificadoEn: instantanea ? instantanea.cerradaEn : fila ? fila.modificadoEn : null,
           plantilla: def,
-          hayVersionNueva: Boolean(vigente && vigente.version > def.version),
+          hayVersionNueva: !instantanea && Boolean(vigente && vigente.version > def.version),
           evaluacion: ev,
+          /* La versión que se ve, cuántas hay y si se puede abrir otra (la última salió NO APTO). */
+          versionToma: instantanea ? instantanea.n : versionToma,
+          versionActual: versionToma,
+          soloLectura: Boolean(instantanea),
+          versiones: resumenVersiones(anteriores, fila ? { n: versionToma, estado: F.estadoVisible(ev.estado, ev.medidos, F.bocasSinMedir(ev)), resultado: ev.resultado, fecha: fechaTrabajoFicha(fila), firmada: ev.firmas.length > 0 } : null),
+          puedeNuevaVersion: !instantanea && Boolean(fila) && editaCx && ev.resultado === "noApto",
           titulo: r.titulo,
           equipo: r.dueno,
           afectados: r.afectados.map((e) => ({ id: e.id, tag: e.tag, planta: e.planta })),
           cabeceraObra: cabeceraDe(cfg),
           /* Para elegir con qué se ha medido: los de alta, y los de baja que ya cite. */
           instrumentos: cat.instrumentos.filter((i) => i.activo || datos.cabecera && (datos.cabecera.instrumentos || []).includes(i.id)).map((i) => ({ ...i, estado: INS.estado(i, (datos.cabecera || {}).fechaEnsayo) })),
-          editable: puede(sesion.rol, "commissioning", "editar") && !ev.firmas.length && !bloqueo,
+          editable: !instantanea && editaCx && !ev.firmas.length && !bloqueo,
           /* 29-oct (JC): con una incidencia abierta en el equipo o su conjunto la hoja solo se ve. */
           bloqueo: bloqueo ? bloqueo.incidencia : null,
           /* Con una NCR abierta en alguno de sus equipos, no se firma. */
           ncrAbiertas: bloqueosNcr(repo, sesion, { obraId, clave }),
-          puedeFirmar: puede(sesion.rol, "commissioning", "editar") && esJefeDeObra(repo, sesion, obraId)
+          puedeFirmar: !instantanea && editaCx && esJefeDeObra(repo, sesion, obraId)
         };
+      }
+      function datosEnBlanco(repo, sesion, obraId, def, r, cfg) {
+        let datos = F.rellenarDesdeEquipo(def, F.fichaVacia(cabeceraDe(cfg)), r.dueno || (r.circuito ? { circuito: r.circuito } : {}));
+        datos = conPuntosBms(repo, sesion, def, datos, obraId);
+        if (def.clase === "estanqRefrigerante" && r.dueno) {
+          datos = ERP.prerrellenar(datos, { dueno: r.dueno, afectados: r.afectados, obra: ERP.obraDeConfig(cfg) }).datos;
+        }
+        return datos;
+      }
+      function versionesDe(fila) {
+        const v = leerJson(fila && fila.versionesAnteriores, []);
+        return Array.isArray(v) ? v.filter((x) => x && typeof x === "object").map((x, i) => ({ ...x, n: i + 1 })) : [];
+      }
+      function resumenVersiones(anteriores, actual) {
+        const lista = anteriores.map((x) => ({
+          n: x.n,
+          estado: x.estado || null,
+          resultado: x.resultado || null,
+          fecha: x.fecha || null,
+          autor: x.autor || null,
+          cerradaEn: x.cerradaEn || null,
+          cerradaPor: x.cerradaPor || null,
+          firmada: Array.isArray(x.firmas) && x.firmas.length > 0,
+          fotos: (x.datos && x.datos.fotos || []).length,
+          actual: false
+        }));
+        if (actual) lista.push({ ...actual, actual: true });
+        return lista;
+      }
+      function abrirNuevaVersion(repo, sesion, obraId, { clave, plantilla } = {}) {
+        if (!obraVisible(repo, sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: NO_EDITA };
+        const r = resolverClave(repo, sesion, obraId, clave);
+        if (r.error) return { ok: false, error: r.error };
+        const fila = filaFicha(repo, sesion, obraId, clave, plantilla);
+        if (!fila) return { ok: false, error: "La ficha a\xFAn no se ha hecho: no tiene versi\xF3n que cerrar." };
+        const cat = catalogoDe(repo, sesion);
+        const cfg = configDe(repo, sesion, obraId);
+        const ev0 = evaluarFila(fila, cat, cfg, { repo, sesion });
+        if (!ev0) return { ok: false, error: "La plantilla de la ficha ya no existe." };
+        if (ev0.ev.resultado !== "noApto") return { ok: false, error: "Solo se abre una versi\xF3n nueva cuando la actual sale NO APTO." };
+        const anteriores = versionesDe(fila);
+        const datos = ev0.ev.datos || leerJson(fila.datos, {});
+        const cab = datos.cabecera || {};
+        const congelada = {
+          plantillaVersion: ev0.def.version || fila.version || 1,
+          datos,
+          estado: ev0.firmas.length ? "firmada" : F.estadoVisible(ev0.ev.estado, ev0.ev.medidos, F.bocasSinMedir(ev0.ev)),
+          resultado: ev0.ev.resultado,
+          firmas: ev0.firmas,
+          firmasConformidad: ev0.ev.firmasConformidad || [],
+          medidos: ev0.ev.medidos || null,
+          fecha: fechaTrabajoFicha(fila),
+          autor: llano(cab.responsable || cab.realizadoPor) || null,
+          cerradaEn: (/* @__PURE__ */ new Date()).toISOString(),
+          cerradaPor: nombreDe(repo, sesion) || sesion.personaId
+        };
+        const def = cat.vigentes.get(plantilla) || ev0.def;
+        const blanco = datosEnBlanco(repo, sesion, obraId, def, r, cfg);
+        const ev = F.evaluar(def, blanco, { config: cfg, instrumentos: cat.instrumentos });
+        const n = anteriores.length + 2;
+        repo.modificar("fichasPM", sesion, fila.id, {
+          versionesAnteriores: JSON.stringify([...anteriores.map(({ n: _n, ...x }) => x), congelada]),
+          datos: JSON.stringify(blanco),
+          version: def.version || 1,
+          estado: "sinEmpezar",
+          resultado: null,
+          firmas: "[]",
+          datosPrueba: 0,
+          medidosObligatorios: ev.medidos.obligatorios,
+          medidosRellenos: 0
+        });
+        return { ok: true, id: fila.id, version: n, anterior: n - 1 };
       }
       function sellarRevisados(datos, sesion, nombre) {
         const sello = `${nombre || sesion.personaId} \xB7 ${hoy()}`;
@@ -161553,7 +161644,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const fila = req.clave && req.plantilla ? buscar(req.clave, req.plantilla) : null;
           const r = fila ? evaluarFila(fila, cat, cfg, { repo, sesion }) : null;
           const ev = r ? { ...r.ev, estado: F.estadoVisible(r.ev.estado, r.ev.medidos, F.bocasSinMedir(r.ev)) } : null;
-          return { ...req, plantillaDef: r ? r.def : req.plantilla ? cat.vigentes.get(req.plantilla) : null, evaluacion: ev, fichaId: fila ? fila.id : null };
+          const ant = fila ? versionesDe(fila) : [];
+          const versiones = ant.length ? resumenVersiones(ant, { n: ant.length + 1, estado: ev ? ev.estado : "sinEmpezar", resultado: ev ? ev.resultado : null, fecha: fechaTrabajoFicha(fila), firmada: Boolean(r && r.firmas.length) }) : [];
+          return { ...req, plantillaDef: r ? r.def : req.plantilla ? cat.vigentes.get(req.plantilla) : null, evaluacion: ev, fichaId: fila ? fila.id : null, versionToma: ant.length + 1, versiones };
         };
         const partes = (cj ? cj.reqs : F.requeridas(equipo, fam, cat.vigentes)).map(leer);
         const conservadas = cj ? cj.conservadas.map(leer) : [];
@@ -162735,6 +162828,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         ficha,
         guardarFicha,
         actualizarVersion,
+        abrirNuevaVersion,
         _defDeFila: defDeFila,
         firmar,
         retirarFirma,
@@ -172999,6 +173093,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         "GET api/fichas": [["commissioning", "ver"]],
         "GET api/ficha": [["commissioning", "ver"]],
         "POST api/ficha": [["commissioning", "editar"]],
+        "POST api/ficha/nueva-version": [["commissioning", "editar"]],
         "GET api/ficha/foto": [["commissioning", "ver"]],
         "GET api/informe": [["commissioning", "ver"], ["pruebasEstanqueidad", "ver"]],
         "POST api/equipo/preparar-archivo": [["commissioning", "editar"]],
@@ -173007,6 +173102,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         "POST api/estanqueidad/leer": [["commissioning", "editar"]]
       };
       var llano = (v) => String(v ?? "").trim();
+      var refDe = (q) => ({ clave: llano(q.clave), plantilla: llano(q.plantilla), ...Number(q.version) > 0 ? { version: Number(q.version) } : {} });
       var EXT_DE_TIPO = { "image/jpeg": ".jpg", "image/png": ".png", "image/heic": ".heic", "image/heif": ".heif", "image/webp": ".webp" };
       var TIPO_DE_EXT = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".heic": "image/heic", ".heif": "image/heif", ".webp": "image/webp" };
       var NOMBRE_RESP = { si: "S\xED", no: "No", na: "N/A", ok: "OK", noOk: "NO OK" };
@@ -173068,14 +173164,16 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
               medidos: p.evaluacion ? p.evaluacion.medidos : null,
               fotos: p.evaluacion ? p.evaluacion.datos.fotos.length : 0,
               faltan: p.evaluacion ? p.evaluacion.faltan : [],
-              bocasSinMedir: p.evaluacion ? bocasSinMedir(p.evaluacion) : []
+              bocasSinMedir: p.evaluacion ? bocasSinMedir(p.evaluacion) : [],
+              versionToma: p.versionToma || 1,
+              versiones: p.versiones || []
             })),
             puedeEditar: puede(ses.rol, "commissioning", "editar")
           };
         }
         function ficha({ ses, query }) {
           const obraId = llano(query.obra);
-          const f = FPM.ficha(repo, ses, obraId, { clave: llano(query.clave), plantilla: llano(query.plantilla) });
+          const f = FPM.ficha(repo, ses, obraId, refDe(query));
           if (!f) return { ok: false, error: "No se encuentra la obra." };
           if (f.ok === false) return f;
           const ev = f.evaluacion;
@@ -173121,8 +173219,20 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             medidos: ev.medidos,
             firmada: ev.firmas.length > 0,
             editable: f.editable,
-            bloqueo: f.bloqueo || null
+            bloqueo: f.bloqueo || null,
+            versionToma: f.versionToma,
+            versionActual: f.versionActual,
+            soloLectura: f.soloLectura,
+            versiones: f.versiones,
+            puedeNuevaVersion: f.puedeNuevaVersion
           };
+        }
+        function nuevaVersion({ ses, json }) {
+          const e = json();
+          const obraId = llano(e.obraId);
+          const r = FPM.abrirNuevaVersion(repo, ses, obraId, { clave: llano(e.clave), plantilla: llano(e.plantilla) });
+          if (!r || r.ok === false) return r || { ok: false, error: "No se encuentra la obra." };
+          return { ...ficha({ ses, query: { obra: obraId, clave: e.clave, plantilla: e.plantilla } }), nueva: r.version };
         }
         function guardar({ ses, json }) {
           const e = json();
@@ -173191,7 +173301,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           return { ok: true, ...ficha({ ses, query: { obra: obraId, ...ref } }) };
         }
         async function fotoFicha({ ses, query }) {
-          const f = FPM.ficha(repo, ses, llano(query.obra), { clave: llano(query.clave), plantilla: llano(query.plantilla) });
+          const f = FPM.ficha(repo, ses, llano(query.obra), refDe(query));
           const x = f && f.ok !== false ? f.evaluacion.datos.fotos[Number(query.i)] : null;
           if (!x) return [404, { ok: false, error: "No est\xE1 esa foto." }];
           let ruta = x.ruta;
@@ -173669,11 +173779,11 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             const h = await pdfFichaHoja(
               ses,
               llano(query.obra),
-              { clave: llano(query.clave), plantilla: llano(query.plantilla) },
+              refDe(query),
               { sinMedidos: ["1", "si", "true"].includes(llano(query.sinMedidos)), fechaEnsayo: llano(query.fecha), sinObservaciones }
             );
             if (h) return enHoja(h);
-            const ref = { clave: llano(query.clave), plantilla: llano(query.plantilla) };
+            const ref = refDe(query);
             const fx = FPM.ficha(repo, ses, llano(query.obra), ref);
             if (fx && fx.ok !== false) await traerFotos([...fx.evaluacion.datos.fotos || [], ...fotosUnidadVrf(ses, ref)]);
             r = docFicha(ses, llano(query.obra), ref);
@@ -173835,6 +173945,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           },
           "GET api/ficha": ficha,
           "POST api/ficha": guardar,
+          "POST api/ficha/nueva-version": nuevaVersion,
           "GET api/ficha/foto": fotoFicha,
           "GET api/informe": informe,
           "POST api/equipo/preparar-archivo": prepararArchivo,
@@ -174918,6 +175029,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         "POST api/equipo/fotos": [["commissioning", "editar"]],
         "POST api/equipo/fotos/quitar": [["commissioning", "editar"]],
         "POST api/equipo/documento": [["commissioning", "editar"]],
+        /* Abrir un papel del equipo subido desde el teléfono (20-nov-2026): el archivo guardado en el campo del equipo. */
+        "GET api/equipo/documento": [["commissioning", "ver"]],
         "GET api/equipo/foto": [["commissioning", "ver"]],
         /* Las fotos del equipo y de su conjunto, ligeras, para la hoja del plano de commissioning (17-nov-2026). */
         "GET api/equipo/fotos/lista": [["commissioning", "ver"]],
@@ -175195,6 +175308,67 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           if (!e) return { ok: false, error: "No se encuentra el equipo." };
           return { ok: true, id: e.id, ...planoDelEquipo(ses, e.id) };
         }
+        const CAMPO_DE_CLASE = { ft: "docFichaTecnica", ce: "docMarcadoCE", mi: "docManual", pm: "docFichaPM" };
+        const ETIQUETA_DE_CLASE = { ft: "Ficha t\xE9cnica", ce: "Marcado CE", mi: "Manual", pm: "Puesta en marcha del fabricante" };
+        function documentosDelEquipo(ses, eq, linea) {
+          try {
+            const PEQ = require_planoEquipos();
+            const enConjunto = linea && linea.clase !== "suelto" && Array.isArray(linea.miembros) && linea.miembros.length > 1;
+            const ids = enConjunto ? linea.miembros.map((m) => m.id) : [eq.id];
+            if (enConjunto && linea.exterior) ids.sort((a, b) => (b === linea.exterior.id) - (a === linea.exterior.id));
+            const porId = new Map(repo.db.prepare("SELECT id, tag, marca, modelo, modeloId, docFichaTecnica, docMarcadoCE, docManual, docFichaPM FROM equiposObra WHERE obraId = ?").all(eq.obraId).map((x) => [x.id, x]));
+            const modeloDe = CONTROL.indiceModelos(repo.listar("modelosEquipo", ses, { condicion: "obraId = ?", params: [eq.obraId] }));
+            const fuera = [];
+            const vistos = /* @__PURE__ */ new Set();
+            for (const id of ids) {
+              const x = porId.get(id);
+              if (!x) continue;
+              let docs = PEQ.documentosEquipo(x, modeloDe(x));
+              for (const [clase, campo] of Object.entries(CAMPO_DE_CLASE)) {
+                const v = String(x[campo] || "").trim();
+                if (!v || /^https?:\/\//i.test(v) || !path.isAbsolute(v)) continue;
+                let hay = false;
+                try {
+                  hay = fs.existsSync(v);
+                } catch {
+                  hay = false;
+                }
+                docs = docs.filter((y) => y.clase !== clase);
+                docs.push({
+                  clase,
+                  etiqueta: ETIQUETA_DE_CLASE[clase],
+                  nombre: path.basename(v).replace(/\.[a-z0-9]{2,5}$/i, ""),
+                  nivel: "equipo",
+                  url: hay ? `api/equipo/documento?id=${encodeURIComponent(x.id)}&clase=${clase}` : "",
+                  enOrdenador: !hay
+                });
+              }
+              for (const y of docs) {
+                const k = `${y.clase}|${y.url || y.nombre}`;
+                if (vistos.has(k)) continue;
+                vistos.add(k);
+                fuera.push(enConjunto ? { ...y, unidadTag: x.tag } : y);
+              }
+            }
+            return fuera;
+          } catch {
+            return null;
+          }
+        }
+        const TIPO_DOC_EXT = { ...TIPO_DE_EXT, ".pdf": "application/pdf" };
+        function equipoDocumentoVer({ ses, query }) {
+          const eq = repo.leer("equiposObra", ses, String(query.id || ""));
+          if (!eq) return [404, { ok: false, error: "No se encuentra el equipo." }];
+          const campo = CAMPO_DE_CLASE[String(query.clase || "")];
+          const v = campo ? String(eq[campo] || "").trim() : "";
+          if (!v) return [404, { ok: false, error: "Este equipo no tiene ese documento." }];
+          if (/^https?:\/\//i.test(v)) return [404, { ok: false, error: "Ese documento es un enlace: se abre desde la ficha.", url: v }];
+          try {
+            return { bytes: fs.readFileSync(v), tipo: TIPO_DOC_EXT[path.extname(v).toLowerCase()] || "application/octet-stream" };
+          } catch {
+            return [404, { ok: false, error: "El documento est\xE1 en el ordenador de la oficina, no en este aparato." }];
+          }
+        }
         function equipo({ ses, quien, query }) {
           const d = DIF.difusoresEquipo(repo, ses, String(query.id || ""));
           if (!d) return { ok: false, error: "No se encuentra el equipo." };
@@ -175252,6 +175426,8 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
                 foto: ultimaFoto(ses, m.id)
               }))
             } : null,
+            /* Sus papeles (20-nov, JC): ficha técnica, marcado CE, manual y hoja del fabricante; los del conjunto si es parte de uno. */
+            documentos: documentosDelEquipo(ses, d.equipo, linea),
             checklist: fila ? {
               ft: fila.ft,
               ce: fila.ce,
@@ -176071,6 +176247,7 @@ ${nuevas.map((n2) => `[foto:${n2}]`).join("\n")}`.replace(/^\n/, "");
           "GET api/obras": obras,
           "GET api/commissioning": commissioning,
           "GET api/equipo": equipo,
+          "GET api/equipo/documento": equipoDocumentoVer,
           "GET api/equipo/localizacion": equipoLocalizacion,
           "POST api/boca": boca,
           "POST api/equipo/medida": equipoMedida,
@@ -209231,6 +209408,22 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
             return { clave: k, titulo: TITULO_FILA[k] || k, estado: clase && k !== "fichaPM" ? "falta" : "noAplica", archivos: [], nota: "", motivo: clase && k !== "fichaPM" ? "a\xFAn no est\xE1 cargado" : "", porConfirmar: false };
           });
         }
+        const PAPELES_MOVIL = ["ft", "ce", "manual", "fichaPM"];
+        function filasDocumentosEquipo(documentos) {
+          const docs = (Array.isArray(documentos) ? documentos : []).filter((x) => x && x.clase && (x.url || x.enOrdenador));
+          return PAPELES_MOVIL.map((k) => {
+            const clase = k === "fichaPM" ? "pm" : Object.keys(CLASE_A_COLUMNA).find((q) => CLASE_A_COLUMNA[q] === k);
+            const archivos2 = docs.filter((y) => y.clase === clase).map((y) => ({
+              nombre: y.nombre || y.etiqueta || TITULO_FILA[k],
+              url: y.url || "",
+              nivel: y.nivel || "equipo",
+              unidadTag: y.unidadTag || "",
+              enOrdenador: Boolean(y.enOrdenador && !y.url)
+            }));
+            const titulo = k === "manual" ? "Manual de instrucciones" : k === "fichaPM" ? "Puesta en marcha del fabricante" : TITULO_FILA[k];
+            return { clave: k, titulo, estado: archivos2.length ? "doc" : "falta", archivos: archivos2 };
+          });
+        }
         const nombreCorto = (a) => String(a && a.nombre || "").replace(/\.(pdf|html?|png|jpe?g)$/i, "");
         function filaDocHtml(f, i) {
           let celda;
@@ -209367,7 +209560,7 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
       ${d.red ? plegado("Su red", d.red, "", "data-pes-sured") : ""}
       ${(d.notas || []).filter(Boolean).map((t) => `<p class="pesNota">${esc(t)}</p>`).join("")}`;
         }
-        return { html, conjuntoAlPulsar, conjuntoHtml, nombreConjunto, incidenciasHtml, documentosHtml, documentosDe, filasDocumentos, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA };
+        return { html, conjuntoAlPulsar, conjuntoHtml, nombreConjunto, incidenciasHtml, documentosHtml, documentosDe, filasDocumentos, filasDocumentosEquipo, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA };
       });
     }
   });

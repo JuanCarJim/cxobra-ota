@@ -711,7 +711,7 @@
     const ids = new Set(acc.map((a) => a.id));
     const filas = fs.map((f) => `<button class="pe-hoja-fila" data-pe-accion="${esc(ids.has(f.id) ? f.id : (f.id === 'datos' ? 'checklist' : f.id))}">
         <i class="pe-hoja-punto ${f.tono}"></i><span class="pe-hoja-txt"><b>${esc(f.nombre)}${f.unidad ? ` <small>${esc(f.unidad)}</small>` : ''}</b>
-        <small class="pe-hoja-est ${f.tono}">${esc(f.texto)}${f.detalle ? ` · ${esc(f.detalle)}` : ''}</small>${f.faltan.length ? `<small class="pe-hoja-falta${f.paraFirmar ? ' firmar' : ''}">${f.paraFirmar ? 'Para firmar falta' : 'Falta'}: ${esc(f.faltan[0])}</small>` : ''}</span><span class="pe-hoja-ir">›</span></button>`).join('');
+        <small class="pe-hoja-est ${f.tono}">${esc(f.texto)}${f.version ? ` · <b class="pe-hoja-version">${esc(f.version)}</b>` : ''}${f.detalle ? ` · ${esc(f.detalle)}` : ''}${f.anteriores && f.anteriores.length ? ` · ${f.anteriores.length} versión${f.anteriores.length === 1 ? '' : 'es'} anterior${f.anteriores.length === 1 ? '' : 'es'}` : ''}</small>${f.faltan.length ? `<small class="pe-hoja-falta${f.paraFirmar ? ' firmar' : ''}">${f.paraFirmar ? 'Para firmar falta' : 'Falta'}: ${esc(f.faltan[0])}</small>` : ''}</span><span class="pe-hoja-ir">›</span></button>`).join('');
     /* 20-nov (JC): lo guardado antes en otra unidad del conjunto no es una hoja más ni cuenta; se lee en la ficha (Conservadas). */
     const cs = H.conservadas ? H.conservadas({ tomas: e.tomas }) : [];
     const cons = cs.length ? `<button class="pe-hoja-fila pe-hoja-conservada" data-pe-accion="equipo"><i></i><span class="pe-hoja-txt"><b>Guardadas antes en otra unidad · ${cs.length}</b>

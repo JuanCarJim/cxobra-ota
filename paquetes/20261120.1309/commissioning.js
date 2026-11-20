@@ -2705,6 +2705,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     if (!fs.length && pestana === 'balanceo') return '';
     /* El balanceo, una fila más: abre las bocas del plano y la hoja. */
     const filaBal = pestana === 'equipo' && ficha && tieneBalanceo(ficha) ? htmlFilaBalanceo(ficha) : '';
+    /* Los papeles del equipo (20-nov, JC), plegados en una fila «Documentación» al final de la lista. */
+    const filaDocs = pestana === 'equipo' && ficha ? htmlFilaDocumentos(ficha) : '';
     /* Sin plano: qué se mide y dónde (un cassette, sus 3 velocidades; un split, la Tª de impulsión). */
     const med = pestana === 'equipo' && ficha && !filaBal && ficha.medicion && ficha.medicion.titulo ? ficha.medicion : null;
     const notaMed = med ? `<p class="nota">Medición de aire: ${esc(med.texto.charAt(0).toLowerCase() + med.texto.slice(1))}.</p>` : '';
@@ -2712,19 +2714,96 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       ? 'Este equipo no tiene familia asignada: se le pone en el ordenador (Puesta en marcha).' : 'Sin fichas.';
     return `<section id="fichas-equipo" data-plegable>
       <h2>${esc(titulo)} <span class="cuenta">${fs.length + (filaBal ? 1 : 0)}</span></h2>
-      ${fs.length || filaBal ? `<ul class="lista-ios filas-ficha sin-tarjetas">${fs.map(([x, i]) => (!x.plantilla ? `
+      ${fs.length || filaBal || filaDocs ? `<ul class="lista-ios filas-ficha sin-tarjetas">${fs.map(([x, i]) => (!x.plantilla ? `
         <li class="fila-ficha"><div class="fila-ios apagada">
           <i class="fe-punto" aria-hidden="true"></i>
           <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span class="sub">${esc(x.motivo || 'Falta elegir la plantilla')}. Se elige en el ordenador (Puesta en marcha).</span></div>
         </div></li>` : `
         <li class="fila-ficha"><button class="fila-ios" data-cx="hoja" data-i="${i}">
           ${puntoFicha(x)}
-          <div class="fila-principal"><strong>${esc(nombreFicha(x))}</strong><span class="sub">${esc([x.motivo, textoMedidos(x), x.fotos ? `${x.fotos} foto${x.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · ') || estadoFichaTexto(x))}</span></div>
+          <div class="fila-principal"><strong>${esc(nombreFicha(x))}</strong><span class="sub">${esc([x.versionToma > 1 ? `v${x.versionToma}` : null, x.motivo, textoMedidos(x), x.fotos ? `${x.fotos} foto${x.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · ') || estadoFichaTexto(x))}</span></div>
           ${x.resultado && RESULTADO[x.resultado] ? `<span class="chip ${RESULTADO[x.resultado][0]}">${esc(RESULTADO[x.resultado][1])}</span>` : ''}
           <span class="fe-ir" aria-hidden="true">›</span>
-        </button>${htmlVerHoja(x, i)}</li>`)).join('')}${filaBal}</ul>` : `<p class="vacio">${esc(vacio)}</p>`}
+        </button>${htmlVerHoja(x, i)}${htmlVersionesFicha(x, i)}</li>`)).join('')}${filaBal}${filaDocs}</ul>` : `<p class="vacio">${esc(vacio)}</p>`}
       ${notaMed}
     </section>`;
+  }
+
+  /* 20-nov (JC): las versiones anteriores de una hoja que salió NO APTO, plegadas; se leen tal cual se cerraron. */
+  function htmlVersionesFicha(x, i) {
+    const vs = (x.versiones || []).filter((v) => !v.actual);
+    if (!vs.length) return '';
+    return `<details class="versiones-ficha"><summary>Versiones anteriores · ${vs.length}</summary><ul class="lista-ios filas-ficha sin-tarjetas">${vs.map((v) => `
+        <li class="fila-ficha"><button class="fila-ios" data-cx="hoja-version" data-i="${i}" data-v="${v.n}">
+          <i class="fe-punto ${v.resultado === 'noApto' ? 'mal' : v.resultado === 'apto' ? 'bien' : ''}" aria-hidden="true"></i>
+          <div class="fila-principal"><strong>v${v.n}</strong><span class="sub">${esc([fechaCorta(v.fecha), v.autor, v.firmada ? 'firmada' : null, v.fotos ? `${v.fotos} foto${v.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · ') || 'Sin fecha')}</span></div>
+          ${v.resultado && RESULTADO[v.resultado] ? `<span class="chip ${RESULTADO[v.resultado][0]}">${esc(RESULTADO[v.resultado][1])}</span>` : ''}
+          <span class="fe-ir" aria-hidden="true">›</span>
+        </button></li>`).join('')}</ul></details>`;
+  }
+
+  /*
+   * LA DOCUMENTACIÓN DEL EQUIPO EN SU FICHA (20-nov-2026, JC, sobre UTA-N10-PITCH 03: «aquí también tiene que estar la
+   * ficha técnica del equipo, marcado CE, manual de instrucciones, puesta en marcha del fabricante si la hay»). Los datos
+   * llegan con el equipo (api/equipo › documentos: la misma fuente que el panel del plano) y las filas salen de la pieza
+   * compartida (panelEquipoPlano.filasDocumentosEquipo). Una fila «Documentación» plegable, con la misma fila, punto y
+   * flecha que las fichas; dentro, una fila por papel que abre su PDF, o «Falta» si no está.
+   */
+  const filasDocsDe = (f) => {
+    const P = window.PANEL_EQUIPO_PLANO;
+    return P && P.filasDocumentosEquipo && Array.isArray(f.documentos) ? P.filasDocumentosEquipo(f.documentos) : null;
+  };
+  function htmlFilaDocumentos(f) {
+    const filas = filasDocsDe(f);
+    if (!filas) return '';
+    const faltan = filas.filter((x) => x.estado === 'falta').map((x) => x.titulo);
+    const sub = faltan.length ? `Falta: ${faltan.join(', ')}` : 'Ficha técnica, marcado CE, manual y puesta en marcha';
+    let n = 0;
+    const filaPapel = (x) => {
+      if (x.estado !== 'doc') {
+        return `<li class="fila-ficha"><div class="fila-ios apagada">
+            <i class="fe-punto mal" aria-hidden="true"></i>
+            <div class="fila-principal"><strong>${esc(x.titulo)}</strong><span class="sub">No está en la documentación del equipo.</span></div>
+            <span class="chip mal">Falta</span><span></span>
+          </div></li>`;
+      }
+      return x.archivos.map((a) => {
+        const i = n++;
+        const pie = [a.unidadTag, a.nombre, a.nivel === 'modelo' ? 'del modelo' : null].filter(Boolean).join(' · ');
+        if (!a.url) {
+          return `<li class="fila-ficha"><div class="fila-ios apagada">
+            <i class="fe-punto aviso" aria-hidden="true"></i>
+            <div class="fila-principal"><strong>${esc(x.titulo)}</strong><span class="sub">${esc(pie)} · está en el ordenador de la oficina</span></div>
+            <span></span><span></span>
+          </div></li>`;
+        }
+        return `<li class="fila-ficha"><button class="fila-ios" data-cx="ver-doc-equipo" data-clave="${esc(x.clave)}" data-n="${i}">
+            <i class="fe-punto bien" aria-hidden="true"></i>
+            <div class="fila-principal"><strong>${esc(x.titulo)}</strong><span class="sub">${esc(pie)}</span></div>
+            <span></span>
+            <span class="fe-ir" aria-hidden="true">›</span>
+          </button></li>`;
+      }).join('');
+    };
+    return `
+        <li class="fila-ficha fila-docs"><details class="docs-equipo">
+          <summary class="fila-ios">
+            <i class="fe-punto ${faltan.length ? 'mal' : 'bien'}" aria-hidden="true"></i>
+            <div class="fila-principal"><strong>Documentación</strong><span class="sub">${esc(sub)}</span></div>
+            ${faltan.length ? `<span class="chip mal">${faltan.length === 1 ? 'Falta 1' : `Faltan ${faltan.length}`}</span>` : '<span></span>'}
+            <span class="fe-ir" aria-hidden="true">›</span>
+          </summary>
+          <ul class="lista-ios filas-ficha sin-tarjetas docs-lista">${filas.map(filaPapel).join('')}</ul>
+        </details></li>`;
+  }
+  /* Abrir un papel: el subido desde el teléfono, en la vista previa de la app; el enlace del SharePoint, en el navegador. */
+  function verDocEquipo(b) {
+    const filas = ficha && filasDocsDe(ficha);
+    if (!filas) return;
+    const a = filas.flatMap((x) => (x.estado === 'doc' ? x.archivos.map((y) => ({ ...y, titulo: x.titulo })) : []))[Number(b.dataset.n)];
+    if (!a || !a.url) return;
+    if (/^api\//.test(a.url)) { compartirPdf(a.url, `${[ficha.equipo.tag, a.titulo].filter(Boolean).join(' - ')}.pdf`, b); return; }
+    window.open(a.url, '_blank', 'noopener');
   }
 
   /* Split y VRF: lo guardado antes en otra unidad del conjunto, para leerlo (no cuenta). */
@@ -2923,14 +3002,15 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     }
   }
 
-  async function abrirHoja(i) {
+  async function abrirHoja(i, version = null) {
     const x = fichasEq && fichasEq.fichas[i];
     if (!x) return;
     /* Lo tecleado en la toma de datos y sin guardar sigue en la hoja completa. */
-    const t = tomas.get(claveToma(x));
-    const ref = { obra: fichasEq.equipo.obraId, clave: x.clave, plantilla: x.plantilla };
+    const t = version ? null : tomas.get(claveToma(x));
+    /* 20-nov: con `version`, una anterior (solo lectura): sin borradores. */
+    const ref = { obra: fichasEq.equipo.obraId, clave: x.clave, plantilla: x.plantilla, ...(version ? { version: String(version) } : {}) };
     /* La misma ficha aún guardándose (se salió hace un momento): se sigue con ella, no con una copia. */
-    const viva = (t && t.f && t.cambiada) ? t : vivas.get(claveBorrador(ref));
+    const viva = version ? null : (t && t.f && t.cambiada) ? t : vivas.get(claveBorrador(ref));
     if (viva && viva.f && viva.cambiada) {
       tomas.delete(claveToma(x));
       viva.nombre = nombreFicha(x);
@@ -2947,7 +3027,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       /* La red del modelo se pide a la vez: la hoja de balanceo abre ya con su plano (JC, 12-nov). */
       const [r, red] = await Promise.all([C.pedir(`api/ficha?${new URLSearchParams(ref)}`), pedirRed(x)]);
       if (!r.ok) throw new Error(r.error);
-      hoja = await recuperarBorrador(nuevaHoja(ref, nombreFicha(x), r));
+      hoja = version ? nuevaHoja(ref, nombreFicha(x), r) : await recuperarBorrador(nuevaHoja(ref, nombreFicha(x), r));
       ponerRed(hoja, red);
       hoja.fotoUi = x.papel === 'UI' && x.unidadId ? { equipoId: x.unidadId, tag: x.unidadTag || '' } : null;
       pintarHoja();
@@ -3353,7 +3433,10 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       ${red ? `${htmlRedHoja(red, ed && !f.bloqueo)}${ensayoRed}` : ''}
       ${red || f.plantilla.codigo === 'BALANCEO_CAUDALES' || !ficha ? '' : htmlPlanoEquipo(ficha, true)}
       ${f.plantilla.codigo === 'BALANCEO_CAUDALES' ? '' : barraMini(equipoDeFicha(h.ref), trabajoDeFicha(h.ref), ed && !(ficha && bloqueosDe(ficha).length))}
-      ${ed ? '' : `<p class="nota aviso">${f.firmada ? 'La ficha está firmada: ya no se cambia.' : 'Tu rol puede ver la ficha, pero no rellenarla.'}</p>`}
+      ${f.soloLectura ? `<p class="nota version-anterior"><strong>Versión ${f.versionToma} de ${f.versionActual}</strong>, anterior: se conserva tal cual se cerró y solo se lee.</p>` : ''}
+      ${ed || f.soloLectura ? '' : `<p class="nota aviso">${f.firmada ? 'La ficha está firmada: ya no se cambia.' : 'Tu rol puede ver la ficha, pero no rellenarla.'}</p>`}
+      ${f.versionActual > 1 && !f.soloLectura ? `<p class="nota">Versión ${f.versionToma}: la que cuenta. Las anteriores se ven en la lista de fichas del equipo.</p>` : ''}
+      ${f.puedeNuevaVersion ? `<div class="fila-botones"><button class="boton grande secundario" data-cx="nueva-version">Abrir nueva versión (v${f.versionToma + 1})</button></div><p class="nota">Salió NO APTO: la versión ${f.versionToma} se conserva con sus fotos y firmas, y la nueva empieza en blanco para medir tras el arreglo.</p>` : ''}
       ${porPasos && !esEstanq ? `<nav class="pasos-hoja" role="tablist" aria-label="Apartados de la hoja">
         ${pasos.map((p, i) => `<button role="tab" class="${i === actual ? 'activa' : ''}" aria-selected="${i === actual}" data-cx="paso-hoja" data-paso="${i}"><span class="t">${esc(p.titulo)}</span><span class="marca">${marcaPaso(p)}</span></button>`).join('')}
         <button role="tab" class="${actual === pasos.length ? 'activa' : ''}" aria-selected="${actual === pasos.length}" data-cx="paso-hoja" data-paso="${pasos.length}"><span class="t">Cierre</span><span class="marca"></span></button>
@@ -3749,6 +3832,26 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   const compartirPdf = (...a) => C.compartirPdf(...a);
 
   /* sinMedidos: la hoja para rellenar a mano en obra (proyecto sí, medidos no). */
+  /* 20-nov (JC): tras un NO APTO, la versión siguiente; la anterior queda congelada en el servidor. */
+  async function nuevaVersionHoja(boton) {
+    const h = hoja;
+    if (!h || !h.f.puedeNuevaVersion) return;
+    if (!window.confirm(`La versión ${h.f.versionToma} (NO APTO) se conserva tal cual y se abre la ${h.f.versionToma + 1} en blanco. ¿Seguir?`)) return;
+    if (h.cambiada && h.f.editable && !(await guardarHoja())) return;
+    boton.disabled = true;
+    try {
+      const r = await C.postJson('api/ficha/nueva-version', { obraId: h.ref.obra, clave: h.ref.clave, plantilla: h.ref.plantilla });
+      if (!r || r.ok === false) throw new Error((r && r.error) || 'No se ha podido abrir la versión nueva.');
+      hoja = nuevaHoja({ obra: h.ref.obra, clave: h.ref.clave, plantilla: h.ref.plantilla }, h.nombre, r);
+      hoja.red = h.red; hoja.fotoUi = h.fotoUi;
+      tomas.delete(`${h.ref.clave}|${h.ref.plantilla}`);
+      if (ficha) cargarFichas(ficha.equipo.id);
+      pintarHoja();
+      window.scrollTo(0, 0);
+      C.aviso(`Abierta la versión ${r.nueva}.`);
+    } catch (e) { boton.disabled = false; C.aviso(e.message); }
+  }
+
   async function pdfHoja(boton, sinMedidos = false) {
     if (hoja.cambiada && hoja.f.editable && !(await guardarHoja())) return;
     const tag = ficha ? ficha.equipo.tag : hoja.f.titulo;
@@ -4301,6 +4404,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     else if (que === 'ficha-equipo' && ficha && directoPlano && origenPlano) { guardarConductosYa(); volverAlPlano(); }
     else if (que === 'ficha-equipo' && ficha) { guardarConductosYa(); document.body.classList.remove('sin-scroll'); pestanaEq = 'equipo'; pintarFicha(); window.scrollTo(0, 0); }
     else if (que === 'hoja') abrirHoja(Number(b.dataset.i));
+    else if (que === 'hoja-version') abrirHoja(Number(b.dataset.i), Number(b.dataset.v));
+    else if (que === 'nueva-version') nuevaVersionHoja(b);
     else if (que === 'volver-equipo') salirHoja();
     /* Fin del checklist (JC, 28-oct): guarda lo pendiente y vuelve al equipo;
        si no se ha podido guardar, se queda en la hoja con el aviso del error. */
@@ -4364,6 +4469,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     else if (que === 'quitar-firma' && ficha) C.confirmar('¿Quitar la firma guardada?', 'Tendrás que volver a firmar.', 'Sí, quitar').then((ok) => { if (ok) guardarFirma(b, true); });
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
     else if (que === 'ver-hoja') verHoja(b);
+    else if (que === 'ver-doc-equipo') verDocEquipo(b);
     else if (que === 'preparar-archivo' && ficha) prepararArchivo(b);
     else if (que === 'ver-archivo' && ficha) compartirPdf(`api/equipo/archivo-preparado?id=${encodeURIComponent(b.dataset.id)}`, (fichasEq && fichasEq.archivo && fichasEq.archivo.nombre) || 'Archivo.pdf', b);
     else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }

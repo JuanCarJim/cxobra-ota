@@ -67,6 +67,31 @@
     return partes.length ? partes.join(' · ') : (estado === 'falta' ? 'Sin empezar' : '');
   }
 
+  /*
+   * VERSIONES DE LA HOJA (20-nov-2026, JC): tras un NO APTO se abre la v2, v3…; la fila es siempre la última
+   * (la que cuenta) y dice «v2 · APTO»; las anteriores, plegadas, se pueden abrir para leerlas.
+   */
+  const RESULTADO_VERSION = { apto: 'APTO', noApto: 'NO APTO', aRevisar: 'A REVISAR' };
+  const ESTADO_VERSION = { sinEmpezar: 'sin empezar', pendiente: 'a medias', completa: 'completa', firmada: 'firmada' };
+  function textoVersion(n, resultado, estado) {
+    const r = RESULTADO_VERSION[resultado] || ESTADO_VERSION[estado] || '';
+    return `v${n}${r ? ` · ${r}` : ''}`;
+  }
+  /** «v2 · APTO» de la versión actual, o null si la hoja no ha pasado de la v1. */
+  function versionDe(t) {
+    const n = Number(t && t.versionToma) || 1;
+    if (n < 2) return null;
+    return textoVersion(n, t.resultadoFicha || (t.hoja ? null : t.resultado), t.estado);
+  }
+  /** Las versiones anteriores de una toma: [{ n, texto, detalle, tono }], de la v1 a la penúltima. */
+  function anterioresDe(t) {
+    return ((t && Array.isArray(t.versiones) ? t.versiones : [])).filter((v) => v && !v.actual).map((v) => ({
+      n: v.n, texto: textoVersion(v.n, v.resultado, v.estado),
+      detalle: [fechaCorta(v.fecha), v.autor, v.firmada ? 'firmada' : null, v.fotos ? `${v.fotos} foto${v.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · '),
+      tono: v.resultado === 'noApto' ? 'rojo' : v.resultado === 'apto' ? 'verde' : 'azul',
+    }));
+  }
+
   /**
    * Las filas de la sección: [{ id, nombre, unidad, estado, tono, texto, detalle, faltan, toma }].
    * `acciones` = las hojas que lleva el equipo ([{ id }]); `tomas` = las de electron/data/planoEquipos.js › tomasDelEquipo.
@@ -101,6 +126,7 @@
           faltan: !t || t.firmada ? [] : (t.faltan || []), nFaltan: t && !t.firmada ? (t.nFaltan || 0) : 0,
           paraFirmar: estado === 'hecha' && Boolean(t && !t.firmada && (t.faltan || []).length),
           toma: x ? x.i : null, conPdf: Boolean(t && t.clave && t.plantilla && t.estado !== 'sinFicha' && t.clase !== 'balanceo'),
+          version: versionDe(t), anteriores: anterioresDe(t),
         });
       }
     }
@@ -131,5 +157,5 @@
     return n ? `${h} de ${n} hecha${n === 1 ? '' : 's'}` : '';
   }
 
-  return { ORDEN, NOMBRE, TONO, idDeToma, estadoDe, detalleDe, filas, conservadas, resumen, fechaCorta };
+  return { ORDEN, NOMBRE, TONO, idDeToma, estadoDe, detalleDe, filas, conservadas, resumen, fechaCorta, versionDe, anterioresDe, textoVersion };
 });
