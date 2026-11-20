@@ -28,9 +28,40 @@
   /* CON EL TECLADO ABIERTO el iPhone desplaza la vista hacia arriba: la
      cabecera se iba y la hora pisaba las tarjetas (29-oct, JC, al buscar).
      La cabecera baja lo que se ha desplazado la vista, siempre arriba. */
+  /* HUECO DE LA HORA (19-nov, JC): tras recargar por una OTA, el iPhone a veces
+     da 0 en env(safe-area-inset-top) y «Hola, Juan» se montaba sobre la hora.
+     Se mide el hueco real, se recuerda el último bueno y, si sale 0 en un
+     iPhone, se usa el recordado (o 47 px si nunca se midió). */
+  (function huecoArriba() {
+    const CLAVE = 'cx-hueco-arriba';
+    const medir = () => {
+      const p = document.createElement('div');
+      p.style.cssText = 'position:fixed;top:0;left:0;height:env(safe-area-inset-top);width:0;visibility:hidden';
+      document.documentElement.appendChild(p);
+      const h = Math.round(p.getBoundingClientRect().height);
+      p.remove();
+      return h;
+    };
+    const esIphone = /iPhone|iPod/.test(navigator.userAgent || '');
+    const fijar = () => {
+      const h = medir();
+      let guardado = 0;
+      try { guardado = Number(localStorage.getItem(CLAVE)) || 0; } catch { /* sin almacenamiento */ }
+      if (h > 0) {
+        try { localStorage.setItem(CLAVE, String(h)); } catch { /* sin almacenamiento */ }
+        document.documentElement.style.removeProperty('--arriba-seguro');
+      } else if (esIphone && window.matchMedia('(orientation: portrait)').matches) {
+        document.documentElement.style.setProperty('--arriba-seguro', `${guardado || 47}px`);
+      }
+    };
+    fijar();
+    window.addEventListener('resize', fijar);
+    window.addEventListener('pageshow', fijar);
+    setTimeout(fijar, 500);
+  })();
   if (window.visualViewport) {
     const vv = window.visualViewport;
-    const ajustar = () => document.documentElement.style.setProperty('--vv-arriba', `${Math.max(0, Math.round(vv.offsetTop))}px`);
+    const ajustar =() => document.documentElement.style.setProperty('--vv-arriba', `${Math.max(0, Math.round(vv.offsetTop))}px`);
     vv.addEventListener('resize', ajustar);
     vv.addEventListener('scroll', ajustar);
     ajustar();

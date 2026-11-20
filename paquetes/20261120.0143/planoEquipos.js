@@ -1272,11 +1272,18 @@
     const pie = $raiz.querySelector('.pe-pie');
     const debajo = conHoja ? 0 : (pie ? pie.offsetHeight + 4 : 0) + 8;
     const top = marco.getBoundingClientRect().top + (window.scrollY || 0);
-    const alto = Math.round(Math.max(conHoja ? 140 : 220, limite - top - debajo));
-    marco.style.height = `${alto}px`;
-    if (conHoja) return;
+    const libre = Math.round(Math.max(conHoja ? 140 : 220, limite - top - debajo));
     const p = plantaActual();
     const pl = p && p.plano;
+    /* 19-nov (JC: «que no ocupe tanto la ventana del plano, que puedo hacer zoom»): el marco toma el alto
+       del dibujo de ESTA planta a lo ancho (ancho/alto del plano), con un mínimo de 180 px y sin pasar del alto libre; así no
+       queda blanco arriba ni abajo y «Dónde estoy», el aviso y «N equipos por ubicar» quedan justo debajo. Se recalcula en
+       cada planta (pintar → ajustarAlto) y se sigue acercando con los dedos. */
+    const cw0 = marco.clientWidth;
+    const delDibujo = pl && pl.ancho > 0 && pl.alto > 0 && cw0 > 0 ? Math.ceil(cw0 * (pl.alto / pl.ancho)) + 2 : 0;
+    const alto = delDibujo > 0 ? Math.min(libre, Math.max(conHoja ? 140 : 180, delDibujo)) : libre;
+    marco.style.height = `${alto}px`;
+    if (conHoja) return;
     const cw = marco.clientWidth; const ch = marco.clientHeight;
     const nb = pl && pl.ancho > 0 && pl.alto > 0 && cw > 0 ? Math.min(1, (ch - 2) / (cw * (pl.alto / pl.ancho))) : 1;
     if (lienzo && Math.abs(nb - base) > 0.001) {
