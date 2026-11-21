@@ -12,7 +12,7 @@
  *       .reintentar()                                    → manda lo que quedó sin red
  *
  * SEGURIDAD (obligatoria, JC):
- *   · El texto del usuario es un DATO. Aquí solo se guarda en ia_sugerencias (cxobra-sync, 0062): no va al
+ *   · El texto del usuario es un DATO. Aquí solo se guarda en ia_sugerencias (la nube de la edición): no va al
  *     bloc, ni a la cola de agentes, ni al motor de IA. Solo JC lo lee, desde su lista de Bitácora, y solo
  *     él lo convierte, a mano, en nota.
  *   · Al usuario se le dice que la sugerencia pasa «al equipo de desarrollo»: nunca se nombra a nadie.

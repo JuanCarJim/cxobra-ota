@@ -2,7 +2,7 @@
 /*
  * 🧭 IARVIS EN EL MÓVIL (#iarvis, 7-nov-2026). La misma conversación que el escritorio y la
  * web (renderer/iarvis.js, montado aquí a pantalla completa; se abre con la brújula de la cabecera), sobre la misma tabla
- * (ia_mensajes de cxobra-sync) con shared/ia/conversaciones.js.
+ * (ia_mensajes de la nube del Cx) con shared/ia/conversaciones.js.
  *
  * Audios: el micrófono junto a «Mandar» (renderer/movil/iarvisVoz.js, 12-nov): se pasa a texto en el
  * teléfono y llega aquí como una pregunta más, con `entrada: 'voz'` en el contexto.
@@ -15,6 +15,12 @@
  */
 (function iarvisMovil() {
   const C = window.CX;
+  /* 15-nov (JC: «Iarvis tiene que saludar y hablar en todos los idiomas de la app»): el idioma elegido en este
+     teléfono y, si no se ha elegido ninguno (el móvil no tiene selector), el del teléfono si es uno de los seis
+     (shared/idioma.js › detectar; si no, español). El saludo, las sugerencias y lo fijo del chat salen en él,
+     y viaja en la pregunta para que la respuesta llegue en ese idioma. */
+  const IDI = window.IDIOMA;
+  if (IDI) { let elegido = null; try { elegido = localStorage.getItem('idioma'); } catch { /* sin almacenamiento */ } IDI.poner(elegido || IDI.detectar(), { recordar: false }); }
   const $app = document.getElementById('app');
   const activa = () => C.activa('iarvis');
   let adaptador = null;
@@ -230,7 +236,7 @@
     window.IARVIS.montarEn($app, {
       adaptador: a,
       ir: (destino) => { location.hash = `#${destino}`; },
-      contexto: () => ({ pantalla: 'movil', obraId: C.obraId ? C.obraId() : null, obraNombre: obraNombre(), idioma: (navigator.language || 'es').slice(0, 2) }),
+      contexto: () => ({ pantalla: 'movil', obraId: C.obraId ? C.obraId() : null, obraNombre: obraNombre(), idioma: IDI ? IDI.idioma() : (navigator.language || 'es').slice(0, 2) }),
       movil: true,
       volver,
     });

@@ -26,7 +26,7 @@
   const estadoVisible = (estado, medidos, bocasSinMedir, sinFechaNiFirma = false) => {
     if (sinFechaNiFirma && estado === 'completa') return 'pendiente';
     if (estado !== 'pendiente' || !medidos) return estado;
-    if (!medidos.rellenos) return 'sinEmpezar';
+    if (!medidos.rellenos) return medidos.escrito ? estado : 'sinEmpezar'; /* algo escrito y guardado: «A medias» (15-nov) */
     if (sinFechaNiFirma) return estado;
     return medidos.obligatorios && medidos.rellenos >= medidos.obligatorios && !(bocasSinMedir || []).length ? 'completa' : estado;
   };

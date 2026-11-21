@@ -107,7 +107,7 @@
         if (r.debeCambiarClave && !provisional) { provisional = true; return pintar(); }
         return pintar(r.error);
       }
-      guardar({ token: r.token, nombre: r.nombre, rol: r.rol, rolNombre: r.rolNombre, secciones: r.secciones, local: Boolean(r.local) });
+      guardar({ token: r.token, nombre: r.nombre, rol: r.rol, rolNombre: r.rolNombre, secciones: r.secciones, iarvis: r.iarvis !== false, local: Boolean(r.local) });
       const primera = (r.secciones || [])[0];
       if (primera) history.replaceState(null, '', `#${primera}`);
       location.reload();
@@ -128,10 +128,10 @@
     /* El rol puede haber cambiado desde que entró: se pregunta al ordenador. */
     window.fetch('api/yo').then((r) => r.json()).then((yo) => {
       if (!yo || !yo.ok) return;
-      const antes = JSON.stringify(sesion.secciones);
-      sesion = { ...sesion, nombre: yo.nombre, rol: yo.rol, rolNombre: yo.rolNombre, secciones: yo.secciones, local: Boolean(yo.local) };
+      const antes = JSON.stringify([sesion.secciones, sesion.iarvis !== false]);
+      sesion = { ...sesion, nombre: yo.nombre, rol: yo.rol, rolNombre: yo.rolNombre, secciones: yo.secciones, iarvis: yo.iarvis !== false, local: Boolean(yo.local) };
       guardar(sesion);
-      if (JSON.stringify(yo.secciones) !== antes) location.reload();
+      if (JSON.stringify([yo.secciones, yo.iarvis !== false]) !== antes) location.reload();
     }).catch(() => {});
   }
 

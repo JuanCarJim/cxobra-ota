@@ -99,8 +99,7 @@
     /* Lo reclamable va con los conflictos y el claim, en «Cliente y contrato». */
     avisos: { grupo: 'Cliente y contrato', nombre: 'Reclamables', icono: '⚖' },
     avance: { grupo: 'Producción', nombre: 'Avance de obra', icono: '◩' },
-    /* 17-nov: el recorrido de zona (recorridosZona.js): puntos que otros tienen que liberar. */
-    recorridos: { grupo: 'Producción', nombre: 'Recorridos de zona', icono: '◩' },
+    recorridos: { grupo: 'Producción', nombre: 'Recorridos de zona', icono: '⌖' },
     albaranes: { grupo: 'Compras', nombre: 'Albaranes', icono: '▨' },
     inventario: { grupo: 'Compras', nombre: 'Inventario', icono: '▨' },
     personal: { grupo: 'Personal', nombre: 'Personal en obra', icono: '♙' },

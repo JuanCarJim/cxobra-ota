@@ -206,7 +206,7 @@
   /* EL Nº LEÍDO DE LA FOTO DE LA PLACA (29-oct-2026, JC: «si al hacer una foto
      a la placa de ese equipo no hay número de serie, automáticamente se lee de
      la placa y se pone»). La lee el propio teléfono, sin el Mac (JC: «que
-     funcione sin mi Mac, autónomamente»): renderer/ocrPlaca.js, nada más subir
+     funcione sin mi Mac, autónomamente»): renderer/movil/ocrPlaca.js, nada más subir
      la foto; el motor decide (electron/data/lecturaPlaca.js). Aquí se dice en
      qué va y, si hay duda, se confirma o se descarta con un toque. Las fotos
      que ya estaban subidas se leen con «Leer el nº de la placa». */
@@ -640,6 +640,18 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     if (!ficha || ficha.equipo.id !== id) return;
     const fs = (fichasEq && fichasEq.fichas) || [];
     const buscar = (clases) => fs.findIndex((x) => clases.includes(x.clase) && !x.conservada && x.plantilla);
+    /* 15-nov (JC): desde la hoja del equipo en el plano, UNA hoja concreta («hoja:plantilla|clave», panelEquipoPlano.accionToma):
+       la de este equipo y, si no está, la guardada antes en otra unidad de su conjunto. */
+    const exacta = /^hoja:([^|]+)\|(.+)$/.exec(String(accion || ''));
+    if (exacta) {
+      const [, plantilla, clave] = exacta;
+      let i = fs.findIndex((x) => x.plantilla === plantilla && x.clave === clave && !x.conservada);
+      if (i < 0) i = fs.findIndex((x) => x.plantilla === plantilla && x.clave === clave);
+      if (i >= 0) { hojaDirecta = true; abrirHoja(i); return; }
+      C.aviso('Esta hoja ya no está en el equipo: se abre su ficha.');
+      pestanaEq = 'fichas'; pintarFicha(); window.scrollTo(0, 0);
+      return;
+    }
     if (accion === 'balanceo') {
       const i = hojaUnicaBalanceo();
       if (i >= 0) { balDirecto = true; hojaDirecta = true; abrirHoja(i); return; }
@@ -693,7 +705,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       ficha = r;
       hoja = null;
       fichasEq = null;
-      /* 18-nov (JC; paso del Gestor): abrir un equipo dice dónde estás en el plano (renderer/movil/posicionPlanoCapa.js). */
+      /* 18-nov (JC): abrir un equipo dice dónde estás en el plano (renderer/movil/posicionPlanoCapa.js). */
       if (!quieto && window.CX_POSICION_PLANO) window.CX_POSICION_PLANO.contexto({ equipoId: r.equipo.id, tag: r.equipo.tag, planta: r.equipo.planta, origen: 'ficha' });
       /* Lo leído antes puede haber cambiado (llegó algo de la oficina): se vuelve
          a pedir. Lo tecleado y sin guardar se queda. */
@@ -830,112 +842,26 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     </div>`;
   }
 
-  /* Lo tecleado en la caja del conducto, como lo manda «Guardar conducto principal». */
-  function cuerpoConducto(caja) {
-    const cuerpo = {};
-    for (const i of caja.querySelectorAll('input[data-cond]')) {
-      const k = i.dataset.cond;
-      const val = i.value.trim();
-      if (k === 'velocidades') { if (val) cuerpo.velocidades = val.replace(/,/g, '.').split(/[\s;]+/).filter(Boolean); continue; }
-      if (k === 'caudal') { if (val !== i.defaultValue.trim()) cuerpo.caudal = val.replace(/\./g, '').replace(',', '.'); continue; }
-      if (val !== i.defaultValue.trim()) cuerpo[k] = val.replace(',', '.');
-    }
-    return cuerpo;
-  }
-
   async function guardarConducto(b, extra = {}) {
     const red = b.dataset.red;
     const caja = $app.querySelector(`[data-conducto="${CSS.escape(red)}"]`);
-    const cuerpo = { equipoId: ficha.equipo.id, red, ...(caja && !extra.forma ? cuerpoConducto(caja) : {}), ...extra };
-    clearTimeout(relojConducto.get(claveBorradorConducto(cuerpo.equipoId, red)));
+    const cuerpo = { equipoId: ficha.equipo.id, red, ...extra };
+    if (caja && !extra.forma) {
+      for (const i of caja.querySelectorAll('input[data-cond]')) {
+        const k = i.dataset.cond;
+        const val = i.value.trim();
+        if (k === 'velocidades') { if (val) cuerpo.velocidades = val.replace(/,/g, '.').split(/[\s;]+/).filter(Boolean); continue; }
+        if (k === 'caudal') { if (val !== i.defaultValue.trim()) cuerpo.caudal = val.replace(/\./g, '').replace(',', '.'); continue; }
+        if (val !== i.defaultValue.trim()) cuerpo[k] = val.replace(',', '.');
+      }
+    }
     b.disabled = true;
     try {
       const r = await C.postJson('api/equipo/conducto', cuerpo);
       if (!r.ok) throw new Error(r.error);
-      if (AG) AG.olvidar(claveBorradorConducto(cuerpo.equipoId, red));
       ficha = r;
       if (activa()) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
     } catch (e) { C.aviso(e.message); b.disabled = false; }
-  }
-
-  /*
-   * EL CONDUCTO PRINCIPAL SE GUARDA SOLO (19-nov-2026, JC: «¿se autoguardan?»):
-   * antes lo tecleado solo llegaba al pulsar «Guardar conducto principal» y
-   * se perdía al salir. Ahora cada tecla deja la caja en el teléfono
-   * (`cx.borrador.conducto.<equipo>|<red>`), a ~1,2 s sin teclear se manda en
-   * silencio y, al salir de la caja o de la pantalla, se manda ya. Si no
-   * llega (sin red, app cerrada), al volver se repinta lo tecleado y la cola
-   * lo manda sola. El botón sigue igual.
-   */
-  const claveBorradorConducto = (equipoId, red) => `conducto.${equipoId}|${red}`;
-  const ESPERA_GUARDAR_CONDUCTO = 1200;
-  const relojConducto = new Map();
-  function apuntarConducto(caja) {
-    if (!AG || !ficha) return;
-    const red = caja.dataset.conducto;
-    const clave = claveBorradorConducto(ficha.equipo.id, red);
-    const cambiadoAlgo = [...caja.querySelectorAll('input[data-cond]')].some((i) => i.value.trim() !== i.defaultValue.trim());
-    if (!cambiadoAlgo) { AG.olvidar(clave); return; }
-    AG.guardar(clave, { equipoId: ficha.equipo.id, red, cuerpo: cuerpoConducto(caja),
-      valores: Object.fromEntries([...caja.querySelectorAll('input[data-cond]')].map((i) => [i.dataset.cond, i.value])) });
-  }
-  function restaurarConductos() {
-    if (!AG || !ficha) return;
-    for (const caja of $app.querySelectorAll('[data-conducto]')) {
-      const b = AG.leer(claveBorradorConducto(ficha.equipo.id, caja.dataset.conducto));
-      if (!b || !b.valores) continue;
-      caja.querySelectorAll('input[data-cond]').forEach((i) => { const v = b.valores[i.dataset.cond]; if (v !== undefined) i.value = v; });
-    }
-  }
-  function guardarConductoPronto(caja) {
-    if (!ficha) return;
-    const clave = claveBorradorConducto(ficha.equipo.id, caja.dataset.conducto);
-    clearTimeout(relojConducto.get(clave));
-    relojConducto.set(clave, setTimeout(() => { relojConducto.delete(clave); mandarConducto(clave, { silencio: true }); }, ESPERA_GUARDAR_CONDUCTO));
-  }
-  /*
-   * Manda un borrador del conducto. Va por la clave, no por la ficha abierta:
-   * al volver al equipo la ficha se recarga y el envío no se puede perder.
-   * En silencio no repinta mientras se escribe en la caja.
-   */
-  async function mandarConducto(clave, { silencio = false } = {}) {
-    if (!AG) return;
-    const b = AG.leer(clave);
-    if (!b) return;
-    try {
-      const r = await C.postJson('api/equipo/conducto', { equipoId: b.equipoId, red: b.red, ...(b.cuerpo || {}) });
-      if (!r.ok) throw new Error(r.error);
-      /* Si se ha seguido tecleando mientras iba, el borrador nuevo se queda para la próxima. */
-      const ahora = AG.leer(clave);
-      if (!ahora || JSON.stringify(ahora.valores) === JSON.stringify(b.valores)) AG.olvidar(clave);
-      if (ficha && r.equipo && ficha.equipo.id === r.equipo.id) {
-        ficha = r;
-        const foco = document.activeElement;
-        const escribiendo = foco && foco.closest && foco.closest('[data-conducto]');
-        if (activa() && !hoja && pestanaEq === 'balanceo' && !(silencio && escribiendo) && !(AG.leer(clave))) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
-      }
-    } catch (e) {
-      if (!(AG.sinRed && AG.sinRed(e))) C.aviso(e.message);
-    }
-  }
-  function guardarConductosYa() {
-    const claves = new Set(relojConducto.keys());
-    for (const t of relojConducto.values()) clearTimeout(t);
-    relojConducto.clear();
-    if (ficha) $app.querySelectorAll('[data-conducto]').forEach((c) => claves.add(claveBorradorConducto(ficha.equipo.id, c.dataset.conducto)));
-    return Promise.all([...claves].map((k) => mandarConducto(k)));
-  }
-  async function enviarConductoPendiente(clave, b) {
-    const foco = document.activeElement;
-    if (foco && foco.closest && foco.closest(`[data-conducto="${CSS.escape(b.red || '')}"]`)) return false;
-    const r = await C.postJson('api/equipo/conducto', { equipoId: b.equipoId, red: b.red, ...(b.cuerpo || {}) });
-    /* Un «no» del servidor (permiso, equipo que ya no existe) no se reintenta para siempre. */
-    AG.olvidar(clave);
-    if (r.ok && ficha && r.equipo && ficha.equipo.id === r.equipo.id) {
-      ficha = r;
-      if (activa() && !hoja && pestanaEq === 'balanceo' && !escribiendoEnApp()) { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); }
-    }
-    return true;
   }
 
   /*
@@ -979,7 +905,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     const inc = f.incidenciaEquipo;
     if (!inc) return '';
     const bl = inc.bloqueo || [];
-    const lineas = bl.map((b) => `<p class="nota inc-aviso bloqueo-inc">Bloqueado por <button type="button" class="enlace" data-cx="ir-incidencia" data-id="${esc(b.id)}">${esc(b.codigo)}${b.titulo ? ` · ${esc(b.titulo)}` : ''}</button><span class="bloqueo-texto">No se pueden tomar datos hasta que se termine o se cierre.</span></p>`);
+    const lineas = bl.map((b) => `<p class="nota inc-aviso bloqueo-inc">Bloqueado por <button type="button" class="enlace" data-cx="ir-incidencia" data-id="${esc(b.id)}">${esc(b.codigo)}${b.titulo ? ` · ${esc(b.titulo)}` : ''}</button>. No se pueden tomar datos hasta que se termine o se cierre.</p>`);
     if (inc.revalidar) {
       lineas.push(`<p class="nota inc-aviso revalidar-inc">Revalidar tras ${esc(inc.revalidar.tras)}${inc.revalidar.desde ? ` <span class="tenue">· desde el ${fechaCorta(inc.revalidar.desde)}</span>` : ''}${inc.puedeValidar ? ` <button type="button" class="boton secundario" data-cx="validar-tras-inc">Marcar como validado</button>` : ''}</p>`);
     } else if (inc.ultimaValidacion) {
@@ -1040,8 +966,6 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       estadoPM: (cj && cj.estadoPM) || k.estadoPM, ensayoRequerido: req,
       balanceoEstado: k.balanceoEstado, estanqueidadEstado: k.estanqueidadEstado,
       envio: cj ? cj.envio : k.envio, falta: (cj ? cj.falta : k.falta) || [],
-      /* 19-nov: la pastilla «Cambiado respecto a proyecto» (shared/commissioning/fichaEquipo.js › cambioProyecto). */
-      ...(f.equipo && f.equipo.modeloProyecto ? { modeloProyecto: f.equipo.modeloProyecto, marcaProyecto: f.equipo.marcaProyecto, marca: f.equipo.marca, modelo: f.equipo.modelo } : {}),
     };
   }
   /* LA FRANJA DEL EQUIPO (13-nov-2026, JC): «N de M pasos», un único botón lleno «Continuar: <siguiente ficha>» y «En plano».
@@ -1085,7 +1009,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     const fe = FE();
     const datos = fe && estadoParaLinea(f);
     const trozos = datos ? fe.lineaEstado(datos, { nombrePM: nombreEstado }) : [];
-    return trozos.length ? `<p class="linea-estado-eq">${trozos.map((t) => `<span class="chip ${esc(t.tono)}"${t.titulo ? ` title="${esc(t.titulo)}"` : ''}>${esc(t.texto)}</span>`).join('')}</p>` : '';
+    return trozos.length ? `<p class="linea-estado-eq">${trozos.map((t) => `<span class="chip ${esc(t.tono)}">${esc(t.texto)}</span>`).join('')}</p>` : '';
   }
 
   /* Las reparaciones de la obra se piden al abrir el equipo y se filtran aquí (las de sus unidades también). */
@@ -1463,9 +1387,13 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     /* Lo que se mide de su familia manda (15-oct-2026): un split no enseña un
        balanceo vacío y un fan coil de conductos sí lo enseña. Un plano que ya
        tenga bocas se enseña siempre. */
-    if (f.planos.length) return true;
-    if (f.medicion) return Boolean(f.medicion.plano);
     const fs = (fichasEq && fichasEq.fichas) || [];
+    /* 15-nov-2026 (JC): las unidades de VRF y split no se balancean: llevan la estanqueidad de su conjunto. */
+    if (fs.some((x) => x.clase === 'estanqRefrigerante') && !fs.some((x) => x.clase === 'balanceo')) return false;
+    if (f.planos.length) return true;
+    /* 15-nov-2026 (JC): todo equipo que mueve aire lleva SIEMPRE su balanceo de caudales; si su familia lo pide, sale. */
+    if (fs.some((x) => x.clase === 'balanceo')) return true;
+    if (f.medicion) return Boolean(f.medicion.plano);
     const req = f.checklist ? f.checklist.ensayoRequerido : null;
     return fs.some((x) => x.clase === 'balanceo') || f.planos.length > 0 || req === 'balanceo' || req === 'ambos';
   }
@@ -1593,9 +1521,6 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     const balanceo = () => `
       ${hayDos ? `<div class="segmentado circuito-bal" role="tablist" aria-label="Circuito">${[['impulsion', 'Impulsión', cuenta(false)], ['retorno', nombreRet, cuenta(true)]]
         .map(([id, n, c]) => `<button role="tab" data-cx="circuito-bal" data-circuito="${id}" aria-selected="${circ === id}" class="${circ === id ? 'activa' : ''}">${esc(n)} <small>${c}</small></button>`).join('')}</div>` : ''}
-      <!-- 16-nov-2026, JC: el total medido/proyecto/bocas, encima del plano para tenerlo a mano. -->
-      ${circ !== 'retorno' ? totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión', f.tolerancias) : ''}
-      ${circ !== 'impulsion' ? totalCircuito(f.circuitos && f.circuitos.retorno, nombreRet, f.tolerancias) : ''}
             ${med.velocidad ? `<p class="nota">Una medida por boca, con el equipo a velocidad ${esc(med.velocidad)}.</p>` : ''}
       ${f.planos.length ? planosVistos.map((p) => `
         <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} boca${p.bocas.length === 1 ? '' : 's'}${circ ? ` de ${circ === 'retorno' ? esc(nombreRet.toLowerCase()) : 'impulsión'}` : ''}</span></h2>
@@ -1607,6 +1532,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
         ${circ !== 'retorno' ? htmlConducto(f, 'impulsion', 'Impulsión', puedeToma) : ''}
         ${circ !== 'impulsion' && (nRet || !todas.length) ? htmlConducto(f, 'retorno', nombreRet, puedeToma) : ''}
       </details>
+      ${circ !== 'retorno' ? totalCircuito(f.circuitos && f.circuitos.impulsion, 'Impulsión', f.tolerancias) : ''}
+      ${circ !== 'impulsion' ? totalCircuito(f.circuitos && f.circuitos.retorno, nombreRet, f.tolerancias) : ''}
       ${htmlRedModelo(f)}
       ${bloqueosDe(f).length ? htmlIncidenciaEquipo(f) : (puede || !f.planos.length ? '' : '<p class="nota">Tu rol puede ver las medidas, pero no tomarlas.</p>')}
       ${f.planos.length ? '<button class="boton secundario" data-cx="pdf-balanceo"><i class="ic ic-doc"></i>Informe del balanceo (PDF)</button>' : ''}
@@ -1657,7 +1584,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     cargarFotosLocales($app);
     pintarMiniPlano(f);
     if (firmando) prepararLienzo();
-    if (pestanaEq === 'balanceo') { restaurarBocas(); restaurarConductos(); restaurarPlano(); latirCrono(); }
+    if (pestanaEq === 'balanceo') { restaurarBocas(); restaurarPlano(); latirCrono(); }
     else { bocaAbierta = null; grandeId = null; document.body.classList.remove('sin-scroll'); }
   }
 
@@ -2710,13 +2637,13 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   /* La misma regla está en shared/commissioning/archivoPreparado.js, para «Preparar archivo» (y su ruta). */
   /* 19-nov (JC): una toma de datos sin fecha de ensayo ni firma (`sinFechaNiFirma`, lo calcula el servidor con
      shared/commissioning/fichas.js › fechaOFirma) no es «Completa» ni cuenta como puesta en marcha. */
-  const estadoVisible = (typeof window !== 'undefined' && window.ARCHIVO_PREPARADO && window.ARCHIVO_PREPARADO.estadoVisible) || ((estado, medidos, bocasSinMedir, sinFechaNiFirma) => {
+  const estadoVisible = (estado, medidos, bocasSinMedir, sinFechaNiFirma = false) => {
     if (sinFechaNiFirma && estado === 'completa') return 'pendiente';
     if (estado !== 'pendiente' || !medidos) return estado;
-    if (!medidos.rellenos) return 'sinEmpezar';
+    if (!medidos.rellenos) return medidos.escrito ? estado : 'sinEmpezar'; /* algo escrito y guardado: «A medias» (15-nov) */
     if (sinFechaNiFirma) return estado;
     return medidos.obligatorios && medidos.rellenos >= medidos.obligatorios && !(bocasSinMedir || []).length ? 'completa' : estado;
-  });
+  };
   const chipFicha = (estado0, resultado, medidos, bocasSinMedir, sinFechaNiFirma) => {
     const estado = estadoVisible(estado0, medidos, bocasSinMedir, sinFechaNiFirma);
     const [c, n] = ESTADO_FICHA[estado] || ['neutra', estado || ''];
@@ -2733,9 +2660,12 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     return `<i class="fe-punto ${tono}" role="img" aria-label="${esc(n)}" title="${esc(n)}"></i>`;
   }
   /* Nombres de ficha como los dice el técnico (13-nov): ni «CHECKLIST_UTA v1» ni «ESTANQ. AGUA». */
-  const TITULO_FICHA = { checklist: 'Checklist de instalación', fichaPM: 'Puesta en marcha', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo' };
-  const nombreFicha = (x) => TITULO_FICHA[x.clase] || x.nombre;
-  const CLASE_FICHA = { checklist: 'Checklist', fichaPM: 'Puesta en marcha', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo' };
+  /* Los mismos nombres de tipo que la hoja del plano (panelEquipoPlano TIPO_HOJA, 15-nov, JC). */
+  const TITULO_FICHA = { checklist: 'Checklist', fichaPM: 'Ficha de PM (toma de datos)', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo de caudales', equilibrado: 'Equilibrado hidráulico' };
+  /* Con libro propio de la edición, sus nombres (api/fichas › nombresHoja); sin él, los de arriba. */
+  const titulos = () => ({ ...TITULO_FICHA, ...((fichasEq && fichasEq.nombresHoja) || {}) });
+  const nombreFicha = (x) => titulos()[x.clase] || x.nombre;
+  const CLASE_FICHA = { checklist: 'Checklist', fichaPM: 'Puesta en marcha', estanqAgua: 'Estanqueidad', estanqRefrigerante: 'Estanqueidad', balanceo: 'Balanceo', equilibrado: 'Equilibrado hidráulico' };
 
   /* Lo que falta de una ficha, dicho con nombre: en la de balanceo, qué filas
      de caudal no tienen medido (y si son el total de la UTA por circuito,
@@ -2762,7 +2692,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
    */
   const esDefinitiva = (x) => ['completa', 'firmada'].includes(estadoVisible(x.estado, x.medidos, x.bocasSinMedir, x.sinFechaNiFirma));
   function htmlVerHoja(x, i) {
-    if (!x.plantilla || estadoVisible(x.estado, x.medidos, x.bocasSinMedir, x.sinFechaNiFirma) === 'sinFicha') return '';
+    /* 16-nov (JC): «vacía si no tiene nada»: la hoja se ve también sin empezar (sale en blanco, nunca «sin hoja»). */
+    if (!x.plantilla || !x.clave) return '';
     const def = esDefinitiva(x);
     return `<div class="ver-hoja"><button type="button" class="enlace" data-cx="ver-hoja" data-i="${i}">Ver hoja${def ? '' : ' (borrador)'}</button></div>`;
   }
@@ -2840,105 +2771,26 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     if (!fs.length && pestana === 'balanceo') return '';
     /* El balanceo, una fila más: abre las bocas del plano y la hoja. */
     const filaBal = pestana === 'equipo' && ficha && tieneBalanceo(ficha) ? htmlFilaBalanceo(ficha) : '';
-    /* Los papeles del equipo (20-nov, JC), plegados en una fila «Documentación» al final de la lista. */
-    const filaDocs = pestana === 'equipo' && ficha ? htmlFilaDocumentos(ficha) : '';
     /* Sin plano: qué se mide y dónde (un cassette, sus 3 velocidades; un split, la Tª de impulsión). */
-    const med = pestana === 'equipo' && ficha && !filaBal && ficha.medicion && ficha.medicion.titulo ? ficha.medicion : null;
+    const med = pestana === 'equipo' && ficha && ficha.medicion && ficha.medicion.titulo && !filaBal ? ficha.medicion : null;
     const notaMed = med ? `<p class="nota">Medición de aire: ${esc(med.texto.charAt(0).toLowerCase() + med.texto.slice(1))}.</p>` : '';
     const vacio = pestana === 'equipo' && !(fichasEq.fichas || []).length
       ? 'Este equipo no tiene familia asignada: se le pone en el ordenador (Puesta en marcha).' : 'Sin fichas.';
     return `<section id="fichas-equipo" data-plegable>
       <h2>${esc(titulo)} <span class="cuenta">${fs.length + (filaBal ? 1 : 0)}</span></h2>
-      ${fs.length || filaBal || filaDocs ? `<ul class="lista-ios filas-ficha sin-tarjetas">${fs.map(([x, i]) => (!x.plantilla ? `
+      ${fs.length || filaBal ? `<ul class="lista-ios filas-ficha sin-tarjetas">${fs.map(([x, i]) => (!x.plantilla ? `
         <li class="fila-ficha"><div class="fila-ios apagada">
           <i class="fe-punto" aria-hidden="true"></i>
           <div class="fila-principal"><strong>${esc(x.nombre)}</strong><span class="sub">${esc(x.motivo || 'Falta elegir la plantilla')}. Se elige en el ordenador (Puesta en marcha).</span></div>
         </div></li>` : `
         <li class="fila-ficha"><button class="fila-ios" data-cx="hoja" data-i="${i}">
           ${puntoFicha(x)}
-          <div class="fila-principal"><strong>${esc(nombreFicha(x))}</strong><span class="sub">${esc([x.versionToma > 1 ? `v${x.versionToma}` : null, x.motivo, textoMedidos(x), x.fotos ? `${x.fotos} foto${x.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · ') || estadoFichaTexto(x))}</span></div>
+          <div class="fila-principal"><strong>${esc(nombreFicha(x))}</strong><span class="sub">${esc([x.deConjunto ? `del conjunto ${x.deConjunto}` : null, x.clase === 'equilibrado' ? 'todo el sistema de clima, por plantas' : null, x.motivo, textoMedidos(x), x.fotos ? `${x.fotos} foto${x.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · ') || estadoFichaTexto(x))}</span></div>
           ${x.resultado && RESULTADO[x.resultado] ? `<span class="chip ${RESULTADO[x.resultado][0]}">${esc(RESULTADO[x.resultado][1])}</span>` : ''}
           <span class="fe-ir" aria-hidden="true">›</span>
-        </button>${htmlVerHoja(x, i)}${htmlVersionesFicha(x, i)}</li>`)).join('')}${filaBal}${filaDocs}</ul>` : `<p class="vacio">${esc(vacio)}</p>`}
+        </button>${htmlVerHoja(x, i)}</li>`)).join('')}${filaBal}</ul>` : `<p class="vacio">${esc(vacio)}</p>`}
       ${notaMed}
     </section>`;
-  }
-
-  /* 20-nov (JC): las versiones anteriores de una hoja que salió NO APTO, plegadas; se leen tal cual se cerraron. */
-  function htmlVersionesFicha(x, i) {
-    const vs = (x.versiones || []).filter((v) => !v.actual);
-    if (!vs.length) return '';
-    return `<details class="versiones-ficha"><summary>Versiones anteriores · ${vs.length}</summary><ul class="lista-ios filas-ficha sin-tarjetas">${vs.map((v) => `
-        <li class="fila-ficha"><button class="fila-ios" data-cx="hoja-version" data-i="${i}" data-v="${v.n}">
-          <i class="fe-punto ${v.resultado === 'noApto' ? 'mal' : v.resultado === 'apto' ? 'bien' : ''}" aria-hidden="true"></i>
-          <div class="fila-principal"><strong>v${v.n}</strong><span class="sub">${esc([fechaCorta(v.fecha), v.autor, v.firmada ? 'firmada' : null, v.fotos ? `${v.fotos} foto${v.fotos === 1 ? '' : 's'}` : null].filter(Boolean).join(' · ') || 'Sin fecha')}</span></div>
-          ${v.resultado && RESULTADO[v.resultado] ? `<span class="chip ${RESULTADO[v.resultado][0]}">${esc(RESULTADO[v.resultado][1])}</span>` : ''}
-          <span class="fe-ir" aria-hidden="true">›</span>
-        </button></li>`).join('')}</ul></details>`;
-  }
-
-  /*
-   * LA DOCUMENTACIÓN DEL EQUIPO EN SU FICHA (20-nov-2026, JC, sobre UTA-N10-PITCH 03: «aquí también tiene que estar la
-   * ficha técnica del equipo, marcado CE, manual de instrucciones, puesta en marcha del fabricante si la hay»). Los datos
-   * llegan con el equipo (api/equipo › documentos: la misma fuente que el panel del plano) y las filas salen de la pieza
-   * compartida (panelEquipoPlano.filasDocumentosEquipo). Una fila «Documentación» plegable, con la misma fila, punto y
-   * flecha que las fichas; dentro, una fila por papel que abre su PDF, o «Falta» si no está.
-   */
-  const filasDocsDe = (f) => {
-    const P = window.PANEL_EQUIPO_PLANO;
-    return P && P.filasDocumentosEquipo && Array.isArray(f.documentos) ? P.filasDocumentosEquipo(f.documentos) : null;
-  };
-  function htmlFilaDocumentos(f) {
-    const filas = filasDocsDe(f);
-    if (!filas) return '';
-    const faltan = filas.filter((x) => x.estado === 'falta').map((x) => x.titulo);
-    const sub = faltan.length ? `Falta: ${faltan.join(', ')}` : 'Ficha técnica, marcado CE, manual y puesta en marcha';
-    let n = 0;
-    const filaPapel = (x) => {
-      if (x.estado !== 'doc') {
-        return `<li class="fila-ficha"><div class="fila-ios apagada">
-            <i class="fe-punto mal" aria-hidden="true"></i>
-            <div class="fila-principal"><strong>${esc(x.titulo)}</strong><span class="sub">No está en la documentación del equipo.</span></div>
-            <span class="chip mal">Falta</span><span></span>
-          </div></li>`;
-      }
-      return x.archivos.map((a) => {
-        const i = n++;
-        const pie = [a.unidadTag, a.nombre, a.nivel === 'modelo' ? 'del modelo' : null].filter(Boolean).join(' · ');
-        if (!a.url) {
-          return `<li class="fila-ficha"><div class="fila-ios apagada">
-            <i class="fe-punto aviso" aria-hidden="true"></i>
-            <div class="fila-principal"><strong>${esc(x.titulo)}</strong><span class="sub">${esc(pie)} · está en el ordenador de la oficina</span></div>
-            <span></span><span></span>
-          </div></li>`;
-        }
-        return `<li class="fila-ficha"><button class="fila-ios" data-cx="ver-doc-equipo" data-clave="${esc(x.clave)}" data-n="${i}">
-            <i class="fe-punto bien" aria-hidden="true"></i>
-            <div class="fila-principal"><strong>${esc(x.titulo)}</strong><span class="sub">${esc(pie)}</span></div>
-            <span></span>
-            <span class="fe-ir" aria-hidden="true">›</span>
-          </button></li>`;
-      }).join('');
-    };
-    return `
-        <li class="fila-ficha fila-docs"><details class="docs-equipo">
-          <summary class="fila-ios">
-            <i class="fe-punto ${faltan.length ? 'mal' : 'bien'}" aria-hidden="true"></i>
-            <div class="fila-principal"><strong>Documentación</strong><span class="sub">${esc(sub)}</span></div>
-            ${faltan.length ? `<span class="chip mal">${faltan.length === 1 ? 'Falta 1' : `Faltan ${faltan.length}`}</span>` : '<span></span>'}
-            <span class="fe-ir" aria-hidden="true">›</span>
-          </summary>
-          <ul class="lista-ios filas-ficha sin-tarjetas docs-lista">${filas.map(filaPapel).join('')}</ul>
-        </details></li>`;
-  }
-  /* Abrir un papel: el subido desde el teléfono, en la vista previa de la app; el enlace del SharePoint, en el navegador. */
-  function verDocEquipo(b) {
-    const filas = ficha && filasDocsDe(ficha);
-    if (!filas) return;
-    const a = filas.flatMap((x) => (x.estado === 'doc' ? x.archivos.map((y) => ({ ...y, titulo: x.titulo })) : []))[Number(b.dataset.n)];
-    if (!a || !a.url) return;
-    if (/^api\//.test(a.url)) { compartirPdf(a.url, `${[ficha.equipo.tag, a.titulo].filter(Boolean).join(' - ')}.pdf`, b); return; }
-    window.open(a.url, '_blank', 'noopener');
   }
 
   /* Split y VRF: lo guardado antes en otra unidad del conjunto, para leerlo (no cuenta). */
@@ -2989,7 +2841,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     return `
         <li class="fila-ficha"><button class="fila-ios" data-cx="ver-balanceo">
           ${puntoBalanceo(chip)}
-          <div class="fila-principal"><strong>Balanceo</strong><span class="sub">${esc([sub, extra].filter(Boolean).join(' · '))}</span></div>
+          <div class="fila-principal"><strong>${esc(titulos().balanceo)}</strong><span class="sub">${esc([sub, extra].filter(Boolean).join(' · '))}</span></div>
           <span class="fe-ir" aria-hidden="true">›</span>
         </button></li>`;
   }
@@ -3137,15 +2989,14 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     }
   }
 
-  async function abrirHoja(i, version = null) {
+  async function abrirHoja(i) {
     const x = fichasEq && fichasEq.fichas[i];
     if (!x) return;
     /* Lo tecleado en la toma de datos y sin guardar sigue en la hoja completa. */
-    const t = version ? null : tomas.get(claveToma(x));
-    /* 20-nov: con `version`, una anterior (solo lectura): sin borradores. */
-    const ref = { obra: fichasEq.equipo.obraId, clave: x.clave, plantilla: x.plantilla, ...(version ? { version: String(version) } : {}) };
+    const t = tomas.get(claveToma(x));
+    const ref = { obra: fichasEq.equipo.obraId, clave: x.clave, plantilla: x.plantilla };
     /* La misma ficha aún guardándose (se salió hace un momento): se sigue con ella, no con una copia. */
-    const viva = version ? null : (t && t.f && t.cambiada) ? t : vivas.get(claveBorrador(ref));
+    const viva = (t && t.f && t.cambiada) ? t : vivas.get(claveBorrador(ref));
     if (viva && viva.f && viva.cambiada) {
       tomas.delete(claveToma(x));
       viva.nombre = nombreFicha(x);
@@ -3162,7 +3013,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       /* La red del modelo se pide a la vez: la hoja de balanceo abre ya con su plano (JC, 12-nov). */
       const [r, red] = await Promise.all([C.pedir(`api/ficha?${new URLSearchParams(ref)}`), pedirRed(x)]);
       if (!r.ok) throw new Error(r.error);
-      hoja = version ? nuevaHoja(ref, nombreFicha(x), r) : await recuperarBorrador(nuevaHoja(ref, nombreFicha(x), r));
+      hoja = await recuperarBorrador(nuevaHoja(ref, nombreFicha(x), r));
       ponerRed(hoja, red);
       hoja.fotoUi = x.papel === 'UI' && x.unidadId ? { equipoId: x.unidadId, tag: x.unidadTag || '' } : null;
       pintarHoja();
@@ -3262,14 +3113,16 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     return p.desv !== null && p.desv !== undefined ? `<span class="desv ${cr}">${cifra(p.desv * 100, 1)} %${nr ? ` · ${esc(nr)}` : ''}</span>` : (nr ? `<span class="desv ${cr}">${esc(nr)}</span>` : '');
   }
 
-  function filaParametro(p, ed) {
+  function filaParametro(p, ed, sinColFab = false) {
     const dis = ed ? '' : 'disabled';
     const casilla = (k, n) => casillaParametro(p, k, n, dis);
     const desv = desvParametro(p);
     /* Caudal de aire: de dónde sale el medido (lo tecleado ahora es del equipo). */
     const tecleado = hoja.valores[p.codigo] && hoja.valores[p.codigo].m !== undefined;
     const origen = p.origen ? ` <span class="tenue">· ${esc(tecleado ? 'medido en equipo' : p.origen)}</span>` : '';
-    return `<div class="pp"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${origen}${desv}</span>${casilla('p', 'Proyecto')}${casilla('f', 'Fabricante')}${casilla('m', 'Medido')}</div>${notaFoto(p, ed, tecleado)}`;
+    /* El caudal de agua de un terminal (equilibrado hidráulico) no tiene dato de fabricante: proyecto frente a medido. */
+    const fab = sinColFab ? '' : p.sinFabricante ? `<input class="cifra" disabled aria-label="${esc(`${p.etiqueta} · Fabricante (no aplica)`)}" value="">` : casilla('f', 'Fabricante');
+    return `<div class="pp"><span class="et">${esc(p.etiqueta)}${obligatorioDe(p)}${unidadDe(p)}${origen}${desv}</span>${casilla('p', 'Proyecto')}${fab}${casilla('m', 'Medido')}</div>${notaFoto(p, ed, tecleado)}`;
   }
   /* LA Tª DEL TERMÓMETRO, TECLEADA POR EL TÉCNICO (5-nov-2026, JC eligió la D: el
      móvil no lee la pantalla de siete segmentos —Tesseract falla, docs/ocr-termometro-prueba-1105.md—).
@@ -3292,10 +3145,12 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   /* Una sección: banda fina con su título y las filas debajo. */
   function htmlSeccion(s, ed) {
     if (s.tipo === 'parametros') {
+      /* Sin ningún dato de fabricante en la sección (el caudal de agua de cada terminal): sin esa columna. */
+      const sinFab = s.puntos.length > 0 && s.puntos.every((p) => p.sinFabricante);
       return `<h3 class="banda">${esc(enFrase(s.titulo))}</h3>
-        <section class="hoja-tabla param">
-          <div class="pp cab"><span></span><span>Proyecto</span><span>Fabric.</span><span>Medido</span></div>
-          ${s.puntos.map((p) => filaParametro(p, ed)).join('')}
+        <section class="hoja-tabla param${sinFab ? ' sin-fab' : ''}">
+          <div class="pp cab"><span></span><span>Proyecto</span>${sinFab ? '' : '<span>Fabric.</span>'}<span>Medido</span></div>
+          ${s.puntos.map((p) => filaParametro(p, ed, sinFab)).join('')}
         </section>`;
     }
     const resp = s.puntos.every((p) => BOTONES_RESP[p.tipo]);
@@ -3403,11 +3258,14 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       else trozos.push({ secs: [s], html: htmlSeccion(s, ed) });
     }
     const pasos = [];
+    /* Equilibrado hidráulico (15-nov): un paso por PLANTA (caudales y válvulas juntos, «Planta P1»); no se mezcla con otra. */
+    const plantaDe = (t) => t.secs[0].planta || null;
     for (const t of trozos) {
       const n = t.secs.reduce((a, s) => a + s.puntos.length, 0);
       const ult = pasos[pasos.length - 1];
-      if (ult && !t.solo && !ult.solo && ult.n + n <= PUNTOS_POR_PASO) { ult.secs.push(...t.secs); ult.html += t.html; ult.n += n; }
-      else pasos.push({ ...t, secs: [...t.secs], n, titulo: t.secs[0].tipo === 'checklist' && t.secs[0].numero ? tituloSeccion(t.secs[0]) : (LADO_RE.exec(t.secs[0].titulo || '') || [null, t.secs[0].titulo])[1] });
+      const pl = plantaDe(t);
+      if (ult && !t.solo && !ult.solo && pl === ult.planta && (pl || ult.n + n <= PUNTOS_POR_PASO)) { ult.secs.push(...t.secs); ult.html += t.html; ult.n += n; }
+      else pasos.push({ ...t, secs: [...t.secs], n, planta: pl, titulo: pl ? (/^planta\b/i.test(pl) ? pl : `Planta ${pl}`) : t.secs[0].tipo === 'checklist' && t.secs[0].numero ? tituloSeccion(t.secs[0]) : (LADO_RE.exec(t.secs[0].titulo || '') || [null, t.secs[0].titulo])[1] });
     }
     return pasos;
   }
@@ -3568,11 +3426,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       ${red ? `${htmlRedHoja(red, ed && !f.bloqueo)}${ensayoRed}` : ''}
       ${red || f.plantilla.codigo === 'BALANCEO_CAUDALES' || !ficha ? '' : htmlPlanoEquipo(ficha, true)}
       ${f.plantilla.codigo === 'BALANCEO_CAUDALES' ? '' : barraMini(equipoDeFicha(h.ref), trabajoDeFicha(h.ref), ed && !(ficha && bloqueosDe(ficha).length))}
-      ${f.soloLectura ? `<p class="nota version-anterior"><strong>Versión ${f.versionToma} de ${f.versionActual}</strong>, anterior: se conserva tal cual se cerró y solo se lee.</p>` : ''}
-      ${ed || f.soloLectura ? '' : `<p class="nota aviso">${f.firmada ? 'La ficha está firmada: ya no se cambia.' : 'Tu rol puede ver la ficha, pero no rellenarla.'}</p>`}
-      ${f.versionActual > 1 && !f.soloLectura ? `<p class="nota">Versión ${f.versionToma}: la que cuenta. Las anteriores se ven en la lista de fichas del equipo.</p>` : ''}
-      ${f.puedeNuevaVersion ? `<div class="fila-botones"><button class="boton grande secundario" data-cx="nueva-version">Abrir nueva versión (v${f.versionToma + 1})</button></div><p class="nota">Salió NO APTO: la versión ${f.versionToma} se conserva con sus fotos y firmas, y la nueva empieza en blanco para medir tras el arreglo.</p>` : ''}
-      ${f.marca ? `<p class="marca-mant" style="margin:6px 0;padding:3px 10px;border:2px solid var(--vd-info);color:var(--vd-info);font-weight:700;letter-spacing:.12em;display:inline-block;border-radius:4px">${esc(f.marca)}</p>` : ''}
+      ${ed ? '' : `<p class="nota aviso">${f.firmada ? 'La ficha está firmada: ya no se cambia.' : 'Tu rol puede ver la ficha, pero no rellenarla.'}</p>`}
+      ${f.marca ? `<p class="marca-mant" style="margin:6px 0;padding:3px 10px;border:2px solid #2b6cb0;color:#2b6cb0;font-weight:700;letter-spacing:.12em;display:inline-block;border-radius:4px">${esc(f.marca)}</p>` : ''}
       ${porPasos && !esEstanq ? `<nav class="pasos-hoja" role="tablist" aria-label="Apartados de la hoja">
         ${pasos.map((p, i) => `<button role="tab" class="${i === actual ? 'activa' : ''}" aria-selected="${i === actual}" data-cx="paso-hoja" data-paso="${i}"><span class="t">${esc(p.titulo)}</span><span class="marca">${marcaPaso(p)}</span></button>`).join('')}
         <button role="tab" class="${actual === pasos.length ? 'activa' : ''}" aria-selected="${actual === pasos.length}" data-cx="paso-hoja" data-paso="${pasos.length}"><span class="t">Cierre</span><span class="marca"></span></button>
@@ -3583,7 +3438,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       <textarea class="obs" rows="3" ${ed ? '' : 'disabled'} data-h-obs placeholder="Lo que haya que contar (obligatorio si algo sale «No»)">${esc(h.observaciones !== undefined ? h.observaciones : f.observaciones || '')}</textarea>
       ${esEstanq ? '' : htmlFotosHoja(f, ed, fotosGuardadas, h, q, total)}
       <div data-falta-red>${htmlLoQueFalta(f, porPasos ? pasos : null, FALTAN_VISTOS)}</div>
-      ${f.bloqueo ? `<p class="nota inc-aviso bloqueo-inc">Bloqueado por <button type="button" class="enlace" data-cx="ir-incidencia" data-id="${esc(f.bloqueo.id)}">${esc(f.bloqueo.codigo)}${f.bloqueo.titulo ? ` · ${esc(f.bloqueo.titulo)}` : ''}</button><span class="bloqueo-texto">La hoja solo se puede ver.</span></p>` : ''}
+      ${f.bloqueo ? `<p class="nota inc-aviso bloqueo-inc">Bloqueado por <button type="button" class="enlace" data-cx="ir-incidencia" data-id="${esc(f.bloqueo.id)}">${esc(f.bloqueo.codigo)}${f.bloqueo.titulo ? ` · ${esc(f.bloqueo.titulo)}` : ''}</button>: la hoja solo se puede ver.</p>` : ''}
       ${f.avisos.length ? `<p class="nota aviso">${esc(f.avisos.join(' · '))}</p>` : ''}
       <div class="barra-hoja">
         <button class="boton grande secundario" data-cx="pdf-hoja"><i class="ic ic-doc"></i>Informe PDF</button>
@@ -3941,7 +3796,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   function guardarTodoYa() {
     const hs = [hoja, ...tomas.values()].filter((h) => h && h.f && h.cambiada);
     for (const h of hs) escribirBorrador(h);
-    return Promise.all([...hs.map((h) => autoguardar(h, { forzar: true })), guardarConductosYa()]);
+    return Promise.all(hs.map((h) => autoguardar(h, { forzar: true })));
   }
 
   /* Lo que se llama «Guardar» por dentro: guardar ya, y decir si ha ido bien. */
@@ -3968,26 +3823,6 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   const compartirPdf = (...a) => C.compartirPdf(...a);
 
   /* sinMedidos: la hoja para rellenar a mano en obra (proyecto sí, medidos no). */
-  /* 20-nov (JC): tras un NO APTO, la versión siguiente; la anterior queda congelada en el servidor. */
-  async function nuevaVersionHoja(boton) {
-    const h = hoja;
-    if (!h || !h.f.puedeNuevaVersion) return;
-    if (!window.confirm(`La versión ${h.f.versionToma} (NO APTO) se conserva tal cual y se abre la ${h.f.versionToma + 1} en blanco. ¿Seguir?`)) return;
-    if (h.cambiada && h.f.editable && !(await guardarHoja())) return;
-    boton.disabled = true;
-    try {
-      const r = await C.postJson('api/ficha/nueva-version', { obraId: h.ref.obra, clave: h.ref.clave, plantilla: h.ref.plantilla });
-      if (!r || r.ok === false) throw new Error((r && r.error) || 'No se ha podido abrir la versión nueva.');
-      hoja = nuevaHoja({ obra: h.ref.obra, clave: h.ref.clave, plantilla: h.ref.plantilla }, h.nombre, r);
-      hoja.red = h.red; hoja.fotoUi = h.fotoUi;
-      tomas.delete(`${h.ref.clave}|${h.ref.plantilla}`);
-      if (ficha) cargarFichas(ficha.equipo.id);
-      pintarHoja();
-      window.scrollTo(0, 0);
-      C.aviso(`Abierta la versión ${r.nueva}.`);
-    } catch (e) { boton.disabled = false; C.aviso(e.message); }
-  }
-
   async function pdfHoja(boton, sinMedidos = false) {
     if (hoja.cambiada && hoja.f.editable && !(await guardarHoja())) return;
     const tag = ficha ? ficha.equipo.tag : hoja.f.titulo;
@@ -4550,11 +4385,9 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     /* Ya no hay botón: la subpantalla (toma de datos y guardadas antes) queda para quien la invoque. */
     else if (que === 'ver-fichas' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'fichas'; pintarFicha(); window.scrollTo(0, 0); if (fichasEq) cargarTomas(ficha.equipo.id); }
     else if (que === 'ver-incidencias' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'incidencias'; pintarFicha(); window.scrollTo(0, 0); cargarIncidenciasEq(ficha); }
-    else if (que === 'ficha-equipo' && ficha && directoPlano && origenPlano) { guardarConductosYa(); volverAlPlano(); }
-    else if (que === 'ficha-equipo' && ficha) { guardarConductosYa(); document.body.classList.remove('sin-scroll'); pestanaEq = 'equipo'; pintarFicha(); window.scrollTo(0, 0); }
+    else if (que === 'ficha-equipo' && ficha && directoPlano && origenPlano) volverAlPlano();
+    else if (que === 'ficha-equipo' && ficha) { document.body.classList.remove('sin-scroll'); pestanaEq = 'equipo'; pintarFicha(); window.scrollTo(0, 0); }
     else if (que === 'hoja') abrirHoja(Number(b.dataset.i));
-    else if (que === 'hoja-version') abrirHoja(Number(b.dataset.i), Number(b.dataset.v));
-    else if (que === 'nueva-version') nuevaVersionHoja(b);
     else if (que === 'volver-equipo') salirHoja();
     /* Fin del checklist (JC, 28-oct): guarda lo pendiente y vuelve al equipo;
        si no se ha podido guardar, se queda en la hoja con el aviso del error. */
@@ -4620,7 +4453,6 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     else if (que === 'quitar-foto-equipo') quitarFotoEquipo(b);
     else if (que === 'foto-colocar' || que === 'foto-deshacer') colocarPorFoto(b, que);
     else if (que === 'ver-hoja') verHoja(b);
-    else if (que === 'ver-doc-equipo') verDocEquipo(b);
     else if (que === 'preparar-archivo' && ficha) prepararArchivo(b);
     else if (que === 'ver-archivo' && ficha) compartirPdf(`api/equipo/archivo-preparado?id=${encodeURIComponent(b.dataset.id)}`, (fichasEq && fichasEq.archivo && fichasEq.archivo.nombre) || 'Archivo.pdf', b);
     else if (que === 'nube-ahora' && window.cxObra && window.cxObra.sync) { b.disabled = true; window.cxObra.sync.ahora().finally(() => { if (ficha) abrir(ficha.equipo.id, { quieto: true }); }); }
@@ -4737,7 +4569,6 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     if (activa() && hoja) { anotar(ev.target); if (ev.target.matches && ev.target.matches('.bal-zona textarea')) altoTexto(ev.target); return; }
     if (activa() && firmando && ev.target.hasAttribute && ev.target.hasAttribute('data-firma-nombre')) { apuntarFirma(); return; }
     if (activa() && anotarToma(ev.target)) return;
-    if (activa() && !hoja && ev.target.dataset && ev.target.dataset.cond) { const caja = ev.target.closest('[data-conducto]'); if (caja) { apuntarConducto(caja); guardarConductoPronto(caja); } return; }
     if (activa() && ev.target.dataset && ev.target.dataset.punto) { const li = ev.target.closest('li[data-boca]'); if (li) { vivoBoca(li); apuntarBoca(li); guardarBocaPronto(li); } return; }
     if (!activa() || !ev.target.hasAttribute('data-cx-buscar')) return;
     filtro = ev.target.value;
@@ -4767,17 +4598,6 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       if (sig && casillas(sig)[0]) casillas(sig)[0].focus(); else ev.target.blur();
     }
     saltando = false;
-  });
-  /* El conducto principal se manda al salir de su caja (no al saltar entre sus casillas). */
-  $app.addEventListener('focusout', (ev) => {
-    if (!activa() || hoja || !ev.target.dataset || !ev.target.dataset.cond) return;
-    const caja = ev.target.closest('[data-conducto]');
-    if (!caja || (ev.relatedTarget && caja.contains(ev.relatedTarget))) return;
-    if (!ficha) return;
-    const clave = claveBorradorConducto(ficha.equipo.id, caja.dataset.conducto);
-    clearTimeout(relojConducto.get(clave));
-    relojConducto.delete(clave);
-    mandarConducto(clave);
   });
   /* Se guarda al salir de la BOCA, no de cada casilla: saltar de M1 a M2 no guarda. */
   $app.addEventListener('focusout', (ev) => {
@@ -4842,7 +4662,6 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     COLA.registrar('ficha.', enviarBorradorFicha);
     COLA.registrar('fotoEquipo.', enviarFotoEquipoPendiente);
     COLA.registrar('boca.', enviarBocaPendiente);
-    COLA.registrar('conducto.', enviarConductoPendiente);
     COLA.registrar('serie.', enviarSeriePendiente);
   }
   if (activa()) cargarLista();

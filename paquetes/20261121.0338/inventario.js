@@ -24,8 +24,7 @@
   const { esc, cifra } = C;
   const activa = () => C.activa('inventario');
 
-  /* Las listas van de 40 en 40 con ‹ › (C.paginar); al cambiar de pestaña, filtro, búsqueda u obra, vuelven a la primera. */
-  const primeraPagina = () => { for (const k of ['inv-almacen', 'inv-mov', 'inv-rec', 'inv-pedidos']) C.reiniciarPagina(k); };
+  const POR_PAGINA = 60;
   let datos = null;       // api/inventario/almacen
   let pedidos = null;     // api/inventario (la tabla de pedidos)
   let pestana = 'almacen';
@@ -33,6 +32,7 @@
   let texto = '';
   let abierta = null;     // clave del material que se está tocando ('__nuevo' = material fuera de la lista)
   let edicion = {};       // lo escrito en el editor abierto
+  let limite = POR_PAGINA;
   let ocupado = false;
   let borrador = new Map(); // clave → línea del recuento sin guardar
 
@@ -158,8 +158,7 @@
     const q = texto.trim().toLowerCase();
     const todas = datos.filas;
     const filas = todas.filter(pasa).filter((f) => !q || `${f.descripcion} ${f.codigo || ''} ${f.ubicacion || ''}`.toLowerCase().includes(q));
-    /* 19-nov (sin listas infinitas): de 40 en 40 con ‹ ›, no un «Ver más» que no acaba. */
-    const { trozo: visibles, pie } = C.paginar('inv-almacen', filas, { repintar: pintar });
+    const visibles = filas.slice(0, limite);
     const sinContar = todas.filter((f) => f.contado === null && !f.fuera).length;
     const FILTROS = [['todo', 'Todo'], ['porContar', 'Por contar'], ['contados', 'Contados'], ['fuera', 'Fuera de lista']];
     return `
@@ -170,7 +169,7 @@
       ${datos.puede.contar ? `<button class="boton secundario invc-nuevo" data-inv="nuevo">${abierta === '__nuevo' ? 'Cerrar' : '+ Material que no está en la lista'}</button>` : ''}
       ${abierta === '__nuevo' ? editor(null) : ''}
       ${visibles.length ? `<div class="invc"><div class="cab"><span>Material</span><span>Debería</span><span>Hay</span></div>${visibles.map(filaAlmacen).join('')}</div>
-        ${pie}`
+        ${filas.length > visibles.length ? `<button class="boton secundario" data-inv="mas">Ver ${cifra(Math.min(POR_PAGINA, filas.length - visibles.length))} más (${cifra(filas.length - visibles.length)} sin ver)</button>` : ''}`
     : `<p class="vacio">${q || filtro !== 'todo' ? 'Nada con ese filtro.' : 'Esta obra no tiene materiales todavía.'}</p>`}`;
   }
 
@@ -180,19 +179,17 @@
     const fecha = (v) => (C.fechaEs ? C.fechaEs(v) : v);
     const movs = datos.movimientos;
     const recs = datos.recuentos;
-    const pagMov = C.paginar('inv-mov', movs, { repintar: pintar });
-    const pagRec = C.paginar('inv-rec', recs, { repintar: pintar });
     return `
       <h3 class="invc-titulo">Movimientos</h3>
-      ${movs.length ? `<div class="invc"><div class="cab cab-mov"><span>Material</span><span>Cantidad</span></div>${pagMov.trozo.map((m) => `<div class="invc-fila mov">
+      ${movs.length ? `<div class="invc"><div class="cab cab-mov"><span>Material</span><span>Cantidad</span></div>${movs.map((m) => `<div class="invc-fila mov">
         <div class="mat"><strong>${esc(m.descripcion || m.codigo)}</strong><small><span class="chip ${m.tipo === 'salida' ? 'aviso' : m.tipo === 'entrada' ? 'bien' : 'info'}">${esc(m.tipoTexto)}</span> ${esc(fecha(m.fecha))}${m.persona ? ` · ${esc(m.persona)}` : ''}${m.ubicacion ? ` · ${esc(m.ubicacion)}` : ''}</small>${m.notas ? `<small>${esc(m.notas)}</small>` : ''}</div>
         <b>${m.tipo === 'salida' ? '−' : '+'}${num(m.cantidad)}${m.unidad ? ` <small>${esc(m.unidad)}</small>` : ''}</b>
-      </div>`).join('')}</div>${pagMov.pie}` : '<p class="vacio">Todavía no hay movimientos en esta obra.</p>'}
+      </div>`).join('')}</div>` : '<p class="vacio">Todavía no hay movimientos en esta obra.</p>'}
       <h3 class="invc-titulo">Recuentos</h3>
-      ${recs.length ? `<div class="invc"><div class="cab cab-mov"><span>Recuento</span><span>Líneas</span></div>${pagRec.trozo.map((r) => `<div class="invc-fila mov">
+      ${recs.length ? `<div class="invc"><div class="cab cab-mov"><span>Recuento</span><span>Líneas</span></div>${recs.map((r) => `<div class="invc-fila mov">
         <div class="mat"><strong>${esc(r.nombre)}</strong><small>${esc(fecha(r.fecha))}${r.persona ? ` · ${esc(r.persona)}` : ''}</small></div>
         <b>${cifra(r.lineas)}</b>
-      </div>`).join('')}</div>${pagRec.pie}` : '<p class="vacio">Todavía no hay recuentos hechos desde el móvil.</p>'}`;
+      </div>`).join('')}</div>` : '<p class="vacio">Todavía no hay recuentos hechos desde el móvil.</p>'}`;
   }
 
   /* ── Los pedidos (la tabla de siempre) */
@@ -203,16 +200,15 @@
     if (!pedidos || !pedidos.ok) return `<div class="vacio mal"><p>${esc((pedidos && pedidos.error) || 'No se han podido cargar los pedidos.')}</p></div>`;
     const q = texto.trim().toLowerCase();
     const filas = (pedidos.filas || []).filter((f) => !q || `${f.descripcion} ${f.referencia || ''} ${f.pedido || ''} ${f.proveedor || ''}`.toLowerCase().includes(q));
-    const pagPed = C.paginar('inv-pedidos', filas, { repintar: pintar });
     return `
       <input type="search" class="buscar" placeholder="Buscar material, referencia o pedido" value="${esc(texto)}" data-inv-buscar>
-      ${filas.length ? `<div class="invc"><div class="cab cab-ped"><span>Material</span><span>Pedido</span><span>Llegado</span><span>Instal.</span></div>${pagPed.trozo.map((f) => {
+      ${filas.length ? `<div class="invc"><div class="cab cab-ped"><span>Material</span><span>Pedido</span><span>Llegado</span><span>Instal.</span></div>${filas.slice(0, 300).map((f) => {
     const [clase, nombre] = ESTADO[f.estado] || ['neutra', f.estado];
     return `<div class="invc-fila ped">
       <div class="mat"><strong>${esc(f.descripcion)}</strong><small>${esc([f.referencia, f.unidad, f.pedido].filter(Boolean).join(' · '))} <span class="chip ${clase}">${esc(nombre)}</span></small></div>
       <b>${num(f.cantidadPedida)}</b><b class="${f.faltaLlegar ? 'aviso' : ''}">${num(f.llegado)}</b><b class="${f.estado === 'instalado' ? 'bien' : ''}">${num(f.instalado)}</b>
     </div>`;
-  }).join('')}</div>${pagPed.pie}` : `<p class="vacio">${q ? 'Nada con ese filtro.' : 'Esta obra no tiene pedidos.'}</p>`}`;
+  }).join('')}</div>` : `<p class="vacio">${q ? 'Nada con ese filtro.' : 'Esta obra no tiene pedidos.'}</p>`}`;
   }
 
   function pintar() {
@@ -307,13 +303,13 @@
     const t = ev.target;
     const p = t.closest('[data-inv-pestana]');
     if (p) {
-      pestana = p.dataset.invPestana; abierta = null; edicion = {}; texto = ''; primeraPagina();
+      pestana = p.dataset.invPestana; abierta = null; edicion = {}; texto = ''; limite = POR_PAGINA;
       if (pestana === 'pedidos') cargarPedidos().then(() => { if (activa()) pintar(); });
       else pintar();
       return;
     }
     const f = t.closest('[data-inv-filtro]');
-    if (f) { filtro = f.dataset.invFiltro; primeraPagina(); pintar(); return; }
+    if (f) { filtro = f.dataset.invFiltro; limite = POR_PAGINA; pintar(); return; }
     const m = t.closest('[data-inv-mov]');
     if (m) { mover(m.dataset.invMov); return; }
     const a = t.closest('[data-inv]');
@@ -323,6 +319,7 @@
       else if (que === 'contar') contar();
       else if (que === 'guardar') guardarRecuento();
       else if (que === 'descartar') { borrador = new Map(); guardarBorrador(); pintar(); }
+      else if (que === 'mas') { limite += POR_PAGINA; pintar(); }
       else if (que === 'nuevo') { if (abierta === '__nuevo') { abierta = null; edicion = {}; } else { abierta = '__nuevo'; edicion = {}; } pintar(); }
       return;
     }
@@ -336,14 +333,14 @@
     const t = ev.target;
     if (t.hasAttribute('data-inv-campo')) { edicion[t.dataset.invCampo] = t.value; return; }
     if (!t.hasAttribute('data-inv-buscar')) return;
-    texto = t.value; primeraPagina();
+    texto = t.value; limite = POR_PAGINA;
     const pos = t.selectionStart;
     pintar();
     const i = $app.querySelector('[data-inv-buscar]');
     if (i) { i.focus(); i.setSelectionRange(pos, pos); }
   });
 
-  window.addEventListener('movil:obra', () => { if (activa()) { abierta = null; edicion = {}; texto = ''; filtro = 'todo'; primeraPagina(); cargar(); } });
+  window.addEventListener('movil:obra', () => { if (activa()) { abierta = null; edicion = {}; texto = ''; filtro = 'todo'; limite = POR_PAGINA; cargar(); } });
   window.addEventListener('hashchange', () => { if (activa()) cargar(); });
   if (activa()) cargar();
 })();

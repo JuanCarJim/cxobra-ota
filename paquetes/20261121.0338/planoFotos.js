@@ -13,11 +13,11 @@
   const css = `.pe-fotos{margin:10px 0 4px}.pe-fotos h4{margin:0 0 6px;font-size:13px}
   .pe-fotos ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
   .pe-fotos li{margin:0;min-width:0}.pe-fotos button{all:unset;display:block;width:100%;cursor:pointer}
-  .pe-fotos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:var(--rejillaSuave,var(--borde));display:block}
-  .pe-fotos .pie{font-size:11px;color:var(--textoTenue);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pe-fotos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:var(--rejillaSuave,#eee);display:block}
+  .pe-fotos .pie{font-size:11px;color:var(--textoTenue,#666);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pe-foto-grande{position:fixed;inset:0;z-index:2000;background:rgba(20,24,32,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:8px}
   .pe-foto-grande img{max-width:100%;max-height:82vh;object-fit:contain;border-radius:6px}
-  .pe-foto-grande p{color:var(--blanco);margin:0;font-size:13px;text-align:center}`;
+  .pe-foto-grande p{color:#fff;margin:0;font-size:13px;text-align:center}`;
 
   function ponerCss() {
     if (document.getElementById('pe-fotos-css')) return;
@@ -38,7 +38,7 @@
     if (!fotos.length) return '';
     return `<h4>Fotos del equipo <span class="tenue">${fotos.length}</span></h4><ul>${fotos.map((f) => {
       const pie = [f.tag, f.pie, f.hora].filter(Boolean).join(' · ');
-      return `<li><button type="button" data-pe-foto-ver="${esc(f.url)}" data-pie="${esc(pie)}"><img loading="lazy" data-src="${esc(f.url)}" alt="${esc(f.pie || 'Foto')}"></button>${pie ? `<div class="pie">${esc(pie)}</div>` : ''}</li>`;
+      return `<li><button type="button" data-pe-foto-ver="${esc(f.url)}" data-pie="${esc(pie)}"><img loading="lazy" src="${esc(f.url)}" alt="${esc(f.pie || 'Foto')}"></button>${pie ? `<div class="pie">${esc(pie)}</div>` : ''}</li>`;
     }).join('')}</ul>`;
   }
 
@@ -51,14 +51,8 @@
       const j = r.ok ? await r.json() : null;
       const fotos = j && j.ok && Array.isArray(j.fotos) ? j.fotos : [];
       cache.set(id, fotos);
-      if (el.isConnected && el.getAttribute('data-pe-fotos') === id) { el.innerHTML = lista(fotos); cargar(el); }
+      if (el.isConnected && el.getAttribute('data-pe-fotos') === id) el.innerHTML = lista(fotos);
     } catch { /* sin conexión: la hoja sigue sin fotos */ }
-  }
-
-  /* 19-nov: las fotos de `api/…` piden la sesión (X-Sesion): con <img src> directo el navegador no la manda y salen rotas.
-     Van con data-src y las trae CX.cargarImagenes (fetch con la sesión), como el resto del móvil. */
-  function cargar(raiz) {
-    if (window.CX && typeof window.CX.cargarImagenes === 'function') window.CX.cargarImagenes(raiz);
   }
 
   function revisar(raiz) {
@@ -68,10 +62,9 @@
   function verGrande(url, pie) {
     const d = document.createElement('div');
     d.className = 'pe-foto-grande';
-    d.innerHTML = `<img data-src="${esc(url)}" alt="${esc(pie || 'Foto')}">${pie ? `<p>${esc(pie)}</p>` : ''}`;
+    d.innerHTML = `<img src="${esc(url)}" alt="${esc(pie || 'Foto')}">${pie ? `<p>${esc(pie)}</p>` : ''}`;
     d.addEventListener('click', () => d.remove());
     document.body.appendChild(d);
-    cargar(d);
   }
 
   function arrancar() {
@@ -80,8 +73,8 @@
     new MutationObserver((cambios) => {
       for (const c of cambios) for (const n of c.addedNodes) {
         if (n.nodeType !== 1) continue;
-        if (n.matches && n.matches('[data-pe-fotos]')) { cargar(n); rellenar(n); }
-        else if (n.querySelector && n.querySelector('[data-pe-fotos]')) { cargar(n); revisar(n); }
+        if (n.matches && n.matches('[data-pe-fotos]')) rellenar(n);
+        else if (n.querySelector && n.querySelector('[data-pe-fotos]')) revisar(n);
       }
     }).observe(document.body, { childList: true, subtree: true });
     document.addEventListener('click', (ev) => {

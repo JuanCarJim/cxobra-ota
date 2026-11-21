@@ -10,7 +10,7 @@
  * su organización; fueraDeUso a la entrada y filtrarSalida a la salida, en la edge function).
  *
  * LO QUE SE COMPARTE, UNA SOLA VEZ, entre Obras (escritorio y web), Cx (móvil), Gestor y Cálculo:
- *   · el motor: la edge function `iarvis` de cxobra-sync (shared/ia/motor.js, Claude);
+ *   · el motor: la edge function `iarvis` de la nube de la edición (shared/ia/motor.js, Claude);
  *   · el historial: ia_mensajes, con la conversación de la sesión en contexto.conversacion;
  *   · las herramientas: las de cada app, por rol, leído en el servidor (registroAcciones.js para
  *     escritorio y web, catalogo.js para el móvil; Gestor y Cálculo enchufan las suyas aquí);

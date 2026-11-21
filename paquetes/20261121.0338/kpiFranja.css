@@ -28,7 +28,6 @@
   --kpiActiva: var(--foco, var(--vd-granate, #7B2232));
   --kpiSelFondo: var(--vd-sel-suave, transparent);
 }
-:root[data-tema='oscuro'] { --kpiAlerta: var(--vd-granate, #E8A3AE); --kpiActiva: var(--vd-granate, #E8A3AE); }
 
 /* ── La franja ─────────────────────────────────────────────────────────── */
 :root body :is(.kpis:not(.kpisControl), .bandaCx:not(.bandaQH), .franjaPm) {

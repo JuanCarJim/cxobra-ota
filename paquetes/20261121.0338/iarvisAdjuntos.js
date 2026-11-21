@@ -138,33 +138,27 @@
   }
 
   /*
-   * Adónde va cada tipo. `pantalla` es el destino de ir() en renderer/app.js (el mismo id que abre la pantalla) y
+   * Adónde va cada tipo. `pantalla` es el destino de irAPantalla() en renderer/iarvisGestor.js (el mismo id que abre la pantalla) y
    * `importador` el fichero que ya lo lee: la pantalla lo usa con sus validaciones y su alcance.
    */
   const DESTINOS = {
-    bc3: { pantalla: 'presupuestos', accion: 'Importarlo como presupuesto nuevo (o versión) — la base de estudios no se toca', importador: 'shared/presupuesto/bc3.js parsearBC3', estado: 'importa' },
-    excel: { pantalla: 'pedidos', accion: 'Iarvis lo lee (hojas, columnas, totales, fechas); reconocer las columnas y llevarlo a su tabla (equipos «por confirmar», mediciones, compras…)', importador: 'shared/importacion/reconocer.js + shared/ia/lectorDocumentos.js', estado: 'importa' },
-    csv: { pantalla: 'pedidos', accion: 'Conciliarlo en Pedidos (la conciliación de esa pantalla)', importador: 'shared/compras/conciliacion.js leerCsv', estado: 'importa' },
-    'correo-msg': { pantalla: 'reclamaciones', accion: 'Leer el correo y sus adjuntos y guardarlo como prueba del claim', importador: 'electron/lectura/correoMsg.js (electron/data/reclamaciones.js)', estado: 'importa' },
-    zip: { pantalla: 'documentacion', accion: 'Abrir el paquete y clasificar cada documento', importador: 'electron/data/fuenteDocumentos.js', estado: 'importa' },
-    pdf: { pantalla: 'documentacion', accion: 'Iarvis lo lee y lo resume; clasificarlo en la documentación de la obra', importador: 'shared/importacion/pdf.js leerPdf + shared/importacion/clasificarDocumento.js', estado: 'lee' },
-    imagen: { pantalla: 'documentacion', accion: 'Iarvis la mira (foto, plano escaneado) y dice qué es', importador: null, estado: 'lee' },
-    project: { pantalla: 'gantt', accion: 'Pasar las tareas y fechas al Gantt', importador: null, estado: 'pendiente' },
+    excel: { pantalla: 'inicio', accion: 'Importarlo con el botón «Importar» de la cabecera de la obra (reconoce las columnas y valida antes de entrar)', importador: 'electron/data/importar (botón Importar)', estado: 'importa' },
+    pdf: { pantalla: 'documentacionProyecto', accion: 'Iarvis lo lee y lo resume; clasificarlo en la documentación del proyecto', importador: null, estado: 'lee' },
+    imagen: { pantalla: 'documentacionProyecto', accion: 'Iarvis la mira (foto, plano escaneado) y dice qué es', importador: null, estado: 'lee' },
+    bc3: { pantalla: 'estudio', accion: 'Pasarlo a Estudio y oferta como presupuesto nuevo (la base no se toca)', importador: null, estado: 'pendiente' },
+    csv: { pantalla: 'pedidosEntregas', accion: 'Llevarlo a Pedidos y entregas', importador: null, estado: 'pendiente' },
+    'correo-msg': { pantalla: 'reclamacionesCliente', accion: 'Guardar el correo como prueba de la reclamación', importador: null, estado: 'pendiente' },
+    zip: { pantalla: 'documentacionProyecto', accion: 'Abrir el paquete y clasificar cada documento', importador: null, estado: 'pendiente' },
+    project: { pantalla: 'programa', accion: 'Pasar las tareas y fechas al programa de obra', importador: null, estado: 'pendiente' },
     ifc: { pantalla: 'commissioning', accion: 'Sacar los equipos del modelo, todos «por confirmar»', importador: null, estado: 'pendiente' },
-    word: { pantalla: 'documentacion', accion: 'Guardarlo en la documentación', importador: null, estado: 'pendiente' },
-    'correo-eml': { pantalla: 'reclamaciones', accion: 'Iarvis lo lee: qué es, quién, fechas, importes, papeles citados y si huele a claim', importador: 'shared/ia/lectorDocumentos.js', estado: 'lee' },
+    word: { pantalla: 'documentacionProyecto', accion: 'Guardarlo en la documentación', importador: null, estado: 'pendiente' },
+    'correo-eml': { pantalla: 'reclamacionesCliente', accion: 'Leer el correo y guardarlo en la documentación', importador: null, estado: 'pendiente' },
   };
 
-  /*
-   * LO QUE FALTA (entradas claras para quien lo haga, por orden de JC: Project primero):
-   *   project     .mpp (OLE2) y .xml de Project → tareas, fechas y dependencias al Gantt
-   *   ifc         ISO-10303-21 → IfcFlowTerminal/IfcEnergyConversionDevice… como equipos «por confirmar»
-   *   word        .docx → texto (word/document.xml) para resumirlo
-   */
   const PENDIENTES = Object.entries(DESTINOS).filter(([, d]) => d.estado === 'pendiente').map(([t]) => t);
 
   function proponerDestino(tipo) {
-    return DESTINOS[tipo] || { pantalla: 'documentacion', accion: 'Guardarlo en la documentación', importador: null, estado: 'pendiente' };
+    return DESTINOS[tipo] || { pantalla: 'documentacionProyecto', accion: 'Guardarlo en la documentación', importador: null, estado: 'pendiente' };
   }
 
   /** Lo que Sonnet puede leer directamente (bloques de la API de Claude). */

@@ -28,9 +28,40 @@
   /* CON EL TECLADO ABIERTO el iPhone desplaza la vista hacia arriba: la
      cabecera se iba y la hora pisaba las tarjetas (29-oct, JC, al buscar).
      La cabecera baja lo que se ha desplazado la vista, siempre arriba. */
+  /* HUECO DE LA HORA (19-nov, JC): tras recargar por una OTA, el iPhone a veces
+     da 0 en env(safe-area-inset-top) y «Hola, Juan» se montaba sobre la hora.
+     Se mide el hueco real, se recuerda el último bueno y, si sale 0 en un
+     iPhone, se usa el recordado (o 47 px si nunca se midió). */
+  (function huecoArriba() {
+    const CLAVE = 'cx-hueco-arriba';
+    const medir = () => {
+      const p = document.createElement('div');
+      p.style.cssText = 'position:fixed;top:0;left:0;height:env(safe-area-inset-top);width:0;visibility:hidden';
+      document.documentElement.appendChild(p);
+      const h = Math.round(p.getBoundingClientRect().height);
+      p.remove();
+      return h;
+    };
+    const esIphone = /iPhone|iPod/.test(navigator.userAgent || '');
+    const fijar = () => {
+      const h = medir();
+      let guardado = 0;
+      try { guardado = Number(localStorage.getItem(CLAVE)) || 0; } catch { /* sin almacenamiento */ }
+      if (h > 0) {
+        try { localStorage.setItem(CLAVE, String(h)); } catch { /* sin almacenamiento */ }
+        document.documentElement.style.removeProperty('--arriba-seguro');
+      } else if (esIphone && window.matchMedia('(orientation: portrait)').matches) {
+        document.documentElement.style.setProperty('--arriba-seguro', `${guardado || 47}px`);
+      }
+    };
+    fijar();
+    window.addEventListener('resize', fijar);
+    window.addEventListener('pageshow', fijar);
+    setTimeout(fijar, 500);
+  })();
   if (window.visualViewport) {
     const vv = window.visualViewport;
-    const ajustar = () => document.documentElement.style.setProperty('--vv-arriba', `${Math.max(0, Math.round(vv.offsetTop))}px`);
+    const ajustar =() => document.documentElement.style.setProperty('--vv-arriba', `${Math.max(0, Math.round(vv.offsetTop))}px`);
     vv.addEventListener('resize', ajustar);
     vv.addEventListener('scroll', ajustar);
     ajustar();
@@ -138,9 +169,9 @@
     /* 28-oct: la inspección del sitio de cada semana (qhse.js). */
     { seccion: 'qhse', nombre: 'Inspección del sitio', ayuda: 'QHSE: la de esta semana, control de subcontratas, CAE', obra: true, pasos: ['[data-qh="tipo"][data-p="inspeccionObra"]', '[data-qh="nuevo"][data-p="inspeccionObra"]'],
       icono: svg('<path d="M9 4.5h6M9 4.5A1.5 1.5 0 0 0 7.5 6H6a1.5 1.5 0 0 0-1.5 1.5v11A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 18 6h-1.5A1.5 1.5 0 0 0 15 4.5"/><path d="M8.5 13l2.5 2.5 4.5-5"/>') },
-    /* 17-nov (JC): el recorrido de zona: planta o zona y los puntos numerados con foto e industrial (recorridosZona.js). */
-    { seccion: 'recorridos', nombre: 'Recorrido de zona', ayuda: 'Puntos que otros tienen que liberar: foto, qué e industrial', obra: true, pasos: ['[data-rz="nuevo"]'],
-      icono: svg('<path d="M5 19.5V6.5L9.5 4.5l5 2 4.5-2v13l-4.5 2-5-2z"/><path d="M9.5 4.5v13M14.5 6.5v13"/>') },
+    /* 18-nov (JC): el recorrido de una zona con los puntos que otros industriales tienen que liberar (recorridos.js). */
+    { seccion: 'recorridos', nombre: 'Recorrido de zona', ayuda: 'Puntos que otros industriales tienen que liberar, con foto', obra: true, pasos: ['[data-rz="nuevo"]'],
+      icono: svg('<path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/>') },
   ];
 
   /* El título de cada sección, arriba: corto, que en el iPhone quepa junto a la pastilla (18-oct). */
@@ -154,7 +185,9 @@
   const SIN_OBRA = new Set(['cuenta', 'albaranes', 'jornada', 'mas']);
 
   const sesion = () => (window.ACCESO_MOVIL && window.ACCESO_MOVIL.sesion()) || null;
-  const permitidas = () => { const s = sesion(); return s ? ['inicio', ...(s.secciones || []), 'iarvis', 'cuenta'].concat('mas') : []; }; /* 7-nov: Iarvis, todo rol (iarvisMovil.js). */
+  /* 7-nov: Iarvis, todo rol (iarvisMovil.js). 15-nov: salvo que la empresa no tenga su licencia (s.iarvis === false). */
+  const iarvisSi = (s) => Boolean(s) && s.iarvis !== false;
+  const permitidas = () => { const s = sesion(); return s ? ['inicio', ...(s.secciones || []), ...(iarvisSi(s) ? ['iarvis'] : []), 'cuenta'].concat('mas') : []; };
   const seccion = () => location.hash.slice(1);
   const pestanaDe = (s) => { const p = BR().pestanaDeSeccion((sesion() || {}).rol, secsSesion(), s); return p ? pestanas().find((x) => x.id === p.id) || null : null; };
 
@@ -423,49 +456,6 @@
   function reiniciarLista(clave) { const st = estadoLista(clave); st.cuantos.clear(); }
 
   /*
-   * PÁGINAS ‹ › (19-nov, regla de JC del 17-nov: ninguna pantalla con listas infinitas).
-   * Para las tablas que no se agrupan: se ven de POR_PAGINA en POR_PAGINA con el pie de los
-   * recorridos (‹ «1–40 de 984» ›). El trozo lo pinta quien llama; el pie cambia de página
-   * y vuelve a pintar con o.repintar. reiniciarPagina(clave) al cambiar de filtro o de obra.
-   */
-  const POR_PAGINA = 40;
-  const paginas = new Map(); /* clave → { pagina, repintar } */
-  function paginar(clave, filas, o = {}) {
-    const st = paginas.get(clave) || { pagina: 0, repintar: null };
-    paginas.set(clave, st);
-    if (o.repintar) st.repintar = o.repintar;
-    const por = o.porPagina || POR_PAGINA;
-    const total = Math.max(1, Math.ceil(filas.length / por));
-    if (st.pagina >= total) st.pagina = total - 1;
-    if (st.pagina < 0) st.pagina = 0;
-    /* o.ir: índice de la fila que tiene que verse (la elegida en el plano). Solo salta cuando cambia,
-       para que ‹ › sigan moviendo la página con una fila elegida. */
-    if (o.ir !== undefined && o.ir !== st.ir) { st.ir = o.ir; if (o.ir >= 0) st.pagina = Math.floor(o.ir / por); }
-    const desde = st.pagina * por;
-    const trozo = filas.slice(desde, desde + por);
-    const pie = filas.length > por ? `<div class="paginas-lista" data-paginas="${esc(clave)}">
-      <button type="button" class="boton secundario" data-pag-lista="${esc(clave)}" data-d="-1" aria-label="Página anterior" ${st.pagina ? '' : 'disabled'}>‹</button>
-      <span class="cifra">${cifra(desde + 1)}–${cifra(desde + trozo.length)} de ${cifra(filas.length)}</span>
-      <button type="button" class="boton secundario" data-pag-lista="${esc(clave)}" data-d="1" aria-label="Página siguiente" ${st.pagina < total - 1 ? '' : 'disabled'}>›</button></div>` : '';
-    return { trozo, pie };
-  }
-  function reiniciarPagina(clave) { const st = paginas.get(clave); if (st) st.pagina = 0; }
-  document.addEventListener('click', (ev) => {
-    const b = ev.target.closest && ev.target.closest('[data-pag-lista]');
-    if (!b) return;
-    const st = paginas.get(b.dataset.pagLista);
-    if (!st) return;
-    st.pagina += Number(b.dataset.d) || 0;
-    /* La página nueva se lee desde arriba de la lista, no desde donde quedó el pie. */
-    if (st.repintar) {
-      st.repintar();
-      const pie = document.querySelector(`[data-paginas="${CSS.escape(b.dataset.pagLista)}"]`);
-      const lista = pie && pie.previousElementSibling;
-      if (lista && lista.scrollIntoView) lista.scrollIntoView({ block: 'start' });
-    }
-  });
-
-  /*
    * BLOQUES QUE SE PLIEGAN (28-oct, JC: «todas esas tarjetas deben de poder plegarse
    * y desplegarse»). Una sola pieza para todo el móvil:
    *   · cabecera(id, titulo, extra): el botón de la cabecera (aria-expanded) con el
@@ -537,7 +527,7 @@
   window.CX = {
     plegable,
     esc, pedir, postJson, aviso, subirFoto, elegirFoto, cargarImagenes, fechaEs, cifra, compartirPdf,
-    listaAgrupada, reiniciarLista, abrirGrupoLista, paginar, reiniciarPagina,
+    listaAgrupada, reiniciarLista, abrirGrupoLista,
     obra: () => obras.find((o) => o.id === obraId) || null,
     obraId: () => obraId,
     obras: () => obras,
@@ -731,6 +721,7 @@
     const fila = document.querySelector('.barra-fila');
     if (!fila) return;
     let b = document.getElementById('boton-iarvis');
+    if (!iarvisSi(sesion())) { if (b) b.remove(); return; }
     if (!b) {
       b = document.createElement('a');
       b.id = 'boton-iarvis';
@@ -876,7 +867,7 @@
   /*
    * EL INICIO PINTA SEGÚN LLEGA (5-nov-2026, JC: «la app móvil tarda muchísimo
    * en arrancar»). En Vidaire Cx el motor corre en el MISMO hilo que la
-   * pantalla: las peticiones se calculan una tras otra, y con el NCN en un
+   * pantalla: las peticiones se calculan una tras otra, y con una obra grande en un
    * iPhone la planificación y el commissioning son decenas de segundos. Así:
    *   · se pinta al momento lo último que se vio de esta obra con «Actualizando…»;
    *   · las peticiones van de una en una, primero las ligeras, cediendo el hilo;

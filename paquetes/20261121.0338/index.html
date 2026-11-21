@@ -31,15 +31,11 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Vidaire Cx">
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="vidaire-tokens.css">
 <script>
-/* La paleta Vidaire y su tema (9-nov): antes de pintar, para que no parpadee. SIEMPRE claro/arena como el escritorio
-   (JC, 9-nov): el oscuro solo si se pide a propósito (?tema=oscuro o lo guardado); el tema del teléfono NO cuenta. */
+/* La paleta Vidaire y su tema (9-nov): antes de pintar, para que no parpadee. SIEMPRE claro, como el escritorio. */
 (function () {
   var r = document.documentElement; r.setAttribute('data-paleta', 'vidaire');
-  var t = ''; try { t = (/[?&]tema=(claro|oscuro)/.exec(location.search) || [])[1] || localStorage.getItem('cx-tema') || ''; } catch (e) {}
   r.style.colorScheme = 'light';
-  if (t === 'oscuro') { r.setAttribute('data-tema', 'oscuro'); r.style.colorScheme = 'dark'; var m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', '#141B2D'); }
 })();
 </script>
 <link rel="stylesheet" href="movil.css">
@@ -204,6 +200,12 @@
 
 
 
+
+
+
+  <!-- 15-nov: los textos de la interfaz (shared/idioma.js), como en el escritorio. Iarvis los pide por clave
+       («ia.bienvenida», «ini.buenasNoches»…); sin esto salía la clave pelada. El idioma lo pone iarvisMovil.js
+       (15-nov, JC: «Iarvis tiene que saludar y hablar en todos los idiomas de la app»). -->
 
 
 

@@ -77,9 +77,6 @@
       const e = f.estanqueidadEstado && NOMBRE_EST[f.estanqueidadEstado] ? f.estanqueidadEstado : 'pendiente';
       trozos.push({ texto: NOMBRE_EST[e], tono: e === 'apta' ? 'bien' : e === 'noApta' ? 'mal' : 'neutra' });
     }
-    /* 19-nov (bloc 06b70f2c): lo instalado manda; si la placa no es lo de proyecto, se dice aquí. */
-    const cp = cambioProyecto(f);
-    if (cp) trozos.push({ texto: 'Cambiado respecto a proyecto', tono: 'aviso', titulo: `Proyecto: ${cp.proyecto} → instalado: ${cp.instalado}` });
     if (NOMBRE_ENVIO[f.envio]) trozos.push({ texto: NOMBRE_ENVIO[f.envio], tono: 'bien' });
     else {
       /* «Bloqueado por INC-…» ya lo dice su aviso, encima: aquí solo lo que falta (5-nov, la app móvil). */
@@ -87,20 +84,6 @@
       if (falta.length) trozos.push({ texto: `Falta ${falta.join(', ')}`, tono: 'aviso' });
     }
     return trozos;
-  }
-
-  /**
-   * ¿Lo instalado no es lo de proyecto? (shared/obra/proyectoInstalado.js guarda lo de proyecto una vez
-   * en `modeloProyecto` al poner la placa.) → null | { proyecto, instalado }
-   */
-  function cambioProyecto(f) {
-    const pr = String((f && f.modeloProyecto) || '').trim();
-    if (!pr) return null;
-    const PI = (typeof window !== 'undefined' && window.PROYECTO_INSTALADO) || (typeof require === 'function' ? (() => { try { return require('../obra/proyectoInstalado'); } catch { return null; } })() : null);
-    const igual = PI ? PI.mismoModelo(pr, f.modelo) : pr.toUpperCase().replace(/[^A-Z0-9]/g, '') === String(f.modelo || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (igual) return null;
-    const mod = (m, mo) => [m, mo].filter(Boolean).join(' ');
-    return { proyecto: mod(f.marcaProyecto || f.marca, pr), instalado: mod(f.marca, f.modelo) || '—' };
   }
 
   /**
@@ -117,7 +100,7 @@
         || String(b.creadoEn || b.fechaApertura || b.fecha || '').localeCompare(String(a.creadoEn || a.fechaApertura || a.fecha || '')));
   }
 
-  const API = { PESTANAS, PESTANA_DE_RUTA, pestanasDe, pestanaValida, rutaAFicha, lineaEstado, cambioProyecto, incidenciasDe, pideBalanceo, pideEstanqueidad };
+  const API = { PESTANAS, PESTANA_DE_RUTA, pestanasDe, pestanaValida, rutaAFicha, lineaEstado, incidenciasDe, pideBalanceo, pideEstanqueidad };
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   if (typeof window !== 'undefined') window.FICHA_EQUIPO_CX = API;
 }());

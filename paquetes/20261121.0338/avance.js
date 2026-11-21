@@ -121,7 +121,7 @@
     </div>`;
   }
 
-  /* Sin planos de avance pero con los de planta o de UTA (NCN): se dice, para que no parezca que no hay planos. */
+  /* Sin planos de avance pero con los de planta o de UTA: se dice, para que no parezca que no hay planos. */
   function otrosTexto() {
     const o = datos.otrosPlanos;
     if (!o || (!o.plantas && !o.bocas)) return '';

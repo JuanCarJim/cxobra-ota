@@ -11,7 +11,7 @@
  *      cómo están (recibido, faltan datos, tramitado, descartado) y lo que
  *      contesta el jefe de obra; si pide datos, se le contesta aquí.
  *   2. EL AVISO, con letra grande: el día (hoy), dónde, qué ha pasado (botones
- *      grandes), por qué (LIMAK, otro, no sé) y, si ha costado, quién estaba
+ *      grandes), por qué (el cliente, otro, no sé) y, si ha costado, quién estaba
  *      parado: la empresa (la nuestra o una subcontrata), cuántos operarios y
  *      cuántas horas o jornadas; o la máquina de alquiler. Fotos y PDF.
  *   3. ENVIADO, con su código. Sin conexión se guarda en el teléfono y sube
@@ -25,7 +25,7 @@
  * toque (`cx.borrador.avisoEnCurso`, fotos en IndexedDB). Al enviarlo pasa a
  * la bandeja de salida (`cx.borrador.aviso.<id>`) y lo manda COLA_GUARDADO
  * si no hay red; el servidor no lo duplica (mismo id = mismo aviso).
- * Además: cronómetro de la espera y si se avisó a LIMAK en el momento.
+ * Además: cronómetro de la espera y si se avisó al cliente en el momento.
  */
 (function avisosReclamables() {
   const $app = document.getElementById('app');
@@ -143,7 +143,7 @@
       <p class="nota">${esc(a.estadoAyuda || '')}${a.motivoDescarte ? `<br>Motivo: ${esc(a.motivoDescarte)}` : ''}</p>
       <p class="nota">Por: ${esc(a.causaNombre)}</p>
       ${a.espera ? `<p class="nota">Espera: de ${esc(a.espera.desde)} a ${esc(a.espera.hasta)} (${a.espera.minutos} min)</p>` : ''}
-      <p class="nota">${a.avisadoCliente ? `Avisado a LIMAK: ${esc(a.avisadoTexto)}` : 'Sin aviso a LIMAK en el momento'}</p>
+      <p class="nota">${a.avisadoCliente ? `Avisado al cliente: ${esc(a.avisadoTexto)}` : 'Sin aviso al cliente en el momento'}</p>
       ${a.lineas.map((l) => `<p class="nota">· ${esc(l.texto)}</p>`).join('')}
       ${a.nFotos ? `<p class="nota">${a.nFotos} foto${a.nFotos === 1 ? '' : 's'} o archivo${a.nFotos === 1 ? '' : 's'}</p>` : ''}
       ${a.comentarios.map((c) => `<div class="at-com ${c.pideDatos ? 'pide' : ''}"><b>${esc(c.mio ? 'Tú' : c.quien || '')}</b>${c.pideDatos ? ' (pide datos)' : ''}: ${esc(c.texto)}</div>`).join('')}
@@ -238,7 +238,7 @@
         <label>Desde<input type="time" data-at-campo="esperaDesde" value="${esc(f.esperaDesde)}"></label>
         <label>Hasta<input type="time" data-at-campo="esperaHasta" value="${esc(f.esperaHasta)}"></label>
       </div>
-      <h2>¿Avisaste a LIMAK en el momento?</h2>
+      <h2>¿Avisaste al cliente en el momento?</h2>
       <div class="at-opciones">${op('avisado', 'si', sino, 'Sí')}${op('avisado', 'no', sino, 'No')}</div>
       ${f.avisadoCliente ? `<div class="at-opciones at-tres">${medios.map((m) => op('medio', m.id, f.avisadoMedio, m.nombre)).join('')}</div>
         <div class="at-num">
@@ -333,7 +333,7 @@
     if (!form.categoria) { aviso('Elige qué ha pasado.'); return; }
     if (form.conCostes === null) { aviso('Di si ha costado gente o máquinas paradas.'); return; }
     if (form.esperaDesde && !form.esperaHasta) { aviso('Toca «Se acaba» cuando termine la espera (o borra la hora de empezar).'); return; }
-    if (form.avisadoCliente && !form.avisadoMedio) { aviso('¿Cómo avisaste a LIMAK? (WhatsApp, correo, llamada…)'); return; }
+    if (form.avisadoCliente && !form.avisadoMedio) { aviso('¿Cómo avisaste al cliente? (WhatsApp, correo, llamada…)'); return; }
     if (form.fotos.some((x) => x.subiendo)) { aviso('Espera a que acaben de subir las fotos.'); return; }
     boton.disabled = true;
     /* A la bandeja de salida: desde aquí ya no se pierde aunque se cierre la app. */

@@ -56,35 +56,11 @@
       return;
     }
     if (activa() && !form && !abierta) pintarLista();
-    cargarALiberar();
     /* 8-nov · Iarvis («abre la NCR-0003»): la NCR que abrir, como commissioning y reparaciones. */
     let ir = null;
     try { ir = sessionStorage.getItem('cx.abrir'); if (ir) sessionStorage.removeItem('cx.abrir'); } catch { /* nada */ }
     if (ir && activa() && datos && Array.isArray(datos.filas) && datos.filas.some((f) => f.id === ir)) abrir(ir);
   }
-
-  /*
-   * «A LIBERAR» (19-nov-2026, del Gestor 0ab363b): lo que otro industrial nos
-   * tiene que quitar para entrar de una vez. En Obras son los puntos de los
-   * RECORRIDOS DE ZONA (renderer/movil/recorridosZona.js: foto, qué e
-   * industrial; el PDF en español o inglés y el texto del correo, en el
-   * ordenador). Desde NCR se llega con un toque; si el rol no ve los
-   * recorridos, la entrada no sale.
-   */
-  let aLiberar = null; /* { obraId, n } o null */
-  async function cargarALiberar() {
-    const obraId = C.obraId();
-    if (!obraId) return;
-    let r = null;
-    try { r = await C.pedir(`api/recorridos?obraId=${encodeURIComponent(obraId)}&pagina=1`); } catch { r = null; }
-    aLiberar = r && r.ok ? { obraId, n: Number(r.aLiberar) || 0, puede: Boolean(r.puedeCrear) } : null;
-    if (activa() && !form && !abierta && datos) pintarLista();
-  }
-  const entradaALiberar = () => (aLiberar && aLiberar.obraId === C.obraId() ? `
-      <button class="fila-ios" data-ncr="a-liberar" style="margin:8px 0">
-        <div class="fila-principal"><strong>A liberar</strong><span>${aLiberar.n ? `<span class="chip aviso">${aLiberar.n} pendiente${aLiberar.n === 1 ? '' : 's'}</span>` : '<span class="chip bien">Nada pendiente</span>'}</span></div>
-        <div class="sub">Lo que otro industrial tiene que quitar para entrar: ${aLiberar.puede ? 'apunta cada punto con su foto en el recorrido de zona' : 'los puntos de los recorridos de zona'}</div>
-      </button>` : '');
 
   function pintarLista() {
     const todasLasFilas = datos.filas || [];
@@ -94,21 +70,17 @@
     const deOtros = fuera.filter((f) => f.alcance === 'deOtros').length;
     const sinClas = fuera.length - deOtros;
     const q = texto.trim().toLowerCase();
+    /* LOS PUNTOS A LIBERAR (16-nov-2026, JC): el recorrido de una zona, por zona; con ellos sale el reporte de zona. */
+    const b = AG.leer(clave());
+    const aLiberar = todasLasFilas.filter((f) => f.liberar && f.activa);
+    if (filtro === 'liberar') return pintarLiberar(todasLasFilas.filter((f) => f.liberar), aLiberar.length, b);
     const vistas = filas.filter((f) => (filtro === 'todas' ? true : filtro === 'abiertas' ? f.activa : !f.activa))
       .filter((f) => !solo || SOLO[solo][1](f))
       .filter((f) => !q || `${f.codigo} ${f.descripcion || ''} ${f.planta || ''} ${f.zona || ''}`.toLowerCase().includes(q));
-    const b = AG.leer(clave());
     $app.innerHTML = `
-      ${conContenido(b) ? `<section class="borrador-pendiente" role="status">
-        <p><strong>Tienes una NCR sin terminar</strong><br><small>${esc([b.codigo, String(b.descripcion || '').slice(0, 60), (b.fotos || []).length ? `${b.fotos.length} foto${b.fotos.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ') || 'Sin texto')}</small>
-        <br><small>${pendiente(b) ? 'Aún no ha llegado entera al ordenador: se subirá sola con conexión.' : b.enServidor ? 'Guardada en el ordenador como «sin terminar».' : 'Solo en este teléfono.'}</small></p>
-        <div class="fila-botones"><button class="boton" data-ncr="seguir">Seguir con ella</button><button class="boton secundario" data-ncr="descartar">Descartar</button></div>
-      </section>` : ''}
+      ${avisoBorrador(b)}
       ${datos.puede && datos.puede.crear ? '<button class="boton grande" data-ncr="nueva">＋ Nueva NCR</button>' : ''}
-      ${entradaALiberar()}
-      <div class="segmentado" role="tablist">
-        ${[['abiertas', `Abiertas ${abiertas}`], ['cerradas', `Cerradas ${filas.length - abiertas}`], ['todas', 'Todas']].map(([id, nombre]) => `<button role="tab" data-ncr-filtro="${id}" class="${filtro === id ? 'activa' : ''}" aria-selected="${filtro === id}">${esc(nombre)}</button>`).join('')}
-      </div>
+      ${segmentoFiltro(filas.length, abiertas, aLiberar.length)}
       <div class="segmentado" role="tablist" aria-label="Alcance">
         ${Object.entries(ALC).map(([id, nombre]) => `<button role="tab" data-ncr-alcance="${id}" class="${alcance === id ? 'activa' : ''}" aria-selected="${alcance === id}">${esc(nombre)}</button>`).join('')}
       </div>
@@ -118,12 +90,59 @@
       ${vistas.length ? C.listaAgrupada(`ncr-${filtro}`, vistas, {
         grupo: (f) => f.planta || 'Sin planta', buscando: !!q, repintar: pintarLista,
         orden: [...new Set(vistas.map((f) => f.planta || 'Sin planta'))].sort((a, b) => (a === 'Sin planta') - (b === 'Sin planta') || a.localeCompare(b, 'es', { numeric: true })),
-        fila: (f) => `
+        fila: filaNcr }) : `<p class="vacio">${q ? 'Ninguna NCR con ese texto.' : filtro === 'abiertas' ? 'No hay NCR abiertas en esta obra.' : 'No hay NCR.'}</p>`}`;
+  }
+
+  const avisoBorrador = (b) => (conContenido(b) ? `<section class="borrador-pendiente" role="status">
+        <p><strong>Tienes ${b.liberar ? 'un punto a liberar' : 'una NCR'} sin terminar</strong><br><small>${esc([b.codigo, String(b.descripcion || '').slice(0, 60), (b.fotos || []).length ? `${b.fotos.length} foto${b.fotos.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ') || 'Sin texto')}</small>
+        <br><small>${pendiente(b) ? 'Aún no ha llegado entera al ordenador: se subirá sola con conexión.' : b.enServidor ? 'Guardada en el ordenador como «sin terminar».' : 'Solo en este teléfono.'}</small></p>
+        <div class="fila-botones"><button class="boton" data-ncr="seguir">Seguir con ella</button><button class="boton secundario" data-ncr="descartar">Descartar</button></div>
+      </section>` : '');
+  const segmentoFiltro = (total, abiertas, liberar) => `<div class="segmentado" role="tablist">
+        ${[['abiertas', `Abiertas ${abiertas}`], ['cerradas', `Cerradas ${total - abiertas}`], ['todas', 'Todas'], ['liberar', `A liberar ${liberar}`]].map(([id, nombre]) => `<button role="tab" data-ncr-filtro="${id}" class="${filtro === id ? 'activa' : ''}" aria-selected="${filtro === id}">${esc(nombre)}</button>`).join('')}
+      </div>`;
+  const filaNcr = (f) => `
         <li><button class="fila-ios" data-ncr="${f.enAlta && f.mio ? 'retomar' : 'ficha'}" data-id="${esc(f.id)}">
           <div class="fila-principal"><strong class="cifra">${esc(f.codigo)}</strong><span>${chipPrioridad(f.prioridad)} ${f.enAlta ? '<span class="chip aviso">Sin terminar</span>' : chipEstado(f)}</span></div>
           <div class="texto-2">${esc(f.descripcion)}</div>
           <div class="sub">${f.alcance === 'deOtros' ? '<span class="chip neutra">De otros</span> ' : !f.alcance && f.sugerida ? `<span class="chip aviso">Sugerida: ${f.sugerida === 'nuestra' ? 'nuestra' : 'de otros'}</span> ` : !f.alcance && f.dudosa ? '<span class="chip aviso">Dudosa</span> ' : ''}${esc([f.planta, f.zona, f.disciplina].filter(Boolean).join(' · '))}${f.fechaDeteccion ? ` · ${fechaEs(f.fechaDeteccion)}` : ''}${f.fotos ? ` · ${f.fotos} foto${f.fotos === 1 ? '' : 's'}` : ''}</div>
-        </button></li>` }) : `<p class="vacio">${q ? 'Ninguna NCR con ese texto.' : filtro === 'abiertas' ? 'No hay NCR abiertas en esta obra.' : 'No hay NCR.'}</p>`}`;
+        </button></li>`;
+  const nombreZona = (f) => [f.planta, f.zona].filter(Boolean).join(' · ') || 'Sin zona';
+
+  /*
+   * EL RECORRIDO DE UNA ZONA (16-nov-2026, JC: «el móvil es la pieza
+   * principal»): cada punto que otro industrial tiene que liberar para que
+   * podamos entrar, con su foto, por zona y numerados como saldrán en el
+   * reporte. «Liberado» lo cierra y el siguiente reporte sale sin él. El PDF
+   * en español o en inglés y el texto del correo se sacan en el ordenador.
+   */
+  function pintarLiberar(filas, abiertos, b) {
+    const pend = filas.filter((f) => f.activa && !f.enAlta);
+    const enAlta = filas.filter((f) => f.enAlta);
+    const hechos = filas.filter((f) => !f.activa);
+    const num = new Map();
+    const porZona = new Map();
+    for (const f of [...pend].sort((x, y) => String(x.fechaDeteccion || '').localeCompare(String(y.fechaDeteccion || '')) || String(x.codigo).localeCompare(String(y.codigo), 'es', { numeric: true }))) {
+      const z = nombreZona(f);
+      porZona.set(z, (porZona.get(z) || 0) + 1);
+      num.set(f.id, porZona.get(z));
+    }
+    const vistas = [...enAlta, ...pend, ...hechos];
+    const fila = (f) => `
+        <li><button class="fila-ios" data-ncr="${f.enAlta && f.mio ? 'retomar' : 'ficha'}" data-id="${esc(f.id)}">
+          <div class="fila-principal"><strong class="cifra">${num.has(f.id) ? `Punto ${num.get(f.id)}` : esc(f.codigo)}</strong><span>${f.enAlta ? '<span class="chip aviso">Sin terminar</span>' : f.activa ? chipEstado(f) : '<span class="chip bien">Liberado</span>'}</span></div>
+          <div class="texto-2">${esc(f.descripcion)}</div>
+          <div class="sub">${f.industrialResponsable ? `Lo libera: <strong>${esc(f.industrialResponsable)}</strong> · ` : ''}${esc(f.codigo)}${f.fotos ? ` · ${f.fotos} foto${f.fotos === 1 ? '' : 's'}` : ' · <span class="chip aviso">Sin foto</span>'}</div>
+        </button></li>`;
+    $app.innerHTML = `
+      ${avisoBorrador(b)}
+      ${datos.puede && datos.puede.crear ? '<button class="boton grande" data-ncr="nueva-liberar">＋ Punto a liberar</button>' : ''}
+      ${segmentoFiltro((datos.filas || []).filter((f) => dentro(f, alcance)).length, (datos.filas || []).filter((f) => dentro(f, alcance) && f.activa).length, abiertos)}
+      <p class="nota">Lo que otro industrial tiene que quitar para que podamos entrar una vez y terminar la zona. Cada punto con su foto; el reporte en PDF (español o inglés) y el texto del correo salen en el ordenador, en NCR › Reporte de zona.</p>
+      ${vistas.length ? C.listaAgrupada('ncr-liberar', vistas, {
+        grupo: nombreZona, buscando: false, repintar: pintarLista,
+        orden: [...new Set(vistas.map(nombreZona))].sort((x, y) => (x === 'Sin zona') - (y === 'Sin zona') || x.localeCompare(y, 'es', { numeric: true })),
+        fila }) : '<p class="vacio">No hay puntos a liberar. Durante el recorrido, da de alta cada uno con «＋ Punto a liberar».</p>'}`;
   }
 
   /* ═══════════════════════════════════ 2. El alta */
@@ -144,7 +163,7 @@
   const AG = window.AUTOGUARDADO;
   const clave = () => `ncr.${C.obraId() || ''}`;
   const conContenido = (f) => Boolean(f && (String(f.descripcion || '').trim() || String(f.zona || '').trim() || f.planta || f.disciplina || (f.fotos || []).length));
-  const vacia = () => ({ descripcion: '', planta: '', zona: '', disciplina: '', prioridad: 'B', fotos: [], clave: clave(), obraId: C.obraId(),
+  const vacia = () => ({ descripcion: '', planta: '', zona: '', disciplina: '', prioridad: 'B', industrialResponsable: '', liberar: false, fotos: [], clave: clave(), obraId: C.obraId(),
     idAlta: AG.nuevoId(), enServidor: false, codigo: '', cambios: 0, subidos: 0, terminar: false });
   /* Lo mínimo para existir en el ordenador: qué pasa o una foto. */
   const minimo = (f) => Boolean(f && (String(f.descripcion || '').trim() || (f.fotos || []).length));
@@ -193,7 +212,7 @@
   }
 
   /* ── El alta en el ordenador: una petición cada vez. */
-  const CAMPOS = ['obraId', 'descripcion', 'planta', 'zona', 'disciplina', 'prioridad'];
+  const CAMPOS = ['obraId', 'descripcion', 'planta', 'zona', 'disciplina', 'prioridad', 'industrialResponsable', 'liberar'];
   let cadena = Promise.resolve(null);
   let enCola = 0;
   function guardarServidor(f, opciones = {}) {
@@ -264,6 +283,14 @@
     if (r && r.ok && f.terminado) {
       AG.borrar(f.clave);
       if (form === f) form = null;
+      if (f.liberar) {
+        /* En el recorrido: el siguiente punto, en la misma zona. */
+        recordarZona(f);
+        C.aviso(`Punto guardado (${r.codigo || f.codigo || 'NCR'}). Sigue con el siguiente o vuelve a la lista.`, 'bien');
+        await lista();
+        if (activa() && !form) { form = vacia(); ponerLiberar(form); pintarForm(); }
+        return;
+      }
       C.aviso(`${r.codigo || f.codigo || 'NCR'} dada de alta.`, 'bien');
       await lista();
       return;
@@ -320,18 +347,29 @@
     } catch (e) { C.aviso(e.message); lista(); }
   }
 
-  async function nueva() {
+  async function nueva(liberar = false) {
     if (await recuperar()) { C.aviso('Sigues con la NCR que tenías sin terminar.', 'aviso'); if (activa()) pintarForm(); return; }
     form = vacia();
+    if (liberar) ponerLiberar(form);
     pintarForm();
   }
+  /* El punto a liberar sigue en la zona del anterior: en un recorrido se dan varios seguidos. */
+  const ULTIMA_ZONA = () => `ncr.zonaLiberar.${C.obraId() || ''}`;
+  function ponerLiberar(f) {
+    f.liberar = true;
+    f.prioridad = f.prioridad || 'B';
+    try { const z = JSON.parse(localStorage.getItem(ULTIMA_ZONA()) || 'null'); if (z) { f.planta = f.planta || z.planta || ''; f.zona = f.zona || z.zona || ''; } } catch { /* nada */ }
+  }
+  const recordarZona = (f) => { try { localStorage.setItem(ULTIMA_ZONA(), JSON.stringify({ planta: f.planta || '', zona: f.zona || '' })); } catch { /* nada */ } };
+  /* Los industriales que ya salen en la obra, para no escribirlos cada vez. */
+  const industriales = () => [...new Set(((datos && datos.filas) || []).map((x) => String(x.industrialResponsable || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
 
   function pintarForm() {
     const f = form;
     const plantas = (datos && datos.plantas) || [];
     $app.innerHTML = `
       <button class="volver" data-ncr="lista">‹ NCR</button>
-      <h2>${f.codigo ? `${esc(f.codigo)} · sin terminar` : 'Nueva NCR'}</h2>
+      <h2>${f.codigo ? `${esc(f.codigo)} · sin terminar` : f.liberar ? 'Punto a liberar' : 'Nueva NCR'}</h2>
       <p class="nota">${esc(C.obra() ? `${C.obra().codigo} · ${C.obra().nombre}` : '')}</p>
       ${AG.marca(...estadoMarca())}
       <div class="fila-botones">
@@ -339,19 +377,27 @@
         <button class="boton secundario" data-ncr="galeria">De la galería</button>
       </div>
       ${f.fotos.length ? `<div class="fotos">${f.fotos.map((x, i) => `<button type="button" class="foto-quitar" data-ncr="ver-foto" data-i="${i}" aria-label="Ver la foto en grande, reemplazarla o quitarla">${x.url ? `<img src="${esc(x.url)}" alt="">` : '<span class="foto-sin-vista">Foto</span>'}</button>`).join('')}</div>` : ''}
-      <label>Qué pasa<textarea rows="4" data-ncr-campo="descripcion" placeholder="Describe la no conformidad">${esc(f.descripcion)}</textarea></label>
+      <div class="segmentado" role="tablist" aria-label="Tipo">
+        <button role="tab" data-ncr-tipo="ncr" class="${f.liberar ? '' : 'activa'}" aria-selected="${!f.liberar}">NCR</button>
+        <button role="tab" data-ncr-tipo="liberar" class="${f.liberar ? 'activa' : ''}" aria-selected="${Boolean(f.liberar)}">Punto a liberar</button>
+      </div>
+      ${f.liberar
+    ? `<label>Qué hace falta<textarea rows="3" data-ncr-campo="descripcion" placeholder="Qué hay que quitar o liberar para poder entrar">${esc(f.descripcion)}</textarea></label>
+      <label>Quién lo libera<input data-ncr-campo="industrialResponsable" list="ncr-industriales" value="${esc(f.industrialResponsable)}" placeholder="Industrial o empresa" autocomplete="off"></label>
+      <datalist id="ncr-industriales">${industriales().map((x) => `<option value="${esc(x)}">`).join('')}</datalist>`
+    : `<label>Qué pasa<textarea rows="4" data-ncr-campo="descripcion" placeholder="Describe la no conformidad">${esc(f.descripcion)}</textarea></label>`}
       <div class="campos">
         <label>Planta${plantas.length
           ? `<select data-ncr-campo="planta"><option value="">—</option>${plantas.map((p) => `<option ${p === f.planta ? 'selected' : ''}>${esc(p)}</option>`).join('')}</select>`
           : `<input data-ncr-campo="planta" value="${esc(f.planta)}">`}</label>
         <label>Zona<input data-ncr-campo="zona" value="${esc(f.zona)}" autocomplete="off"></label>
       </div>
-      <label>Disciplina<select data-ncr-campo="disciplina"><option value="">—</option>${((datos && datos.disciplinas) || []).map((d) => `<option ${d === f.disciplina ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select></label>
+      <label>${f.liberar ? 'Disciplina de quien lo libera' : 'Disciplina'}<select data-ncr-campo="disciplina"><option value="">—</option>${((datos && datos.disciplinas) || []).map((d) => `<option ${d === f.disciplina ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select></label>
       <label>Prioridad</label>
       <div class="segmentado">${['A', 'B', 'C'].map((p) => `<button data-ncr-prioridad="${p}" class="${f.prioridad === p ? 'activa' : ''}">${p}${p === 'A' ? ' · urgente' : p === 'C' ? ' · leve' : ''}</button>`).join('')}</div>
-      <button class="boton grande" data-ncr="terminar">Terminar el alta</button>
+      <button class="boton grande" data-ncr="terminar">${f.liberar ? 'Guardar el punto' : 'Terminar el alta'}</button>
       <p class="nota centrada">Se guarda sola en el ordenador mientras la escribes y sale en la lista como «sin terminar». Al terminarla queda dada de alta.</p>
-      <button class="enlace" data-ncr="descartar">Descartar esta NCR</button>`;
+      <button class="enlace" data-ncr="descartar">${f.liberar ? 'Descartar este punto' : 'Descartar esta NCR'}</button>`;
   }
 
   /* La foto del alta: primero al teléfono (no se pierde) y al momento al ordenador. */
@@ -447,7 +493,8 @@
       <section class="grupo">
         ${dato('Alcance', n.alcance === 'nuestra' ? 'Nuestra' : n.alcance === 'deOtros' ? `De otros${n.alcanceDe ? ` · ${n.alcanceDe}` : ''}` : n.sugerida ? `Sin clasificar (sugerida: ${n.sugerida === 'nuestra' ? 'nuestra' : 'de otros'})` : n.dudosa ? 'Sin clasificar (dudosa)' : 'Sin clasificar')}${dato('Motivo del alcance', n.alcanceMotivo)}
         ${dato('Planta', n.planta)}${dato('Zona', n.zona)}${dato('Disciplina', n.disciplina)}
-        ${dato('Responsable', n.industrialResponsable)}${dato('Acción inicial', n.accionInicial)}
+        ${n.liberar ? dato('Punto a liberar', 'Sí: sale en el reporte de su zona') : ''}
+        ${dato(n.liberar ? 'Lo libera' : 'Responsable', n.industrialResponsable)}${dato('Acción inicial', n.accionInicial)}
         ${dato('Detectada', fechaEs(n.fechaDeteccion))}${dato('Prevista', fechaEs(n.fechaPrevista))}${dato('Cerrada', fechaEs(n.fechaCierre))}
         ${equipos.length ? dato('Equipos', equipos.map((e) => e.tag).join(', ')) : ''}
       </section>
@@ -456,6 +503,7 @@
       ${puedeFoto ? `<h2>Alcance</h2>
         ${n.alcance !== 'deOtros' ? '<button class="boton secundario" data-ncr="alcance" data-alcance="deOtros">No es nuestra</button>' : ''}
         ${n.alcance !== 'nuestra' ? '<button class="boton secundario" data-ncr="alcance" data-alcance="nuestra">Sí es nuestra</button>' : ''}` : ''}
+      ${n.liberar && puedeCerrar ? '<button class="boton grande" data-ncr="liberado"><i class="ic ic-check"></i>Liberado</button><p class="nota centrada">Ya lo han quitado: se cierra hoy y el siguiente reporte de la zona sale sin él.</p>' : ''}
       ${pasos.length || puedeCerrar ? `<h2>Cambiar estado</h2>
         ${pasos.filter((p) => p.id !== 'cerrada').map((p) => `<button class="boton secundario" data-ncr="paso" data-estado="${esc(p.id)}">Pasar a «${esc(p.nombre)}»</button>`).join('')}
         ${puedeCerrar ? '<button class="boton grande" data-ncr="cerrar"><i class="ic ic-check"></i>Cerrar NCR</button>' : ''}` : ''}
@@ -474,6 +522,16 @@
       }
       if (!r.ok) throw new Error(r.error);
       C.aviso(estado === 'cerrada' ? 'NCR cerrada.' : 'Estado cambiado.', 'bien');
+      abrir(abierta.ncr.id);
+    } catch (e) { C.aviso(e.message); boton.disabled = false; }
+  }
+
+  async function liberado(boton) {
+    boton.disabled = true;
+    try {
+      const r = await C.postJson('api/ncr/liberar', { id: abierta.ncr.id });
+      if (!r.ok) throw new Error(r.error);
+      C.aviso('Punto liberado.', 'bien');
       abrir(abierta.ncr.id);
     } catch (e) { C.aviso(e.message); boton.disabled = false; }
   }
@@ -504,14 +562,20 @@
     if (ev.target.closest('[data-ncr-solo]')) { solo = null; pintarLista(); return; }
     const al = ev.target.closest('[data-ncr-alcance]');
     if (al) { alcance = al.dataset.ncrAlcance; pintarLista(); return; }
+    const tipo = ev.target.closest('[data-ncr-tipo]');
+    if (tipo && form) {
+      if (tipo.dataset.ncrTipo === 'liberar') ponerLiberar(form); else form.liberar = false;
+      cambio(true); pintarForm(); return;
+    }
     const p = ev.target.closest('[data-ncr-prioridad]');
     if (p && form) { form.prioridad = p.dataset.ncrPrioridad; cambio(true); pintarForm(); return; }
     const b = ev.target.closest('[data-ncr]');
     if (!b) return;
     const a = b.dataset.ncr;
     if (a === 'lista') lista();
-    else if (a === 'a-liberar') location.hash = '#recorridos';
     else if (a === 'nueva') nueva();
+    else if (a === 'nueva-liberar') nueva(true);
+    else if (a === 'liberado') liberado(b);
     else if (a === 'seguir') nueva();
     else if (a === 'descartar') descartar();
     else if (a === 'retomar') retomar(b.dataset.id);

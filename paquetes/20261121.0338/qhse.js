@@ -337,7 +337,7 @@
     try {
       const r = await CX().pedir(`api/qhse/abrir?id=${encodeURIComponent(id)}`);
       if (!r.ok) throw new Error(r.error);
-      form = { id: r.id, clave: r.id, obraId: r.obraId, plantilla: r.plantilla, fecha: r.fecha, estado: r.estado, proveedorId: r.proveedorId, datos: r.datos, adjuntos: r.adjuntos || [], harbour: Boolean(r.actividad && r.actividad.harbour), puedeSeguir: Boolean(r.puede && r.puede.rellenar) };
+      form = { id: r.id, clave: r.id, obraId: r.obraId, plantilla: r.plantilla, fecha: r.fecha, estado: r.estado, proveedorId: r.proveedorId, datos: r.datos, adjuntos: r.adjuntos || [], externa: Boolean(r.actividad && r.actividad.externa), puedeSeguir: Boolean(r.puede && r.puede.rellenar) };
       /* Lo escrito en este teléfono que aún no llegó manda sobre lo del ordenador. */
       const b = r.estado === 'hecho' ? null : borradorDe(r.obraId, r.id);
       if (b) { form.datos = b.datos; form.proveedorId = b.proveedorId; form.clave = b.clave || r.id; }
@@ -387,7 +387,7 @@
         ${s.items.map((t, i) => punto(p, s, t, i, dis)).join('')}</details>`).join('')}
       ${p.plan === false ? '' : `<h2>${esc(p.planTitulo || 'Plan de acción')}</h2>
       <div data-qh-plan>${cerrado ? seguimiento() : plan(dis)}</div>`}
-      ${cerrado && form.harbour ? `<label class="harbour"><input type="checkbox" data-qh-harbour ${f.harbour && f.harbour.subido ? 'checked' : ''} ${form.puedeSeguir ? '' : 'disabled'}> Subido a Harbour${f.harbour && f.harbour.fecha ? ` el ${esc(fechaEs(f.harbour.fecha))}` : ''}</label>` : ''}
+      ${cerrado && form.externa ? `<label class="externa"><input type="checkbox" data-qh-externa ${f.externa && f.externa.subido ? 'checked' : ''} ${form.puedeSeguir ? '' : 'disabled'}> Subido a la plataforma externa${f.externa && f.externa.fecha ? ` el ${esc(fechaEs(f.externa.fecha))}` : ''}</label>` : ''}
       ${cerrado || p.plan === false ? '' : `${p.secciones.length ? '<button class="boton secundario" data-qh="plan-nc">Traer los puntos que no cumplen</button> ' : ''}<button class="boton secundario" data-qh="plan-mas">${p.secciones.length ? '+ Añadir acción' : '+ Añadir NC'}</button>`}
       <h2>Fotos</h2>
       <div class="fotos" data-qh-fotos>${fotos()}</div>
@@ -621,7 +621,7 @@
     }).join('');
   }
 
-  /* Cierra / reabre una NC o marca Harbour en un registro terminado. */
+  /* Cierra / reabre una NC o marca la plataforma externa en un registro terminado. */
   async function seguir(ruta, cuerpo, ok) {
     try {
       const r = await CX().postJson(ruta, { id: form.id, ...cuerpo });
@@ -808,8 +808,8 @@
 
   $app.addEventListener('change', (ev) => {
     const t = ev.target;
-    if (activa() && form && t.matches && t.matches('[data-qh-harbour]')) {
-      seguir('api/qhse/harbour', { subido: t.checked }, t.checked ? 'Marcado como subido a Harbour.' : 'Marcado como no subido.');
+    if (activa() && form && t.matches && t.matches('[data-qh-externa]')) {
+      seguir('api/qhse/externa', { subido: t.checked }, t.checked ? 'Marcado como subido a la plataforma externa.' : 'Marcado como no subido.');
       return;
     }
     if (activa() && form && t.matches && t.matches('[data-qh-fotonc]')) {

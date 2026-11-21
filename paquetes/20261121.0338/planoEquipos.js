@@ -49,6 +49,9 @@
   let colorRdf = false;
   const enRdf = () => Boolean(colorRdf && RD && datos && datos.rdf);
   const ordenV = () => (enRdf() ? RD.ORDEN_PLANO : ORDEN);
+  /* Verde por estar en marcha, sin el Cx cerrado: se dice «En marcha», no «Commissioning hecho» (15-nov). */
+  const enMarchaSinCerrar = (e) => Boolean(e && e.color === 'verde' && e.completo === false && bq(e) !== 'certificado');
+  const nombreBloque = (e) => (enMarchaSinCerrar(e) ? 'En marcha, Cx sin cerrar' : NOMBRE[bq(e)]);
   const bq = (e) => (enRdf() ? ((e && datos.rdf[e.id]) || 'sinValidar') : bqCx(e));
   const bqCx = (e) => (e && e.bloque) || (e && e.color === 'verde' ? 'cxHecho' : e && e.color === 'azul' ? 'instalado' : 'sinDato');
   const ZOOM_MAX = 30; /* 30-oct, JC: «hay que poder ampliar más» */
@@ -69,7 +72,6 @@
   let ocultos = new Set(); /* colores que no se enseñan */
   /* 14-nov (JC): el chip «Con incidencia N» deja en el plano solo los equipos con incidencia abierta. */
   let soloInc = false;
-  let soloTipo = null; /* 17-nov (JC): filtro por tipo de equipo (icono); se recuerda al cambiar de planta, como «Con incidencia» */
   /* La regla es la del escritorio y la web: shared/commissioning/incidenciaPlano.js (incidencias SIN CERRAR del registro,
      extendidas a todo el conjunto de la unidad). */
   const IP = window.INCIDENCIA_PLANO || null;
@@ -90,6 +92,11 @@
   let propio = false; /* sección «Plano de equipos» (sin Commissioning) */
   let verMas = false; /* el desplegable «Leyenda · sin ubicar · revisar» abierto */
   let verSinUbicar = false; /* franja gris «Sin ubicar en el plano» abierta */
+  /* 15-nov (JC: «el panel tapa casi todo el plano»): la hoja del equipo abre a media altura ('media'); con el asa se sube
+     a 'completa' o se baja a 'plegada' (solo la cabecera y el resumen). */
+  let estadoHoja = 'media';
+  let hojaDe = null; /* el equipo o material cuya hoja está pintada (para volver arriba y a media altura al cambiar) */
+  const ASA = '<button type="button" class="pe-asa" data-pe-asa aria-label="Subir o bajar la ficha del equipo"></button>';
   let verFranja = false; /* 14-nov (JC): la lista «N equipos sin sala, por confirmar» desplegada */
   let franjaFiltro = ''; /* 17-nov (v2): el buscador de la lista «por ubicar» (TAG, sala, zona, tipo) */
   /* 17-nov (JC: «Los equipos sin ubicar debemos de ser capaces de ubicarlos desde el móvil in situ»): el equipo que se está
@@ -122,7 +129,6 @@
   .pe-leyenda button{display:inline-flex;align-items:center;gap:6px;min-height:36px;border:1px solid var(--borde);background:var(--panel);color:var(--texto);border-radius:999px;padding:4px 10px;font-size:13px}
   .pe-leyenda button[aria-pressed="false"]{opacity:.45}
   .pe-leyenda .nota{margin:0;font-size:12px}
-  .pe-leyenda select.pe-sel-tipo{flex:0 0 auto;width:auto;max-width:200px;margin:0;min-height:30px;border:1px solid var(--borde);background:var(--panel);color:var(--texto);border-radius:999px;padding:2px 8px;font:inherit;font-size:12.5px}
   .pe-leyenda.pe-una-fila{flex-wrap:nowrap;overflow-x:auto;gap:4px;margin:0 0 6px;scrollbar-width:none}
   .pe-leyenda.pe-una-fila button{min-height:30px;padding:2px 8px;font-size:12.5px;flex:0 0 auto}
   .pe-planta-sel label{flex-wrap:nowrap} .pe-planta-sel{display:flex;align-items:center;gap:8px} .pe-planta-sel label{flex:1;min-width:0} .pe-planta-sel .pe-sin-ifc{flex:0 0 auto;font-size:12px;color:var(--aviso)}
@@ -155,6 +161,8 @@
   .pe-franja-boton .flecha{flex:none;display:inline-block;transition:transform .15s;font-size:16px}
   .pe-franja-boton[aria-expanded="true"] .flecha{transform:rotate(90deg)}
   .pe-pie{flex-wrap:wrap}
+  /* 18-nov (JC): sin −/Entero/+ (se pellizca); «N equipos por ubicar ›» en una sola línea. */
+  .pe-franja-boton>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pe-pie .pe-franja-lista{flex:1 0 100%}
   .cx-plano .pe-pie{position:relative;flex-wrap:nowrap}
   .cx-plano .pe-pie .pe-franja-lista{position:absolute;left:0;right:0;bottom:calc(100% + 6px);z-index:6;max-height:min(46vh,380px);margin:0;border:1px solid var(--acento);border-radius:8px}
@@ -207,7 +215,7 @@
   .pe-ubicar-hoja{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0}
   .pe-ubicar-hoja .boton{width:auto;margin:0}
   /* TAG encima o debajo del bloque cuando a los lados no cabe (vistaPlano.colocarRotulos, opción sitios). */
-  #app .pe-lienzo .marca-boca.tag-arr .rotulo-boca{left:calc(50% + var(--tag-dx,0px));top:auto;bottom:calc(100% + 1px + var(--tag-dy,0px));transform:translateX(-50%);margin:0}
+  #app .pe-lienzo .marca-boca.tag-arr .rotulo-boca{left:calc(50% + var(--tag-dx,0px));top:auto;bottom:calc(100% + 1px);transform:translateX(-50%);margin:0}
   #app .pe-lienzo .marca-boca.tag-abj .rotulo-boca{left:calc(50% + var(--tag-dx,0px));top:calc(100% + 1px);transform:translateX(-50%);margin:0}
   /* Los equipos cuyo TAG no cabe con este zoom, juntos en una píldora «+N»: al tocarla, se acerca y salen sus TAG. */
   .pe-grupo{position:absolute;transform:translate(-50%,-50%);z-index:3;box-sizing:border-box;width:auto;height:14px;min-height:0;min-width:0;margin:0;padding:0 4px;border:1px solid var(--acento);border-radius:7px;background:var(--panel);color:var(--acento-fuerte,var(--acento));font:700 9px/12px system-ui,sans-serif;white-space:nowrap;box-shadow:none}
@@ -229,10 +237,9 @@
   #app .pe-lienzo .marca-boca.con-tag .rotulo-boca{display:block}
   #app .pe-lienzo .marca-boca.tag-izq .rotulo-boca{left:auto;right:calc(100% + 2px)}
   #app .pe-lienzo .marca-boca.elegida.tag-izq .rotulo-boca{margin-left:0;margin-right:8px}
-  #app .pe-lienzo .marca-boca.elegida.tag-arr .rotulo-boca,#app .pe-lienzo .marca-boca.elegida.tag-abj .rotulo-boca{margin:0}
   .pe-mat.tag-izq span{left:auto;right:100%;margin-left:0;margin-right:3px}
   /* La etiqueta sin color de estado: el estado se lee en el icono y en la leyenda. */
-  #app .pe-lienzo .marca-boca .rotulo-boca{font-size:var(--pe-tag,9px);background:rgba(255,255,255,.74);color:var(--acento-fuerte);padding:0 3px;font-weight:700;text-shadow:0 0 2px var(--vd-lienzo)}
+  #app .pe-lienzo .marca-boca .rotulo-boca{font-size:var(--pe-tag,9px);background:var(--vd-lienzo,var(--panel));box-shadow:0 0 0 1px color-mix(in srgb,var(--borde) 70%,transparent);border-radius:3px;color:var(--acento-fuerte);padding:0 3px;font-weight:700;text-shadow:0 0 2px var(--vd-lienzo)}
   .pe-lienzo .marca-boca.revisar .simbolo-boca{outline:1.5px dashed currentColor;outline-offset:2px}
   .pe-lienzo .marca-boca.elegida{width:30px!important;z-index:8;opacity:1!important}
   /* 14-nov (JC: «al pulsar el equipo no resalta en el plano»): el pulsado, mientras su hoja está abierta, conserva el color de su
@@ -262,7 +269,7 @@
   .pe-visor{position:relative}
   /* Los nombres de sala, como texto encima del plano: nítidos a cualquier zoom
      aunque la imagen que baja al móvil sea ligera. Solo las que caben en su sala: las pequeñas, al acercar. */
-  .pe-sala{position:absolute;transform:translate(-50%,-50%);font:600 11px/14px system-ui,sans-serif;color:var(--texto);letter-spacing:.01em;padding:0 1px;white-space:nowrap;pointer-events:none;display:none;z-index:1;text-shadow:0 0 2px var(--papel),0 0 2px var(--papel)}
+  .pe-sala{position:absolute;transform:translate(-50%,-50%);font:600 11px/14px system-ui,sans-serif;color:var(--texto);letter-spacing:.01em;padding:0 2px;border-radius:3px;background:color-mix(in srgb,var(--vd-lienzo,var(--papel)) 90%,transparent);white-space:nowrap;pointer-events:none;display:none;z-index:1;text-shadow:0 0 2px var(--papel),0 0 2px var(--papel)}
   .pe-sin-nombres{margin:4px 0 0;font-size:12px;color:var(--textoSuave)}
   /* 13-nov (JC): finos y en gris claro, por debajo de los TAG; solo los que caben y no chocan (colocarTags). */
   .pe-lienzo .pe-sala.ver{display:block;text-align:center}
@@ -286,21 +293,7 @@
   .pe-hoja .pesIncEqTabla td{padding:2px 6px 2px 0;vertical-align:middle;border:0;overflow-wrap:anywhere}
   .pe-hoja .pesIncEqTabla td:first-child{white-space:nowrap;width:1%}
   .pe-hoja .pesIncEqEstado{white-space:nowrap;width:1%;color:var(--textoTenue);text-align:right;font-size:13px}
-  /* 19-nov (capturas 10b): el título de la incidencia no se estruja. Cada fila en rejilla: INC-xxxx y el título a lo
-     ancho; el estado y «De terceros: empresa» debajo del título (abiertas, de terceros y resueltas comparten la tabla). */
-  .pe-hoja .pesIncEqTabla tr{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:8px;align-items:baseline;padding:2px 0}
-  .pe-hoja .pesIncEqTabla td{display:block;width:auto;padding:0;overflow-wrap:break-word;word-break:normal;hyphens:manual}
-  .pe-hoja .pesIncEqTabla td.pesIncEqEstado{grid-column:2;width:auto;white-space:normal;text-align:left}
   .pe-hoja .pesIncEnlace{min-height:40px;padding:0 4px 0 0;border:0;background:none;color:var(--incidenciaTexto);font-weight:700;text-decoration:underline;font-size:14px}
-  /* 17-nov: cambiar TAG, sala y alimentación, y mover el equipo (colores de la app: marino, arena, teal; «por confirmar» en el ámbar de la app, --aviso). */
-  .pe-hoja .pe-por-confirmar{display:inline-block;padding:0 6px;border-radius:4px;background:var(--aviso-fondo);color:var(--aviso);font-size:12px;font-weight:700}
-  .pe-hoja .pe-por-confirmar-texto{color:var(--aviso)} .pe-hoja .pe-movido{color:var(--bien);font-weight:700}
-  .pe-hoja .pe-cambiar{margin-top:6px} .pe-hoja .pe-cambiar .boton{min-height:40px;font-size:14px}
-  .pe-hoja .pe-chip-mover{background:var(--aviso-fondo);color:var(--aviso);border-color:var(--aviso)}
-  .pe-hoja .pe-edita label{display:flex;flex-direction:column;gap:2px;margin:6px 0;font-size:13px;color:var(--textoTenue)}
-  .pe-hoja .pe-edita input{min-height:40px;font-size:16px;padding:6px 8px;border:1px solid var(--borde);border-radius:6px;background:var(--panel);color:var(--texto)}
-  .pe-hoja .pe-edita-dos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .marca-boca.pe-moviendo{outline:3px solid var(--aviso);outline-offset:3px;z-index:6;touch-action:none}
   .pe-hoja .pesIncEqDonde{display:block;color:var(--incidenciaTexto);font-size:13px}
   .pe-leyenda .pe-chip-inc{border-color:var(--incidencia);color:var(--incidenciaTexto)}
   .pe-leyenda .pe-chip-inc[aria-pressed="false"]{opacity:1}
@@ -317,10 +310,34 @@
   .pe-hoja .pesIncEq.resuelta{border-left-color:var(--incResuelta);background:color-mix(in srgb,var(--incResuelta) 8%,var(--panel))}
   .pe-hoja .pesIncEq.resuelta .pesIncEqTit,.pe-hoja .pesIncEq.resuelta .pesIncEnlace,.pe-hoja .pesIncEq.resuelta .pesIncEqDonde{color:var(--incResuelta)}
   .pe-hoja .pesPunto.incResuelta{display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--incResuelta);color:var(--blanco);font:900 11px/16px system-ui,sans-serif;text-align:center}
+  /* Las hojas de commissioning del equipo (15-nov): filas altas, toda la fila se toca; estado con el color de siempre. */
+  .pe-hojas-cx{margin:8px 0 2px}
+  .pe-hojas-cx h4{margin:0 0 2px;font-size:13px;font-weight:600;color:var(--acento);border-bottom:1px solid var(--acento-vivo);padding-bottom:3px}
+  .pe-hojas-cx .pesTablaFicha{width:100%;border-collapse:collapse;font-size:14px}
+  .pe-hojas-cx .pesTablaFicha tr{cursor:pointer}
+  .pe-hojas-cx .pesTablaFicha th{text-align:left;font-weight:600;padding:7px 8px 7px 0;border-bottom:1px solid rgba(15,23,42,.08);vertical-align:middle}
+  .pe-hojas-cx .pesTablaFicha td{padding:7px 0;border-bottom:1px solid rgba(15,23,42,.08);vertical-align:middle;font-size:13px}
+  .pe-hojas-cx .pesTablaFicha td small,.pe-hojas-cx .pesTablaFicha th small{display:block;color:var(--textoTenue);font-size:12px;font-weight:400}
+  .pe-hojas-cx .pesAccion{width:1%;text-align:right;white-space:nowrap;padding-left:6px}
+  .pe-hojas-cx .botonMini{min-height:38px;min-width:68px;padding:0 10px;border:0;border-radius:8px;background:var(--acento-suave);color:var(--acento-fuerte);font-size:14px;font-weight:600}
+  .pe-hojas-cx .pesTono.bien{color:var(--bien);font-weight:600} .pe-hojas-cx .pesTono.info{color:var(--acento);font-weight:600} .pe-hojas-cx .pesTono.mal{color:var(--mal);font-weight:600}
+  .pe-hojas-cx .pesVacio{color:var(--textoTenue)}
+  /* 15-nov (JC, capturas del plano): la hoja del equipo abre a media altura y se pliega con el asa (altoHoja); la cabecera
+     (TAG, estado, X) y el resumen de documentos y garantía van fijos arriba aunque se desplace lo de dentro. */
+  .pe-hoja{padding-top:0;overscroll-behavior:contain}
+  .pe-hoja-fija{position:sticky;top:0;z-index:3;background:var(--panel);padding:0 0 4px;margin:0 0 2px;border-bottom:1px solid color-mix(in srgb,var(--borde) 60%,transparent)}
+  .pe-asa{display:flex;justify-content:center;align-items:center;width:100%;min-height:22px;margin:0;padding:6px 0 4px;border:0;background:none;cursor:grab;touch-action:none}
+  .pe-asa::before{content:"";display:block;width:40px;height:4px;border-radius:2px;background:color-mix(in srgb,var(--textoTenue) 55%,transparent)}
+  .pe-resumen{display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;width:100%;min-height:32px;margin:3px 0 0;padding:2px 0;border:0;background:none;color:var(--texto);font-size:13.5px;text-align:left;cursor:pointer}
+  .pe-resumen b{font-variant-numeric:tabular-nums}
+  .pe-resumen .mal{color:var(--mal);font-weight:600}.pe-resumen .bien{color:var(--bien);font-weight:600}
+  .pe-resumen .flecha{margin-left:auto;color:var(--acento);font-weight:700}
+  .pe-hoja.plegada .pe-hoja-resto{display:none}
+  .pe-hoja.arrastrando{transition:none!important}
   .pe-hoja .pe-ficha-completa{display:block;width:100%;min-height:44px;margin:8px 0 2px;font-size:15px;font-weight:700}
   /* 14-nov: con la hoja abierta el plano acaba encima de ella; el zoom con botones se esconde mientras (se pellizca). */
   .cx-plano:has([data-pe-hoja]:not([hidden])) .pe-pie,.cx-plano:has([data-pe-hoja]:not([hidden])) .pe-leyenda{display:none}
-  .cx-plano .pe-hoja{max-height:40vh;padding-top:8px}
+  .cx-plano .pe-hoja{max-height:40vh}
   .cx-plano .pe-hoja .fila-principal strong{flex:1 1 auto;min-width:0;font-size:16px;line-height:1.25;overflow-wrap:anywhere}
   .cx-plano .pe-hoja .fila-principal .chip{flex:none;white-space:nowrap;font-size:13px}
   .cx-plano .pe-hoja .pe-sala-cod{display:inline;margin-left:6px}
@@ -329,15 +346,6 @@
   .pe-hoja .sub{margin-top:3px;font-size:14px}
   .pe-hoja .falta{font-size:13.5px;margin-top:3px}
   .pe-hoja .cierra{min-width:44px;min-height:44px;border:0;background:none;font-size:22px;color:var(--textoTenue);margin:-8px -8px -8px 0}
-  .pe-hojas{margin-top:10px;border-top:1px solid var(--borde)}
-  .pe-hojas-tit{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--verdeTexto);padding:6px 0 2px;display:flex;justify-content:space-between}
-  .pe-hojas-tit span{font-weight:400;text-transform:none;letter-spacing:0;color:var(--textoSuave)}
-  .pe-hoja-fila.pe-hoja-conservada{color:var(--textoSuave)}
-  .pe-hoja-fila{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:8px;align-items:center;width:100%;min-height:48px;margin:0;padding:6px 2px;border:0;border-bottom:1px solid var(--borde);background:none;text-align:left;font:inherit;color:inherit;cursor:pointer}
-  .pe-hoja-punto{width:12px;height:12px;border-radius:50%} .pe-hoja-punto.verde{background:var(--bien)} .pe-hoja-punto.azul{background:var(--info)} .pe-hoja-punto.rojo{background:var(--mal)}
-  .pe-hoja-txt{min-width:0;display:flex;flex-direction:column;overflow-wrap:anywhere}
-  .pe-hoja-txt small{font-size:12px;color:var(--textoSuave)} .pe-hoja-est.verde{color:var(--bien)} .pe-hoja-est.azul{color:var(--info)} .pe-hoja-est.rojo{color:var(--mal)} .pe-hoja-falta{color:var(--mal)!important} .pe-hoja-falta.firmar{color:var(--info)!important}
-  .pe-hoja-ir{font-size:20px;color:var(--textoSuave)}
   .pe-acciones{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
   .pe-acciones button{min-height:46px;margin:0;font-size:15px}
   .pe-hoja .mas{display:block;margin-top:8px;font-size:14px}
@@ -429,7 +437,7 @@
     if (document.getElementById('pe-estilo')) return;
     const s = document.createElement('style');
     s.id = 'pe-estilo';
-    s.textContent = ESTILO + (CB ? `.pe-lienzo .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-lienzo .marca-boca')}.pe-franja .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-franja .marca-boca')}${IP ? IP.css('.pe-lienzo .marca-boca.con-inc', '.pe-lienzo .marca-boca.con-incres', '.pe-lienzo .marca-boca.con-incter') : ''}${RD ? Object.entries(RD.COLOR_PLANO).map(([k, hex]) => `.pe-lienzo .marca-boca.bq-${k},.pe-franja .marca-boca.bq-${k}{color:var(--vd-arena-texto)}.pe-lienzo .marca-boca.bq-${k} .cuerpo,.pe-franja .marca-boca.bq-${k} .cuerpo{fill:${hex};fill-opacity:1}.bq-punto-${k}{background:${hex}}`).join('') : ''}:where(.pe-punto[class*="bq-punto-"]){border:1px solid rgba(38,43,56,.35)}` : ''); /* :where: el discontinuo de «no instalado» (colorBloque) manda. */
+    s.textContent = ESTILO + (CB ? `.pe-lienzo .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-lienzo .marca-boca')}.pe-franja .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-franja .marca-boca')}${IP ? IP.css('.pe-lienzo .marca-boca.con-inc', '.pe-lienzo .marca-boca.con-incres', '.pe-lienzo .marca-boca.con-incter') : ''}${RD ? Object.entries(RD.COLOR_PLANO).map(([k, hex]) => `.pe-lienzo .marca-boca.bq-${k},.pe-franja .marca-boca.bq-${k}{color:#262b38}.pe-lienzo .marca-boca.bq-${k} .cuerpo,.pe-franja .marca-boca.bq-${k} .cuerpo{fill:${hex};fill-opacity:1}.bq-punto-${k}{background:${hex}}`).join('') : ''}:where(.pe-punto[class*="bq-punto-"]){border:1px solid rgba(38,43,56,.35)}` : ''); /* :where: el discontinuo de «no instalado» (colorBloque) manda. */
     document.head.appendChild(s);
   }
 
@@ -517,7 +525,7 @@
 
   /* PRECARGA DE LAS VECINAS (13-nov-2026, JC: «cambiar de planta en menos de 300 ms»): en la pestaña Cx, la planta de
      antes y la de después del selector se piden en segundo plano; cambiar a ellas ya no espera a la red. Solo dos:
-     el teléfono no se baja la obra entera (cada planta son ~0,6-0,9 MB en el NCN). */
+     el teléfono no se baja la obra entera (cada planta son ~0,6-0,9 MB en una obra grande). */
   let precargando = false;
   function precargarVecinas() {
     if (!compacto || !datos || precargando) return;
@@ -645,8 +653,8 @@
   }
 
   /* El conjunto en la ficha (18-nov, JC: «al pulsar en un equipo de un conjunto, lo que se tiene que mostrar en cualquier app
-     es el conjunto»; port del Gestor ada6ac1): la misma pieza que el panel de la web (panelEquipoPlano.conjuntoAlPulsar), con su
-     nombre y cada unidad con su «Abrir» (data-pe-ver: la lleva a su sitio en el plano o a su ficha). */
+     es el conjunto»): la misma pieza que el panel de la web (panelEquipoPlano.conjuntoAlPulsar), con su nombre y cada unidad con
+     su «Abrir» (data-pe-ver: la lleva a su sitio en el plano o a su ficha). */
   function conjuntoHtml(e) {
     const P = PEP();
     return P && P.conjuntoAlPulsar ? P.conjuntoHtml(P.conjuntoAlPulsar(e), { atributo: 'data-pe-ver' }) : '';
@@ -680,15 +688,6 @@
 
   /* El chip «Con incidencia N» (14-nov, JC): cuenta los equipos de la planta con incidencia SIN CERRAR del registro de
      incidencias (IP.recuento, como el escritorio) y, pulsado, deja solo esos en el plano. Sin ninguno, solo sale pulsado. */
-  /* Desplegable «Tipo» junto a los chips de estado: los tipos salen de los datos de la obra (iconos de cada equipo). */
-  function selTipo(p) {
-    const ic = (datos && datos.iconos) || {};
-    const n = (k) => p.equipos.filter((e) => e.x !== null && (e.icono || 'generico') === k).length;
-    const ks = [...new Set([...p.equipos.filter((e) => e.x !== null).map((e) => e.icono || 'generico'), ...(soloTipo ? [soloTipo] : [])])].filter((k) => ic[k]);
-    if (ks.length < 2 && !soloTipo) return '';
-    ks.sort((a, b) => String(ic[a].nombre).localeCompare(String(ic[b].nombre), 'es'));
-    return `<select class="pe-sel-tipo" data-pe-solo-tipo aria-label="Ver solo un tipo de equipo"><option value="">Todos los tipos</option>${ks.map((k) => `<option value="${esc(k)}"${soloTipo === k ? ' selected' : ''}>${esc(ic[k].nombre)} (${cifra(n(k))})</option>`).join('')}</select>`;
-  }
   function chipInc(p) {
     const n = IP ? IP.recuento(p.equipos) : p.equipos.filter(conInc).length;
     if (!n && !soloInc) return chipTer(p) + chipRes(p);
@@ -718,118 +717,6 @@
     location.hash = 'reparaciones';
   }
 
-  /* 17-nov (JC, nota 5019aeb1): las hojas con su estado (verde hecha, azul a medias, rojo falta), la misma regla que el
-     escritorio y la web (shared/commissioning/hojasEquipoPanel.js). Sin el estado aún, los botones de siempre. */
-  function hojasEstadoHtml(e, acc) {
-    const H = window.HOJAS_EQUIPO_PANEL;
-    if (!acc.length) return '';
-    const viejo = () => `<div class="pe-acciones">${acc.map((a) => `<button class="boton${a.id === 'datos' ? '' : ' secundario'}" data-pe-accion="${esc(a.id)}">${esc(a.texto)}</button>`).join('')}</div>`;
-    if (!H || !Array.isArray(e.tomas)) return viejo();
-    const hojas = new Set(['checklist', 'datos', 'balanceo', 'estanqueidad']);
-    const fs = H.filas({ acciones: acc.filter((a) => hojas.has(a.id)), tomas: e.tomas });
-    const otras = acc.filter((a) => !hojas.has(a.id));
-    const ids = new Set(acc.map((a) => a.id));
-    const filas = fs.map((f) => `<button class="pe-hoja-fila" data-pe-accion="${esc(ids.has(f.id) ? f.id : (f.id === 'datos' ? 'checklist' : f.id))}">
-        <i class="pe-hoja-punto ${f.tono}"></i><span class="pe-hoja-txt"><b>${esc(f.nombre)}${f.unidad ? ` <small>${esc(f.unidad)}</small>` : ''}</b>
-        <small class="pe-hoja-est ${f.tono}">${esc(f.texto)}${f.version ? ` · <b class="pe-hoja-version">${esc(f.version)}</b>` : ''}${f.detalle ? ` · ${esc(f.detalle)}` : ''}${f.anteriores && f.anteriores.length ? ` · ${f.anteriores.length} versión${f.anteriores.length === 1 ? '' : 'es'} anterior${f.anteriores.length === 1 ? '' : 'es'}` : ''}</small>${f.faltan.length ? `<small class="pe-hoja-falta${f.paraFirmar ? ' firmar' : ''}">${f.paraFirmar ? 'Para firmar falta' : 'Falta'}: ${esc(f.faltan[0])}</small>` : ''}</span><span class="pe-hoja-ir">›</span></button>`).join('');
-    /* 20-nov (JC): lo guardado antes en otra unidad del conjunto no es una hoja más ni cuenta; se lee en la ficha (Conservadas). */
-    const cs = H.conservadas ? H.conservadas({ tomas: e.tomas }) : [];
-    const cons = cs.length ? `<button class="pe-hoja-fila pe-hoja-conservada" data-pe-accion="equipo"><i></i><span class="pe-hoja-txt"><b>Guardadas antes en otra unidad · ${cs.length}</b>
-        <small>${esc(cs.map((f) => [f.nombre, f.unidad].filter(Boolean).join(' ')).join(' · '))} · se conservan; no cuentan</small></span><span class="pe-hoja-ir">›</span></button>` : '';
-    return `${fs.length ? `<div class="pe-hojas"><div class="pe-hojas-tit">Hojas <span>${esc(H.resumen(fs))}</span></div>${filas}${cons}</div>` : ''}
-      ${otras.length ? `<div class="pe-acciones">${otras.map((a) => `<button class="boton secundario" data-pe-accion="${esc(a.id)}">${esc(a.texto)}</button>`).join('')}</div>` : ''}`;
-  }
-
-  /* ═══ CAMBIAR EL EQUIPO DESDE SU HOJA (17-nov-2026, JC): el TAG, la sala y la alimentación eléctrica, y MOVERLO en el
-     plano del modelo (la sala pasa sola a la del recinto donde cae). La regla, en el servidor: electron/data/equipoEnPlano.js
-     (rutas api/plano-equipos/datos-equipo y /mover). Quien edita la puesta en marcha; el resto lo ve y no lo toca. */
-  let editando = null; /* el equipo con el formulario abierto */
-  let moviendo = null; /* { id, x, y, x0, y0, franja0, guardando } */
-  let ultimoMovido = null; /* { id, texto, aviso }: lo que dijo el servidor al guardar el sitio nuevo */
-  const puedeCambiar = (e) => Boolean(e && e.puedeEditar && datos && datos.conCommissioning);
-  const POR_CONFIRMAR = '<span class="pe-por-confirmar">Por confirmar</span>';
-  function alimentacionHtml(e) {
-    return `<div class="sub pe-alim" data-pe-alim><span class="tenue">Cuadro</span> ${e.cuadroElectrico ? `<b class="cifra">${esc(e.cuadroElectrico)}</b>` : POR_CONFIRMAR}
-      <span class="tenue">· Circuito</span> ${e.circuitoElectrico ? `<b class="cifra">${esc(e.circuitoElectrico)}</b>` : POR_CONFIRMAR}</div>`;
-  }
-  function edicionHtml(e, p) {
-    const salas = ((p.plano && p.plano.salas) || []).filter((s) => s && s.codigo);
-    const campo = (nombre, texto, valor, extra = '') => `<label><span>${texto}</span><input name="${nombre}" value="${esc(valor || '')}" data-inicial="${esc(valor || '')}" maxlength="${nombre === 'sala' ? 120 : 60}"${extra}></label>`;
-    return `<form class="pe-edita" data-pe-edita="${esc(e.id)}" autocomplete="off">
-        <div class="fila-principal"><strong>Cambiar ${esc(e.tag)}</strong><button class="cierra" type="button" data-pe-edita-cancelar aria-label="Cancelar">×</button></div>
-        ${campo('tag', 'TAG', e.tag, ' required autocapitalize="characters"')}
-        ${campo('sala', 'Sala', e.sala, ' list="pe-salas-plano" placeholder="00.STE.020 · Almacén"')}
-        <datalist id="pe-salas-plano">${salas.map((s) => `<option value="${esc(s.t && s.t !== s.codigo ? `${s.codigo} · ${s.t}` : s.codigo)}"></option>`).join('')}</datalist>
-        <div class="pe-edita-dos">${campo('cuadroElectrico', 'Cuadro eléctrico', e.cuadroElectrico, ' placeholder="Por confirmar"')}${campo('circuitoElectrico', 'Circuito', e.circuitoElectrico, ' placeholder="Por confirmar"')}</div>
-        <div class="pe-acciones"><button class="boton" type="submit">Guardar</button><button class="boton secundario" type="button" data-pe-edita-cancelar>Cancelar</button></div>
-      </form>`;
-  }
-  function moverHtml(e) {
-    const marcado = moviendo.x !== moviendo.x0 || moviendo.y !== moviendo.y0;
-    return `<div class="fila-principal"><strong class="cifra">${esc(e.tag)}</strong><span class="chip pe-chip-mover">Moviendo</span></div>
-      <div class="sub" data-pe-mover-ayuda>${marcado ? 'Sitio nuevo marcado. Al guardar, la sala pasa a la del recinto del modelo donde cae.' : 'Toca en el plano el sitio nuevo o arrastra el punto.'}</div>
-      <div class="pe-acciones"><button class="boton" data-pe-mover-guardar${!marcado || moviendo.guardando ? ' disabled' : ''}>${moviendo.guardando ? 'Guardando…' : 'Guardar'}</button><button class="boton secundario" data-pe-mover-cancelar>Cancelar</button></div>`;
-  }
-  function empezarMover(e) {
-    if (!e || e.x === null) return;
-    editando = null; ultimoMovido = null;
-    moviendo = { id: e.id, x: e.x, y: e.y, x0: e.x, y0: e.y, franja0: Boolean(e.franja), guardando: false };
-    /* El de la franja «sin sala» se pinta sobre el plano mientras se mueve, en el centro de lo que se ve. */
-    if (e.franja) {
-      const [marco, lienzo] = marcoYLienzo();
-      e.franja = false;
-      if (marco && lienzo && lienzo.offsetWidth) { e.x = moviendo.x0 = moviendo.x = Math.min(1, Math.max(0, (marco.scrollLeft + marco.clientWidth / 2 - lienzo.offsetLeft) / lienzo.offsetWidth)); e.y = moviendo.y0 = moviendo.y = Math.min(1, Math.max(0, (marco.scrollTop + marco.clientHeight / 2 - lienzo.offsetTop) / lienzo.offsetHeight)); }
-    }
-    repintarQuieto();
-  }
-  function acabarMover() {
-    const p = plantaActual(); const e = p && moviendo ? p.equipos.find((x) => x.id === moviendo.id) : null;
-    if (e) { e.x = moviendo.x0; e.y = moviendo.y0; if (moviendo.franja0) e.franja = true; }
-    moviendo = null;
-  }
-  /* El punto nuevo: el equipo se pinta ya donde va (el TAG le sigue al repintar). */
-  function ponerPunto(x, y, { repintar = true } = {}) {
-    if (!moviendo) return;
-    const p = plantaActual(); const e = p && p.equipos.find((q) => q.id === moviendo.id);
-    if (!e) return;
-    moviendo.x = e.x = Math.min(0.995, Math.max(0.005, x));
-    moviendo.y = e.y = Math.min(0.995, Math.max(0.005, y));
-    const b = $raiz.querySelector(`[data-pe-lienzo] [data-pe-marca="${CSS.escape(moviendo.id)}"]`);
-    if (b) { b.style.left = `${e.x * 100}%`; b.style.top = `${e.y * 100}%`; }
-    if (repintar) repintarQuieto();
-  }
-  async function guardarMover() {
-    if (!moviendo || moviendo.guardando) return;
-    const p = plantaActual();
-    moviendo.guardando = true; mostrarHoja();
-    try {
-      const r = await C.postJson('api/plano-equipos/mover', { obra: C.obraId(), plano: p && p.plano && p.plano.id, id: moviendo.id, x: moviendo.x, y: moviendo.y });
-      if (!r || r.ok === false) throw new Error((r && r.error) || 'No se ha movido.');
-      const id = moviendo.id;
-      moviendo = null;
-      ultimoMovido = { id, texto: r.sala ? [r.sala.codigo, r.sala.nombre].filter(Boolean).join(' · ') : '', aviso: r.aviso || '' };
-      C.aviso(r.aviso || `Movido. Sala: ${ultimoMovido.texto}.`, r.aviso ? undefined : 'bien');
-      await cargar(); elegida = id; repintarQuieto();
-    } catch (err) {
-      C.aviso(err.message);
-      if (moviendo) { moviendo.guardando = false; mostrarHoja(); }
-    }
-  }
-  async function guardarEdicion(form) {
-    const id = form.dataset.peEdita;
-    const cambios = {};
-    for (const i of form.querySelectorAll('input[name]')) if (i.value.trim() !== (i.dataset.inicial || '').trim()) cambios[i.name] = i.value.trim();
-    if (!Object.keys(cambios).length) { editando = null; mostrarHoja(); return; }
-    const b = form.querySelector('[type=submit]'); if (b) { b.disabled = true; b.textContent = 'Guardando…'; }
-    try {
-      const r = await C.postJson('api/plano-equipos/datos-equipo', { obra: C.obraId(), id, ...cambios });
-      if (!r || r.ok === false) throw new Error((r && r.error) || 'No se ha guardado.');
-      editando = null;
-      C.aviso('Equipo guardado.', 'bien');
-      await cargar(); elegida = id; repintarQuieto();
-    } catch (err) { C.aviso(err.message); if (b) { b.disabled = false; b.textContent = 'Guardar'; } }
-  }
-
   /* 17-nov: en la hoja, «Ubicar en el plano» si está por ubicar y «Mover» si ya tiene sitio (salvo el bloque del modelo). */
   function ubicarHojaHtml(e, p) {
     const dicho = e.aMano && UB() ? `<span class="sub tenue" data-pe-a-mano>${esc(UB().dichoAMano(e.aMano))}</span>`
@@ -837,8 +724,6 @@
     if (!puedeUbicarAqui(p) || e.delModelo) return dicho ? `<div class="pe-ubicar-hoja">${dicho}</div>` : '';
     if (ubicando && ubicando.id === e.id) return `<div class="pe-ubicar-hoja">${dicho}<span class="sub" data-pe-ubicando-hoja>Ubicando: toca en el plano su sitio.</span></div>`;
     const porUbicar = e.x === null || e.franja;
-    /* Obras (19-nov): si ya tiene sitio en el modelo, «Mover» es el de la fila Cambiar datos (ruta /mover, pasa la sala sola). */
-    if (!porUbicar && p.esIfc && puedeCambiar(e)) return dicho ? `<div class="pe-ubicar-hoja">${dicho}</div>` : '';
     const prop = porUbicar && e.propuesto ? `<span class="sub pe-propuesto" data-pe-propuesto-hoja>${esc(dichoPropuesto(e.propuesto))}</span>` : '';
     return `<div class="pe-ubicar-hoja">${dicho}${prop}<button type="button" class="boton${porUbicar ? '' : ' secundario'}" data-pe-ubicar="${esc(e.id)}">${e.propuesto && porUbicar ? 'Ver la propuesta del IFC' : porUbicar ? 'Ubicar en el plano' : 'Mover en el plano'}</button></div>`;
   }
@@ -901,35 +786,68 @@
   function hojaHtml(p) {
     const e = equipoElegido();
     if (!e) return '';
-    if (moviendo && moviendo.id === e.id) return moverHtml(e);
-    if (editando === e.id && puedeCambiar(e)) return edicionHtml(e, p);
-    const cambiar = puedeCambiar(e) ? `<div class="pe-acciones pe-cambiar"><button class="boton secundario" data-pe-editar aria-label="Cambiar TAG, sala o alimentación">Cambiar datos</button>${p.esIfc && e.x !== null ? '<button class="boton secundario" data-pe-mover>Mover</button>' : ''}</div>` : '';
-    const movido = ultimoMovido && ultimoMovido.id === e.id ? `<div class="sub ${ultimoMovido.aviso ? 'pe-por-confirmar-texto' : 'pe-movido'}" data-pe-movido>${ultimoMovido.aviso ? esc(ultimoMovido.aviso) : `Movido: ahora en ${esc(ultimoMovido.texto)}.`}</div>` : '';
     const que = [e.tipo, [e.marca, e.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
-    const falta = e.color === 'verde' ? 'Commissioning completo.'
-      : (e.falta && e.falta.length ? `Le falta: ${e.falta.slice(0, 2).map(esc).join(', ')}${e.falta.length > 2 ? ` y ${e.falta.length - 2} más` : ''}.` : '');
+    /* 15-nov (JC): verde y «completo» no son lo mismo —el verde también es «en marcha»—; con algo pendiente se dice qué. */
+    const leFalta = e.falta && e.falta.length ? `${e.falta.slice(0, 2).map(esc).join(', ')}${e.falta.length > 2 ? ` y ${e.falta.length - 2} más` : ''}` : '';
+    const falta = e.color === 'verde' && e.completo !== false ? 'Commissioning completo.'
+      : e.color === 'verde' ? `En marcha.${leFalta ? ` Para cerrar el Cx le falta: ${leFalta}.` : ''}`
+        : (leFalta ? `Le falta: ${leFalta}.` : '');
     const rol = e.conjunto ? `${e.papel === 'UE' ? 'Exterior' : 'Interior'} de ${esc(e.conjunto)}` : '';
     const acc = Array.isArray(e.acciones) ? e.acciones : [];
-    return `<div class="fila-principal"><strong class="cifra">${e.papel ? `<em>${esc(e.papel)}</em> ` : ''}${esc(e.tag)}</strong>
-        <span class="chip" title="${esc(NOMBRE[bq(e)])}"><i class="pe-punto bq-punto-${bq(e)}"></i> ${esc(compacto ? (CORTO[bq(e)] || NOMBRE[bq(e)]) : NOMBRE[bq(e)])}</span>
+    /* 15-nov (JC, capturas del fan coil y la UTA): la cabecera con TAG, estado y X, modelo, sala y el resumen de documentos y
+       garantía van en un bloque fijo arriba de la hoja: se ven siempre, se desplace lo que se desplace lo de dentro. */
+    return `<div class="pe-hoja-fija" data-pe-hoja-fija>${ASA}<div class="fila-principal"><strong class="cifra">${e.papel ? `<em>${esc(e.papel)}</em> ` : ''}${esc(e.tag)}</strong>
+        <span class="chip" title="${esc(nombreBloque(e))}"><i class="pe-punto bq-punto-${bq(e)}"></i> ${esc(compacto ? (enMarchaSinCerrar(e) ? 'En marcha' : CORTO[bq(e)] || NOMBRE[bq(e)]) : nombreBloque(e))}</span>
         <button class="cierra" data-pe-cerrar aria-label="Cerrar">×</button></div>
+      <div class="sub">${que ? esc(que) : ''}</div>
+      <div class="sub">${salaHtml(e.sala)}${p.planta ? ` <span class="tenue">· ${esc(p.planta)}</span>` : ''}</div>
+      ${resumenDocsHtml(e)}</div>
+      <div class="pe-hoja-resto">
       ${incidenciasHtml(e)}
       ${e.miembros && e.miembros.length > 1 ? conjuntoHtml(e) : ''}
-      <div class="sub">${que ? esc(que) : ''}</div>
-      <div class="sub" data-pe-sala-hoja>${salaHtml(e.sala)}${p.planta ? ` <span class="tenue">· ${esc(p.planta)}</span>` : ''}</div>
-      ${movido}${alimentacionHtml(e)}${cambiar}
       ${ubicarHojaHtml(e, p)}
       ${pistasHtml(e, p)}
+      ${falta ? `<div class="falta">${falta}</div>` : ''}
+      ${hojasCxHtml(e)}
       ${e.marcasDF && e.marcasDF.ok && window.RECEPCION_DF ? window.RECEPCION_DF.htmlPanel(e.marcasDF) : ''}
       ${datos.conCommissioning ? '<button class="boton pe-ficha-completa" data-pe-accion="equipo">Ficha completa ›</button>' : ''}
       ${e.miembros && e.miembros.length > 1 ? '' : (rol ? `<div class="sub">${rol}</div>` : '')}
-      ${falta ? `<div class="falta">${falta}</div>` : ''}
       ${documentosEquipoHtml(e)}
       ${window.PLANO_FOTOS ? window.PLANO_FOTOS.hueco(e) : ''}
       ${p.plano && e.x === null ? '<div class="sub tenue">No está en el plano.</div>' : ''}
       ${vidaHtml(e)}
-      ${hojasEstadoHtml(e, acc)}
-      ${!datos.conCommissioning && datos.puedeEditar === false ? '<div class="sub tenue">Solo lectura.</div>' : ''}`;
+      ${acc.length && !(Array.isArray(e.tomas) && e.tomas.length) ? `<div class="pe-acciones">${acc.map((a) => `<button class="boton${a.id === 'datos' ? '' : ' secundario'}" data-pe-accion="${esc(a.id)}">${esc(a.texto)}</button>`).join('')}</div>` : ''}
+      ${!datos.conCommissioning && datos.puedeEditar === false ? '<div class="sub tenue">Solo lectura.</div>' : ''}</div>`;
+  }
+
+  /* 15-nov (JC: «los documentos y la garantía no se ven sin desplazar»): una línea bajo modelo y sala con «Docs 3/5 · Garantía
+     hasta dd/mm/aaaa» (o «Garantía: falta»); al tocarla, la hoja se desplaza hasta los documentos. Cuenta las mismas filas
+     que la tabla de documentos (panelEquipoPlano.filasDocumentos), sin las que no aplican a su tipo. */
+  function resumenDocs(e) {
+    const P = PEP();
+    if (!e || (!e.fichaLista && e.documentos === undefined)) return null;
+    const filas = P && P.filasDocumentos ? P.filasDocumentos({ pesada: pesadaDe(e) }).filter((f) => f.estado !== 'noAplica') : (e.documentos || []).map(() => ({ estado: 'doc' }));
+    const hay = filas.filter((f) => f.estado === 'doc' || (f.estado === 'hoja' && f.hecha)).length;
+    const g = ((e.vida && e.vida.bloques) || []).find((b) => b.id === 'garantia');
+    const celda = (k) => { const f = g && (g.filas || []).find(([n]) => n === k); return f && f[1] && f[1].texto ? f[1].texto : ''; };
+    const hasta = celda('Hasta');
+    return { hay, total: filas.length, garantia: hasta ? `hasta ${hasta}` : '' };
+  }
+  function resumenDocsHtml(e) {
+    const r = resumenDocs(e);
+    if (!r) return '<div class="pe-resumen tenue" data-pe-resumen>Docs y garantía: cargando…</div>';
+    const docs = r.total ? `Docs <b class="${r.hay < r.total ? 'mal' : 'bien'}">${cifra(r.hay)}/${cifra(r.total)}</b>` : 'Docs <b>—</b>';
+    const gar = r.garantia ? `Garantía ${esc(r.garantia)}` : 'Garantía: <span class="mal">falta</span>';
+    return `<button type="button" class="pe-resumen" data-pe-resumen aria-label="Ver documentos y garantía">${docs}<span class="tenue">·</span>${gar}<span class="flecha" aria-hidden="true">›</span></button>`;
+  }
+  /* Lleva la hoja hasta los documentos (o la garantía si no hay tabla de documentos), abierta del todo. */
+  function irADocs() {
+    const h = $raiz && $raiz.querySelector('[data-pe-hoja]');
+    if (!h) return;
+    if (estadoHoja !== 'completa') { estadoHoja = 'completa'; altoHoja(h); ajustarMarco(); }
+    const destino = h.querySelector('.pe-docs') || h.querySelector('.pe-vida');
+    const fija = h.querySelector('.pe-hoja-fija');
+    if (destino) h.scrollTop = Math.max(0, destino.offsetTop - (fija ? fija.offsetHeight : 0) - 4);
   }
 
   const casaMat = (m, q) => !q || [m.tag, m.codigo, m.sala, m.numSerie, m.tipoNombre, m.modelo].some((v) => String(v || '').toLowerCase().includes(q));
@@ -941,17 +859,35 @@
   const enlaceFicha = (e, texto) => (e && e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${texto}: ${esc(e.nombre)}${e.nivel === 'tipo' ? ' (del tipo)' : ''} ↗</a>` : '');
   /* Los documentos en tabla, la misma pieza que el panel del escritorio y la web (shared/commissioning/panelEquipoPlano.js). */
   const PEP = () => window.PANEL_EQUIPO_PLANO || null;
+  /* Lo que la tabla de documentos sabe del equipo: sus PDF y sus hojas de la app (15-nov: «Ver hoja» si no hay PDF). */
+  const pesadaDe = (e) => ({ documentos: e.documentos || [], tomas: Array.isArray(e.tomas) ? e.tomas : [] });
+  /* 15-nov (JC, nota 14ee6a75: «cuando en Cx pulso un equipo del mapa, debe salir … las hojas del check list, Toma de Datos de
+     Puesta en Marcha, Estanqueidad, Balanceo de Caudales… lo más importante del módulo»): sus hojas, las que pide su tipo, con su
+     estado y un toque para abrirla y rellenarla. La tabla es la del panel del escritorio (panelEquipoPlano.tomasHtml). */
+  function hojasCxHtml(e) {
+    const P = PEP();
+    if (!P || !datos || !datos.conCommissioning) return '';
+    if (e.tomas === undefined) return '<div class="pe-hojas-cx" data-pe-hojas><p class="tenue">Cargando sus hojas…</p></div>';
+    if (!e.tomas.length) return '';
+    return `<div class="pe-hojas-cx" data-pe-hojas>${P.tomasHtml({ pesada: { tomas: e.tomas }, abrirTomas: true }).replace('<h4>Toma de datos</h4>', '<h4>Hojas de commissioning</h4>')}</div>`;
+  }
+  function abrirTomaEquipo(i) {
+    const P = PEP(); const e = equipoElegido();
+    const t = e && Array.isArray(e.tomas) ? e.tomas[i] : null;
+    const a = P && t ? P.accionToma(t) : null;
+    if (a) irAlEquipo(a);
+  }
   function documentosEquipoHtml(e) {
     const P = PEP();
     if (!P) return (e.documentos || []).length ? `<div class="pe-enlaces">${e.documentos.map(enlaceDoc).join('')}</div>` : '';
     if (!e.fichaLista && e.documentos === undefined) return '';
-    const h = P.documentosHtml({ pesada: { documentos: e.documentos || [] } });
+    const h = P.documentosHtml({ pesada: pesadaDe(e) });
     return `<div class="pe-docs">${h}</div>`;
   }
   function abrirDocEquipo(i) {
     const P = PEP(); const e = equipoElegido();
     if (!P || !e) return;
-    const f = P.filasDocumentos({ pesada: { documentos: e.documentos || [] } })[i];
+    const f = P.filasDocumentos({ pesada: pesadaDe(e) })[i];
     const a = f && f.archivos && f.archivos[0];
     if (!a) return;
     if (!window.VISOR_DOC || !P.abrirVisor(f, { subtitulo: e.tag || '' })) window.open(a.url || a.ruta, '_blank', 'noopener');
@@ -990,7 +926,7 @@
   function cajaEq(e, p) {
     const f = FP();
     if (!f || !f.cajaEquipo || !p || !p.plano) return { wf: 0, ar: 1 };
-    /* El fondo del modelo sí tiene escala: cada unidad del svg mide plano.res metros (0,02 en NCN). Tamaño real del equipo. */
+    /* El fondo del modelo sí tiene escala: cada unidad del svg mide plano.res metros (0,02 en una obra real). Tamaño real del equipo. */
     if (p.esIfc) return f.cajaEquipo(e.icono || 'generico', p.plano, (Number(p.plano.res) || 0.1) * 1000);
     /* Con el símbolo del dibujo (30-oct), su tamaño. */
     if (e.w > 0 && e.h > 0 && p.plano.ancho > 0 && p.plano.alto > 0) return { wf: Math.max(e.w, (e.h * p.plano.alto) / p.plano.ancho), ar: 1 };
@@ -1027,9 +963,9 @@
       const nombre = d ? `${esc(d.nombre || p.nombre)}${p.de === 'tipo' ? ' <span class="tenue">(del tipo)</span>' : ''}` : '';
       return fila(p.nombre, d ? (href ? `<a href="${esc(href)}" target="_blank" rel="noopener">${nombre} ↗</a>` : nombre) : '<span style="color:var(--mal)">Falta</span>');
     }).join('')}</table>` : '';
-    return `<div class="fila-principal"><strong class="cifra" style="font-size:17px">${esc(m.tag)}</strong>
+    return `<div class="pe-hoja-fija">${ASA}<div class="fila-principal"><strong class="cifra" style="font-size:17px">${esc(m.tag)}</strong>
         <span class="chip"><i class="pe-punto ${esc(m.estado)}"></i> ${esc(ESTADO_MAT[m.estado] || '')}</span>
-        <button class="cierra" data-pe-cerrar aria-label="Cerrar">×</button></div>
+        <button class="cierra" data-pe-cerrar aria-label="Cerrar">×</button></div></div>
       <div class="sub">${esc(m.tipoNombre)}${fm ? ` · <span class="tenue">en el plano: ${esc(fm.nombre)}</span>` : ''}</div>
       ${m.codigo ? `<div class="pe-cad cifra">Código CAD ${esc(m.codigo)}</div>` : ''}
       <div class="pe-bloque"><h4>Identificación</h4><table class="pe-ficha">
@@ -1044,11 +980,11 @@
 
   function listaMateriales(p, q) {
     const fs = (p.materiales || []).filter((m) => !capasOff.has(m.capa) && casaMat(m, q));
-    /* 19-nov (sin listas infinitas): de 40 en 40 con ‹ ›; el material elegido en el plano lleva a su página. */
-    const pg = C.paginar(`pe-mat/${p.planta || ''}`, fs, { repintar: pintar, ir: mat ? fs.findIndex((m) => m.id === mat) : -1 });
+    const tope = 300;
     return `<div class="pe-lista"><table><thead><tr><th>Material</th><th>Sala</th><th>Estado</th></tr></thead><tbody>
-      ${pg.trozo.map((m) => `<tr data-pe-fila-mat="${esc(m.id)}" class="${m.id === mat ? 'elegida' : ''}"><td>${esc(m.tag)}<br><span class="tenue">${esc(m.tipoNombre)}</span></td><td>${salaHtml(m.sala)}</td><td class="estado"><i class="pe-punto ${esc(m.estado)}"></i> ${esc(ESTADO_MAT[m.estado] || '')}</td></tr>`).join('') || '<tr><td colspan="3" class="tenue">Ningún material así.</td></tr>'}
-      </tbody></table></div>${pg.pie}`;
+      ${fs.slice(0, tope).map((m) => `<tr data-pe-fila-mat="${esc(m.id)}" class="${m.id === mat ? 'elegida' : ''}"><td>${esc(m.tag)}<br><span class="tenue">${esc(m.tipoNombre)}</span></td><td>${salaHtml(m.sala)}</td><td class="estado"><i class="pe-punto ${esc(m.estado)}"></i> ${esc(ESTADO_MAT[m.estado] || '')}</td></tr>`).join('') || '<tr><td colspan="3" class="tenue">Ningún material así.</td></tr>'}
+      ${fs.length > tope ? `<tr><td colspan="3" class="tenue">${cifra(fs.length - tope)} más: afina con el buscador o las capas.</td></tr>` : ''}
+      </tbody></table></div>`;
   }
 
   function mostrarHoja() {
@@ -1056,10 +992,12 @@
     if (!h) return;
     const p = plantaActual();
     const m = materialElegido();
-    if (moviendo && (!equipoElegido() || equipoElegido().id !== moviendo.id)) acabarMover();
-    if (editando && (!equipoElegido() || equipoElegido().id !== editando)) editando = null;
+    const quien = m ? `m:${m.id}` : (equipoElegido() ? `e:${elegida}` : null);
+    const arriba = h.scrollTop;
     h.innerHTML = m ? hojaMaterial(m) : (p ? hojaHtml(p) : '');
     h.hidden = !equipoElegido() && !m;
+    if (quien !== hojaDe) { hojaDe = quien; estadoHoja = 'media'; h.scrollTop = 0; } else h.scrollTop = arriba;
+    if (!h.hidden) altoHoja(h);
     ajustarMarco();
     pedirFicha();
   }
@@ -1067,16 +1005,87 @@
   /* La puesta en marcha, la garantía y los botones del equipo se piden al abrir su ficha (no van en la lista). */
   function pedirFicha() {
     const e = equipoElegido();
-    if (!e || e.fichaLista || e.fichaPidiendo || !datos || !datos.ligero) return;
+    if (!e || e.fichaPidiendo || !datos) return;
+    /* Las hojas de commissioning se piden siempre al abrir (cambian al rellenarlas); lo demás, si la lista vino ligera. */
+    const faltanHojas = datos.conCommissioning && e.tomas === undefined;
+    if (!faltanHojas && (e.fichaLista || !datos.ligero)) return;
     e.fichaPidiendo = true;
     C.pedir(`api/plano-equipos/ficha?obra=${encodeURIComponent(C.obraId())}&id=${encodeURIComponent(e.id)}`)
       .then((r) => {
         if (!r || r.ok === false) return;
-        e.documentos = r.documentos; e.acciones = r.acciones; e.vida = r.vida; if (Array.isArray(r.tomas)) e.tomas = r.tomas; e.marcasDF = r.marcasDF || null; e.fichaLista = true;
+        e.documentos = r.documentos; e.acciones = r.acciones; e.vida = r.vida; e.tomas = Array.isArray(r.tomas) ? r.tomas : []; e.marcasDF = r.marcasDF || null; e.fichaLista = true;
         if (elegida === e.id) { mostrarHoja(); asomar(elegida); }
       })
       .catch(() => {})
       .finally(() => { e.fichaPidiendo = false; });
+  }
+
+  /* El alto de la hoja según su estado (15-nov): 'media' = la mitad del sitio entre el borde de arriba del plano y la barra de
+     abajo (el plano se queda con la otra mitad y el equipo, centrado en ella); 'completa' = hasta la cabecera de la app;
+     'plegada' = solo la cabecera fija (TAG, estado, sala y resumen). En pantalla ancha (≥ 900 px) la hoja va al lado y no se toca. */
+  function altosHoja(h) {
+    const abajo = h.getBoundingClientRect().bottom || (window.innerHeight - 100);
+    const [marco] = marcoYLienzo();
+    const cab = document.querySelector('.barra');
+    const techo = Math.max(8, cab ? cab.getBoundingClientRect().bottom + 8 : 8);
+    const top = marco ? Math.max(techo, marco.getBoundingClientRect().top) : techo;
+    const fija = h.querySelector('.pe-hoja-fija');
+    const plegada = Math.round((fija ? fija.offsetHeight : 90) + 6);
+    const completa = Math.round(Math.max(plegada, abajo - techo));
+    const media = Math.round(Math.min(completa, Math.max(plegada + 60, (abajo - top) * 0.5)));
+    return { plegada, media, completa };
+  }
+  function altoHoja(h, px = null) {
+    if (!h || h.hidden) return;
+    if (window.innerWidth >= 900) { h.style.height = ''; h.style.maxHeight = ''; h.classList.remove('plegada'); return; }
+    const a = altosHoja(h);
+    const alto = px !== null ? Math.max(a.plegada, Math.min(a.completa, px)) : a[estadoHoja] || a.media;
+    h.style.maxHeight = 'none';
+    h.style.height = `${alto}px`;
+    h.classList.toggle('plegada', px === null && estadoHoja === 'plegada');
+    h.dataset.peEstado = estadoHoja;
+  }
+  /* El asa: un toque sube de media a completa (y de completa o plegada vuelve a media); arrastrar sube o baja, y al soltar
+     se queda en el estado más cercano. */
+  let asa = null;
+  document.addEventListener('pointerdown', (ev) => {
+    const b = ev.target && ev.target.closest && ev.target.closest('[data-pe-asa]');
+    const h = b && b.closest('[data-pe-hoja]');
+    if (!h || !$raiz || !$raiz.contains(h)) return;
+    asa = { id: ev.pointerId, y: ev.clientY, alto: h.getBoundingClientRect().height, h, movido: false };
+    try { b.setPointerCapture(ev.pointerId); } catch { /* sin captura */ }
+  });
+  document.addEventListener('pointermove', (ev) => {
+    if (!asa || ev.pointerId !== asa.id) return;
+    const dy = ev.clientY - asa.y;
+    if (!asa.movido && Math.abs(dy) < 6) return;
+    asa.movido = true;
+    asa.h.classList.add('arrastrando');
+    altoHoja(asa.h, asa.alto - dy);
+    ev.preventDefault();
+  }, { passive: false });
+  function soltarAsa(ev) {
+    if (!asa || ev.pointerId !== asa.id) return;
+    const { h, movido, alto, y } = asa;
+    asa = null;
+    h.classList.remove('arrastrando');
+    if (!movido) return; /* el toque lo lleva el click */
+    const final = alto - (ev.clientY - y);
+    const a = altosHoja(h);
+    estadoHoja = ['plegada', 'media', 'completa'].reduce((m, k) => (Math.abs(a[k] - final) < Math.abs(a[m] - final) ? k : m), 'media');
+    altoHoja(h); ajustarMarco();
+    if (elegida) asomar(elegida);
+    asaTragar = Date.now();
+  }
+  let asaTragar = 0;
+  document.addEventListener('pointerup', soltarAsa);
+  document.addEventListener('pointercancel', soltarAsa);
+  function tocarAsa() {
+    if (Date.now() - asaTragar < 500) return;
+    const h = $raiz && $raiz.querySelector('[data-pe-hoja]');
+    estadoHoja = estadoHoja === 'media' ? 'completa' : 'media';
+    altoHoja(h); ajustarMarco();
+    if (elegida) asomar(elegida);
   }
 
   /* En el teléfono la hoja flota sobre la lista: el plano se queda con lo que queda libre
@@ -1107,10 +1116,12 @@
     marcarElegida();
     mostrarHoja();
     if (elegida && centrarla) centrar(elegida);
-    else if (elegida) asomar(elegida);
-    /* 19-nov (capturas: UE-S12 tapada por UI-S12): los elegidos (todo el conjunto) pasan por la regla de los TAG, que
-       los pone donde no pisan ningún bloque, globo «!» ni otro TAG, dentro de lo que se ve del plano. */
-    const [, lz] = marcoYLienzo(); if (lz) tagsYa(lz);
+    else if (elegida) {
+      /* 15-nov (JC): en Cx, con la hoja a media altura, el equipo tocado queda centrado en la mitad de arriba: si el plano
+         estaba en «Entero», se acerca un poco para que haya sitio donde centrarlo. */
+      if (compacto && zoom < 2) ponerZoom(2);
+      asomar(elegida);
+    }
   }
 
   /* Que el equipo tocado quede a la vista: si está cerca de un borde del plano visible, se centra. */
@@ -1149,13 +1160,11 @@
     /* 13-nov (JC: «número de sala es muy importante»): también por número de sala, con o sin puntos («00.STE.036», «00 036»). */
     const BM = window.BUSCADOR_MOVIL;
     const textosEq = (m) => [m.tag, m.sala, m.codSala, m.local];
-    const visibles = p.equipos.filter((m) => !ocultos.has(bq(m)) && (!soloInc || conInc(m)) && (!soloRes || conRes(m)) && (!soloTer || conTer(m)) && (!soloTipo || !(datos && datos.iconos && datos.iconos[soloTipo]) || (m.icono || 'generico') === soloTipo) && (!qq || (BM && BM.coincide ? BM.coincide(filtro.trim(), textosEq(m)) : textosEq(m).some((v) => String(v || '').toLowerCase().includes(qq)))));
+    const visibles = p.equipos.filter((m) => !ocultos.has(bq(m)) && (!soloInc || conInc(m)) && (!soloRes || conRes(m)) && (!soloTer || conTer(m)) && (!qq || (BM && BM.coincide ? BM.coincide(filtro.trim(), textosEq(m)) : textosEq(m).some((v) => String(v || '').toLowerCase().includes(qq)))));
     const enPlano = capasOff.has('equipos') ? [] : visibles.filter((m) => m.x !== null && !m.franja);
     const enFranja = capasOff.has('equipos') ? [] : visibles.filter((m) => m.x !== null && m.franja).sort((a, b) => String(a.tag || '').localeCompare(String(b.tag || ''), 'es', { numeric: true }));
     const enConjunto = idsDelConjunto();
     const bus = buscado(p);
-    /* 19-nov (sin listas infinitas): la tabla bajo el plano, de 40 en 40 con ‹ ›; el equipo elegido en el plano lleva a su página. */
-    const pagEq = compacto ? { trozo: [], pie: '' } : C.paginar(`pe-eq/${p.planta || ''}`, visibles, { repintar: pintar, ir: elegida ? visibles.findIndex((m) => m.id === elegida) : -1 });
     const q = filtro.trim().toLowerCase();
     const mats = (p.materiales || []).filter((m) => m.x !== null && !capasOff.has(m.capa));
     const cuentasCapa = p.capas || {};
@@ -1172,14 +1181,14 @@
           ${FA.marcas(p)}
           ${propuestaDe(p) ? `<div class="pe-propuesta" data-pe-propuesta style="left:${propuestaDe(p).x * 100}%;top:${propuestaDe(p).y * 100}%"><span>Propuesto desde el IFC</span></div>` : ''}
           ${bus && bus.sala ? `<div class="pe-sala-buscada" data-pe-sala-buscada style="left:${bus.sala.x * 100}%;top:${bus.sala.y * 100}%;width:${(bus.sala.w || 0) * 100}%;height:${(bus.sala.h || 0) * 100}%"><span>${esc(bus.sala.t)}</span></div>` : ''}
-          ${enPlano.map((x) => `<button class="marca-boca bq-${bq(x)}${incClase(x)}${enConjunto.has(x.id) ? ' elegida' : ''}${x.revisar ? ' revisar' : ''}${bus && bus.refs.has(x.id) ? ' pe-referencia' : ''}${moviendo && moviendo.id === x.id ? ' pe-moviendo' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[bq(x)]}${dichoInc(x)}${x.revisar ? '; revisar ubicación' : ''}`)}">${simbolo(x.icono)}${incMarca(x)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
+          ${enPlano.map((x) => `<button class="marca-boca bq-${bq(x)}${incClase(x)}${enConjunto.has(x.id) ? ' elegida' : ''}${x.revisar ? ' revisar' : ''}${bus && bus.refs.has(x.id) ? ' pe-referencia' : ''}" style="left:${x.x * 100}%;top:${x.y * 100}%;--wp:${(cajaEq(x, p).wf * 100).toFixed(4)}%" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${x.sala || 'sin sala'}: ${NOMBRE[bq(x)]}${dichoInc(x)}${x.revisar ? '; revisar ubicación' : ''}`)}">${simbolo(x.icono)}${incMarca(x)}<span class="rotulo-boca">${esc(x.tag)}</span></button>`).join('')}
         </div>
       </div>
       ${!compacto && p.esIfc && !(p.plano.salas || []).length ? '<p class="nota pe-sin-nombres" data-pe-sin-nombres>El modelo de esta planta no trae nombres de sala y no hay plano de arquitectura para situarlos.</p>' : ''}${!compacto && p.esIfc && p.plano.fuenteSalas === 'plano' ? '<p class="nota pe-sin-nombres" data-pe-nombres-pdf>Nombres de sala del plano de arquitectura, situados por los equipos: el modelo no los trae.</p>' : ''}
-      <!-- 13-nov (JC en el iPhone): el −/Entero/+ en una franja bajo el plano, nunca encima; también pellizco y doble toque.
+      <!-- 13-nov (JC en el iPhone): zoom con pellizco y doble toque; 18-nov (JC): sin los botones −/Entero/+.
            14-nov (JC): en la misma fila, plegados, los equipos que el modelo no pone en ninguna sala («por confirmar»). -->
       <div class="pe-pie${ubicando ? ' con-ubicando' : ''}">${ubicando ? `<div class="pe-ubicando${propuestaDe(p) && !guardandoSitio ? ' con-propuesta' : ''}" data-pe-ubicando role="status"><span class="pe-ub-txt"><span>${guardandoSitio ? 'Guardando el sitio de' : 'Toca en el plano dónde está'} <b>${esc(ubicando.tag)}</b></span>${guardandoSitio ? '' : `<small data-pe-ub-pista>${esc(dichoBuscado(bus))}</small>`}</span>${propuestaDe(p) ? `<button type="button" class="boton" data-pe-confirmar-ifc>Confirmar</button>` : ''}${guardandoSitio ? '' : `<button type="button" class="boton secundario" data-pe-ubicar-ficha>Ficha</button>`}<button type="button" class="boton secundario" data-pe-ubicar-cancelar>Cancelar</button></div>`
-        : enFranja.length ? `<button type="button" class="pe-franja-boton" data-pe-franja aria-expanded="${verFranja}" aria-controls="pe-franja-lista"><span>${cifra(enFranja.length)} equipo${enFranja.length === 1 ? '' : 's'} ${puedeUbicarAqui(p) ? 'por ubicar' : 'sin sala, por confirmar'} <span class="flecha" aria-hidden="true">›</span></span></button>` : ''}<div class="pe-zoom" role="group" aria-label="Zoom del plano"><button class="boton secundario" data-pe-zoom="-1" aria-label="Alejar">−</button><button class="boton secundario" data-pe-zoom="0">Entero</button><button class="boton secundario" data-pe-zoom="1" aria-label="Acercar">+</button></div>
+        : enFranja.length ? `<button type="button" class="pe-franja-boton" data-pe-franja aria-expanded="${verFranja}" aria-controls="pe-franja-lista"><span>${cifra(enFranja.length)} equipo${enFranja.length === 1 ? '' : 's'} ${puedeUbicarAqui(p) ? 'por ubicar' : 'sin sala, por confirmar'} <span class="flecha" aria-hidden="true">›</span></span></button>` : ''}
       ${enFranja.length && verFranja && !ubicando ? `<div class="pe-franja-lista" id="pe-franja-lista" data-pe-franja-lista role="list" aria-label="Sin sala en el modelo, por confirmar">${enFranja.length > 5 ? `<input type="search" class="pe-franja-buscar" data-pe-franja-buscar placeholder="Filtrar por TAG, sala, zona o tipo" aria-label="Filtrar los equipos por ubicar" value="${esc(franjaFiltro)}">` : ''}<ul>${enFranja.map((x) => `<li${puedeUbicarAqui(p) ? ' class="con-ubicar"' : ''} data-pe-franja-fila="${esc(x.id)}"${casaFranja(x) ? '' : ' hidden'}><button type="button" class="${enConjunto.has(x.id) ? 'elegida' : ''}" data-pe-marca="${esc(x.id)}" aria-label="${esc(`${x.tag}, ${pistaCorta(x) || 'sin sala en el modelo'}, por confirmar: ${NOMBRE[bq(x)]}`)}">${simbolo(x.icono)}<span class="pe-fr-txt"><span class="pe-fr-l1"><b>${esc(x.tag)}</b><span class="tipo">${esc([tipoDe(x), x.modelo].filter(Boolean).join(' · '))}</span></span><span class="pista${pistaCorta(x) ? '' : ' vacia'}">${esc(pistaCorta(x) || 'Sin sala, zona ni sistema en la base')}</span>${x.propuesto ? `<span class="pe-propuesto" data-pe-propuesto="${esc(x.id)}">${esc(dichoPropuesto(x.propuesto))}</span>` : ''}</span><i class="pe-punto bq-punto-${puntoInc(x)}" title="${esc(conInc(x) ? 'Con incidencia' : conTer(x) ? IP.NOMBRE_TERCEROS : conRes(x) ? IP.NOMBRE_RESUELTA : NOMBRE[bq(x)])}"></i><span class="pe-ir" aria-hidden="true">›</span></button>${puedeUbicarAqui(p) ? `<button type="button" class="pe-ubicar" data-pe-ubicar="${esc(x.id)}" aria-label="${esc(x.propuesto ? `Ver dónde lo propone el IFC para ${x.tag}` : `Ubicar ${x.tag} en el plano`)}">${x.propuesto ? 'Ver' : 'Ubicar'}</button>` : ''}</li>`).join('')}</ul><p class="pe-franja-nada" data-pe-franja-nada${enFranja.some(casaFranja) ? ' hidden' : ''}>Ninguno con «${esc(franjaFiltro)}».</p></div>` : ''}</div>${FA.marcando() ? FA.mando(p) : ''}</div>`
       : compacto ? `<div class="pe-sin-plano" data-pe-sin-ifc><b>Falta el IFC de la planta ${esc(etiqueta(p))}</b> (y tampoco tiene plano PDF). Lo prepara el delineante; mientras, sus equipos están en «Lista».</div>`
       : `<div class="pe-sin-plano"><b>La planta ${esc(etiqueta(p))} aún no tiene plano de equipos.</b><br>Lo sube la oficina desde Commissioning › Plano. Mientras, la lista dice la sala y el estado de cada equipo.</div>`;
@@ -1198,7 +1207,7 @@
     const masPlegado = masDentro.trim() ? `<details class="pe-mas" data-pe-mas${verMas || verSinUbicar ? ' open' : ''}><summary>Leyenda${p.plano && (p.sinUbicar || []).length ? ` · sin ubicar ${cifra(p.sinUbicar.length)}` : ''}${nRev ? ` · revisar ${cifra(nRev)}` : ''}</summary>${masDentro}</details>` : '';
     $raiz.innerHTML = compacto ? `
       ${desplegable}
-      ${p.equipos.length ? `<div class="pe-leyenda pe-una-fila" role="group" aria-label="Estados">${botonRdf}${ordenV().filter((k) => cuentaV(k) > 0 || ocultos.has(k)).map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}" title="${esc(NOMBRE[k])}"><i class="pe-punto bq-punto-${k}"></i>${esc(CORTO[k] || NOMBRE[k])} <b>${cifra(cuentaV(k))}</b></button>`).join('')}${chipInc(p)}${selTipo(p)}</div>` : ''}
+      ${p.equipos.length ? `<div class="pe-leyenda pe-una-fila" role="group" aria-label="Estados">${botonRdf}${ordenV().filter((k) => cuentaV(k) > 0 || ocultos.has(k)).map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}" title="${esc(NOMBRE[k])}"><i class="pe-punto bq-punto-${k}"></i>${esc(CORTO[k] || NOMBRE[k])} <b>${cifra(cuentaV(k))}</b></button>`).join('')}${chipInc(p)}</div>` : ''}
       <div class="pe-cuerpo">
         <div>${plano}</div>
         <div class="pe-lado"><div class="pe-hoja" data-pe-hoja hidden></div></div>
@@ -1206,7 +1215,7 @@
       ${cabeza()}
       <div class="pe-plantas" role="tablist">${plantas().map((x) => `<button role="tab" data-pe-planta="${esc(x.planta || '')}" aria-selected="${x === p}" class="${x === p ? 'activa' : ''}">${esc(etiqueta(x))}<small>${cuentaTexto(nEquipos(x), nMateriales(x))}</small></button>`).join('')}</div>
       ${capas.length > 1 || chipFaltas ? `<div class="pe-capas" role="group" aria-label="Capas">${capas.length > 1 ? capas.map((k) => `<button data-pe-capa="${esc(k.id)}" aria-pressed="${!capasOff.has(k.id)}">${esc(k.nombre)} <b>${cifra(cuentasCapa[k.id])}</b></button>`).join('') : ''}${chipFaltas}</div>` : ''}
-      ${p.equipos.length ? `<div class="pe-leyenda" role="group" aria-label="Colores">${botonRdf}${ordenV().map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto bq-punto-${k}"></i>${esc(NOMBRE[k])} <b>${cifra(cuentaV(k))}</b></button>`).join('')}${chipInc(p)}${selTipo(p)}
+      ${p.equipos.length ? `<div class="pe-leyenda" role="group" aria-label="Colores">${botonRdf}${ordenV().map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto bq-punto-${k}"></i>${esc(NOMBRE[k])} <b>${cifra(cuentaV(k))}</b></button>`).join('')}${chipInc(p)}
         <p class="nota">sin sala ${cifra(c.sinSala)}${p.plano ? ` · en el plano ${cifra(c.enPlano)} de ${cifra(p.equipos.length)}` : ''}</p></div>` : ''}
       ${masPlegado}
       <div class="pe-cuerpo">
@@ -1218,15 +1227,16 @@
           <input type="search" class="pe-buscar" data-pe-buscar placeholder="Buscar TAG, sala o nº de serie" value="${esc(filtro)}">
           <p class="nota pe-entregable"><a href="api/plano-equipos/entregable?obra=${encodeURIComponent(C.obraId())}&planta=${encodeURIComponent(p.planta || '')}" target="_blank" rel="noopener">Entregable a mantenimiento (planta ${esc(etiqueta(p))}) ↗</a></p>` : ''}
           ${lista === 'materiales' && (p.materiales || []).length ? listaMateriales(p, q) : `<div class="pe-lista"><table><thead><tr><th>Equipo</th><th>Sala</th><th>Estado</th></tr></thead><tbody>
-          ${pagEq.trozo.map((e) => `<tr data-pe-fila="${esc(e.id)}" class="${e.id === elegida ? 'elegida' : ''}${p.plano && e.x === null ? ' sin-ubicar' : ''}"><td>${e.papel ? `<em class="tenue">${esc(e.papel)}</em> ` : ''}${esc(e.tag)}</td><td>${salaHtml(e.sala)}</td><td class="estado">${p.plano && e.x === null ? '<i class="pe-punto pe-gris"></i> Sin ubicar' : `<i class="pe-punto bq-punto-${bq(e)}"></i> ${esc(NOMBRE[bq(e)])}`}</td></tr>`).join('') || '<tr><td colspan="3" class="tenue">Ningún equipo con esos colores.</td></tr>'}
-          </tbody></table></div>${pagEq.pie}`}
+          ${visibles.map((e) => `<tr data-pe-fila="${esc(e.id)}" class="${e.id === elegida ? 'elegida' : ''}${p.plano && e.x === null ? ' sin-ubicar' : ''}"><td>${e.papel ? `<em class="tenue">${esc(e.papel)}</em> ` : ''}${esc(e.tag)}</td><td>${salaHtml(e.sala)}</td><td class="estado">${p.plano && e.x === null ? '<i class="pe-punto pe-gris"></i> Sin ubicar' : `<i class="pe-punto bq-punto-${bq(e)}"></i> ${esc(NOMBRE[bq(e)])}`}</td></tr>`).join('') || '<tr><td colspan="3" class="tenue">Ningún equipo con esos colores.</td></tr>'}
+          </tbody></table></div>`}
         </div>
       </div>`;
     C.cargarImagenes($raiz);
     mostrarHoja();
     colocarTags($raiz.querySelector('[data-pe-lienzo]'));
-    /* 18-nov (JC; paso del Gestor): «dónde estoy», una capa aparte encima (renderer/movil/posicionPlanoCapa.js). */
-    if (window.CX_POSICION_PLANO) window.CX_POSICION_PLANO.montar($raiz, p, { salas: salasDe(p) });
+    /* 18-nov (JC): «dónde estoy», una capa aparte encima (renderer/movil/posicionPlanoCapa.js). */
+    /* 18-nov: con la lista de plantas y su cota del IFC, para proponer la planta en la que estás (plantaAutoCapa.js). */
+    if (window.CX_POSICION_PLANO) window.CX_POSICION_PLANO.montar($raiz, p, { salas: salasDe(p), plantas: (compacto ? plantasCx() : plantas()).map((x) => ({ planta: x.planta, cota: x.ifc && x.ifc.plano ? x.ifc.plano.cota ?? null : null })) });
     if (compacto || window.innerWidth < 900) ajustarAlto();
     /* 14-nov: hasta que llega la imagen el lienzo no tiene alto; al llegar, los rótulos se recolocan con el de verdad. */
     const img = $raiz.querySelector('[data-pe-lienzo] img');
@@ -1325,7 +1335,15 @@
   const huecos = new WeakMap(); /* salas del plano → hueco de cada una (vistaPlano.huecoSalas) */
   /* Los nombres de sala: los que trae el plano (IFC o PDF); si no trae ninguno, el campo sala de los equipos (nunca inventados). */
   const salasEq = new WeakMap();
+  /* 15-nov (JC: «Sala de bombas» pintado encima del mismo texto del PDF): sobre el plano PDF, sus rótulos de sala ya están en
+     el dibujo; no se repintan: son obstáculos (vistaPlano.colocarRotulos › fijos) y encima solo van las salas de los equipos que
+     el PDF no nombra (las que sí nombra, colocarRotulos las descarta). Sobre el modelo IFC, como siempre. */
+  const textosDelPdf = (p) => (p && p.plano && !p.esIfc ? (p.plano.salas || []).filter((r) => r && r.t) : []);
   function salasDe(p) {
+    if (p && p.plano && !p.esIfc && (p.plano.salas || []).length && window.VISTA_PLANO && window.VISTA_PLANO.salasDeEquipos) {
+      if (!salasEq.has(p)) { const f = FP(); salasEq.set(p, window.VISTA_PLANO.salasDeEquipos(p.equipos || [], f ? f.partirSala : undefined).filter((r) => !f || f.partirSala(r.t).nombre)); }
+      return salasEq.get(p);
+    }
     const ls = (p && p.plano && p.plano.salas) || [];
     if (ls.length || !p || !window.VISTA_PLANO || !window.VISTA_PLANO.salasDeEquipos) return ls;
     if (!salasEq.has(p)) { const f = FP(); salasEq.set(p, window.VISTA_PLANO.salasDeEquipos(p.equipos || [], f ? f.partirSala : undefined).filter((r) => !f || f.partirSala(r.t).nombre)); }
@@ -1373,16 +1391,13 @@
       const elegido = b.classList.contains('elegida');
       const t = elegido ? Math.max(TAM_EQ_ELEGIDO, tMax + 4) : (tam.get(e.id) || tMax);
       b.style.width = `${t}px`;
-      equipos.push({ id: e.id, x: e.x, y: e.y, sw: t, tag: e.tag, elegido, globo: Boolean(b.querySelector('.pe-inc')) });
+      equipos.push({ id: e.id, x: e.x, y: e.y, sw: t, tag: e.tag, elegido });
     }
     const listaSalas = salasDe(p);
     if (!huecos.has(listaSalas)) huecos.set(listaSalas, V.huecoSalas(listaSalas, lh / lw));
     const ancho = (t, k) => anchoTexto(t || '', k === 'elegido' ? LETRA_TAG_ELEGIDO : k === 'sala' ? LETRA_SALA : k === 'codigo' ? LETRA_COD : LETRA_TAG);
     /* 14-nov (JC en el iPhone): en la pestaña Cx, el TAG también encima o debajo del bloque, y los que no caben, en píldoras «+N». */
-    /* 19-nov: lo que se ve del plano (el marco puede estar desplazado sobre el lienzo): ningún TAG se sale de ahí. */
-    const mc = lienzo.parentElement && lienzo.closest('.pe-marco');
-    const vista = mc ? { x0: mc.scrollLeft - lienzo.offsetLeft, y0: mc.scrollTop - lienzo.offsetTop, x1: mc.scrollLeft - lienzo.offsetLeft + mc.clientWidth, y1: mc.scrollTop - lienzo.offsetTop + mc.clientHeight } : null;
-    const ver = V.colocarRotulos({ lw, lh, equipos, materiales, salas: listaSalas, huecos: huecos.get(listaSalas), ancho, sitios: compacto, grupos: compacto, vista });
+    const ver = V.colocarRotulos({ lw, lh, equipos, materiales, salas: listaSalas, huecos: huecos.get(listaSalas), ancho, sitios: compacto, grupos: compacto, fijos: textosDelPdf(p) });
     for (const b of botones) b.classList.toggle('con-tag', ver.tags.has(b.dataset.peMat));
     for (const b of botonesEq) b.classList.toggle('con-tag', ver.tags.has(`eq:${b.dataset.peMarca}`));
     /* 13-nov: un TAG que se saldría por la derecha del plano va a la izquierda de su equipo (regla compartida). */
@@ -1397,9 +1412,6 @@
       const q = porEqId.get(b.dataset.peMarca); const cj = cajas.get(k);
       /* Junto al borde el TAG de arriba/abajo va desplazado para no cortarse (la caja que dio colocarRotulos). */
       if (st && q && cj) b.style.setProperty('--tag-dx', `${(cj.x + cj.w / 2 - q.x * lw).toFixed(1)}px`); else b.style.removeProperty('--tag-dx');
-      /* Encima con globo «!»: la caja sube por encima del globo (colocarRotulos ya lo dejó libre). */
-      const t = parseFloat(b.style.width) || 0;
-      if (st === 'arr' && q && cj) b.style.setProperty('--tag-dy', `${Math.max(0, q.y * lh - t / 2 - 1 - (cj.y + cj.h)).toFixed(1)}px`); else b.style.removeProperty('--tag-dy');
     }
     const enGrupo = new Set();
     const pildoras = (ver.grupos || []).map((g, i) => {
@@ -1505,14 +1517,23 @@
     tragarClick = true;
   }
 
+  /* 15-nov: el plano captura el puntero para arrastrar (setPointerCapture), así que el «soltar» y el click llegan con el
+     MARCO de destino, no con el equipo tocado, y el toque no abría su ficha. El blanco real es lo que hay bajo el dedo. */
+  function blanco(ev) {
+    const t = ev.target;
+    if (!t || !t.closest) return t || document.body;
+    const m = t.matches && t.matches('[data-pe-marco], [data-pe-lienzo]') ? t : null;
+    if (!m || !Number.isFinite(ev.clientX) || (!ev.clientX && !ev.clientY)) return t;
+    const bajo = document.elementFromPoint(ev.clientX, ev.clientY);
+    return bajo && m.contains(bajo) ? bajo : t;
+  }
+
   document.addEventListener('pointerdown', (ev) => {
     const marco = enMarco(ev);
     if (!marco) return;
     cancelAnimationFrame(animando);
     dedos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
     try { marco.setPointerCapture(ev.pointerId); } catch { /* sin captura */ }
-    /* Moviendo un equipo (17-nov): arrastrar SU punto lo lleva; el resto del plano se sigue arrastrando y pellizcando. */
-    if (moviendo && dedos.size === 1 && ev.target.closest && ev.target.closest(`[data-pe-marca="${CSS.escape(moviendo.id)}"]`)) { gesto = { tipo: 'mueve' }; tragarClick = true; ev.preventDefault(); return; }
     if (dedos.size === 2) empezarPellizco(marco);
     else if (dedos.size === 1) {
       gesto = { tipo: 'espera', x: ev.clientX, y: ev.clientY, sl: marco.scrollLeft, st: marco.scrollTop, movido: false };
@@ -1527,12 +1548,6 @@
     dedos.get(ev.pointerId).x = ev.clientX;
     dedos.get(ev.pointerId).y = ev.clientY;
     if (!gesto) return;
-    if (gesto.tipo === 'mueve' && dedos.size === 1) {
-      const l = marco.querySelector('[data-pe-lienzo]'); const caja = l && l.getBoundingClientRect();
-      if (caja && caja.width) ponerPunto((ev.clientX - caja.left) / caja.width, (ev.clientY - caja.top) / caja.height, { repintar: false });
-      ev.preventDefault();
-      return;
-    }
     if (gesto.tipo === 'pellizco' && dedos.size >= 2) {
       /* Los dos dedos mandan un pointermove cada uno: se aplica una vez por fotograma con la última posición de ambos. */
       if (!fotoPellizco) fotoPellizco = requestAnimationFrame(() => { fotoPellizco = 0; pasoPellizco(); });
@@ -1558,25 +1573,10 @@
     const eraEspera = gesto && gesto.tipo === 'espera' && dedos.size === 1 && ev.type === 'pointerup';
     dedos.delete(ev.pointerId);
     if (marco) { try { marco.releasePointerCapture(ev.pointerId); } catch { /* ya soltado */ } }
-    if (dedos.size === 0 && gesto && gesto.tipo === 'mueve') {
-      gesto = null; tragarClick = true; setTimeout(() => { tragarClick = false; }, 350);
-      repintarQuieto();
-      return;
-    }
-    /* Moviendo (17-nov): el toque dice el sitio nuevo, aunque caiga encima de otra marca. */
-    if (dedos.size === 0 && eraEspera && marco && moviendo) {
-      const caja = marco.querySelector('[data-pe-lienzo]').getBoundingClientRect();
-      const x = (ev.clientX - caja.left) / caja.width, y = (ev.clientY - caja.top) / caja.height;
-      gesto = null; ultimoToque = null; tragarClick = true;
-      setTimeout(() => { tragarClick = false; }, 350);
-      if (x >= 0 && x <= 1 && y >= 0 && y <= 1) ponerPunto(x, y);
-      return;
-    }
     if (dedos.size === 0) {
       if (gesto && (gesto.tipo === 'pellizco' || gesto.tipo === 'arrastre') && fotoPellizco) { cancelAnimationFrame(fotoPellizco); fotoPellizco = 0; pasoPellizco(); }
       if (gesto && gesto.tipo === 'pellizco') { const l = marco && marco.querySelector('[data-pe-lienzo]'); tagsYa(l); encuadrar(); }
-      /* 19-nov: al soltar un arrastre lo visible cambia: los TAG se recolocan para no salirse por el borde del marco. */
-      else if ((tTags || (gesto && gesto.tipo === 'arrastre')) && marco) tagsYa(marco.querySelector('[data-pe-lienzo]'));
+      else if (tTags && marco) tagsYa(marco.querySelector('[data-pe-lienzo]'));
       /* Marcando (8-nov): el toque dice el sitio, aunque caiga encima de otra marca; arrastrar y pellizcar siguen moviendo el plano. */
       /* Ubicando (17-nov): el toque dice el sitio del equipo, aunque caiga encima de otro; arrastrar y pellizcar mueven el plano. */
       if (eraEspera && marco && ubicando && !guardandoSitio) {
@@ -1602,7 +1602,7 @@
         return;
       }
       /* Doble toque en un hueco del plano: acerca (o, si ya está muy cerca, vuelve a entero). */
-      if (eraEspera && marco && !(ev.target.closest && ev.target.closest('[data-pe-marca],[data-pe-mat],[data-pe-zoom],[data-pe-grupo],[data-fa-ver]'))) {
+      if (eraEspera && marco && !(blanco(ev).closest && blanco(ev).closest('[data-pe-marca],[data-pe-mat],[data-pe-zoom],[data-pe-grupo],[data-fa-ver]'))) {
         const ahora = performance.now();
         const [px, py] = dentro(marco, ev);
         if (ultimoToque && ahora - ultimoToque.t < 300 && Math.hypot(px - ultimoToque.x, py - ultimoToque.y) < 40) {
@@ -1625,7 +1625,7 @@
   document.addEventListener('pointerup', soltar);
   /* Al girar el teléfono o cambiar el alto (barra del navegador), el plano vuelve a llenar su hueco. */
   let tAlto = 0;
-  window.addEventListener('resize', () => { clearTimeout(tAlto); tAlto = setTimeout(() => { if (compacto && $raiz && $raiz.isConnected && $raiz.querySelector('[data-pe-marco]')) ajustarAlto(); }, 120); });
+  window.addEventListener('resize', () => { clearTimeout(tAlto); tAlto = setTimeout(() => { if ($raiz && $raiz.isConnected) altoHoja($raiz.querySelector('[data-pe-hoja]')); if (compacto && $raiz && $raiz.isConnected && $raiz.querySelector('[data-pe-marco]')) ajustarAlto(); }, 120); });
   document.addEventListener('pointercancel', soltar);
 
   /* Ni la página ni el navegador hacen zoom con los dedos sobre el plano. */
@@ -1757,8 +1757,6 @@
     }
     if (!$raiz || !ev.target.matches || !ev.target.matches('[data-pe-buscar]') || !$raiz.contains(ev.target)) return;
     filtro = ev.target.value;
-    /* Cada búsqueda empieza en la primera página de la tabla. */
-    C.reiniciarPagina(`pe-eq/${planta || ''}`); C.reiniciarPagina(`pe-mat/${planta || ''}`);
     const pos = ev.target.selectionStart;
     repintarQuieto();
     const b = $raiz.querySelector('[data-pe-buscar]');
@@ -1807,7 +1805,6 @@
 
   document.addEventListener('change', (ev) => {
     if (!$raiz || !$raiz.contains(ev.target) || !datos) return;
-    if (ev.target.matches && ev.target.matches('[data-pe-solo-tipo]')) { soloTipo = ev.target.value || null; repintarQuieto(); return; }
     const sel = ev.target.closest && ev.target.closest('[data-pe-planta-sel]');
     if (sel) {
       const nombre = sel.value;
@@ -1819,57 +1816,47 @@
     if (df && df.value) guardarEntregaDF(df.dataset.peEntregaDf, df.value);
   });
 
-  document.addEventListener('submit', (ev) => {
-    const f = ev.target.closest && ev.target.closest('[data-pe-edita]');
-    if (!f || !$raiz || !$raiz.contains(f)) return;
-    ev.preventDefault();
-    guardarEdicion(f);
-  });
-
   document.addEventListener('click', (ev) => {
     if (!$raiz || !$raiz.contains(ev.target) || !datos) return;
-    if (ev.target.closest('[data-pe-editar]')) { const e = equipoElegido(); if (e) { editando = e.id; acabarMover(); mostrarHoja(); const i = $raiz.querySelector('[data-pe-edita] input[name=tag]'); if (i) i.focus(); } return; }
-    if (ev.target.closest('[data-pe-edita-cancelar]')) { editando = null; mostrarHoja(); return; }
-    if (ev.target.closest('[data-pe-mover]')) { empezarMover(equipoElegido()); return; }
-    if (ev.target.closest('[data-pe-mover-cancelar]')) { acabarMover(); repintarQuieto(); return; }
-    if (ev.target.closest('[data-pe-mover-guardar]')) { guardarMover(); return; }
-    if (moviendo && ev.target.closest('[data-pe-cerrar]')) acabarMover();
     if (FA.clic(ev)) return;
-    const vd = ev.target.closest('[data-pes-ver-doc]');
+    const vd = blanco(ev).closest('[data-pes-ver-doc]');
     if (vd) { abrirDocEquipo(Number(vd.dataset.pesVerDoc)); return; }
-    const dq = ev.target.closest('[data-pe-entrega-df-quitar]');
+    /* Una hoja de commissioning: el botón «Abrir» o la fila entera (el dedo no tiene que acertar un botón pequeño). */
+    const tm = blanco(ev).closest('[data-pes-toma]') || (blanco(ev).closest('[data-pe-hojas] tr') || { querySelector: () => null }).querySelector('[data-pes-toma]');
+    if (tm) { abrirTomaEquipo(Number(tm.dataset.pesToma)); return; }
+    const dq = blanco(ev).closest('[data-pe-entrega-df-quitar]');
     if (dq) { guardarEntregaDF(dq.dataset.peEntregaDfQuitar, null); return; }
-    const pl = ev.target.closest('[data-pe-planta]');
+    const pl = blanco(ev).closest('[data-pe-planta]');
     if (pl) {
       const nombre = pl.dataset.pePlanta;
       traerPlanta(nombre).then(() => { planta = nombre; elegida = null; mat = null; zoom = 1; pintar(); precargarVecinas(); }).catch((e) => C.aviso(e.message));
       return;
     }
-    if (ev.target.closest('[data-pe-solo-inc]')) { soloInc = !soloInc; repintarQuieto(); return; }
-    if (ev.target.closest('[data-pe-solo-res]')) { soloRes = !soloRes; repintarQuieto(); return; }
-    if (ev.target.closest('[data-pe-solo-ter]')) { soloTer = !soloTer; repintarQuieto(); return; }
-    if (ev.target.closest('[data-pe-rdf]')) { colorRdf = !colorRdf; ocultos = new Set(); repintarQuieto(); return; }
-    const co = ev.target.closest('[data-pe-color]');
+    if (blanco(ev).closest('[data-pe-solo-inc]')) { soloInc = !soloInc; repintarQuieto(); return; }
+    if (blanco(ev).closest('[data-pe-solo-res]')) { soloRes = !soloRes; repintarQuieto(); return; }
+    if (blanco(ev).closest('[data-pe-solo-ter]')) { soloTer = !soloTer; repintarQuieto(); return; }
+    if (blanco(ev).closest('[data-pe-rdf]')) { colorRdf = !colorRdf; ocultos = new Set(); repintarQuieto(); return; }
+    const co = blanco(ev).closest('[data-pe-color]');
     if (co) { const k = co.dataset.peColor; if (ocultos.has(k)) ocultos.delete(k); else ocultos.add(k); repintarQuieto(); return; }
-    const fo = ev.target.closest('[data-pe-fondo]');
+    const fo = blanco(ev).closest('[data-pe-fondo]');
     if (fo) {
       const k = planta || '';
       if (fo.dataset.peFondo === 'pdf') { conPdf.add(k); conModelo.delete(k); } else { conPdf.delete(k); conModelo.add(k); }
       elegida = null; mat = null; zoom = 1; pintar();
       return;
     }
-    const ub = ev.target.closest('[data-pe-ubicar]');
+    const ub = blanco(ev).closest('[data-pe-ubicar]');
     if (ub) { empezarAUbicar(ub.dataset.peUbicar); return; }
-    if (ev.target.closest('[data-pe-ubicar-cancelar]')) { ubicando = null; repintarQuieto(); return; }
-    if (ev.target.closest('[data-pe-confirmar-ifc]')) { confirmarPropuesta(); return; }
+    if (blanco(ev).closest('[data-pe-ubicar-cancelar]')) { ubicando = null; repintarQuieto(); return; }
+    if (blanco(ev).closest('[data-pe-confirmar-ifc]')) { confirmarPropuesta(); return; }
     /* 17-nov (v2): la ficha del que se ubica, sin dejar de ubicar: el siguiente toque en el plano sigue diciendo su sitio. */
-    if (ev.target.closest('[data-pe-ubicar-ficha]')) { if (ubicando) { elegida = ubicando.id; mat = null; mostrarHoja(); asomar(elegida); } return; }
-    const rf = ev.target.closest('[data-pe-ir-ref]');
+    if (blanco(ev).closest('[data-pe-ubicar-ficha]')) { if (ubicando) { elegida = ubicando.id; mat = null; mostrarHoja(); asomar(elegida); } return; }
+    const rf = blanco(ev).closest('[data-pe-ir-ref]');
     if (rf) { centrar(rf.dataset.peIrRef); return; }
-    const fr = ev.target.closest('[data-pe-franja]');
+    const fr = blanco(ev).closest('[data-pe-franja]');
     if (fr) { verFranja = !verFranja; repintarQuieto(); return; }
     /* Una píldora «+N»: acerca hacia ella hasta que sus TAG caben. */
-    const gr = ev.target.closest('[data-pe-grupo]');
+    const gr = blanco(ev).closest('[data-pe-grupo]');
     if (gr) {
       const [marco] = marcoYLienzo();
       if (!marco) return;
@@ -1877,7 +1864,7 @@
       irAZoom(Math.min(ZOOM_MAX, Math.max(zoom * 2.2, zoom + 1.5)), b.left + b.width / 2 - r.left, b.top + b.height / 2 - r.top);
       return;
     }
-    const z = ev.target.closest('[data-pe-zoom]');
+    const z = blanco(ev).closest('[data-pe-zoom]');
     if (z) {
       /* Con un equipo elegido a la vista, se acerca hacia él y no hacia el centro. */
       const v = Number(z.dataset.peZoom);
@@ -1893,12 +1880,14 @@
       irAZoom(v === 0 ? 1 : zoom * (v > 0 ? 1.6 : 1 / 1.6), cx, cy);
       return;
     }
-    if (ev.target.closest('[data-pe-cerrar]')) { elegida = null; mat = null; for (const el of $raiz.querySelectorAll('[data-pe-mat]')) el.classList.remove('elegida'); marcarElegida(); mostrarHoja(); return; }
-    const capa = ev.target.closest('[data-pe-capa]');
+    if (blanco(ev).closest('[data-pe-asa]')) { tocarAsa(); return; }
+    if (blanco(ev).closest('[data-pe-resumen]')) { irADocs(); return; }
+    if (blanco(ev).closest('[data-pe-cerrar]')) { elegida = null; mat = null; for (const el of $raiz.querySelectorAll('[data-pe-mat]')) el.classList.remove('elegida'); marcarElegida(); mostrarHoja(); return; }
+    const capa = blanco(ev).closest('[data-pe-capa]');
     if (capa) { const k = capa.dataset.peCapa; if (capasOff.has(k)) capasOff.delete(k); else capasOff.add(k); repintarQuieto(); return; }
-    const li = ev.target.closest('[data-pe-lista]');
+    const li = blanco(ev).closest('[data-pe-lista]');
     if (li) { lista = li.dataset.peLista; repintarQuieto(); return; }
-    const gs = ev.target.closest('[data-pe-guardar-serie]');
+    const gs = blanco(ev).closest('[data-pe-guardar-serie]');
     if (gs) {
       const inp = $raiz.querySelector('[data-pe-serie]');
       gs.disabled = true;
@@ -1907,7 +1896,7 @@
         .catch((e) => { gs.disabled = false; C.aviso(e.message); });
       return;
     }
-    const mm = ev.target.closest('[data-pe-mat]') || ev.target.closest('[data-pe-fila-mat]');
+    const mm = blanco(ev).closest('[data-pe-mat]') || blanco(ev).closest('[data-pe-fila-mat]');
     if (mm) {
       const id = mm.dataset.peMat || mm.dataset.peFilaMat;
       mat = id === mat ? null : id;
@@ -1919,7 +1908,7 @@
       if (mat && mm.dataset.peFilaMat) centrarMat(mat);
       return;
     }
-    const ver = ev.target.closest('[data-pe-ver]');
+    const ver = blanco(ev).closest('[data-pe-ver]');
     if (ver) {
       const id = ver.dataset.peVer;
       /* 13-nov (JC): «ver» el otro equipo del par abre también su ficha completa. */
@@ -1931,15 +1920,15 @@
       else centrar(ver.dataset.peVer);
       return;
     }
-    const inc = ev.target.closest('[data-pes-incidencia]');
+    const inc = blanco(ev).closest('[data-pes-incidencia]');
     if (inc) { abrirIncidencia(inc.dataset.pesIncidencia); return; }
-    const ac = ev.target.closest('[data-pe-accion]');
+    const ac = blanco(ev).closest('[data-pe-accion]');
     if (ac) { irAlEquipo(ac.dataset.peAccion); return; }
     /* 13-nov (JC, en reunión): desde el plano se llega a SU FICHA COMPLETA (checklist, toma de datos, estanqueidad, balanceo…).
        14-nov (JC: «al pulsar el equipo no resalta en el plano»): el primer toque lo RESALTA en el plano y abre abajo su hoja con
        lo imprescindible (estado de Cx, sala, conjunto, documentos con «Ver PDF», puesta en marcha y garantía, sus fichas) y el
        botón «Ficha completa»; tocarlo otra vez también la abre. Al volver, el plano sigue con su planta, zoom, sitio y resaltado. */
-    const mk = ev.target.closest('[data-pe-marca]') || ev.target.closest('[data-pe-fila]');
+    const mk = blanco(ev).closest('[data-pe-marca]') || blanco(ev).closest('[data-pe-fila]');
     if (mk) {
       const id = mk.dataset.peMarca || mk.dataset.peFila;
       if (typeof window.CX_COMMISSIONING_IR === 'function' && id === elegida) { irAlEquipo('equipo'); return; }

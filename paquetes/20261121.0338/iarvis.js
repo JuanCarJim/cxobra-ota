@@ -3,8 +3,8 @@
  * 🧭 HABLAR CON IARVIS (7-nov-2026, JC: «una buena forma de hablar con Iarvis, desde el
  * móvil, desde la web y desde la app de escritorio, en todas las apps de Vidaire»).
  *
- * UN SOLO COMPONENTE para todas: en el escritorio y la web, un botón pequeño que abre una
- * ventana flotante que se arrastra y se pliega (17-nov); en el móvil, el mismo panel dentro de su pestaña.
+ * UN SOLO COMPONENTE para todas: en el escritorio y la web, un botón pequeño abajo a la
+ * derecha que abre un panel lateral; en el móvil, el mismo panel dentro de su pestaña.
  * Historial de cada persona, «útil / no útil» en cada respuesta (de ahí aprende Iarvis),
  * enlaces a las pantallas ([[pantalla:id]]) y adjuntos de cualquier tipo.
  *
@@ -33,9 +33,13 @@
     presupuestos: 'Presupuestos', costsPlan: 'Costs Plan', presupuestoObra: 'Presupuesto de obra', medObra: 'Medición real de obra', certificaciones: 'Certificaciones',
     compras: 'Compras', comparativos: 'Comparativos', gantt: 'Gantt', commissioning: 'Commissioning', documentacion: 'Documentación',
     balanceo: 'Balanceo', reclamaciones: 'Reclamaciones', incidencias: 'Incidencias', partes: 'Partes', actas: 'Actas', tareas: 'Tareas',
-    pedidos: 'Pedidos', documentacionProyecto: 'Documentos del proyecto', planosObra: 'Planos y modelo IFC', facturasProveedor: 'Facturas', volumenCompras: 'Volumen de compras',
+    pedidos: 'Pedidos', documentacionProyecto: 'Documentos del proyecto', planosObra: 'Planos y modelo IFC', facturasProveedor: 'Facturas',
     bloc: 'Mi bloc',
   };
+  /* Los textos fijos del chat, en el idioma de quien lo usa (shared/idiomaTextos.js): la app los
+     escribe en español y aquí se traducen; lo que contesta Iarvis viene ya en su idioma. */
+  const tr = (x) => (window.IDIOMA ? window.IDIOMA.nombre(x) : x);
+  const tc = (clave, es, vars) => (window.IDIOMA ? window.IDIOMA.t(clave, vars) : es.replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars ? String(vars[k]) : m)));
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   const I = { panel: null, boton: null, lista: null, adaptador: null, ir: null, contexto: () => ({}), movil: false, ficheros: [], locales: [], filas: [], ocupado: false, deEstaVez: new Set(), idsEstaVez: new Set(), verAnteriores: false, pdfs: {}, ultima: 0, volver: null };
@@ -481,7 +485,7 @@
     const espera = f.estado === 'pendiente' || f.estado === 'respondiendo';
     const valorable = f.estado === 'respondida' && f.id;
     const q = f.estado === 'respondida' ? quienContesta(f.motor) : null;
-    const quien = q ? `<span class="iaQuien iaQuien-${q.clase}" title="${q.clase === 'propio' ? 'Ha contestado su modelo, en el Mac de JC' : 'Ha contestado Claude, de reserva'}">${q.icono} ${esc(q.texto)}</span>` : '';
+    const quien = q ? `<span class="iaQuien iaQuien-${q.clase}" title="${q.clase === 'propio' ? 'Ha contestado su modelo, en el equipo propio' : 'Ha contestado Claude, de reserva'}">${q.icono} ${esc(q.texto)}</span>` : '';
     const pie = valorable ? `<div class="iaPie">${quien}
       <button data-ia-valorar="util" data-id="${esc(f.id)}" class="${f.valoracion === 'util' ? 'elegida' : ''}" title="Me ha servido" aria-label="Me ha servido">${ICONO_UTIL}</button>
       <button data-ia-valorar="no_util" data-id="${esc(f.id)}" class="${f.valoracion === 'no_util' ? 'elegida' : ''}" title="No me ha servido" aria-label="No me ha servido">${ICONO_NO_UTIL}</button></div>` : '';
@@ -666,7 +670,7 @@
       /* 11-nov: un presupuesto (BC3, Excel, ODS, CSV) se queda también en local: Iarvis lo lee y propone crearlo. */
       if (/\.(bc3|xlsx?|ods|csv|tsv|txt)$/i.test(archivo.name) && bytes.length <= 25 * 1024 * 1024) I.locales.push({ nombre: archivo.name, bytes });
       const z = I.panel.querySelector('.iaFicheros');
-      if (z) z.textContent = `Subiendo «${archivo.name}»…`;
+      if (z) z.textContent = tc('ia.subiendo', 'Subiendo «{nombre}»…', { nombre: archivo.name });
       let r;
       try { r = await I.adaptador.adjuntar(archivo.name, bytes, t.mime || archivo.type || 'application/octet-stream'); } catch { r = { ok: false, aviso: 'No se ha podido subir.' }; }
       if (r && r.ok) {
@@ -674,7 +678,7 @@
            fechas, importes, papeles citados. El `resumen` viaja con el adjunto hasta el modelo; sin dinero ni claim
            si el rol no los ve. Es una propuesta: nada se archiva ni se mueve sin confirmar. */
         let resumen = null;
-        if (z) z.textContent = `Leyendo «${archivo.name}»…`;
+        if (z) z.textContent = tc('ia.leyendo', 'Leyendo «{nombre}»…', { nombre: archivo.name });
         try { resumen = await leerAdjunto(archivo.name, bytes); } catch { resumen = null; }
         const mime = r.adjunto.tipo || t.mime || archivo.type || '';
         I.bytesLocales.set(claveMini(r.adjunto), { bytes, mime });
@@ -686,8 +690,8 @@
         I.bytesLocales.set(claveMini(local), { bytes, mime: local.mime });
         I.ficheros.push(local);
       }
-      else if (window.AVISOS && window.AVISOS.mostrar) window.AVISOS.mostrar((r && r.aviso) || 'No se ha podido subir.');
-      else if (z) z.textContent = (r && r.aviso) || 'No se ha podido subir.';
+      else if (window.AVISOS && window.AVISOS.mostrar) window.AVISOS.mostrar(tr((r && r.aviso) || 'No se ha podido subir.'));
+      else if (z) z.textContent = tr((r && r.aviso) || 'No se ha podido subir.');
     }
     pintarFicheros();
   }
@@ -861,13 +865,14 @@
       ${I.movil
     /* 8-nov (JC): en el móvil, SOLO el chat: una cabecera mínima con «‹» para volver y «Iarvis». */
     ? '<div class="iaCabecera"><button class="iaVolver" title="Volver" aria-label="Volver">‹</button><h2>Iarvis</h2></div>'
-    : '<div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso" data-ia-t="ia.aviso">' + esc(T('ia.aviso')) + '</span></div><button class="iaPlegar" type="button" aria-expanded="true" title="Plegar: deja solo la cabecera" aria-label="Plegar Iarvis">–</button><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button><button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button></div>'}
+    : '<div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso" data-ia-t="ia.aviso">' + esc(T('ia.aviso')) + '</span></div><button class="iaAnclar" type="button" aria-pressed="false" title="Anclar: queda fijo a la derecha" aria-label="Anclar Iarvis"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 6 3 3v2H7v-2l3-3-1-6zM12 15v6"/></svg></button><button class="iaFlotar" title="Minimizar a burbuja" aria-label="Minimizar">–</button><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button><button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button></div>'}
+      <button class="iaBurbuja" type="button" title="Abrir Iarvis" aria-label="Abrir Iarvis">${(window.ARRANQUE_LOGO && window.ARRANQUE_LOGO.BRUJULA) || '<span aria-hidden="true">🧭</span>'}</button>
       <div class="iaSobre" hidden></div>
       <div class="iaLista" role="log" aria-live="polite"></div>
       <div class="iaEntrada">
         <div class="iaFicheros"></div>
         <div class="iaFila">
-          <button class="iaClip" title="Adjuntar un archivo" aria-label="Adjuntar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5l-7.6 7.6a4.5 4.5 0 0 1-6.4-6.4l8-8a3 3 0 0 1 4.2 4.2l-8 8a1.5 1.5 0 0 1-2.1-2.1l7.3-7.3"/></svg></button>
+          <button class="iaClip" title="${esc(tr('Adjuntar un archivo'))}" aria-label="${esc(tr('Adjuntar'))}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5l-7.6 7.6a4.5 4.5 0 0 1-6.4-6.4l8-8a3 3 0 0 1 4.2 4.2l-8 8a1.5 1.5 0 0 1-2.1-2.1l7.3-7.3"/></svg></button>
           ${I.movil ? '<button class="iaCamara" title="Foto con la cámara" aria-label="Cámara"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2.2l1.5-2h5.6l1.5 2h2.2A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="12.5" r="3.5"/></svg></button>' : ''}
           <textarea rows="1" placeholder="${esc(T(I.movil ? 'ia.dictar' : 'ia.pregunta'))}"></textarea>
           <button class="iaMandar" title="Mandar (Intro)" aria-label="Mandar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
@@ -910,7 +915,7 @@
       adjuntar(lista);
     });
     const cerrarB = p.querySelector('.iaCerrar');
-    if (cerrarB) cerrarB.addEventListener('click', cerrar);
+    if (cerrarB) cerrarB.addEventListener('click', () => cerrar(true)); /* la × cierra también la columna anclada (JC, 18-nov) */
     p.addEventListener('click', async (e) => {
       const sug = e.target.closest('[data-ia-sugerencia]');
       if (sug) { mandar(sug.getAttribute('data-ia-sugerencia')); return; }
@@ -947,103 +952,131 @@
     return p;
   }
 
-  /*
-   * 17-nov (JC, nota 2dc8bbd4: «la pantalla de Iarvis molesta bastante, que sea flotante siempre y que arrastrando se
-   * pueda mover»). En el escritorio y la web Iarvis es SIEMPRE una ventana flotante: va encima del contenido, no lo
-   * empuja ni reserva columna (se acabaron body.iaAbierto e iaAnclado). Se mueve arrastrando la cabecera con el ratón
-   * o con el dedo (pointer events), no sale nunca de la ventana —tampoco al cambiarla de tamaño—, se pliega a solo
-   * la cabecera con «–» y recuerda posición, tamaño y plegado en localStorage. Solo presentación: lo que Iarvis ve
-   * y hace no cambia.
-   */
+  /* 10-nov (JC): Iarvis como ventana que se arrastra: encima de la tabla, junto a la ficha lateral del hecho, o fuera de en medio.
+     Anclada = la columna de siempre (empuja el contenido); suelta = ventana fija arrastrable y redimensionable que no empuja nada. */
   const CLAVE_POS = 'vidaire.iarvis.ventana';
-  const MARGEN = 8;
-  const ANCHO = 360, ALTO = 480, ANCHO_MIN = 280, ALTO_MIN = 240, ALTO_PLEGADO = 52;
-  function leerPos() {
-    try { const o = JSON.parse(localStorage.getItem(CLAVE_POS) || 'null'); return o && typeof o === 'object' ? o : null; } catch { return null; }
-  }
+  function leerPos() { try { return JSON.parse(localStorage.getItem(CLAVE_POS) || 'null'); } catch { return null; } }
   function guardarPos(o) { try { localStorage.setItem(CLAVE_POS, JSON.stringify(o)); } catch { /* sin almacenamiento */ } }
-  const num = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== '' ? Number(v) : d);
-  /**
-   * La caja de la ventana, siempre dentro de una ventana de W×H con MARGEN alrededor. Sin posición guardada, abajo a la
-   * derecha. Plegada, lo que cuenta para que no se salga es el alto de la cabecera. Pura: la usan las pruebas.
-   */
-  function cajaDentro(g, W, H) {
-    const o = g || {};
-    const libreW = Math.max(0, W - 2 * MARGEN), libreH = Math.max(0, H - 2 * MARGEN);
-    const w = Math.round(Math.min(Math.max(num(o.w, ANCHO), Math.min(ANCHO_MIN, libreW)), libreW));
-    const h = Math.round(Math.min(Math.max(num(o.h, ALTO), Math.min(ALTO_MIN, libreH)), libreH));
-    const plegado = Boolean(o.plegado);
-    const visto = plegado ? Math.min(ALTO_PLEGADO, h) : h;
-    const x0 = num(o.x, W - w - 2 * MARGEN), y0 = num(o.y, H - visto - 2 * MARGEN);
-    const x = Math.round(Math.max(MARGEN, Math.min(x0, W - w - MARGEN)));
-    const y = Math.round(Math.max(MARGEN, Math.min(y0, H - visto - MARGEN)));
-    return { x, y, w, h, plegado };
+  function encajar(p, x, y, w, h) {
+    const W = window.innerWidth, H = window.innerHeight;
+    w = Math.max(300, Math.min(w, W - 16)); h = Math.max(280, Math.min(h, H - 16));
+    x = Math.max(8, Math.min(x, W - w - 8)); y = Math.max(8, Math.min(y, H - 80));
+    Object.assign(p.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px`, right: 'auto', bottom: 'auto' });
+    return { x, y, w, h };
   }
-  function encajar(p, g) {
-    const c = cajaDentro(g, window.innerWidth, window.innerHeight);
-    Object.assign(p.style, { left: `${c.x}px`, top: `${c.y}px`, width: `${c.w}px`, height: c.plegado ? 'auto' : `${c.h}px`, right: 'auto', bottom: 'auto' });
-    p.classList.toggle('iaPlegado', c.plegado);
-    const b = p.querySelector('.iaPlegar');
-    if (b) { b.setAttribute('aria-expanded', String(!c.plegado)); b.textContent = c.plegado ? '▢' : '–'; b.title = c.plegado ? 'Desplegar' : 'Plegar: deja solo la cabecera'; b.setAttribute('aria-label', c.plegado ? 'Desplegar Iarvis' : 'Plegar Iarvis'); }
-    I.caja = c;
-    return c;
+  /* 18-nov (JC: «la pantalla de Iarvis molesta; que sea flotante siempre y que se pueda mover»): flotante por defecto;
+     solo la chincheta (anclar) la pone en columna. Se puede minimizar a una burbuja que también se arrastra. */
+  const BURBUJA = 56;
+  function medidasDe(g) { const H = window.innerHeight; return { w: (g && g.w) || 380, h: (g && g.h) || Math.min(540, H - 116) }; }
+  function colocarFlotante(g) {
+    const p = I.panel; if (!p) return null;
+    const W = window.innerWidth, H = window.innerHeight;
+    const m = medidasDe(g);
+    p.classList.add('iaFlota');
+    document.body.classList.remove('iaAbierto');
+    if (I.mini) {
+      const x = g && g.x != null ? g.x : W - BURBUJA - 16, y = g && g.y != null ? g.y : H - BURBUJA - 84;
+      Object.assign(p.style, { left: `${Math.max(8, Math.min(x, W - BURBUJA - 8))}px`, top: `${Math.max(8, Math.min(y, H - BURBUJA - 8))}px`, width: `${BURBUJA}px`, height: `${BURBUJA}px`, right: 'auto', bottom: 'auto' });
+      return null;
+    }
+    const x = g && g.x != null ? g.x : W - m.w - 16, y = g && g.y != null ? g.y : H - m.h - 84;
+    return encajar(p, x, y, m.w, m.h);
   }
-  /** Lo que se ve ahora (para guardarlo): la posición real y el tamaño desplegado. */
-  function cajaActual(p) {
+  function guardarVentana() {
+    const p = I.panel; if (!p || !p.classList.contains('iaFlota') || p.hidden) return;
     const r = p.getBoundingClientRect();
-    const c = I.caja || {};
-    return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: c.plegado ? c.h : Math.round(r.height), plegado: Boolean(c.plegado) };
+    if (I.mini) guardarPos({ flota: true, mini: true, x: r.left, y: r.top, w: I.rectLleno && I.rectLleno.w, h: I.rectLleno && I.rectLleno.h });
+    else { I.rectLleno = { w: r.width, h: r.height }; guardarPos({ flota: true, mini: false, x: r.left, y: r.top, w: r.width, h: r.height }); }
   }
-  function plegar(v) {
+  function soltar(r) {
     const p = I.panel; if (!p || I.movil) return;
-    const g = { ...cajaActual(p), plegado: v === undefined ? !(I.caja && I.caja.plegado) : Boolean(v) };
-    guardarPos(encajar(p, g));
+    const rect = r || p.getBoundingClientRect();
+    if (I.anclado) anclar(false, { flotar: false }); /* soltarla como ventana le quita la chincheta */
+    colocarFlotante({ x: rect.left, y: rect.top, w: Math.min(rect.width, 420), h: Math.min(rect.height, window.innerHeight - 80) });
+    guardarVentana();
+  }
+  function aColumna() {
+    const p = I.panel; if (!p || I.movil) return;
+    p.classList.remove('iaFlota', 'iaMini');
+    I.mini = false;
+    ['left', 'top', 'width', 'height', 'right', 'bottom'].forEach((k) => { p.style[k] = ''; });
+    if (!p.hidden) document.body.classList.add('iaAbierto');
+  }
+  function minimizar(v) {
+    const p = I.panel; if (!p || I.movil || I.anclado) return;
+    I.mini = Boolean(v);
+    const r = p.getBoundingClientRect();
+    if (I.mini && !p.classList.contains('iaMini')) I.rectLleno = { w: r.width, h: r.height };
+    p.classList.toggle('iaMini', I.mini);
+    colocarFlotante({ x: r.left, y: r.top, ...(I.rectLleno || {}) });
+    guardarVentana();
   }
   function engancharArrastre(p) {
     const cab = p.querySelector('.iaCabecera'); if (!cab || I.movil) return;
-    p.classList.add('iaFlota');
-    const pl = p.querySelector('.iaPlegar');
-    if (pl) pl.addEventListener('click', () => plegar());
-    cab.addEventListener('dblclick', (e) => { if (!e.target.closest('button')) plegar(); });
-    let a = null;
-    cab.addEventListener('pointerdown', (e) => {
-      if ((e.button !== undefined && e.button !== 0) || e.target.closest('button')) return;
+    const flot = p.querySelector('.iaFlotar');
+    if (flot) flot.addEventListener('click', () => minimizar(true));
+    const bur = p.querySelector('.iaBurbuja');
+    let a = null, movido = false;
+    const empezar = (e, el) => {
+      if (e.button !== 0 || window.innerWidth < 900) return false;
+      if (!p.classList.contains('iaFlota')) soltar(p.getBoundingClientRect());
       const r = p.getBoundingClientRect();
-      a = { id: e.pointerId, dx: e.clientX - r.left, dy: e.clientY - r.top };
-      try { cab.setPointerCapture(e.pointerId); } catch { /* sin captura: sigue igual */ }
-      p.classList.add('iaArrastrando');
+      a = { dx: e.clientX - r.left, dy: e.clientY - r.top, x0: e.clientX, y0: e.clientY };
+      movido = false;
+      try { el.setPointerCapture(e.pointerId); } catch { /* */ }
       e.preventDefault();
-    });
-    cab.addEventListener('pointermove', (e) => {
-      if (!a || e.pointerId !== a.id) return;
-      encajar(p, { ...(I.caja || {}), x: e.clientX - a.dx, y: e.clientY - a.dy });
-    });
-    const fin = () => { if (!a) return; a = null; p.classList.remove('iaArrastrando'); guardarPos(I.caja || cajaActual(p)); };
+      return true;
+    };
+    const mover = (e) => {
+      if (!a) return;
+      if (Math.abs(e.clientX - a.x0) + Math.abs(e.clientY - a.y0) > 4) movido = true;
+      const r = p.getBoundingClientRect();
+      if (I.mini) { Object.assign(p.style, { left: `${Math.max(8, Math.min(e.clientX - a.dx, window.innerWidth - BURBUJA - 8))}px`, top: `${Math.max(8, Math.min(e.clientY - a.dy, window.innerHeight - BURBUJA - 8))}px` }); }
+      else encajar(p, e.clientX - a.dx, e.clientY - a.dy, r.width, r.height);
+    };
+    const fin = () => { if (!a) return; a = null; guardarVentana(); };
+    cab.addEventListener('pointerdown', (e) => { if (e.target.closest('button')) return; empezar(e, cab); });
+    cab.addEventListener('pointermove', mover);
     cab.addEventListener('pointerup', fin); cab.addEventListener('pointercancel', fin);
-    /* El tamaño que le dé con la esquina también se recuerda (desplegada). */
-    if (window.ResizeObserver) new ResizeObserver(() => { if (a || p.hidden || (I.caja && I.caja.plegado) || I.recolocando) return; const c = cajaActual(p); if (I.caja && c.w === I.caja.w && c.h === I.caja.h) return; I.caja = { ...I.caja, ...c }; guardarPos(I.caja); }).observe(p);
-    /* Al cambiar la ventana de tamaño, Iarvis vuelve a entrar entera (sin guardar: al crecer, recupera su sitio). */
+    if (bur) {
+      bur.addEventListener('pointerdown', (e) => { empezar(e, bur); });
+      bur.addEventListener('pointermove', mover);
+      bur.addEventListener('pointerup', () => { const eraClic = !movido; fin(); if (eraClic) minimizar(false); });
+      bur.addEventListener('pointercancel', fin);
+      bur.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); minimizar(false); } });
+    }
+    /* El tamaño que le dé con la esquina también se recuerda. */
+    if (window.ResizeObserver) new ResizeObserver(() => { if (a || I.mini || !p.classList.contains('iaFlota') || p.hidden) return; guardarVentana(); }).observe(p);
+    /* Si la ventana de la app cambia de tamaño, Iarvis se queda dentro de la pantalla. */
     window.addEventListener('resize', () => {
-      if (p.hidden) return;
-      I.recolocando = true;
-      encajar(p, leerPos() || I.caja);
-      setTimeout(() => { I.recolocando = false; }, 0);
+      if (p.hidden || I.movil || I.anclado || !p.classList.contains('iaFlota')) return;
+      if (window.innerWidth < 900) return;
+      const r = p.getBoundingClientRect();
+      if (I.mini) colocarFlotante({ x: r.left, y: r.top }); else encajar(p, r.left, r.top, r.width, r.height);
+      guardarVentana();
     });
   }
 
+
   /*
-   * 9-nov: la chincheta. Desde el 17-nov no hay columna: «anclado» solo quiere decir que Iarvis se abre (flotando) al
-   * entrar esa persona. Se recuerda por persona como antes.
+   * 9-nov (JC: «debe poder anclarse y desanclarse para que quede fijo»). Anclado es una columna propia a la derecha
+   * (iarvis.css › body.iaAnclado): no tapa nada, no se cierra al cambiar de pantalla o de hecho. Se recuerda por persona.
    */
   const CLAVE_ANCLADO = 'vidaire.iarvis.anclado';
   const claveAnclado = (id) => `${CLAVE_ANCLADO}.${id || 'sin-persona'}`;
   function leerAnclado(id) { try { return localStorage.getItem(claveAnclado(id)) === '1'; } catch { return false; } }
   function guardarAnclado(id, v) { try { localStorage.setItem(claveAnclado(id), v ? '1' : '0'); } catch { /* sin almacenamiento */ } }
-  function anclar(v, { guardar = true } = {}) {
+  function pantallaAncha() { try { return window.matchMedia('(min-width: 900px)').matches; } catch { return true; } }
+  function anclar(v, { guardar = true, abrirYa = true, flotar = true } = {}) {
     if (I.movil || !I.panel) return;
     I.anclado = Boolean(v);
+    if (I.anclado && I.panel.classList.contains('iaFlota')) aColumna(); /* la chincheta la deja en la columna */
+    document.body.classList.toggle('iaAnclado', I.anclado);
+    const b = I.panel.querySelector('.iaAnclar');
+    if (b) { b.setAttribute('aria-pressed', String(I.anclado)); b.title = I.anclado ? 'Desanclar: vuelve a flotar' : 'Anclar: queda fijo a la derecha'; }
     if (guardar) guardarAnclado(I.personaId, I.anclado);
-    if (I.anclado && I.panel.hidden) abrir({ foco: false, desplegar: false });
+    if (!I.anclado && flotar && !I.panel.hidden && pantallaAncha() && !I.panel.classList.contains('iaFlota')) { const g = leerPos(); colocarFlotante(g && g.x != null ? g : null); guardarVentana(); }
+    if (I.anclado && I.panel.hidden && abrirYa) abrir({ foco: false });
   }
   /** Al saber quién entra: su chincheta. */
   function alEntrar(personaId) {
@@ -1051,7 +1084,9 @@
     if (!I.panel || I.movil) return;
     const v = leerAnclado(personaId);
     if (v === Boolean(I.anclado)) return;
-    anclar(v, { guardar: false });
+    /* 15-nov (JC): Iarvis empieza cerrado, con su botón; la chincheta se recuerda pero no lo abre al entrar.
+       Solo se abre solo cuando tiene un aviso para el usuario (accionImportante). */
+    anclar(v, { guardar: false, abrirYa: false });
     if (!v) cerrar();
   }
 
@@ -1095,23 +1130,27 @@
     I.filas = [f, ...(seguida ? I.filas.slice(1) : I.filas)];
     I.deEstaVez.add(f);
     actividad();
-    if (I.panel.hidden) abrir({ foco: false, desplegar: false }); else pintar();
-    if (I.caja && I.caja.plegado && I.boton) I.boton.classList.add('conPunto');
+    if (I.panel.hidden) abrir({ foco: false }); else pintar();
     return f;
   }
 
   /** Para las pantallas: avisa sin que un fallo de Iarvis estropee lo que hizo el usuario. */
   function avisar(clave, datos) { try { return accionImportante(clave, datos); } catch (e) { console.error('[iarvis] pregunta:', e.message); return null; } }
 
-  function abrir({ foco = true, desplegar = true } = {}) {
+  function abrir({ foco = true } = {}) {
     if (!I.panel) return;
     I.panel.hidden = false;
-    /* 17-nov (JC): siempre flotante, en su sitio guardado y dentro de la ventana; no empuja nada (sin body.iaAbierto).
-       Abrirla a mano la despliega; un aviso de Iarvis (accionImportante) la deja como estaba. */
-    if (!I.movil) {
-      const g = leerPos() || {};
-      encajar(I.panel, desplegar ? { ...g, plegado: false } : g);
-    }
+    /* 9-nov (JC): el panel empuja el contenido en vez de tapar lo que hay debajo (iarvis.css › body.iaAbierto). */
+    if (!I.movil && window.innerWidth >= 900) {
+      if (I.anclado) document.body.classList.add('iaAbierto'); /* solo anclado es columna */
+      else {
+        const g = leerPos();
+        I.mini = Boolean(g && g.mini);
+        I.rectLleno = g && g.w ? { w: g.w, h: g.h } : null;
+        I.panel.classList.toggle('iaMini', I.mini);
+        colocarFlotante(g && g.x != null ? g : null);
+      }
+    } else if (!I.movil) document.body.classList.add('iaAbierto');
     /* 8-nov: el botón vive en la cabecera y no se esconde; solo se le quita el punto. */
     if (I.boton) { I.boton.classList.remove('conPunto'); I.boton.setAttribute('aria-expanded', 'true'); }
     caducar();
@@ -1122,9 +1161,10 @@
     const t = I.panel.querySelector('textarea');
     if (t && foco) t.focus();
   }
-  function cerrar() {
-    if (I.movil || !I.panel) return;
+  function cerrar(forzar) {
+    if (I.movil || !I.panel || (I.anclado && pantallaAncha() && forzar !== true)) return;
     I.panel.hidden = true;
+    document.body.classList.remove('iaAbierto');
     if (I.boton) I.boton.setAttribute('aria-expanded', 'false');
   }
 
@@ -1164,8 +1204,7 @@
     I.boton.setAttribute('aria-expanded', 'false');
     I.boton.innerHTML = `${(window.ARRANQUE_LOGO && window.ARRANQUE_LOGO.BRUJULA) || '<span aria-hidden="true">🧭</span>'}<span class="iaPunto"></span>`;
     I.boton.addEventListener('click', () => {
-      /* 17-nov: plegada, el botón la despliega en vez de cerrarla. */
-      if (I.panel && !I.panel.hidden && I.caja && I.caja.plegado) { plegar(false); I.boton.classList.remove('conPunto'); return; }
+      if (I.panel && !I.panel.hidden && I.anclado && pantallaAncha()) { const t = I.panel.querySelector('textarea'); if (t) t.focus(); return; }
       if (I.panel && !I.panel.hidden) cerrar(); else abrir();
     });
     I.panel = construirPanel();
@@ -1207,5 +1246,5 @@
   }
 
   /* 11-nov: otras pantallas (la ficha del hecho del claim) le hacen una pregunta ya escrita (preguntar). */
-  window.IARVIS = { instalar, montarEn, abrir, cerrar, plegar, comentar, preguntar: mandar, anclar, alEntrar, contextoCambiado, accionImportante, avisar, estado: I, _charla, _atajo: atajoIarvis, _ventana: { cajaDentro, leerPos, guardarPos, CLAVE_POS, MARGEN } };
+  window.IARVIS = { instalar, montarEn, abrir, cerrar, comentar, preguntar: mandar, anclar, alEntrar, contextoCambiado, accionImportante, avisar, estado: I, _charla, _atajo: atajoIarvis };
 })();

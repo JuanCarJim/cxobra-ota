@@ -236,7 +236,7 @@ function tamanoReal(m) {
  * escala, así que se estima con lo que hay dentro: los difusores de un techo
  * van a unos 3,8 m unos de otros (la mediana de la distancia al vecino más
  * cercano); sin difusores, cualquier terminal a unos 2,2 m. En la N60 de Nou
- * Camp Nou las dos cuentas dan 73 y 76 mm/px, coherente con una hoja A0 a
+ * una obra real las dos cuentas dan 73 y 76 mm/px, coherente con una hoja A0 a
  * 1:300. Si un plano trae `mmPorPx` (una cota medida), manda esa.
  */
 const ESPACIO_DIFUSORES_MM = 3800;

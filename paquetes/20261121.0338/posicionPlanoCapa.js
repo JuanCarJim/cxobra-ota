@@ -20,6 +20,7 @@
 
   let $raiz = null; let planta = null; let salas = [];
   let geo = null; let geoDe = ''; let puedeFijar = false; const geoCache = new Map();
+  let geoPide = ''; /* el plano cuya georreferencia está en camino: mientras, no se dice «no está fijado» */
   let gps = null; let vigia = null;
   let ctx = null; /* { equipoId, tag, sala, planta, origen, en } */
   let fijando = null; /* { puntos: [], lat, lon } */
@@ -47,11 +48,11 @@
   .pz-punto.pz-ctx{width:16px;height:16px;margin:-8px 0 0 -8px}
   @keyframes pzHalo{0%{box-shadow:0 0 0 0 ${K.halo},0 1px 3px rgba(0,0,0,.35)}70%{box-shadow:0 0 0 14px rgba(124,58,237,0),0 1px 3px rgba(0,0,0,.35)}100%{box-shadow:0 0 0 0 rgba(124,58,237,0),0 1px 3px rgba(0,0,0,.35)}}
   @media (prefers-reduced-motion:reduce){.pz-punto{animation:none;box-shadow:0 0 0 6px ${K.halo}}}
-  .pz-aviso{position:absolute;left:8px;top:8px;right:8px;z-index:7;display:flex;gap:6px;align-items:center;max-width:max-content;font:500 12px/16px system-ui,sans-serif;color:var(--texto);background:color-mix(in srgb,var(--panel) 94%,transparent);border-left:3px solid ${K.punto};border-radius:6px;padding:4px 6px 4px 8px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+  .pz-aviso{position:absolute;left:8px;top:8px;right:8px;z-index:7;display:flex;gap:6px;align-items:center;max-width:max-content;font:500 12px/16px system-ui,sans-serif;color:var(--texto,#262b38);background:color-mix(in srgb,var(--papel,#fff) 94%,transparent);border-left:3px solid ${K.punto};border-radius:6px;padding:4px 6px 4px 8px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
   .pz-aviso button{border:0;background:none;color:${K.punto};font:700 12px/16px system-ui,sans-serif;padding:2px 4px;cursor:pointer}
-  .pz-boton{position:absolute;right:8px;bottom:8px;z-index:7;width:40px;height:40px;min-width:0;min-height:0;margin:0;padding:0;border-radius:50%;border:1px solid rgba(38,43,56,.15);background:var(--panel);box-shadow:0 1px 4px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .pz-boton{position:absolute;right:8px;bottom:8px;z-index:7;width:40px;height:40px;min-width:0;min-height:0;margin:0;padding:0;border-radius:50%;border:1px solid rgba(38,43,56,.15);background:var(--papel,#fff);box-shadow:0 1px 4px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;cursor:pointer}
   .pz-boton[hidden]{display:none}
-  .pz-boton i{width:12px;height:12px;border-radius:50%;background:${K.punto};box-shadow:0 0 0 2px var(--panel),0 0 0 3px ${K.punto}}
+  .pz-boton i{width:12px;height:12px;border-radius:50%;background:${K.punto};box-shadow:0 0 0 2px #fff,0 0 0 3px ${K.punto}}
   .pz-boton[aria-pressed="true"]{border-color:${K.punto};box-shadow:0 0 0 2px ${K.halo},0 1px 4px rgba(0,0,0,.2)}
   .pz-fijar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%;font:500 12px/16px system-ui,sans-serif;border-left:3px solid ${K.punto};padding:4px 0 4px 8px}
   .pz-fijar input{font-size:16px;min-width:0;flex:1 1 160px;padding:4px 6px}
@@ -71,13 +72,15 @@
     const id = planoId();
     if (!id) { geo = null; geoDe = ''; return; }
     if (geoCache.has(id)) { ({ geo, puedeFijar } = geoCache.get(id)); geoDe = id; return; }
+    geoPide = id;
     try {
       const r = await C.pedir(`api/plano-equipos/georreferencia?obra=${encodeURIComponent(obra())}&plano=${encodeURIComponent(id)}`);
       const g = r && r.ok && r.georreferencia ? PZ.crearGeorreferencia(r.georreferencia.puntos, r.georreferencia) : null;
       const v = { geo: g && g.ok ? g : null, puedeFijar: Boolean(r && r.puedeFijar) };
       geoCache.set(id, v);
+      if (geoPide === id) geoPide = '';
       if (planoId() === id) { ({ geo, puedeFijar } = v); geoDe = id; pintar(); }
-    } catch { geo = null; }
+    } catch { geo = null; if (geoPide === id) geoPide = ''; }
   }
 
   /** planoEquipos.js lo llama al final de cada pintar(): pone el botón, el punto y el aviso sobre lo recién pintado. */
@@ -85,7 +88,9 @@
     estilo();
     leerCtx();
     $raiz = raiz; planta = p; salas = extra.salas || (p && p.plano && p.plano.salas) || [];
-    if (!p || !p.plano) { parar(); return; }
+    /* 19-nov (JC: «al cambiar de plano debe de seguir mostrando la ubicación»): cambiar de planta NO apaga el GPS (solo
+       salir de la app, pagehide); una planta sin dibujo tampoco: al volver a una con plano, el punto sigue. */
+    if (!p || !p.plano) return;
     if (geoDe !== planoId()) { geo = null; traerGeo(); }
     if (window.CX_PLANTA_AUTO) window.CX_PLANTA_AUTO.montar(raiz, p, extra);
     pintar();
@@ -117,7 +122,8 @@
     let capa = l.querySelector('[data-pz-capa]');
     if (!capa) { capa = document.createElement('div'); capa.className = 'pz-capa'; capa.dataset.pzCapa = '1'; l.appendChild(capa); }
     const c = posCtx();
-    const g = !gps ? null : gps.coords ? PZ.posicionGps(geo, gps.coords, { en: gps.en }) : { ...gps.estado, en: gps.en };
+    /* Mientras llega la georreferencia de la planta recién abierta, sin aviso de «no está fijado» (sería falso un instante). */
+    const g = !gps || (!geo && geoPide && geoPide === planoId()) ? null : gps.coords ? PZ.posicionGps(geo, gps.coords, { en: gps.en }) : { ...gps.estado, en: gps.en };
     const { punto, aviso } = PZ.elegir(c, g);
     capa.innerHTML = !punto || fijando ? ''
       : punto.tipo === 'gps' ? `<div class="pz-precision" style="left:${punto.x * 100}%;top:${punto.y * 100}%;width:${punto.radio * 200}%"></div><div class="pz-punto" data-pz-punto="gps" style="left:${punto.x * 100}%;top:${punto.y * 100}%" role="img" aria-label="Estás aquí (±${punto.precision} m)"></div>`
@@ -204,7 +210,8 @@
     if (fijando.puntos.length < 2) { pintar(); return; }
     const r = await C.postJson('api/plano-equipos/georreferencia', { obra: obra(), plano: planoId(), puntos: fijando.puntos, ancho: planta.plano.ancho, alto: planta.plano.alto }).catch((e) => ({ ok: false, error: e.message }));
     if (!r || !r.ok) { C.aviso((r && r.error) || 'No se ha podido fijar el plano.'); fijando.puntos = []; pintar(); return; }
-    geoCache.delete(planoId()); geoDe = ''; fijando = null;
+    /* Fijar una planta sirve también a las demás del mismo modelo (las deriva el servidor): fuera todo lo recordado. */
+    geoCache.clear(); geoDe = ''; fijando = null;
     C.aviso('Plano fijado: el GPS ya cae en su sitio.');
     await traerGeo(); pintar();
   }

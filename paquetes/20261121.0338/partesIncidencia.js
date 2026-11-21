@@ -318,11 +318,17 @@ function repercusionHtml(parte, tot) {
 }
 
 /*
- * La firma de arriba del documento. En el escritorio (Vidaire Obras) es la
- * de CBRE; en Vidaire Cx, la app del teléfono que va a la App Store sin marca
- * ajena, la suya. Vidaire Cx lo dice al arrancar con globalThis.CX_VARIANTE.
+ * La firma de arriba del documento. En el escritorio, la del perfil de la
+ * edición (shared/obra/perfilObra.js › marcaDocumento, o el titular); en
+ * Vidaire Cx, la app del teléfono que va a la App Store sin marca ajena, la
+ * suya. Vidaire Cx lo dice al arrancar con globalThis.CX_VARIANTE.
  */
-const marcaDocumento = () => (globalThis.CX_VARIANTE === 'cxobra' ? 'Vidaire Cx' : 'CBRE · Project Management');
+const marcaDocumento = () => {
+  if (globalThis.CX_VARIANTE === 'cxobra') return 'Vidaire Cx';
+  let PO = null;
+  try { PO = typeof require === 'function' ? require('./perfilObra') : (typeof window !== 'undefined' ? window.PERFIL_OBRA : null); } catch { PO = null; }
+  return (PO && (PO.ajuste('marcaDocumento', '') || PO.titular())) || 'Vidaire';
+};
 /** El logo de la empresa de la obra (shared/papel.js); en Vidaire Cx nada: ya va su marca en texto. */
 function logoMarca(obra) {
   let P = null;

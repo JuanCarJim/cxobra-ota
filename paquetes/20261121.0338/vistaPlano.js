@@ -260,19 +260,15 @@ function rotulosSinChoque({ tags = [], obstaculos = [], salas = [] } = {}, celda
   /* 14-nov (JC en el iPhone): con `sitio` en un alternativo ('arr' encima del bloque, 'abj' debajo), sale en `salida.sitios`. */
   salida.sitios = new Map();
   const ponTag = (c) => {
-    /* El tocado sale siempre: en el primer sitio libre y, si no queda ninguno, en el suyo. */
-    const q = [c, ...(c.alt || []).map((a) => ({ ...c, ...a }))].find((x) => !choca(x)) || (c.pri === 0 ? c : null);
+    const q = [c, ...(c.alt || []).map((a) => ({ ...c, ...a }))].find((x) => !choca(x));
     if (!q) return;
     salida.tags.add(c.id); poner(q);
     if (q.izq) salida.izq.add(c.id);
     if (q.sitio) salida.sitios.set(c.id, q.sitio);
     salida.cajas = salida.cajas || new Map(); salida.cajas.set(c.id, { x: q.x, y: q.y, w: q.w, h: q.h });
   };
-  /* 19-nov (capturas del móvil: UE-S12 tapada por UI-S12 y por los bloques vecinos): todos los bloques y globos «!» van
-     antes que los TAG, también los del tocado: su TAG va al primer sitio libre (derecha, izquierda, encima, debajo)
-     sin pisar ningún símbolo; si no le queda ninguno, en el suyo (el tocado sale siempre). */
-  for (const c of obstaculos) poner(c);
   for (const c of ordenTags.filter((t) => t.pri === 0)) ponTag(c);
+  for (const c of obstaculos) poner(c);
   const ponTags = () => { for (const c of ordenTags.filter((t) => t.pri !== 0)) ponTag(c); };
   /* 13-nov (JC: «es súper importante el nombre de la sala»): con salasPrimero, los nombres de sala van antes que los TAG. */
   if (!salasPrimero) ponTags();
@@ -324,11 +320,12 @@ function huecoSalas(salas, aspecto = 1) {
 const LETRA_PX = { tag: 6, elegido: 7.4, sala: 6.2, codigo: 5.4 };
 const ALTO_SALA = 14;
 
-function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], huecos = null, ancho = null, sitios = false, grupos = false, vista = null } = {}) {
-  /* 19-nov (capturas del móvil: «UE-N00-SALA IT T15» sin el «UE-»): con `vista` ({x0,y0,x1,y1}, px del lienzo) los TAG
-     tienen que caber en lo que se ve del plano, no solo en el lienzo (el marco puede estar desplazado). */
-  const X0 = Math.max(0, (vista && vista.x0) || 0); const X1 = Math.min(lw, vista && vista.x1 > X0 ? vista.x1 : lw);
-  const Y0 = Math.max(0, (vista && vista.y0) || 0); const Y1 = Math.min(lh, vista && vista.y1 > Y0 ? vista.y1 : lh);
+function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], huecos = null, ancho = null, sitios = false, grupos = false, fijos = [] } = {}) {
+  /* 15-nov (JC, capturas del plano: «Sala de bombas» encima del texto del propio PDF): `fijos` son los textos que ya trae
+     el dibujo de fondo (rótulos de sala del PDF: [{ t, x, y }], x centro e y línea base, en fracción). Son obstáculos: ningún
+     TAG ni nombre se pone encima. Y un nombre de sala que el PDF ya trae (igual sin mirar mayúsculas ni tildes) no se pinta otra vez. */
+  const normaTexto = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  const yaEnFondo = new Set((fijos || []).map((f) => normaTexto(f && f.t)).filter(Boolean));
   const ALTO_SALA_1 = ALTO_SALA; const ALTO_COD = 11;
   /* 13-nov (JC: «número de sala es muy importante también»): el rótulo de sala lleva el nombre y, debajo y más pequeño,
      su número (código del recinto, p. ej. «00.STE.036»). Van en una sola caja: si sale el nombre, sale el número. */
@@ -339,34 +336,37 @@ function colocarRotulos({ lw, lh, equipos = [], materiales = [], salas = [], hue
     if (!q || q.x === null || q.x === undefined || q.y === null || q.y === undefined) return;
     const el = Boolean(q.elegido); const sw = Number(q.sw) || 12;
     const cx = q.x * lw; const cy = q.y * lh;
-    obstaculos.push({ x: cx - sw / 2, y: cy - sw / 2, w: sw, h: sw, ...(el ? { el: true } : {}) });
-    /* 19-nov: el globo «!» de incidencia (arriba a la derecha del bloque, 13 px) también es obstáculo: ningún TAG lo pisa. */
-    if (q.globo) obstaculos.push({ x: cx + sw / 2 - 8, y: cy - sw / 2 - 5, w: 13, h: 13, ...(el ? { el: true } : {}) });
+    obstaculos.push({ x: cx - sw / 2, y: cy - sw / 2, w: sw, h: sw });
     if (!q.tag) return;
     const w = mide(q.tag, el ? 'elegido' : 'tag') + (el ? 10 : 6); const sep = el ? 8 : 2;
-    const der = { x: cx + sw / 2 + sep, izq: false }; const izq = { x: cx - sw / 2 - (el ? sep + 2 : sep) - w, izq: true };
+    const der = { x: cx + sw / 2 + sep, izq: false }; const izq = { x: cx - sw / 2 - sep - w, izq: true };
     /* A la derecha del bloque; si se sale del plano por la derecha o choca, a la izquierda (nunca cortado en el borde). */
-    const sale = (o) => o.x < X0 || o.x + w > X1;
+    const sale = (o) => o.x < 0 || o.x + w > lw;
     const orden = sale(der) && !sale(izq) ? [izq, der] : [der, izq];
     const lados = orden.filter((o) => !sale(o));
     const [pri0, ...alt] = lados.length ? lados : [orden[0]];
     const h = el ? 16 : 12;
     /* 14-nov (JC en el iPhone, opción `sitios`): si a los lados choca, encima o debajo del bloque, centrado (sin salirse del plano). */
     if (sitios) {
-      const x = Math.min(Math.max(X0, cx - w / 2), Math.max(X0, X1 - w));
+      const x = Math.min(Math.max(0, cx - w / 2), Math.max(0, lw - w));
       const arr = { x, y: cy - sw / 2 - 1 - h, izq: false, sitio: 'arr' }; const abj = { x, y: cy + sw / 2 + 1, izq: false, sitio: 'abj' };
-      /* Encima del globo «!», no pegado al bloque (el globo sobresale 5 px por arriba). */
-      if (q.globo) arr.y -= 5;
-      for (const o of [arr, abj]) if (o.y >= Y0 && o.y + h <= Y1 && o.x >= X0 && o.x + w <= X1) alt.push(o);
+      for (const o of [arr, abj]) if (o.y >= 0 && o.y + h <= lh) alt.push(o);
     }
     tags.push({ id, x: pri0.x, izq: pri0.izq, alt, y: cy - (el ? 8 : 6), w, h, pri: el ? 0 : (q.pri !== undefined ? q.pri : priDef) });
   };
+  for (const f of fijos || []) {
+    if (!f || !f.t || !Number.isFinite(f.x) || !Number.isFinite(f.y)) continue;
+    /* Sin el tamaño de la letra del PDF: unas 0,65 % del ancho del plano por letra (planos A1–A3 a escala), nunca menos que el rótulo de sala. */
+    const n = String(f.t).length; const w = Math.max(mide(f.t, 'sala') * 0.8, n * 0.0065 * lw) + 4; const h = Math.max(10, (w / Math.max(1, n)) * 1.7);
+    obstaculos.push({ x: f.x * lw - w / 2, y: f.y * lh - h, w, h: h + 3 });
+  }
   for (const e of equipos) mete(e, `eq:${e.id}`, 1.5);
   for (const m of materiales) mete(m, m.id, 3);
   const hueco = huecos || huecoSalas(salas, lh / (lw || 1));
   const cajasSala = [];
   salas.forEach((r, i) => {
     if (!r || !r.t || r.x === null || r.x === undefined) return;
+    if (yaEnFondo.has(normaTexto(r.t))) return;
     const cod = codigoSala(r);
     const w = Math.max(mide(r.t, 'sala'), cod ? mide(cod, 'codigo') : 0) + 4;
     const ALTO_SALA = cod ? ALTO_SALA_1 + ALTO_COD : ALTO_SALA_1;

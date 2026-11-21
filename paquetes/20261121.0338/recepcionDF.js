@@ -169,7 +169,7 @@
   /**
    * EL BLOQUE DEL PANEL DEL EQUIPO (escritorio y móvil, mismo HTML): las dos
    * marcas de hoy, los botones de quien puede ponerlas, el motivo y el
-   * historial plegado. `st` = lo que da electron/data/recepcionDF.js › estado.
+   * historial plegado. `st` = lo que da electron/obra/data/recepcionDF.js › estado.
    * Los botones llevan data-rdf-marcar="tipo:valor" y data-rdf-deshacer="tipo";
    * el motivo, data-rdf-obs.
    */

@@ -1,6 +1,6 @@
 /*
- * «+ BOCA» EN LA HOJA DE BALANCEO DEL MÓVIL (30-oct-2026, JC desde Nou Camp
- * Nou: «En los balanceos de caudales necesito en el móvil poder poner yo
+ * «+ BOCA» EN LA HOJA DE BALANCEO DEL MÓVIL (30-oct-2026, JC desde la obra:
+ * «En los balanceos de caudales necesito en el móvil poder poner yo
  * rejas o difusores manualmente por si el programa se deja alguno»).
  *
  * Debajo de la lista de Impulsión y de la de Retorno, «+ Boca». Se abre a

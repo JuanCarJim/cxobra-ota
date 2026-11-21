@@ -1,6 +1,6 @@
 'use strict';
 /*
- * QHSE › REPORTES (5-nov-2026, JC: «una versión súper rápida de Harbour»).
+ * QHSE › REPORTES (5-nov-2026, JC: «una versión súper rápida de la plataforma externa de QHSE»).
  *
  * Pensado para darlo de pie en la obra, en menos de 20 segundos y con tres
  * toques después de la foto:

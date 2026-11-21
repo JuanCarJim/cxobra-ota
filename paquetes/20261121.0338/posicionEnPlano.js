@@ -196,7 +196,28 @@
     return g.ok ? { ...g, por: v.por || '', en: v.en || '' } : null;
   }
 
-  const API = { COLOR, PRECISION_MAX_M, DIST_MIN_M, aMetros, crearGeorreferencia, geoAPlano, planoAGeo, radioDe, posicionGps, posicionPorContexto, elegir, hora, paraGuardar, deGuardado, puntoLimpio };
+  /**
+   * LA GEORREFERENCIA DE OTRA PLANTA DEL MISMO MODELO (19-nov-2026, JC: «al cambiar de plano debe de seguir mostrando la
+   * ubicación»). Todas las plantas de un modelo IFC comparten origen de coordenadas; cada una tiene su encuadre (caja, en
+   * metros del modelo: { x0, y1, ancho, alto }, x hacia la derecha e y hacia arriba; una fracción del dibujo es
+   * x = (X − x0)/ancho, y = (y1 − Y)/alto). Con el plano A fijado con dos puntos y las dos cajas, el plano B sale solo:
+   * dos sitios del dibujo de B (al 25 % y al 75 %) se pasan a metros del modelo, de ahí a fracción de A (puede caer fuera
+   * del dibujo de A: da igual) y con la georreferencia de A a coordenadas reales. Son los dos puntos de control de B.
+   * Devuelve lo mismo que crearGeorreferencia (o { ok:false, error }).
+   */
+  const cajaValida = (c) => !!c && fin(num(c.x0), num(c.y1), num(c.ancho), num(c.alto)) && num(c.ancho) > 0 && num(c.alto) > 0;
+  function derivarGeorreferencia(geoA, cajaA, cajaB, planoB = {}) {
+    if (!geoA || !geoA.ok) return { ok: false, error: 'El plano de referencia no está fijado.' };
+    if (!cajaValida(cajaA) || !cajaValida(cajaB)) return { ok: false, error: 'Falta el encuadre de la planta: vuelve a cargar el IFC.' };
+    const puntos = [[0.25, 0.25], [0.75, 0.75]].map(([fx, fy]) => {
+      const X = num(cajaB.x0) + fx * num(cajaB.ancho); const Y = num(cajaB.y1) - fy * num(cajaB.alto);
+      const g = planoAGeo(geoA, (X - num(cajaA.x0)) / num(cajaA.ancho), (num(cajaA.y1) - Y) / num(cajaA.alto));
+      return { lat: g.lat, lon: g.lon, x: fx, y: fy };
+    });
+    return crearGeorreferencia(puntos, planoB);
+  }
+
+  const API = { COLOR, PRECISION_MAX_M, DIST_MIN_M, aMetros, crearGeorreferencia, geoAPlano, planoAGeo, radioDe, posicionGps, posicionPorContexto, elegir, hora, paraGuardar, deGuardado, puntoLimpio, derivarGeorreferencia, cajaValida };
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   if (typeof window !== 'undefined') window.POSICION_PLANO = API;
 })();
