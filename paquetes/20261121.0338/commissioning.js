@@ -123,7 +123,17 @@
     ['enviadas', 'Mandados a la DF', (e) => e.envio === 'enviada'],
     ['sinVerificar', 'Instalación sin verificar', (e) => e.envio === 'sinVerificar'],
     ['porConfirmar', 'Por confirmar', (e) => !!e.porConfirmar],
+    /* 21-nov (nota 149df34f): validados por la DF y recepcionados por la propiedad (equipo o conjunto). */
+    ['validadoDF', 'Validados DF', (e) => ['validado', 'recepcionado', 'noRecepcionado'].includes(faseRdf(e))],
+    ['recepcionado', 'Recepcionados', (e) => faseRdf(e) === 'recepcionado'],
   ];
+  function marcaRdf(e) {
+    const m = lista && lista.marcasDF && lista.marcasDF.porEquipo;
+    if (!m || !e) return null;
+    for (const id of [e.id, ...((e.unidades || []).map((u) => u.id))]) if (m[id]) return m[id];
+    return null;
+  }
+  function faseRdf(e) { const m = marcaRdf(e); return m ? m.fase : 'sinValidar'; }
   let segmento = 'todos';
   const porPlanta = (a, b) => /^Sin (planta|zona)$/.test(a) - /^Sin (planta|zona)$/.test(b) || a.localeCompare(b, 'es', { numeric: true });
 
@@ -402,6 +412,15 @@
      barra fina de avance. Siguen siendo los filtros de la lista (data-cx-seg).
      «X de N con la instalación verificada» deja de ser una frase suelta: es el
      KPI «Verificados», que pulsado enseña los que faltan por verificar. */
+  /* Validados DF / Recepcionados (21-nov): aparte y pequeñas, solo si ya hay marcas; las cinco de arriba no cambian. */
+  function celdasRdf() {
+    const c = lista && lista.marcasDF && lista.marcasDF.cifras;
+    if (!c || (!c.validados && !c.noValidados)) return [];
+    return [
+      { id: 'validadoDF', et: 'Validados DF', n: c.validados, titulo: c.noValidados ? `${c.noValidados} no validados por la DF` : 'Validados por la dirección facultativa' },
+      { id: 'recepcionado', et: 'Recepcionados', n: c.recepcionados, titulo: c.noRecepcionados ? `${c.noRecepcionados} no recepcionados` : 'Recepcionados por la propiedad: en mantenimiento' },
+    ];
+  }
   function kpisCx(t, conj) {
     const total = (conj ? t.conjuntos : t.equipos) || 0;
     const pct = (n) => (total ? Math.round(((n || 0) / total) * 100) : 0);
@@ -423,6 +442,7 @@
     const aparte = [
       t.conIncidencias !== undefined ? { id: 'incidencias', et: 'Incidencias', n: t.conIncidencias || 0, titulo: 'Equipos con datos que no cuadran' } : null,
       nPC ? { id: 'porConfirmar', et: 'Por confirmar', n: nPC, titulo: 'De planos o pedidos; no cuentan arriba' } : null,
+      ...celdasRdf(),
     ].filter(Boolean);
     return `<div class="kpis-cx kpis-cx-cinco" role="tablist" aria-label="Resumen del commissioning">${celdas.map((c) => {
       const tono = c.tono === 'falta' && !c.n ? 'bien' : c.tono;
@@ -584,7 +604,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
         return `
         <li class="li-eq${e.franja ? ` franja-${e.franja}` : ''}${abierto && (e.id === abierto || (e.unidades || []).some((u) => u.id === abierto)) ? ' abierto' : ''}"><button class="fila-ios fila-eq" data-cx="equipo" data-id="${esc(e.id)}">
           <span class="fe-tag">${tagsFila(e)}</span>
-          <span class="fe-sala">${esc(sala)}</span>
+          <span class="fe-sala">${esc(sala)}${marcaRdf(e) && window.RECEPCION_DF ? ` ${window.RECEPCION_DF.pastilla(marcaRdf(e).fase)}` : ''}</span>
           <i class="fe-punto ${tono}" role="img" aria-label="${esc(estado)}" title="${esc(estado)}"></i>
           <span class="fe-n cifra">${esc(fi)}</span>
           <span class="fe-ir" aria-hidden="true">›</span>
@@ -1605,6 +1625,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       ${htmlTomaDatos()}
       ${htmlConservadas()}`
       : `${htmlFranjaEquipo(f)}
+      ${f.marcasDF && window.RECEPCION_DF ? window.RECEPCION_DF.htmlPanel(f.marcasDF) : ''}
       ${htmlPestanasFicha(f)}
       ${pestFicha === 'docs' || pestFicha === 'plano' || pestFicha === 'firmas' ? '' : htmlFotosRapidasEquipo(f, puede)}
       ${pestFicha === 'docs' ? checklist(f.checklist, f.medicion, puede, 'docs')
@@ -3551,6 +3572,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       ${ed || f.soloLectura ? '' : `<p class="nota aviso">${f.firmada ? 'La ficha está firmada: ya no se cambia.' : 'Tu rol puede ver la ficha, pero no rellenarla.'}</p>`}
       ${f.versionActual > 1 && !f.soloLectura ? `<p class="nota">Versión ${f.versionToma}: la que cuenta. Las anteriores se ven en la lista de fichas del equipo.</p>` : ''}
       ${f.puedeNuevaVersion ? `<div class="fila-botones"><button class="boton grande secundario" data-cx="nueva-version">Abrir nueva versión (v${f.versionToma + 1})</button></div><p class="nota">Salió NO APTO: la versión ${f.versionToma} se conserva con sus fotos y firmas, y la nueva empieza en blanco para medir tras el arreglo.</p>` : ''}
+      ${f.marca ? `<p class="marca-mant" style="margin:6px 0;padding:3px 10px;border:2px solid var(--vd-info);color:var(--vd-info);font-weight:700;letter-spacing:.12em;display:inline-block;border-radius:4px">${esc(f.marca)}</p>` : ''}
       ${porPasos && !esEstanq ? `<nav class="pasos-hoja" role="tablist" aria-label="Apartados de la hoja">
         ${pasos.map((p, i) => `<button role="tab" class="${i === actual ? 'activa' : ''}" aria-selected="${i === actual}" data-cx="paso-hoja" data-paso="${i}"><span class="t">${esc(p.titulo)}</span><span class="marca">${marcaPaso(p)}</span></button>`).join('')}
         <button role="tab" class="${actual === pasos.length ? 'activa' : ''}" aria-selected="${actual === pasos.length}" data-cx="paso-hoja" data-paso="${pasos.length}"><span class="t">Cierre</span><span class="marca"></span></button>
@@ -4489,6 +4511,19 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       agrupar = ag.dataset.cxAgrupar;
       try { sessionStorage.setItem('cx.agrupar', agrupar); } catch { /* sin almacén */ }
       repintarLista(); return;
+    }
+    /* Validar (DF) / recepcionar (propiedad) desde la ficha del equipo (21-nov, nota 149df34f). */
+    const rdf = ev.target.closest('[data-rdf-marcar],[data-rdf-deshacer]');
+    if (rdf && ficha && ficha.equipo) {
+      const caja = rdf.closest('.bloqueRdf');
+      const obs = ((caja && caja.querySelector('[data-rdf-obs]')) || {}).value || '';
+      const [tipo, valor] = (rdf.dataset.rdfMarcar || `${rdf.dataset.rdfDeshacer}:`).split(':');
+      const id = ficha.equipo.id;
+      C.postJson('api/equipo/marca', { equipoId: id, tipo, valor: valor || null, observacion: obs, deshacer: Boolean(rdf.dataset.rdfDeshacer) }).then((r) => {
+        if (r && r.ok === false) { const p = document.createElement('p'); p.className = 'nota aviso'; p.textContent = r.error || 'No se ha guardado.'; if (caja) caja.appendChild(p); return; }
+        abrir(id);
+      }).catch(() => {});
+      return;
     }
     const b = ev.target.closest('[data-cx]');
     if (!b) return;

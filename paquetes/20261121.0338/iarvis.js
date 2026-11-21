@@ -34,6 +34,7 @@
     compras: 'Compras', comparativos: 'Comparativos', gantt: 'Gantt', commissioning: 'Commissioning', documentacion: 'Documentación',
     balanceo: 'Balanceo', reclamaciones: 'Reclamaciones', incidencias: 'Incidencias', partes: 'Partes', actas: 'Actas', tareas: 'Tareas',
     pedidos: 'Pedidos', documentacionProyecto: 'Documentos del proyecto', planosObra: 'Planos y modelo IFC', facturasProveedor: 'Facturas', volumenCompras: 'Volumen de compras',
+    bloc: 'Mi bloc',
   };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -1081,7 +1082,7 @@
     const sug = q.sugerencias || [];
     const f = {
       id: null, proactiva: true, local: true, estado: 'respondida', creado: new Date().toISOString(), hechoId: datos.hechoId || null,
-      respuesta: `${q.texto}\n${q.pregunta}`,
+      respuesta: [q.texto, q.pregunta].filter(Boolean).join('\n'),
       /* Lo que se pulsa queda en el rastro de supervisión; a la ficha no va nada. */
       acciones: datos.hechoId ? sug.filter((s) => s.anotar).map((s) => ({ tipo: 'hacer', hacer: 'hecho', op: 'anotar', hechoId: datos.hechoId, valores: { clave, respuesta: s.anotar }, frase: q.pregunta, confirmado: true, texto: s.texto })) : [],
       enviar: sobreElAbierto ? sug.filter((s) => s.enviar) : [],

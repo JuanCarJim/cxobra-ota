@@ -40,9 +40,17 @@
      nombres cortos (14-nov, chips a 390 px) son los de shared/commissioning/estadoEquipoPlano.js, los mismos que la web. */
   const EEP = window.ESTADO_EQUIPO_PLANO;
   const ORDEN = EEP ? EEP.ORDEN : CB ? CB.ORDEN_BLOQUE : ['cxHecho', 'instalado', 'sinDato'];
-  const NOMBRE = EEP ? EEP.NOMBRE : CB ? Object.fromEntries(CB.ESTADOS_BLOQUE.map((x) => [x.id, x.nombre])) : { cxHecho: 'Commissioning hecho', instalado: 'Instalado, sin Cx', sinDato: 'Sin dato' };
-  const CORTO = EEP ? EEP.CORTO : { certificado: 'Certificado', cxHecho: 'Cx hecho', instalado: 'Instalado', noInstalado: 'No instalado', sinDato: 'Sin dato' };
-  const bq = (e) => (e && e.bloque) || (e && e.color === 'verde' ? 'cxHecho' : e && e.color === 'azul' ? 'instalado' : 'sinDato');
+  /* 21-nov: con «Color: DF y recepción», el plano se colorea por la validación de la DF y la recepción de la propiedad
+     (shared/commissioning/recepcionDF.js: ORDEN_PLANO, COLOR_PLANO, ETIQUETAS), como el escritorio. */
+  const RD = window.RECEPCION_DF;
+  const NOMBRE_BQ = EEP ? EEP.NOMBRE : CB ? Object.fromEntries(CB.ESTADOS_BLOQUE.map((x) => [x.id, x.nombre])) : { cxHecho: 'Commissioning hecho', instalado: 'Instalado, sin Cx', sinDato: 'Sin dato' };
+  const NOMBRE = { ...NOMBRE_BQ, ...(RD ? RD.ETIQUETAS : {}) };
+  const CORTO = { ...(EEP ? EEP.CORTO : { certificado: 'Certificado', cxHecho: 'Cx hecho', instalado: 'Instalado', noInstalado: 'No instalado', sinDato: 'Sin dato' }), ...(RD ? RD.ETIQUETAS : {}) };
+  let colorRdf = false;
+  const enRdf = () => Boolean(colorRdf && RD && datos && datos.rdf);
+  const ordenV = () => (enRdf() ? RD.ORDEN_PLANO : ORDEN);
+  const bq = (e) => (enRdf() ? ((e && datos.rdf[e.id]) || 'sinValidar') : bqCx(e));
+  const bqCx = (e) => (e && e.bloque) || (e && e.color === 'verde' ? 'cxHecho' : e && e.color === 'azul' ? 'instalado' : 'sinDato');
   const ZOOM_MAX = 30; /* 30-oct, JC: «hay que poder ampliar más» */
   const TAM_EQ = 22; const TAM_EQ_MIN = 18; /* 13-nov, JC: «si son grandes y hago zoom y no se adaptan, nunca podré ver los que hay»: 18–24 px */ const TAM_EQ_ELEGIDO = 30; /* px de pantalla, a cualquier zoom */
   const ZOOM_SALAS = 3; /* desde aquí se leen los nombres de sala encima del plano */
@@ -421,7 +429,7 @@
     if (document.getElementById('pe-estilo')) return;
     const s = document.createElement('style');
     s.id = 'pe-estilo';
-    s.textContent = ESTILO + (CB ? `.pe-lienzo .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-lienzo .marca-boca')}.pe-franja .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-franja .marca-boca')}${IP ? IP.css('.pe-lienzo .marca-boca.con-inc', '.pe-lienzo .marca-boca.con-incres', '.pe-lienzo .marca-boca.con-incter') : ''}:where(.pe-punto[class*="bq-punto-"]){border:1px solid rgba(38,43,56,.35)}` : ''); /* :where: el discontinuo de «no instalado» (colorBloque) manda. */
+    s.textContent = ESTILO + (CB ? `.pe-lienzo .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-lienzo .marca-boca')}.pe-franja .marca-boca[class*="bq-"]{color:var(--acento-fuerte)}${CB.cssBloques('.pe-franja .marca-boca')}${IP ? IP.css('.pe-lienzo .marca-boca.con-inc', '.pe-lienzo .marca-boca.con-incres', '.pe-lienzo .marca-boca.con-incter') : ''}${RD ? Object.entries(RD.COLOR_PLANO).map(([k, hex]) => `.pe-lienzo .marca-boca.bq-${k},.pe-franja .marca-boca.bq-${k}{color:var(--vd-arena-texto)}.pe-lienzo .marca-boca.bq-${k} .cuerpo,.pe-franja .marca-boca.bq-${k} .cuerpo{fill:${hex};fill-opacity:1}.bq-punto-${k}{background:${hex}}`).join('') : ''}:where(.pe-punto[class*="bq-punto-"]){border:1px solid rgba(38,43,56,.35)}` : ''); /* :where: el discontinuo de «no instalado» (colorBloque) manda. */
     document.head.appendChild(s);
   }
 
@@ -912,6 +920,7 @@
       ${movido}${alimentacionHtml(e)}${cambiar}
       ${ubicarHojaHtml(e, p)}
       ${pistasHtml(e, p)}
+      ${e.marcasDF && e.marcasDF.ok && window.RECEPCION_DF ? window.RECEPCION_DF.htmlPanel(e.marcasDF) : ''}
       ${datos.conCommissioning ? '<button class="boton pe-ficha-completa" data-pe-accion="equipo">Ficha completa ›</button>' : ''}
       ${e.miembros && e.miembros.length > 1 ? '' : (rol ? `<div class="sub">${rol}</div>` : '')}
       ${falta ? `<div class="falta">${falta}</div>` : ''}
@@ -1063,7 +1072,7 @@
     C.pedir(`api/plano-equipos/ficha?obra=${encodeURIComponent(C.obraId())}&id=${encodeURIComponent(e.id)}`)
       .then((r) => {
         if (!r || r.ok === false) return;
-        e.documentos = r.documentos; e.acciones = r.acciones; e.vida = r.vida; if (Array.isArray(r.tomas)) e.tomas = r.tomas; e.fichaLista = true;
+        e.documentos = r.documentos; e.acciones = r.acciones; e.vida = r.vida; if (Array.isArray(r.tomas)) e.tomas = r.tomas; e.marcasDF = r.marcasDF || null; e.fichaLista = true;
         if (elegida === e.id) { mostrarHoja(); asomar(elegida); }
       })
       .catch(() => {})
@@ -1134,6 +1143,8 @@
     if (!p.equipos.length && (p.materiales || []).length) lista = 'materiales';
     try { sessionStorage.setItem('cx.planoEquipos.planta', planta); } catch { /* nada */ }
     const c = p.cuentas;
+    const cuentaV = (k) => (enRdf() ? p.equipos.filter((e) => bq(e) === k).length : (c.bloques || {})[k] || 0);
+    const botonRdf = RD && datos && datos.rdf ? `<button data-pe-rdf aria-pressed="${colorRdf}" title="Colorear por validación de la DF y recepción de la propiedad">${colorRdf ? 'Color: Cx' : 'Color: DF y recepción'}</button>` : '';
     const qq = filtro.trim().toLowerCase();
     /* 13-nov (JC: «número de sala es muy importante»): también por número de sala, con o sin puntos («00.STE.036», «00 036»). */
     const BM = window.BUSCADOR_MOVIL;
@@ -1187,7 +1198,7 @@
     const masPlegado = masDentro.trim() ? `<details class="pe-mas" data-pe-mas${verMas || verSinUbicar ? ' open' : ''}><summary>Leyenda${p.plano && (p.sinUbicar || []).length ? ` · sin ubicar ${cifra(p.sinUbicar.length)}` : ''}${nRev ? ` · revisar ${cifra(nRev)}` : ''}</summary>${masDentro}</details>` : '';
     $raiz.innerHTML = compacto ? `
       ${desplegable}
-      ${p.equipos.length ? `<div class="pe-leyenda pe-una-fila" role="group" aria-label="Estados">${ORDEN.filter((k) => ((c.bloques || {})[k] || 0) > 0 || ocultos.has(k)).map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}" title="${esc(NOMBRE[k])}"><i class="pe-punto bq-punto-${k}"></i>${esc(CORTO[k] || NOMBRE[k])} <b>${cifra((c.bloques || {})[k] || 0)}</b></button>`).join('')}${chipInc(p)}${selTipo(p)}</div>` : ''}
+      ${p.equipos.length ? `<div class="pe-leyenda pe-una-fila" role="group" aria-label="Estados">${botonRdf}${ordenV().filter((k) => cuentaV(k) > 0 || ocultos.has(k)).map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}" title="${esc(NOMBRE[k])}"><i class="pe-punto bq-punto-${k}"></i>${esc(CORTO[k] || NOMBRE[k])} <b>${cifra(cuentaV(k))}</b></button>`).join('')}${chipInc(p)}${selTipo(p)}</div>` : ''}
       <div class="pe-cuerpo">
         <div>${plano}</div>
         <div class="pe-lado"><div class="pe-hoja" data-pe-hoja hidden></div></div>
@@ -1195,7 +1206,7 @@
       ${cabeza()}
       <div class="pe-plantas" role="tablist">${plantas().map((x) => `<button role="tab" data-pe-planta="${esc(x.planta || '')}" aria-selected="${x === p}" class="${x === p ? 'activa' : ''}">${esc(etiqueta(x))}<small>${cuentaTexto(nEquipos(x), nMateriales(x))}</small></button>`).join('')}</div>
       ${capas.length > 1 || chipFaltas ? `<div class="pe-capas" role="group" aria-label="Capas">${capas.length > 1 ? capas.map((k) => `<button data-pe-capa="${esc(k.id)}" aria-pressed="${!capasOff.has(k.id)}">${esc(k.nombre)} <b>${cifra(cuentasCapa[k.id])}</b></button>`).join('') : ''}${chipFaltas}</div>` : ''}
-      ${p.equipos.length ? `<div class="pe-leyenda" role="group" aria-label="Colores">${ORDEN.map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto bq-punto-${k}"></i>${esc(NOMBRE[k])} <b>${cifra((c.bloques || {})[k] || 0)}</b></button>`).join('')}${chipInc(p)}${selTipo(p)}
+      ${p.equipos.length ? `<div class="pe-leyenda" role="group" aria-label="Colores">${botonRdf}${ordenV().map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto bq-punto-${k}"></i>${esc(NOMBRE[k])} <b>${cifra(cuentaV(k))}</b></button>`).join('')}${chipInc(p)}${selTipo(p)}
         <p class="nota">sin sala ${cifra(c.sinSala)}${p.plano ? ` · en el plano ${cifra(c.enPlano)} de ${cifra(p.equipos.length)}` : ''}</p></div>` : ''}
       ${masPlegado}
       <div class="pe-cuerpo">
@@ -1771,6 +1782,25 @@
   }, true);
 
   /* Un arrastre o pellizco no es un toque: se traga el click que viene detrás. */
+  /* Validar (DF) / recepcionar (propiedad) desde la hoja del plano (21-nov): se guarda y se pinta el estado nuevo. */
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest('.pe-hoja-resto [data-rdf-marcar], .pe-hoja-resto [data-rdf-deshacer]');
+    const e = b && equipoElegido();
+    if (!e) return;
+    const caja = b.closest('.bloqueRdf');
+    const obs = ((caja && caja.querySelector('[data-rdf-obs]')) || {}).value || '';
+    const [tipo, valor] = (b.dataset.rdfMarcar || `${b.dataset.rdfDeshacer}:`).split(':');
+    C.postJson('api/equipo/marca', { equipoId: e.id, tipo, valor: valor || null, observacion: obs, deshacer: Boolean(b.dataset.rdfDeshacer) }).then((r) => {
+      if (r && r.ok === false) { const n = document.createElement('p'); n.className = 'nota aviso'; n.textContent = r.error || 'No se ha guardado.'; if (caja) caja.appendChild(n); return; }
+      e.marcasDF = r && r.estado ? r.estado : e.marcasDF;
+      /* El color del plano (y de las demás unidades del conjunto) sigue a la marca nueva. */
+      if (datos && datos.rdf && r && r.estado && r.estado.fase) {
+        const tags = new Set(r.estado.unidades || []);
+        for (const pl of datos.plantas || []) for (const x of pl.equipos || []) if (x.id === e.id || tags.has(x.tag)) datos.rdf[x.id] = r.estado.fase;
+      }
+      if (enRdf()) repintarQuieto(); else mostrarHoja();
+    }).catch(() => {});
+  });
   document.addEventListener('click', (ev) => {
     if (tragarClick && enMarco(ev)) { ev.stopPropagation(); ev.preventDefault(); tragarClick = false; }
   }, true);
@@ -1818,6 +1848,7 @@
     if (ev.target.closest('[data-pe-solo-inc]')) { soloInc = !soloInc; repintarQuieto(); return; }
     if (ev.target.closest('[data-pe-solo-res]')) { soloRes = !soloRes; repintarQuieto(); return; }
     if (ev.target.closest('[data-pe-solo-ter]')) { soloTer = !soloTer; repintarQuieto(); return; }
+    if (ev.target.closest('[data-pe-rdf]')) { colorRdf = !colorRdf; ocultos = new Set(); repintarQuieto(); return; }
     const co = ev.target.closest('[data-pe-color]');
     if (co) { const k = co.dataset.peColor; if (ocultos.has(k)) ocultos.delete(k); else ocultos.add(k); repintarQuieto(); return; }
     const fo = ev.target.closest('[data-pe-fondo]');
