@@ -148,7 +148,7 @@
     'correo-msg': { pantalla: 'reclamaciones', accion: 'Leer el correo y sus adjuntos y guardarlo como prueba del claim', importador: 'electron/lectura/correoMsg.js (electron/data/reclamaciones.js)', estado: 'importa' },
     zip: { pantalla: 'documentacion', accion: 'Abrir el paquete y clasificar cada documento', importador: 'electron/data/fuenteDocumentos.js', estado: 'importa' },
     pdf: { pantalla: 'documentacion', accion: 'Iarvis lo lee y lo resume; clasificarlo en la documentación de la obra', importador: 'shared/importacion/pdf.js leerPdf + shared/importacion/clasificarDocumento.js', estado: 'lee' },
-    imagen: { pantalla: 'documentacion', accion: 'Iarvis la mira (foto, plano escaneado) y dice qué es', importador: null, estado: 'lee' },
+    imagen: { pantalla: 'documentacion', accion: 'Iarvis la mira (foto, placa, plano escaneado) y dice qué es; de una placa lee fabricante, modelo y nº de serie y busca el equipo', importador: 'shared/ia/imagenes.js (función iarvis)', estado: 'lee' },
     project: { pantalla: 'gantt', accion: 'Pasar las tareas y fechas al Gantt', importador: null, estado: 'pendiente' },
     ifc: { pantalla: 'commissioning', accion: 'Sacar los equipos del modelo, todos «por confirmar»', importador: null, estado: 'pendiente' },
     word: { pantalla: 'documentacion', accion: 'Guardarlo en la documentación', importador: null, estado: 'pendiente' },
@@ -167,8 +167,61 @@
     return DESTINOS[tipo] || { pantalla: 'documentacion', accion: 'Guardarlo en la documentación', importador: null, estado: 'pendiente' };
   }
 
+  /*
+   * 24-nov (JC: «Tiene que leer imágenes»): la foto se REDUCE antes de subirla al cubo, para que Iarvis la mire
+   * de verdad sin pasarse de tamaño ni de coste: lado mayor ≤ 1568 px (el máximo que recomienda la API de Claude; una foto cuesta así ~1.600 tokens),
+   * JPEG 0,8. La función `iarvis` la baja del cubo y la pasa al modelo (shared/ia/imagenes.js).
+   */
+  const MAX_LADO = 1568;
+  const CALIDAD = 0.8;
+
+  /** Medidas reducidas: lado mayor ≤ max, sin agrandar. */
+  function medidasReducidas(ancho, alto, max = MAX_LADO) {
+    const w = Math.max(1, Math.round(Number(ancho) || 0));
+    const h = Math.max(1, Math.round(Number(alto) || 0));
+    const k = Math.min(1, max / Math.max(w, h));
+    return { ancho: Math.max(1, Math.round(w * k)), alto: Math.max(1, Math.round(h * k)), reducida: k < 1 };
+  }
+
+  const nombreJpg = (n) => (String(n || 'foto').replace(/\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?)$/i, '') || 'foto') + '.jpg';
+
+  /**
+   * NAVEGADOR (móvil, web y escritorio): la foto reducida a JPEG antes de subirla al cubo.
+   * → { bytes, mime: 'image/jpeg', nombre, ancho, alto } | null (si no se puede, se sube la original).
+   * `entorno` es para las pruebas: { createImageBitmap, crearLienzo(w, h) }.
+   */
+  async function reducirImagen(bytes, { nombre = 'foto.jpg', mime = '', max = MAX_LADO, calidad = CALIDAD, entorno = null } = {}) {
+    const g = entorno || (typeof window !== 'undefined' ? window : globalThis);
+    try {
+      const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+      if (!b.length || typeof g.createImageBitmap !== 'function') return null;
+      const d = detectarTipo(b, nombre);
+      const tipo = d.tipo === 'imagen' ? d.mime : (mime || 'image/jpeg');
+      if (tipo === 'image/gif') return null; /* un GIF puede ser animado: se deja como viene */
+      const blob = new Blob([b], { type: tipo });
+      const bmp = await g.createImageBitmap(blob, { imageOrientation: 'from-image' }).catch(() => g.createImageBitmap(blob));
+      const m = medidasReducidas(bmp.width, bmp.height, max);
+      /* Ya es un JPEG pequeño y ligero: tal cual (no se recomprime para nada). */
+      if (!m.reducida && tipo === 'image/jpeg' && b.length <= 1500000) { if (bmp.close) bmp.close(); return null; }
+      const lienzo = g.crearLienzo ? g.crearLienzo(m.ancho, m.alto)
+        : (typeof g.OffscreenCanvas === 'function' ? new g.OffscreenCanvas(m.ancho, m.alto)
+          : Object.assign(g.document.createElement('canvas'), { width: m.ancho, height: m.alto }));
+      const ctx = lienzo.getContext('2d');
+      ctx.fillStyle = '#fff'; /* un PNG con transparencia no sale negro en JPEG */
+      ctx.fillRect(0, 0, m.ancho, m.alto);
+      ctx.drawImage(bmp, 0, 0, m.ancho, m.alto);
+      if (bmp.close) bmp.close();
+      const salida = lienzo.convertToBlob ? await lienzo.convertToBlob({ type: 'image/jpeg', quality: calidad })
+        : await new Promise((ok) => lienzo.toBlob(ok, 'image/jpeg', calidad));
+      if (!salida) return null;
+      const r = new Uint8Array(await salida.arrayBuffer());
+      if (!(r[0] === 0xff && r[1] === 0xd8 && r[2] === 0xff) || (!m.reducida && r.length >= b.length)) return null;
+      return { bytes: r, mime: 'image/jpeg', nombre: nombreJpg(nombre), ancho: m.ancho, alto: m.alto };
+    } catch { return null; }
+  }
+
   /** Lo que Sonnet puede leer directamente (bloques de la API de Claude). */
   const LEE_CLAUDE = { pdf: 'document', imagen: 'image' };
 
-  return { detectarTipo, proponerDestino, nombresZip, llevaMacros, DESTINOS, PENDIENTES, LEE_CLAUDE };
+  return { detectarTipo, proponerDestino, nombresZip, llevaMacros, DESTINOS, PENDIENTES, LEE_CLAUDE, MAX_LADO, CALIDAD, medidasReducidas, nombreJpg, reducirImagen };
 });

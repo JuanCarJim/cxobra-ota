@@ -128,6 +128,43 @@
   const sinRed = (e) => (typeof navigator !== 'undefined' && navigator && navigator.onLine === false)
     || Boolean(e && (e.name === 'TypeError' || /failed to fetch|load failed|network/i.test(String(e.message || ''))));
 
+  /*
+   * GUARDADO, ¿DÓNDE? (24-nov-2026, JC midiendo VE-S2.14: «Autoguardado
+   * siempre ehhh»). En Vidaire Cx el «servidor» es el motor del propio
+   * teléfono: que conteste bien quiere decir que está en el móvil, no en la
+   * nube. Solo es «Guardado» cuando la sincronización está al día y no le
+   * queda nada por subir; sin red, «Sin conexión»; si no, «Guardado en el
+   * móvil». Con el ordenador o la web (sin motor en el teléfono), lo que el
+   * servidor confirma ya está guardado.
+   */
+  const TEXTO_NUBE = { guardado: 'Guardado', movil: 'Guardado en el móvil', sinRed: 'Sin conexión · guardado en el móvil' };
+  function estadoNube() {
+    let s = null;
+    try { s = globalThis.cxObra && globalThis.cxObra.sync; } catch { /* sin motor */ }
+    if (!s || !s.activa || typeof s.estado !== 'function') return 'guardado';
+    let e = {};
+    try { e = s.estado() || {}; } catch { /* sin estado */ }
+    if (e.estado === 'al-dia' && !e.pendientes) return 'guardado';
+    if (e.estado === 'sin-red' || (typeof navigator !== 'undefined' && navigator && navigator.onLine === false)) return 'sinRed';
+    return 'movil';
+  }
+  /* Pinta la marca de `raiz` con lo que dice la nube; si aún no es «Guardado», se queda esperando a la sincronización. */
+  function pintarNube(raiz) {
+    const el = raiz && raiz.querySelector ? raiz.querySelector('.autoguardado') : null;
+    if (!el) return;
+    const e = estadoNube();
+    el.className = `autoguardado ${e}`;
+    el.textContent = TEXTO_NUBE[e];
+    try { if (e === 'guardado') el.removeAttribute('data-nube'); else el.setAttribute('data-nube', '1'); } catch { /* sin atributos */ }
+  }
+  /* Cuando la sincronización sube algo, las marcas que esperaban se ponen al día. */
+  try {
+    window.addEventListener('cxobra:sync', () => {
+      if (typeof document === 'undefined' || !document || !document.querySelectorAll) return;
+      for (const el of document.querySelectorAll('.autoguardado[data-nube]')) pintarNube({ querySelector: () => el });
+    });
+  } catch { /* sin ventana */ }
+
   /* Al irse de la app (gesto de inicio, bloquear, cerrar): una última vez. */
   function alSalir(fn) {
     try { window.addEventListener('pagehide', fn); } catch { /* nada */ }
@@ -241,6 +278,7 @@
       const s = document.createElement('style');
       s.textContent = `
 .autoguardado { display: inline-block; font-size: 12.5px; color: var(--textoTenue); margin: 2px 0 6px; }
+.autoguardado:empty { display: none; }
 .autoguardado.guardado { color: var(--bien); }
 .autoguardado.guardando { color: var(--acento); }
 .autoguardado.sinRed, .autoguardado.pendiente { color: var(--aviso); font-weight: 600; }
@@ -282,6 +320,6 @@
   window.AUTOGUARDADO = {
     reducirFoto,
     guardar, leer, borrar, olvidar, guardarFoto, leerFoto, borrarFoto, fotoNueva, restaurarFotos, fotosParaGuardar,
-    marca, pintarMarca, sinRed, alSalir, TEXTO, elegirFotos, porLotes, verFoto, cerrarVisor, nuevoId,
+    marca, pintarMarca, sinRed, alSalir, estadoNube, pintarNube, TEXTO_NUBE, TEXTO, elegirFotos, porLotes, verFoto, cerrarVisor, nuevoId,
   };
 })();

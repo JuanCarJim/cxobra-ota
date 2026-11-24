@@ -789,7 +789,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       </div>
       ${rev ? `<div class="sub"><span class="marca-revisar">${rev} a revisar</span> fuera de la suma${c.disenoRevisar ? ` (${cifra(c.disenoRevisar)} m³/h de proyecto)` : ''}: no se pueden atribuir al equipo con seguridad. Suma de las atribuidas: ${cifra(c.disenoPuntos)} m³/h en ${c.puntos || 0}.</div>` : ''}
       ${c.faltan ? `<div class="sub">Faltan ${c.faltan} boca${c.faltan === 1 ? '' : 's'} atribuida${c.faltan === 1 ? '' : 's'} por medir.</div>` : ''}
-      ${c.puntos ? `<div class="sub">Tª frío ${c.tFrio || 0}/${c.puntos} · Tª calor ${c.tCalor || 0}/${c.puntos} · completas ${c.completas || 0}/${c.puntos} (caudal y las dos Tª)</div>` : ''}
+      ${c.puntos && c.sinTemperaturas ? `<div class="sub">completas ${c.completas || 0}/${c.puntos} (caudal)</div>`
+        : c.puntos ? `<div class="sub">Tª frío ${c.tFrio || 0}/${c.puntos} · Tª calor ${c.tCalor || 0}/${c.puntos} · completas ${c.completas || 0}/${c.puntos} (caudal y las dos Tª)</div>` : ''}
     </div>`;
   }
 
@@ -799,6 +800,12 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
    * el caudal que da el anemómetro, que manda. Es el caudal medido del equipo
    * de la hoja de balanceo (el mismo que lee la ficha de puesta en marcha).
    */
+  /* Ventilador o extractor (24-nov-2026, JC): sin Tª frío ni calor. Lo decide el
+     motor (shared/commissioning/balanceo.js › sinTemperaturas) y llega en el equipo. */
+  function sinTemperaturasF(f) {
+    return Boolean(f && ((f.equipo && f.equipo.sinTemperaturas) || f.sinTemperaturas));
+  }
+
   function htmlConducto(f, red, nombre, puede) {
     const c = f.conducto && f.conducto[red];
     if (!c) return '';
@@ -815,7 +822,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
         ${circ ? campo('diametro', 'Ø (mm)', c.diametro) : `${campo('ancho', 'Ancho (mm)', c.ancho)}${campo('alto', 'Alto (mm)', c.alto)}`}
         ${campo('velocidades', 'Velocidades (m/s, separadas por espacios)', null)}
         ${campo('caudal', 'Q del aparato (m³/h, manda)', apuntado ? c.caudalMedido : null)}
-        ${campo('tFrio', 'Tª frío (°C)', c.tFrio, 1)}${campo('tCalor', 'Tª calor (°C)', c.tCalor, 1)}
+        ${sinTemperaturasF(f) ? '' : `${campo('tFrio', 'Tª frío (°C)', c.tFrio, 1)}${campo('tCalor', 'Tª calor (°C)', c.tCalor, 1)}`}
       </div>
       ${c.velocidades && c.velocidades.length ? `<div class="sub">Puntos: ${c.velocidades.map((x) => comaD(x, 1)).join(' · ')} → v̄ ${v(c.velocidad, 2)} m/s</div>` : ''}
       <div class="cifras-total">
@@ -1602,7 +1609,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       ${f.planos.length ? planosVistos.map((p) => `
         <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} boca${p.bocas.length === 1 ? '' : 's'}${circ ? ` de ${circ === 'retorno' ? esc(nombreRet.toLowerCase()) : 'impulsión'}` : ''}</span></h2>
         ${htmlPlano(p, circ ? delCircuito : null, f.tolerancias)}
-        <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puedeToma, f.tolerancias)).join('')}</ul>`).join('') : sinPlano()}
+        <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puedeToma, f.tolerancias, sinTemperaturasF(f))).join('')}</ul>
+        ${window.BOCA_MANUAL_MOVIL && window.BOCA_MANUAL_MOVIL.quitadas ? window.BOCA_MANUAL_MOVIL.quitadas(p, puedeToma) : ''}`).join('') : sinPlano()}
       ${window.BOCA_MANUAL_MOVIL ? window.BOCA_MANUAL_MOVIL.boton(f, circ, nombreRet, puedeToma) : ''}
       <details class="plegado-bal"><summary><span class="t">Cuadrilla y cronómetro</span><span class="tenue">quién mide y cuánto tarda</span></summary><div class="crono-bal">${htmlCrono()}</div></details>
       <details class="plegado-bal"><summary><span class="t">Conducto principal</span><span class="tenue">sección, velocidades y caudal</span></summary>
@@ -2440,7 +2448,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
         role="radio" aria-checked="${actual === id}" class="${actual === id ? 'activa' : ''}" ${datos} data-eplano="${esc(p.id)}" data-epunto="${esc(b.id)}">${esc(largo)}</button>`).join('')}</div></details>`;
   }
 
-  function htmlBoca(p, b, puede, tol) {
+  function htmlBoca(p, b, puede, tol, sinT = false) {
     const estado = estadoPintado(b, tol);
     const [clase, nombre] = ESTADO_BOCA[estado] || ['neutra', estado || ''];
     const porc = pct(b.caudal, b.caudalDiseno);
@@ -2470,17 +2478,18 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
             <input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-q="1"
               value="${qLeido ? comaD(b.caudalMedido, 1) : ''}" aria-label="${esc(rotulo)} en ${esc(b.nombre)}"></label>`;
     return `<li class="boca ${clase}" data-boca="${esc(clave)}" ${vivo}>
-      <div class="boca-cabeza"><strong>${esc(b.nombre)}</strong><span class="sub">${esc(b.circuito === 'retorno' ? 'Retorno' : 'Impulsión')} · ${esc(b.tipo || '')}</span>${botonInstrumento(p, b, bal ? 'balometro' : enQ ? 'anemQ' : 'anemV', puede)}</div>
+      <div class="boca-cabeza"><strong>${esc(b.nombre)}</strong><span class="sub">${esc(b.circuitoNombre || (b.circuito === 'retorno' ? 'Retorno' : 'Impulsión'))} · ${esc(b.tipo || '')}</span>${botonInstrumento(p, b, bal ? 'balometro' : enQ ? 'anemQ' : 'anemV', puede)}${window.BOCA_MANUAL_MOVIL && window.BOCA_MANUAL_MOVIL.botonQuitar ? window.BOCA_MANUAL_MOVIL.botonQuitar(p, b, puede) : ''}</div>
       ${b.manual || b.sinPosicion || b.sinAtribuir || b.desdeCaptura || b.caudalDudoso || b.discrepanciaAk ? `<div class="boca-marcas">${b.discrepanciaAk ? `<span class="marca-revisar">Ak a mano ${comaD(b.factor, 4)} m² · la tabla del fabricante da ${comaD(b.akTabla, 4)} m²: revisar</span>` : ''}${window.BOCA_MANUAL_MOVIL ? window.BOCA_MANUAL_MOVIL.marca(p, b, puede) : ''}${b.sinPosicion && !b.manual ? '<span class="marca-sin-posicion">sin posición: falta el PDF del plano</span>' : ''}${b.sinAtribuir ? `<span class="marca-revisar">a revisar · ${esc(b.sinAtribuir)}</span>` : ''}${b.desdeCaptura ? '<span class="marca-revisar">posición desde captura, a revisar</span>' : ''}${b.caudalDudoso ? `<span class="marca-revisar">${esc(b.caudalDudoso)}</span>` : ''}</div>` : ''}
       ${bal
         ? casillaQ('Q balómetro (m³/h)')
         : `<div class="lecturas">${[0, 1, 2, 3].map((i) => `<label>M${i + 1} <small class="unidad-m">${unidadM}</small>
             <input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-m="${i}"
               value="${lect[i] === undefined ? '' : comaD(lect[i], enQ ? 1 : 2)}" aria-label="Lectura M${i + 1} en ${unidadM} en ${esc(b.nombre)}"></label>`).join('')}</div>`}
-      <div class="t-bocas">${[['tFrio', 'Tª frío'], ['tCalor', 'Tª calor']].map(([k, rot]) => `<label class="t-boca">${rot} (°C)
+      ${sinT ? '' : `<div class="t-bocas">${[['tFrio', 'Tª frío'], ['tCalor', 'Tª calor']].map(([k, rot]) => `<label class="t-boca">${rot} (°C)
         <input inputmode="decimal" data-menos enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-t="${k}"
           value="${b[k] === null || b[k] === undefined ? '' : comaD(b[k], 1)}" aria-label="${rot} en ${esc(b.nombre)}, en grados"></label>`).join('')}
-        ${b.temperatura === null || b.temperatura === undefined ? '' : `<span class="t-sin-modo">Tª ${comaD(b.temperatura, 1)} °C · modo sin indicar</span>`}</div>
+        ${b.temperatura === null || b.temperatura === undefined ? '' : `<span class="t-sin-modo">Tª ${comaD(b.temperatura, 1)} °C · modo sin indicar</span>`}</div>`}
+      ${AG ? `<div class="boca-guardado">${AG.marca(AG.leer(claveBorradorBoca(p.id, b.id)) || AG.leer(`bocaManual.medidas.${p.id}.${b.id}`) || AG.leer(`bocaManual.modelo.${p.id}.${b.id}`) ? 'movil' : '')}</div>` : ''}
       ${bal ? '' : `<div data-vivo="formula">${formula}</div>`}
       ${window.BOCA_MANUAL_MOVIL && window.BOCA_MANUAL_MOVIL.medidas ? window.BOCA_MANUAL_MOVIL.medidas(p, b, puede) : ''}
       <div class="boca-cifras">
@@ -2577,10 +2586,14 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       const r = await C.postJson('api/boca', cuerpo);
       if (!r.ok) throw new Error(r.error);
       ficha = r;
+      if (AG) AG.olvidar(claveBorradorBoca(plano, punto));
       if (!activa()) return;
       const y = window.scrollY;
       pintarFicha();
       window.scrollTo(0, y);
+      /* La boca recién guardada dice dónde está: «Guardado» (en la nube) o «Guardado en el móvil». */
+      const nueva = AG && $app.querySelector ? $app.querySelector(`li[data-boca="${CSS.escape(claveBoca(plano, punto))}"]`) : null;
+      if (nueva) AG.pintarNube(nueva);
       if (destino === 'siguiente' && bocaAbierta) {
         /* Con la tarjeta abierta desde el plano, Intro pasa a la boca siguiente en la misma tarjeta. */
         bocaVecina(1);
@@ -2598,6 +2611,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       /* Lo tecleado NO se borra (JC, 28-oct): se queda en la casilla y en el móvil. */
       ins.forEach((x) => { x.disabled = false; });
       apuntarBoca(li);
+      if (AG) AG.pintarMarca(li, AG.sinRed(e) ? 'sinRed' : 'error', AG.sinRed(e) ? '' : `No se ha guardado: ${e.message}`);
       if (AG && AG.sinRed(e)) { C.aviso('Sin conexión: la medida queda guardada en el móvil y se mandará sola.'); if (COLA) COLA.masTarde(); } else C.aviso(e.message);
     }
   }
@@ -2618,6 +2632,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     const clave = claveBorradorBoca(plano, punto);
     if (!cambiada(li)) { AG.olvidar(clave); return; }
     AG.guardar(clave, { planoId: plano, puntoId: punto, cuerpo: cuerpoBoca(ins), valores: Object.fromEntries(ins.map((x) => [claveCasilla(x), x.value])) });
+    /* Lo tecleado ya está en el teléfono: el indicador lo dice (24-nov, «Autoguardado siempre»). */
+    AG.pintarMarca(li, 'movil');
   }
   function restaurarBocas() {
     if (!AG) return;
@@ -2627,7 +2643,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       const b = AG.leer(claveBorradorBoca(ins[0].dataset.plano, ins[0].dataset.punto));
       if (!b || !b.valores) continue;
       ins.forEach((x) => { const v = b.valores[claveCasilla(x)]; if (v !== undefined) x.value = v; });
-      if (cambiada(li)) { li.dataset.borrador = '1'; try { vivoBoca(li); } catch { /* nada */ } }
+      if (cambiada(li)) { li.dataset.borrador = '1'; AG.pintarMarca(li, 'movil'); try { vivoBoca(li); } catch { /* nada */ } }
     }
   }
   async function enviarBocaPendiente(clave, b) {
@@ -2654,25 +2670,46 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
    */
   const ESPERA_GUARDAR_BOCA = 800;
   const temporizadores = new WeakMap();
+  /* Las bocas con un guardado esperando: al salir (atrás, otra pantalla, la app al fondo) se mandan ya. */
+  const bocasEsperando = new Set();
   function guardarBocaPronto(li) {
     clearTimeout(temporizadores.get(li));
-    temporizadores.set(li, setTimeout(() => { guardarBocaEnSilencio(li); }, ESPERA_GUARDAR_BOCA));
+    bocasEsperando.add(li);
+    temporizadores.set(li, setTimeout(() => { bocasEsperando.delete(li); guardarBocaEnSilencio(li); }, ESPERA_GUARDAR_BOCA));
   }
+  /*
+   * 24-nov-2026 (JC, VE-S2.14 R10: «Autoguardado siempre ehhh»): antes, si a
+   * los 0,8 s la boca ya no estaba en pantalla (se había cerrado la tarjeta o
+   * vuelto atrás) no se mandaba: quedaba solo el borrador hasta que la cola
+   * pasara. Ahora se manda igual: las casillas siguen teniendo lo tecleado.
+   */
   async function guardarBocaEnSilencio(li) {
-    if (!li.isConnected || !activa() || !cambiada(li)) return;
+    if (!cambiada(li)) return;
     const ins = casillas(li);
     if (!ins.length) return;
     const { plano, punto } = ins[0].dataset;
     const enviado = ins.map((x) => x.value);
     try {
       const r = await C.postJson('api/boca', { planoId: plano, puntoId: punto, ...cuerpoBoca(ins) });
-      if (!r.ok) return; /* el error se dirá al salir de la boca */
-      ficha = r;
+      /* Un «no» del servidor se dice en la boca (y otra vez al salir de ella); lo tecleado sigue en el móvil. */
+      if (!r.ok) { if (AG) AG.pintarMarca(li, 'error', r.error ? `No se ha guardado: ${r.error}` : ''); return; }
+      if (!ficha || !r.equipo || ficha.equipo.id === r.equipo.id) ficha = r;
       /* Lo que no ha cambiado mientras viajaba ya está guardado; lo demás sigue pendiente. */
       ins.forEach((x, i) => { if (x.value === enviado[i]) x.defaultValue = x.value; });
       li.dataset.guardada = '1';
       apuntarBoca(li);
-    } catch { /* sin conexión: queda en el móvil (apuntarBoca) y la cola la manda */ if (COLA) COLA.masTarde(); }
+      if (AG && !cambiada(li)) AG.pintarNube(li);
+    } catch (e) {
+      /* Sin conexión: queda en el móvil (apuntarBoca) y la cola la manda. */
+      if (AG) AG.pintarMarca(li, AG.sinRed(e) ? 'sinRed' : 'movil');
+      if (COLA) COLA.masTarde();
+    }
+  }
+  /* Todas las bocas a medio guardar, ya (sin esperar los 0,8 s). */
+  function guardarBocasYa() {
+    const lis = [...bocasEsperando];
+    bocasEsperando.clear();
+    return Promise.all(lis.map((li) => { clearTimeout(temporizadores.get(li)); apuntarBoca(li); return guardarBocaEnSilencio(li); }));
   }
 
   /* El equipo de medida de una boca, o de todas: se guarda ya. Lo medido no
@@ -3820,13 +3857,15 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   /* El aviso de la hoja abierta o, en la toma, el de todas sus fichas juntas. */
   function pintarEstado(h) {
     if (!$app.querySelector) return;
-    if (h === hoja) {
-      const el = $app.querySelector('.barra-guardar .autoguardado');
-      if (el) { el.className = `autoguardado ${h._estado || ''}`; el.textContent = TEXTO_AG[h._estado] || ''; }
-      return;
-    }
-    const el = $app.querySelector('.barra-toma .autoguardado');
-    if (el) { const e = estadoTomas(); el.className = `autoguardado ${e}`; el.textContent = TEXTO_AG[e] || ''; }
+    /* «Guardado» solo cuando ya está en la nube; si no, «Guardado en el móvil» (24-nov). */
+    const pinta = (el, e) => {
+      if (!el) return;
+      if (e === 'guardado' && AG && AG.pintarNube) { AG.pintarNube({ querySelector: () => el }); return; }
+      if (el.removeAttribute) el.removeAttribute('data-nube');
+      el.className = `autoguardado ${e || ''}`; el.textContent = TEXTO_AG[e] || '';
+    };
+    if (h === hoja) { pinta($app.querySelector('.barra-guardar .autoguardado'), h._estado); return; }
+    pinta($app.querySelector('.barra-toma .autoguardado'), estadoTomas());
   }
   function estadoTomas() {
     const es = [...tomas.values()].map((t) => t._estado).filter(Boolean);
@@ -3955,7 +3994,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   function guardarTodoYa() {
     const hs = [hoja, ...tomas.values()].filter((h) => h && h.f && h.cambiada);
     for (const h of hs) escribirBorrador(h);
-    return Promise.all([...hs.map((h) => autoguardar(h, { forzar: true })), guardarConductosYa()]);
+    return Promise.all([...hs.map((h) => autoguardar(h, { forzar: true })), guardarConductosYa(), guardarBocasYa()]);
   }
 
   /* Lo que se llama «Guardar» por dentro: guardar ya, y decir si ha ido bien. */
@@ -4849,6 +4888,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   if (window.BOCA_MANUAL_MOVIL) {
     window.BOCA_MANUAL_MOVIL.enganchar({
       ficha: () => ficha,
+      /* Lo guardado mientras se escribe: entra sin repintar (24-nov). */
+      fijar: (r) => { if (r && r.equipo && (!ficha || ficha.equipo.id === r.equipo.id)) ficha = r; },
       poner: (r) => { if (!r || !r.equipo || (ficha && ficha.equipo.id !== r.equipo.id)) return; ficha = r; if (activa() && pestanaEq === 'balanceo') { const y = window.scrollY; pintarFicha(); window.scrollTo(0, y); } },
     });
   }
