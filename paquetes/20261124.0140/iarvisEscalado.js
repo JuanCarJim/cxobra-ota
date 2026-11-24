@@ -58,6 +58,7 @@
 - N10, N20… = plantas (nivel 10, nivel 20). «El sistema 4», «el S4» = un sistema o conjunto de climatización con ese número.
 - Conjunto = una unidad exterior (UE) con sus unidades interiores (UI); se entrega y se prueba junto.
 - DF = dirección facultativa. «Lo de la DF», «la entrega» = el paquete de entrega a la DF (fichas, pruebas y planos de los conjuntos completos).
+- Norma del ZIP autocontenido (23-nov): todo paquete con índice (la entrega a la DF y cualquier otro) se abre solo, cada parte por su cuenta, aunque se mueva la carpeta: solo enlaces relativos a ficheros de esa misma parte, ni http ni SharePoint ni rutas del ordenador ni enlaces a otra parte. Los documentos del fabricante (FT, manual, CE) van tal cual; sus enlaces a su web son aviso, no error. La app lo comprueba antes de dar enlaces; si falla, no los da y dice qué parte y qué enlace.
 - PM = puesta en marcha. Cx = commissioning. «Toma de datos» = la ficha de puesta en marcha.
 - CRC = compuerta reguladora de caudal o compuerta circular (depende del plano; si importa cuál, pregúntalo).
 - Estanqueidad = la prueba de presión con nitrógeno (41 bar, 24 h, foto del manómetro). «Las estanqueidades que faltan» puede ser: equipos sin la prueba hecha, o lecturas de foto por confirmar.
@@ -71,6 +72,7 @@
     { frase: 'qué estanqueidades quedan por confirmar', cuando: 'las lecturas de presión de las fotos que han quedado dudosas' },
     { frase: 'lee las estanqueidades de las fotos', cuando: 'leer la presión de las fotos del manómetro y rellenar las fichas (pide confirmación)' },
     { frase: 'cuántos equipos hay en la <planta>', cuando: 'el número real de equipos de una planta (censo)' },
+    { frase: 'compara la planta de los equipos con el TAG y el IFC', cuando: 'equipos con la ficha en otra planta que su TAG y el modelo IFC; los conflictos y lo cambiado a mano no se corrigen solos (admite un TAG: «¿por qué <TAG> está en la N10?»)' },
     { frase: 'censo de equipos por planta', cuando: 'el recuento de equipos de toda la obra, por planta' },
     { frase: 'saca los planos de la planta <planta>', cuando: 'el plano de una planta con cada equipo en su estado' },
     { frase: 'qué equipos de la planta <planta> faltan por instalar', cuando: 'equipos por instalar de una planta' },
