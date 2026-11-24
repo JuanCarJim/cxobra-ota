@@ -1680,13 +1680,38 @@
     if (!u || !p || !puedeUbicarAqui(p)) { ubicando = null; repintarQuieto(); return; }
     guardandoSitio = true; repintarQuieto();
     let r;
-    try { r = await C.postJson('api/plano-equipos/colocar', { obra: C.obraId(), plano: p.plano.id, id: u.id, x, y }); } catch (e) { r = { ok: false, error: e.message }; }
+    /* 21-nov (c13cb36e): si ya tenía sitio, «mover»: arrastra su conjunto, guarda la sala donde cae y deja Deshacer. */
+    const eq = ((p.equipos || []).find((q) => q.id === u.id)) || null;
+    const yaPuesto = Boolean(eq && eq.x !== null && eq.x !== undefined && !eq.franja);
+    try { r = await C.postJson(yaPuesto ? 'api/plano-equipos/mover' : 'api/plano-equipos/colocar', { obra: C.obraId(), plano: p.plano.id, id: u.id, x, y }); } catch (e) { r = { ok: false, error: e.message }; }
     guardandoSitio = false;
     if (!r || !r.ok) { C.aviso((r && r.error) || 'No se pudo guardar el sitio.'); repintarQuieto(); return; }
     ubicando = null;
     try { await cargar(); } catch (e) { C.aviso(e.message); }
     elegida = u.id; mat = null;
     repintarQuieto(); marcarElegida(); mostrarHoja(); centrar(u.id);
+    if (yaPuesto) avisoMovido(r, u.id);
+  }
+
+  function avisoMovido(r, id) {
+    const n = (r.conjunto || []).length;
+    const donde = r.sala ? `ahora en ${r.sala.codigo}${r.sala.nombre ? ` · ${r.sala.nombre}` : ''}` : 'sin sala (por confirmar)';
+    const hoja = document.querySelector('.pe-ubicar-hoja');
+    if (!hoja) { C.aviso(`Movido: ${donde}.`, 'bien'); return; }
+    const caja = document.createElement('div');
+    caja.className = 'sub'; caja.dataset.peMovido = '1';
+    caja.innerHTML = `Movido: ${esc(donde)}.${n ? ` Con él, ${n} del conjunto.` : ''} <button type="button" class="boton secundario" data-pe-deshacer-mover="${esc(id)}">Deshacer</button>`;
+    hoja.prepend(caja);
+  }
+
+  async function deshacerMovido(id) {
+    let r;
+    try { r = await C.postJson('api/plano-equipos/deshacer-mover', { obra: C.obraId(), id }); } catch (e) { r = { ok: false, error: e.message }; }
+    if (!r || !r.ok) { C.aviso((r && r.error) || 'No se ha deshecho.'); return; }
+    try { await cargar(); } catch (e) { C.aviso(e.message); }
+    elegida = id; mat = null;
+    repintarQuieto(); marcarElegida(); mostrarHoja(); centrar(id);
+    C.aviso('Deshecho: vuelve a su sitio y su sala de antes.', 'bien');
   }
 
   /* «Confirmar» la propuesta del IFC (17-nov): el equipo se queda con ese elemento del modelo, su GUID y su bloque. */
@@ -1849,6 +1874,8 @@
     if (ub) { empezarAUbicar(ub.dataset.peUbicar); return; }
     if (blanco(ev).closest('[data-pe-ubicar-cancelar]')) { ubicando = null; repintarQuieto(); return; }
     if (blanco(ev).closest('[data-pe-confirmar-ifc]')) { confirmarPropuesta(); return; }
+    const dm = blanco(ev).closest('[data-pe-deshacer-mover]');
+    if (dm) { dm.disabled = true; deshacerMovido(dm.dataset.peDeshacerMover); return; }
     /* 17-nov (v2): la ficha del que se ubica, sin dejar de ubicar: el siguiente toque en el plano sigue diciendo su sitio. */
     if (blanco(ev).closest('[data-pe-ubicar-ficha]')) { if (ubicando) { elegida = ubicando.id; mat = null; mostrarHoja(); asomar(elegida); } return; }
     const rf = blanco(ev).closest('[data-pe-ir-ref]');

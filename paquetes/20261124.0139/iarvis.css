@@ -207,7 +207,7 @@ body.teclado .iaMovil .iaEntrada, body.teclado-vv .iaMovil .iaEntrada { padding-
 
 /* 10-nov (JC): Iarvis suelta = ventana fija que se arrastra por la cabecera y se redimensiona por la esquina; no empuja el contenido. */
 @media (min-width: 900px) {
-  .iaPanel.iaFlota:not(.iaMovil) { z-index: 1200; border-radius: 12px; border-width: 1px; box-shadow: 0 10px 34px rgba(0,0,0,.28); resize: both; min-width: 300px; min-height: 280px; max-width: calc(100vw - 16px); }
+  .iaPanel.iaFlota:not(.iaMovil) { z-index: 1200; border-radius: 12px; border-width: 1px; box-shadow: 0 10px 34px rgba(0,0,0,.28); min-width: 300px; min-height: 280px; max-width: calc(100vw - 16px); }
   .iaPanel.iaFlota .iaCabecera { cursor: grab; user-select: none; touch-action: none; }
   .iaPanel.iaFlota .iaCabecera:active { cursor: grabbing; }
 }
@@ -445,4 +445,22 @@ body.teclado .iaMovil .iaEntrada, body.teclado-vv .iaMovil .iaEntrada { padding-
   }
   .iaPanel.iaMini .iaBurbuja svg { width: 34px; height: 34px; pointer-events: none; }
   .iaPanel.iaMini .iaBurbuja:focus-visible { outline: 2px solid white; outline-offset: -4px; }
+}
+
+/* 21-nov (JC, bloc b1ba7a44, igual que en Vidaire Obras): en el Mac la franja de arriba de la app arrastra la VENTANA
+   (estilos.css, -webkit-app-region: drag) y se comía los clics de Iarvis: Iarvis no arrastra la ventana nunca. Se agranda
+   desde los cuatro bordes y las cuatro esquinas (asas invisibles; el cursor lo indica). */
+.iaPanel, .iaPanel * { -webkit-app-region: no-drag; }
+.iaPanel .iaAsa { display: none; }
+@media (min-width: 900px) {
+  .iaPanel.iaFlota:not(.iaMini):not(.iaMovil) .iaAsa { display: block; position: absolute; z-index: 2; touch-action: none; }
+  .iaPanel.iaFlota .iaAsa-n, .iaPanel.iaFlota .iaAsa-s { left: 10px; right: 10px; height: 6px; cursor: ns-resize; }
+  .iaPanel.iaFlota .iaAsa-n { top: 0; } .iaPanel.iaFlota .iaAsa-s { bottom: 0; }
+  .iaPanel.iaFlota .iaAsa-e, .iaPanel.iaFlota .iaAsa-w { top: 10px; bottom: 10px; width: 6px; cursor: ew-resize; }
+  .iaPanel.iaFlota .iaAsa-e { right: 0; } .iaPanel.iaFlota .iaAsa-w { left: 0; }
+  .iaPanel.iaFlota .iaAsa-ne, .iaPanel.iaFlota .iaAsa-nw, .iaPanel.iaFlota .iaAsa-se, .iaPanel.iaFlota .iaAsa-sw { width: 14px; height: 14px; }
+  .iaPanel.iaFlota .iaAsa-ne { top: 0; right: 0; cursor: nesw-resize; } .iaPanel.iaFlota .iaAsa-sw { bottom: 0; left: 0; cursor: nesw-resize; }
+  .iaPanel.iaFlota .iaAsa-nw { top: 0; left: 0; cursor: nwse-resize; }
+  .iaPanel.iaFlota .iaAsa-se { bottom: 0; right: 0; cursor: nwse-resize;
+    background: linear-gradient(135deg, transparent 55%, var(--vd-linea-fuerte, var(--vd-linea, currentColor)) 55% 62%, transparent 62% 75%, var(--vd-linea-fuerte, var(--vd-linea, currentColor)) 75% 82%, transparent 82%); }
 }

@@ -59,6 +59,39 @@
     window.addEventListener('pageshow', fijar);
     setTimeout(fijar, 500);
   })();
+  /* HUECO DE LA RAYA DE INICIO (19-nov, JC: «la barra inferior cuesta pulsar botones
+     por estar tan abajo»). Igual que arriba: si el iPhone da 0 en
+     env(safe-area-inset-bottom), se usa el último bueno (o 34 px en los iPhone con
+     raya, pantalla de 812 o más) en --abajo-seguro, que usa la barra de abajo. */
+  (function huecoAbajo() {
+    const CLAVE = 'cx-hueco-abajo';
+    const medir = () => {
+      const p = document.createElement('div');
+      p.style.cssText = 'position:fixed;bottom:0;left:0;height:env(safe-area-inset-bottom);width:0;visibility:hidden';
+      document.documentElement.appendChild(p);
+      const h = Math.round(p.getBoundingClientRect().height);
+      p.remove();
+      return h;
+    };
+    const conRaya = /iPhone|iPod/.test(navigator.userAgent || '') && Math.max(screen.width || 0, screen.height || 0) >= 812;
+    const fijar = () => {
+      const h = medir();
+      let guardado = 0;
+      try { guardado = Number(localStorage.getItem(CLAVE)) || 0; } catch { /* sin almacenamiento */ }
+      if (h > 0) {
+        try { localStorage.setItem(CLAVE, String(h)); } catch { /* sin almacenamiento */ }
+        document.documentElement.style.removeProperty('--abajo-seguro');
+      } else if (conRaya && window.matchMedia('(orientation: portrait)').matches) {
+        document.documentElement.style.setProperty('--abajo-seguro', `${guardado || 34}px`);
+      } else {
+        document.documentElement.style.removeProperty('--abajo-seguro');
+      }
+    };
+    fijar();
+    window.addEventListener('resize', fijar);
+    window.addEventListener('pageshow', fijar);
+    setTimeout(fijar, 500);
+  })();
   if (window.visualViewport) {
     const vv = window.visualViewport;
     const ajustar =() => document.documentElement.style.setProperty('--vv-arriba', `${Math.max(0, Math.round(vv.offsetTop))}px`);

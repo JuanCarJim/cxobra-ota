@@ -1841,6 +1841,12 @@ body { background: var(--fondo-pagina); }
 
 /* «Ver hoja» bajo cada ficha: el modelo oficial relleno, Definitiva o Borrador. */
 .ver-hoja { display: flex; align-items: center; gap: 8px; padding: 0 16px 6px; }
+/* 20-nov (JC): versiones anteriores de una hoja NO APTO, plegadas bajo su fila. */
+.versiones-ficha { padding: 0 16px 6px; }
+.versiones-ficha > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--acento-fuerte); padding: 2px 0; }
+.versiones-ficha .lista-ios { margin: 4px 0 0; }
+.nota.version-anterior { border-left: 3px solid var(--mal); padding-left: 10px; }
+.pe-hoja-version { font-weight: 700; }
 .ver-hoja .enlace { padding: 2px 0; font-size: 13px; font-weight: 600; }
 .ver-hoja .chip { font-size: 10.5px; padding: 1px 6px; }
 .densa .ver-hoja { padding: 0 12px 4px; }
@@ -2343,3 +2349,16 @@ body.cx-actualizando::before { content: ''; position: fixed; top: 0; left: 0; ri
 .plano-ifc .marca-boca.mal { color: var(--mal); }
 .plano-ifc .marca-boca.alto { color: var(--alto); }
 .plano-ifc .marca-boca .rotulo-boca { font-size: 9px; line-height: 12px; }
+
+/* ═══ Barra de abajo más alta (19-nov-2026, JC: «cuesta pulsar botones por estar tan abajo»).
+   Los iconos suben por encima de la raya de inicio del iPhone: debajo queda la zona segura
+   (o 8 px si no la hay) más 6 px de aire. Cada pestaña es una celda entera pulsable de
+   al menos 48 px de alto, también «Añadir» (su botón cubre la celda). --abajo-seguro lo
+   pone carcasa.js › huecoAbajo cuando el iPhone da 0 en env(safe-area-inset-bottom). */
+:root { --barra-aire: 6px; --barra-toque: 48px; }
+body { padding-bottom: calc(var(--hueco-barra) + var(--abajo-seguro, env(safe-area-inset-bottom))); }
+.barra-pastilla { align-items: stretch; padding: 0 4px calc(max(var(--abajo-seguro, env(safe-area-inset-bottom)), 8px) + var(--barra-aire)); }
+.barra-inferior a, .barra-inferior .barra-centro { min-height: var(--barra-toque); padding: 6px 0 2px; justify-content: center; }
+.barra-inferior .barra-centro { position: relative; }
+.barra-inferior .barra-centro .boton-anadir { position: static; padding: 0; min-height: 0; }
+.barra-inferior .barra-centro .boton-anadir::after { content: ''; position: absolute; inset: 0; }

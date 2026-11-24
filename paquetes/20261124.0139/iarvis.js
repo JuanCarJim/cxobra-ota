@@ -33,7 +33,7 @@
     presupuestos: 'Presupuestos', costsPlan: 'Costs Plan', presupuestoObra: 'Presupuesto de obra', medObra: 'Medición real de obra', certificaciones: 'Certificaciones',
     compras: 'Compras', comparativos: 'Comparativos', gantt: 'Gantt', commissioning: 'Commissioning', documentacion: 'Documentación',
     balanceo: 'Balanceo', reclamaciones: 'Reclamaciones', incidencias: 'Incidencias', partes: 'Partes', actas: 'Actas', tareas: 'Tareas',
-    pedidos: 'Pedidos', documentacionProyecto: 'Documentos del proyecto', planosObra: 'Planos y modelo IFC', facturasProveedor: 'Facturas',
+    pedidos: 'Pedidos', documentacionProyecto: 'Documentos del proyecto', planosObra: 'Planos y modelo IFC', facturasProveedor: 'Facturas', volumenCompras: 'Volumen de compras',
     bloc: 'Mi bloc',
   };
   /* Los textos fijos del chat, en el idioma de quien lo usa (shared/idiomaTextos.js): la app los
@@ -740,6 +740,16 @@
 
   /** Los botones de las respuestas de la app: ir a una pantalla, proponer, aplicar. */
   async function accion(a, boton) {
+    /* 23-nov: un enlace firmado que caduca (las partes de la entrega a la DF). Solo los de la entrega. */
+    if (a.tipo === 'enlace' && a.url) {
+      let r = null;
+      try {
+        if (window.puente && window.puente.abrirEnlaceEntregaDF) r = await window.puente.abrirEnlaceEntregaDF(a.url);
+        else if (!window.open(a.url, '_blank', 'noopener')) r = { ok: false, error: 'El navegador ha bloqueado la ventana nueva.' };
+      } catch (e) { r = { ok: false, error: e.message }; }
+      if (r && r.ok === false && window.AVISOS && window.AVISOS.mostrar) window.AVISOS.mostrar(r.error || 'No he podido abrir el enlace.');
+      return;
+    }
     if (a.tipo === 'navegar') {
       const N = navegador();
       const f = N && N.sitioPorId(window.BUSCADOR_CASILLA.lista(), a.id);
@@ -782,7 +792,7 @@
       /* 12-nov: «Abrir el plano» por edificio y estado (electron/data/iarvisPlanos.js). */
       if (a.planoEstado && window.PANTALLA_PLANOS_ESTADO) window.PANTALLA_PLANOS_ESTADO.preparar(a.planoEstado);
       if (a.censo && window.PANTALLA_CENSO_EQUIPOS) window.PANTALLA_CENSO_EQUIPOS.preparar(a.censo);
-      if (a.vista && a.destino === 'commissioning' && window.PANTALLA_COMMISSIONING && window.PANTALLA_COMMISSIONING.prepararVista) window.PANTALLA_COMMISSIONING.prepararVista(a.vista, a.obraId, undefined, a.planoEstado ? 'estado' : a.censo ? 'censo' : undefined, a.filtroDf);
+      if (a.vista && a.destino === 'commissioning' && window.PANTALLA_COMMISSIONING && window.PANTALLA_COMMISSIONING.prepararVista) window.PANTALLA_COMMISSIONING.prepararVista(a.vista, a.obraId, undefined, a.planoEstado ? 'estado' : a.censo ? 'censo' : (a.sub === 'ubicaciones' || a.sub === 'planta' ? a.sub : undefined), a.filtroDf);
       /* 12-nov: «Abrir su ficha de mantenimiento» (electron/data/iarvisFichaMantenimiento.js). */
       if (a.destino === 'mantenimiento' && window.PANTALLA_MANTENIMIENTO) {
         if (a.obraId) window.PANTALLA_MANTENIMIENTO.elegirObra(a.obraId);
@@ -957,10 +967,13 @@
   const CLAVE_POS = 'vidaire.iarvis.ventana';
   function leerPos() { try { return JSON.parse(localStorage.getItem(CLAVE_POS) || 'null'); } catch { return null; } }
   function guardarPos(o) { try { localStorage.setItem(CLAVE_POS, JSON.stringify(o)); } catch { /* sin almacenamiento */ } }
+  /* 21-nov (JC, bloc b1ba7a44, paridad con Vidaire Obras): en el Mac la franja de arriba arrastra la VENTANA
+     (-webkit-app-region: drag) y se comía los clics de Iarvis; no sube por encima de los botones de cerrar del Mac. */
+  const arribaDe = () => { try { return document.documentElement.classList.contains('mac') ? 40 : 8; } catch { return 8; } };
   function encajar(p, x, y, w, h) {
-    const W = window.innerWidth, H = window.innerHeight;
-    w = Math.max(300, Math.min(w, W - 16)); h = Math.max(280, Math.min(h, H - 16));
-    x = Math.max(8, Math.min(x, W - w - 8)); y = Math.max(8, Math.min(y, H - 80));
+    const W = window.innerWidth, H = window.innerHeight, arriba = arribaDe();
+    w = Math.max(300, Math.min(w, W - 16)); h = Math.max(280, Math.min(h, H - arriba - 8));
+    x = Math.max(8, Math.min(x, W - w - 8)); y = Math.max(arriba, Math.min(y, H - 80));
     Object.assign(p.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px`, right: 'auto', bottom: 'auto' });
     return { x, y, w, h };
   }
@@ -1045,8 +1058,36 @@
       bur.addEventListener('pointercancel', fin);
       bur.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); minimizar(false); } });
     }
+    /* 21-nov (JC, bloc b1ba7a44): doble clic en la cabecera = devolverla a su sitio; y se agranda desde los cuatro bordes
+       y las cuatro esquinas (asas), con mínimo 300×280 y máximo la ventana de la app. */
+    cab.addEventListener('dblclick', (e) => { if (e.target.closest('button') || I.anclado || I.mini || window.innerWidth < 900) return; colocarFlotante(null); guardarVentana(); });
+    let r0 = null;
+    for (const asa of ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']) {
+      const d = document.createElement('div');
+      d.className = `iaAsa iaAsa-${asa}`; d.setAttribute('aria-hidden', 'true');
+      d.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0 || I.mini || !p.classList.contains('iaFlota')) return;
+        const r = p.getBoundingClientRect();
+        r0 = { id: e.pointerId, asa, x: e.clientX, y: e.clientY, c: { x: r.left, y: r.top, w: r.width, h: r.height } };
+        try { d.setPointerCapture(e.pointerId); } catch { /* */ }
+        e.preventDefault(); e.stopPropagation();
+      });
+      d.addEventListener('pointermove', (e) => {
+        if (!r0 || e.pointerId !== r0.id) return;
+        const W = window.innerWidth, H = window.innerHeight, arriba = arribaDe(), dx = e.clientX - r0.x, dy = e.clientY - r0.y;
+        let { x, y, w, h } = r0.c;
+        if (asa.includes('e')) w = Math.min(Math.max(w + dx, 300), W - 8 - x);
+        if (asa.includes('s')) h = Math.min(Math.max(h + dy, 280), H - 8 - y);
+        if (asa.includes('w')) { const der = x + w; const nx = Math.max(8, Math.min(x + dx, der - 300)); w = der - nx; x = nx; }
+        if (asa.includes('n')) { const aba = y + h; const ny = Math.max(arriba, Math.min(y + dy, aba - 280)); h = aba - ny; y = ny; }
+        encajar(p, x, y, w, h);
+      });
+      const finAsa = () => { if (!r0) return; r0 = null; guardarVentana(); };
+      d.addEventListener('pointerup', finAsa); d.addEventListener('pointercancel', finAsa);
+      p.appendChild(d);
+    }
     /* El tamaño que le dé con la esquina también se recuerda. */
-    if (window.ResizeObserver) new ResizeObserver(() => { if (a || I.mini || !p.classList.contains('iaFlota') || p.hidden) return; guardarVentana(); }).observe(p);
+    if (window.ResizeObserver) new ResizeObserver(() => { if (a || r0 || I.mini || !p.classList.contains('iaFlota') || p.hidden) return; guardarVentana(); }).observe(p);
     /* Si la ventana de la app cambia de tamaño, Iarvis se queda dentro de la pantalla. */
     window.addEventListener('resize', () => {
       if (p.hidden || I.movil || I.anclado || !p.classList.contains('iaFlota')) return;
