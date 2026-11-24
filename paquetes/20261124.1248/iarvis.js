@@ -673,9 +673,23 @@
 
   async function adjuntar(lista) {
     const A = window.IarvisAdjuntos;
-    for (const archivo of lista) {
-      const bytes = new Uint8Array(await archivo.arrayBuffer());
-      const t = A ? A.detectarTipo(bytes, archivo.name) : { tipo: 'desconocido', mime: archivo.type };
+    for (const original of lista) {
+      let archivo = original;
+      let bytes = new Uint8Array(await original.arrayBuffer());
+      let t = A ? A.detectarTipo(bytes, original.name) : { tipo: 'desconocido', mime: original.type };
+      /* 24-nov (JC: «Tiene que leer imágenes»): la foto se reduce aquí (lado mayor ≤ 1568 px, JPEG 0,8) y esa es la
+         que sube al cubo y la que mira Iarvis en la nube (shared/ia/imagenes.js). Si no se puede reducir, va la original. */
+      if (t.tipo === 'imagen' && A && A.reducirImagen) {
+        const z0 = I.panel.querySelector('.iaFicheros');
+        if (z0) z0.textContent = `Preparando «${original.name}»…`;
+        let red = null;
+        try { red = await A.reducirImagen(bytes, { nombre: original.name, mime: t.mime || original.type }); } catch { red = null; }
+        if (red) {
+          bytes = red.bytes;
+          archivo = { name: red.nombre, type: red.mime };
+          t = A.detectarTipo(bytes, red.nombre);
+        }
+      }
       /* 11-nov: un presupuesto (BC3, Excel, ODS, CSV) se queda también en local: Iarvis lo lee y propone crearlo. */
       if (/\.(bc3|xlsx?|ods|csv|tsv|txt)$/i.test(archivo.name) && bytes.length <= 25 * 1024 * 1024) I.locales.push({ nombre: archivo.name, bytes });
       const z = I.panel.querySelector('.iaFicheros');

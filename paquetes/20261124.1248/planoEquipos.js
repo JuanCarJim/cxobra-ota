@@ -124,6 +124,23 @@
   .pe-leyenda button[aria-pressed="false"]{opacity:.45}
   .pe-leyenda .nota{margin:0;font-size:12px}
   .pe-leyenda select.pe-sel-tipo{flex:0 0 auto;width:auto;max-width:200px;margin:0;min-height:30px;border:1px solid var(--borde);background:var(--panel);color:var(--texto);border-radius:999px;padding:2px 8px;font:inherit;font-size:12.5px}
+  /* 24-nov: la franja de colores compacta (cuadradito + cifra, 12-13 px) y una sola línea con el tipo y el recuento. */
+  .pe-leyenda.pe-estados{gap:4px;margin:0 0 4px}
+  .pe-leyenda.pe-estados button{min-height:28px;gap:4px;padding:1px 8px;font-size:12.5px}
+  .pe-leyenda.pe-estados .pe-chip-txt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .pe-leyenda.pe-estados b{font-variant-numeric:tabular-nums}
+  .pe-linea{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin:0 0 2px;font-size:12.5px}
+  .pe-linea select.pe-sel-tipo,#app .pe-linea select.pe-sel-tipo{flex:0 1 auto;width:auto;max-width:170px;margin:0;min-height:28px;height:28px;border:1px solid var(--borde);background-color:var(--panel);color:var(--texto);border-radius:999px;padding:1px 26px 1px 10px;background-position:right 8px center;background-size:14px;font:inherit;font-size:12.5px}
+  .pe-leyenda.pe-estados [data-pe-rdf]{font-size:12px}
+  .pe-leyenda.pe-estados [data-pe-rdf][aria-pressed="false"]{opacity:.75}
+  /* El fondo del plano (Modelo IFC / Plano PDF) y su nota, también más bajos: el plano sube. */
+  .pe-fondo button{min-height:30px;padding:3px 10px;font-size:12.5px}
+  [data-pe-fondo-nota]{margin:0 0 4px;font-size:12px}
+  .pe-linea .nota{margin:0;font-size:12px;font-variant-numeric:tabular-nums}
+  .pe-mas>summary{list-style:none;gap:6px;font-weight:600;color:var(--acento,var(--texto))}.pe-mas>summary::-webkit-details-marker{display:none}
+  .pe-mas>summary .pe-mas-tit::after{content:' ▸';font-size:11px}.pe-mas[open]>summary .pe-mas-tit::after{content:' ▾'}
+  .pe-ley-colores{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px 12px;margin:0 0 8px;font-size:12px;color:var(--texto)}
+  .pe-ley-colores span{display:flex;align-items:center;gap:6px;min-height:22px}.pe-ley-colores b{margin-left:auto;font-variant-numeric:tabular-nums}
   .pe-leyenda.pe-una-fila{flex-wrap:nowrap;overflow-x:auto;gap:4px;margin:0 0 6px;scrollbar-width:none}
   .pe-leyenda.pe-una-fila button{min-height:30px;padding:2px 8px;font-size:12.5px;flex:0 0 auto}
   .pe-planta-sel label{flex-wrap:nowrap} .pe-planta-sel{display:flex;align-items:center;gap:8px} .pe-planta-sel label{flex:1;min-width:0} .pe-planta-sel .pe-sin-ifc{flex:0 0 auto;font-size:12px;color:var(--aviso)}
@@ -645,6 +662,15 @@
     return ids;
   }
 
+  /* 24-nov (JC: «esa leyenda ocupa demasiado»): sobre el plano, los colores van como pastillas con el cuadradito y la cifra;
+     qué es cada color se lee aquí, dentro de «Leyenda» (plegada), con los tipos de equipo. */
+  function leyendaColores(p, cuentaV) {
+    const fila = (clase, nombre, n) => `<span><i class="pe-punto bq-punto-${clase}"></i>${esc(nombre)} <b>${cifra(n)}</b></span>`;
+    const inc = IP ? [['incidencia', IP.NOMBRE, IP.recuento(p.equipos), soloInc], ['incTerceros', IP.NOMBRE_TERCEROS, IP.recuentoTerceros ? IP.recuentoTerceros(p.equipos) : 0, soloTer],
+      ['incResuelta', IP.NOMBRE_RESUELTA, IP.recuentoResueltas(p.equipos), soloRes]].filter(([, , n, activo]) => n || activo) : [];
+    return `<div class="pe-ley-colores" role="list" aria-label="Qué es cada color">${ordenV().map((k) => fila(k, NOMBRE[k], cuentaV(k))).join('')}${inc.map(([k, nombre, n]) => fila(k, nombre, n)).join('')}</div>`;
+  }
+
   function leyendaIconos(p) {
     const puestos = p.equipos.filter((e) => e.x !== null);
     const usados = [...new Set(puestos.map((e) => e.icono || 'generico'))];
@@ -703,19 +729,19 @@
     const n = IP ? IP.recuento(p.equipos) : p.equipos.filter(conInc).length;
     if (!n && !soloInc) return chipTer(p) + chipRes(p);
     const nombre = IP ? IP.NOMBRE : 'Con incidencia';
-    return `<button class="pe-chip-inc" data-pe-solo-inc aria-pressed="${soloInc}" title="${esc(nombre)}: ${soloInc ? 'ver todos' : 'ver solo estos'}"><i class="pe-punto bq-punto-incidencia"></i>${esc(nombre)} <b>${cifra(n)}</b></button>${chipTer(p)}${chipRes(p)}`;
+    return `<button class="pe-chip-inc" data-pe-solo-inc aria-pressed="${soloInc}" title="${esc(nombre)}: ${soloInc ? 'ver todos' : 'ver solo estos'}"><i class="pe-punto bq-punto-incidencia"></i><span class="pe-chip-txt">${esc(nombre)}</span> <b>${cifra(n)}</b></button>${chipTer(p)}${chipRes(p)}`;
   }
   /* «Incidencia de terceros N» (18-nov): abierta e imputable a otro industrial o al cliente (IP.recuentoTerceros); pulsado, filtra. */
   function chipTer(p) {
     const n = IP && IP.recuentoTerceros ? IP.recuentoTerceros(p.equipos) : 0;
     if (!n && !soloTer) return '';
-    return `<button class="pe-chip-inc pe-chip-ter" data-pe-solo-ter aria-pressed="${soloTer}" title="${esc(IP.NOMBRE_TERCEROS)}: ${soloTer ? 'ver todos' : 'ver solo estos'}"><i class="pe-punto bq-punto-incTerceros"></i>${esc(IP.NOMBRE_TERCEROS)} <b>${cifra(n)}</b></button>`;
+    return `<button class="pe-chip-inc pe-chip-ter" data-pe-solo-ter aria-pressed="${soloTer}" title="${esc(IP.NOMBRE_TERCEROS)}: ${soloTer ? 'ver todos' : 'ver solo estos'}"><i class="pe-punto bq-punto-incTerceros"></i><span class="pe-chip-txt">${esc(IP.NOMBRE_TERCEROS)}</span> <b>${cifra(n)}</b></button>`;
   }
   /* «Resuelta, faltan datos N» (15-nov): cerrada y sin toma de datos después del cierre (IP.recuentoResueltas); pulsado, filtra. */
   function chipRes(p) {
     const n = IP ? IP.recuentoResueltas(p.equipos) : 0;
     if (!n && !soloRes) return '';
-    return `<button class="pe-chip-inc pe-chip-res" data-pe-solo-res aria-pressed="${soloRes}" title="${esc(IP.NOMBRE_RESUELTA)}: ${soloRes ? 'ver todos' : 'ver solo estos'}"><i class="pe-punto bq-punto-incResuelta"></i>${esc(IP.NOMBRE_RESUELTA)} <b>${cifra(n)}</b></button>`;
+    return `<button class="pe-chip-inc pe-chip-res" data-pe-solo-res aria-pressed="${soloRes}" title="${esc(IP.NOMBRE_RESUELTA)}: ${soloRes ? 'ver todos' : 'ver solo estos'}"><i class="pe-punto bq-punto-incResuelta"></i><span class="pe-chip-txt">${esc(IP.NOMBRE_RESUELTA)}</span> <b>${cifra(n)}</b></button>`;
   }
   /* Arriba de la hoja, sus incidencias abiertas, cada una con su enlace: el mismo trozo del panel del escritorio. */
   function incidenciasHtml(e) {
@@ -1216,14 +1242,14 @@
     const filtrosCx = p.equipos.length ? `<details class="pe-filtros" data-pe-filtros${verFiltros ? ' open' : ''}><summary aria-label="Filtros${nFiltros ? `: ${nFiltros} activos` : ''}">Filtros${nFiltros ? ` <b>${cifra(nFiltros)}</b>` : ''}</summary><div class="pe-leyenda pe-una-fila" role="group" aria-label="Estados">${botonRdf}${ordenV().filter((k) => cuentaV(k) > 0 || ocultos.has(k)).map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}" title="${esc(NOMBRE[k])}"><i class="pe-punto bq-punto-${k}"></i>${esc(CORTO[k] || NOMBRE[k])} <b>${cifra(cuentaV(k))}</b></button>`).join('')}${chipInc(p)}${selTipo(p)}</div></details>` : '';
     const desplegable = `<div class="pe-planta-sel"><label>Planta <select data-pe-planta-sel aria-label="Planta">${(ops.length ? ops : [p]).map((x) => `<option value="${esc(x.planta || '')}"${(x.planta || '') === (p.planta || '') ? ' selected' : ''}>${esc(etiqueta(x))} · ${x.ifc ? `${cifra(nIfc(x))} de ${cifra(nEquipos(x))} en el modelo` : `sin IFC · ${cifra(nEquipos(x))} equipos`}</option>`).join('')}</select></label>${p.esIfc || !p.plano ? '' : '<span class="pe-sin-ifc" data-pe-sin-ifc>Falta el IFC: plano PDF</span>'}${filtrosCx}</div>`;
     const nRev = p.plano ? p.equipos.filter((x) => x.revisar).length : 0;
-    const masDentro = `${p.plano && p.equipos.length ? leyendaIconos(p) : ''}
+    const masDentro = `${p.equipos.length ? leyendaColores(p, cuentaV) : ''}${p.plano && p.equipos.length ? leyendaIconos(p) : ''}
       ${p.plano ? leyendaFormas(p) : ''}
       ${p.plano && (p.sinUbicar || []).length ? `<details class="pe-sin-ubicar" data-pe-sin-ubicar${verSinUbicar ? ' open' : ''}><summary><i class="pe-punto pe-gris"></i>Sin ubicar en el plano · ${cifra(p.sinUbicar.length)}</summary>
         <div class="pe-grises">${p.sinUbicar.map((g) => `<button data-pe-fila="${esc(g.id)}" aria-label="${esc(`${g.tag}: en el listado de esta planta y no en su plano`)}">${esc(g.tag)}</button>`).join('')}</div></details>` : ''}
       ${p.plano && p.equipos.some((x) => x.revisar) ? `<details class="pe-sin-ubicar pe-revisar"><summary><i class="pe-punto pe-gris"></i>Revisar ubicación · ${cifra(p.equipos.filter((x) => x.revisar).length)}</summary>
         <div class="pe-grises">${p.equipos.filter((x) => x.revisar).map((g) => `<button data-pe-fila="${esc(g.id)}" aria-label="${esc(`${g.tag}: ${g.motivo || 'revisar ubicación'}`)}">${esc(g.tag)}</button>`).join('')}</div></details>` : ''}`;
     /* 13-nov (JC): la leyenda por tipos, «Sin ubicar» y «Revisar ubicación» empujaban el plano hacia abajo: plegadas en una línea cerrada. */
-    const masPlegado = masDentro.trim() ? `<details class="pe-mas" data-pe-mas${verMas || verSinUbicar ? ' open' : ''}><summary>Leyenda${p.plano && (p.sinUbicar || []).length ? ` · sin ubicar ${cifra(p.sinUbicar.length)}` : ''}${nRev ? ` · revisar ${cifra(nRev)}` : ''}</summary>${masDentro}</details>` : '';
+    const masPlegado = masDentro.trim() ? `<details class="pe-mas" data-pe-mas${verMas || verSinUbicar ? ' open' : ''}><summary><span class="pe-mas-tit">Leyenda</span>${p.plano && (p.sinUbicar || []).length ? ` · sin ubicar ${cifra(p.sinUbicar.length)}` : ''}${nRev ? ` · revisar ${cifra(nRev)}` : ''}</summary>${masDentro}</details>` : '';
     $raiz.innerHTML = compacto ? `
       ${desplegable}
       <div class="pe-cuerpo">
@@ -1233,8 +1259,8 @@
       ${cabeza()}
       <div class="pe-plantas" role="tablist">${plantas().map((x) => `<button role="tab" data-pe-planta="${esc(x.planta || '')}" aria-selected="${x === p}" class="${x === p ? 'activa' : ''}">${esc(etiqueta(x))}<small>${cuentaTexto(nEquipos(x), nMateriales(x))}</small></button>`).join('')}</div>
       ${capas.length > 1 || chipFaltas ? `<div class="pe-capas" role="group" aria-label="Capas">${capas.length > 1 ? capas.map((k) => `<button data-pe-capa="${esc(k.id)}" aria-pressed="${!capasOff.has(k.id)}">${esc(k.nombre)} <b>${cifra(cuentasCapa[k.id])}</b></button>`).join('') : ''}${chipFaltas}</div>` : ''}
-      ${p.equipos.length ? `<div class="pe-leyenda" role="group" aria-label="Colores">${botonRdf}${ordenV().map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}"><i class="pe-punto bq-punto-${k}"></i>${esc(NOMBRE[k])} <b>${cifra(cuentaV(k))}</b></button>`).join('')}${chipInc(p)}${selTipo(p)}
-        <p class="nota">sin sala ${cifra(c.sinSala)}${p.plano ? ` · en el plano ${cifra(c.enPlano)} de ${cifra(p.equipos.length)}` : ''}</p></div>` : ''}
+      ${p.equipos.length ? `<div class="pe-leyenda pe-estados" role="group" aria-label="Colores: pulsa uno para ocultarlo o enseñarlo">${botonRdf}${ordenV().map((k) => `<button data-pe-color="${k}" aria-pressed="${!ocultos.has(k)}" title="${esc(NOMBRE[k])}" aria-label="${esc(NOMBRE[k])}: ${cifra(cuentaV(k))}"><i class="pe-punto bq-punto-${k}"></i><span class="pe-chip-txt">${esc(NOMBRE[k])}</span> <b>${cifra(cuentaV(k))}</b></button>`).join('')}${chipInc(p)}</div>
+      <div class="pe-linea">${selTipo(p)}<p class="nota">${p.plano ? `en el plano ${cifra(c.enPlano)} de ${cifra(p.equipos.length)} · ` : ''}sin sala ${cifra(c.sinSala)}</p></div>` : ''}
       ${masPlegado}
       <div class="pe-cuerpo">
         <div>${plano}</div>

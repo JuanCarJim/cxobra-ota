@@ -48,6 +48,53 @@
   }
 
   /*
+   * QUITAR CUALQUIER BOCA (24-nov-2026, JC en obra con VE-S2.07 A: «Esas RF no están realmente … quiero poder quitar yo
+   * a mano rejas y difusores y tal»): del modelo, del plano, ficticia o añadida en obra. Pide confirmación, queda quién y
+   * cuándo, sale del plano, de la hoja, del PDF y de la suma, y se deshace desde «Quitadas» debajo de la lista.
+   */
+  function botonQuitar(p, b, puede) {
+    if (!puede || !p || !b) return '';
+    return `<button class="enlace bm-quitar-fila" data-bm="quitar-boca" data-plano="${esc(p.id)}" data-punto="${esc(b.id)}">Quitar</button>`;
+  }
+
+  function fechaCorta(iso) {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+
+  /** Las quitadas de un plano, plegadas, con su «Deshacer». */
+  function quitadas(p, puede) {
+    const q = (p && p.quitadas) || [];
+    if (!q.length) return '';
+    return `<details class="bm-quitadas"><summary>Quitadas <small>${q.length}</small></summary><ul>${q.map((x) => `<li><b>${esc(x.nombre || x.id)}</b>
+      <span class="tenue">${esc([x.quitada && x.quitada.por, x.quitada && fechaCorta(x.quitada.en)].filter(Boolean).join(' · '))}</span>
+      ${puede ? `<button class="enlace" data-bm="reponer-boca" data-plano="${esc(p.id)}" data-punto="${esc(x.id)}">Deshacer</button>` : ''}</li>`).join('')}</ul></details>`;
+  }
+
+  async function quitarBoca(planoId, puntoId) {
+    const f = gancho.ficha();
+    const pl = f && f.planos.find((x) => x.id === planoId);
+    const b = pl && pl.bocas.find((x) => x.id === puntoId);
+    if (!b) return;
+    const conLecturas = Boolean(tieneLecturas(b));
+    if (!window.confirm(conLecturas ? `${b.nombre} tiene lecturas apuntadas. ¿La quitas con ellas? Podrás deshacerlo.` : `¿Quitar ${b.nombre}? No está en obra: sale del plano, de la hoja y de la suma. Podrás deshacerlo.`)) return;
+    const c = { planoId, puntoId, confirmar: conLecturas, en: new Date().toISOString() };
+    const r = await mandar('api/boca-manual/quitar', c, `bocaManual.quitar.${puntoId}`);
+    if (r.enCola) return;
+    if (!r.ok) { if (r.error) C.aviso(r.error); return; }
+    gancho.poner(r);
+    C.aviso(`${b.nombre} quitada. «Quitadas», debajo de la lista, para deshacerlo.`, 'bien');
+  }
+
+  async function reponerBoca(planoId, puntoId) {
+    const r = await mandar('api/boca-manual/reponer', { planoId, puntoId }, `bocaManual.reponer.${puntoId}`);
+    if (r.enCola) return;
+    if (!r.ok) { if (r.error) C.aviso(r.error); return; }
+    gancho.poner(r);
+    C.aviso('Boca repuesta.', 'bien');
+  }
+
+  /*
    * EL MODELO Y LAS MEDIDAS DE CUALQUIER BOCA Y DE DÓNDE SALE SU AK (30-oct-2026,
    * JC sobre R1 de HUB 01: «esa reja es de 10×40»; «que en todas las tomas de
    * rejas rectangulares y difusores lineales podamos poner sus medidas a mano»;
@@ -63,6 +110,9 @@
 
   function medidas(p, b, puede) {
     if (!b) return '';
+    /* Lo tecleado y aún no guardado (app cerrada a medias, sin red) sale de vuelta en las casillas. */
+    const pend = AG ? AG.leer(claveMedidas(p.id, b.id)) : null;
+    if (pend && pend.cuerpo) b = { ...b, ...['largo', 'alto', 'tamano'].reduce((o, k) => (pend.cuerpo[k] === undefined ? o : { ...o, [k]: pend.cuerpo[k] }), {}) };
     const obra = b.textoObra ? `<span class="marca-manual">${esc(b.textoObra)}</span>` : '';
     const ak = b.akOrigen ? `<p class="bm-akboca${b.factor ? '' : ' sin'}">${esc(b.akOrigen)}</p>` : '';
     const dis = puede ? '' : 'disabled';
@@ -74,8 +124,7 @@
     const abierto = editor && editor.clave === claveDe(p, b);
     return `<div class="bm-medidas" data-plano="${esc(p.id)}" data-punto="${esc(b.id)}" data-tipo="${esc(b.tipoId || '')}">
       <div class="bm-medidas-fila"><span>Medidas</span>${fila}${obra}
-        ${puede ? `<button type="button" class="bm-medidas-guardar" data-bmm-guardar="1" hidden>Guardar medidas</button>
-        <button type="button" class="enlace bm-modelo-abrir" data-bmm-modelo="1" aria-expanded="${abierto}">${abierto ? 'Cerrar modelo' : 'Modelo…'}</button>` : ''}</div>
+        ${puede ? `<button type="button" class="enlace bm-modelo-abrir" data-bmm-modelo="1" aria-expanded="${abierto}">${abierto ? 'Cerrar modelo' : 'Modelo…'}</button>` : ''}</div>
       ${ak}${abierto ? htmlEditor(b) : ''}</div>`;
   }
 
@@ -104,7 +153,7 @@
         <label class="bm-fila">Fuente del Ak <input data-bme="akFuente" value="${esc(e.akFuente || '')}" placeholder="ficha y página"></label></div>
       <p class="bm-akboca">Si la ficha no trae esa medida, el Ak se queda sin dato y no hay caudal. Nunca se estima.</p>
       ${b.iguales > 1 ? `<label class="bm-todas"><input type="checkbox" data-bme="todas" ${e.todas ? 'checked' : ''}> Aplicar a las ${b.iguales} de este rótulo</label>` : ''}
-      <button type="button" class="bm-medidas-guardar" data-bmm-modelo-guardar="1">Guardar modelo</button>
+      <p class="bm-akboca">Se guarda solo al elegir o teclear.</p>
     </div>`;
   }
 
@@ -116,6 +165,8 @@
     const clave = claveDe(pl, b);
     if (editor && editor.clave === clave) { editor = null; repintar(); return; }
     editor = { clave, tipo: b.tipoId, largo: b.largo, alto: b.alto, tamano: b.tamano, ak: b.akMano, akFuente: b.akFuente, todas: false };
+    const pend = AG ? AG.leer(claveModelo(pl.id, b.id)) : null;
+    if (pend && pend.cuerpo) { const c = pend.cuerpo; Object.assign(editor, { tipo: c.tipo, largo: c.largo, alto: c.alto, tamano: c.tamano, ak: c.ak, akFuente: c.akFuente, todas: Boolean(c.todas) }); }
     repintar();
     if (!catalogo) {
       try { const r = await C.pedir('api/boca-medidas/catalogo'); if (r && r.ok) catalogo = r.marcas; } catch { /* sin catálogo */ }
@@ -124,6 +175,14 @@
     }
   }
   function repintar() { const f = gancho.ficha(); if (f) gancho.poner(f); }
+  /* Si se está escribiendo en la ficha, lo guardado entra sin repintar (no se pierde el foco); se repinta al salir. */
+  let porRepintar = false;
+  const escribiendo = () => { const a = document.activeElement; return Boolean(a && a.matches && a.matches('input, select, textarea')); };
+  function ponerGuardado(r) {
+    if (escribiendo() && gancho.fijar) { gancho.fijar(r); porRepintar = true; return; }
+    porRepintar = false;
+    gancho.poner(r);
+  }
 
   function leerEditor(caja) {
     for (const i of caja.querySelectorAll('[data-bme]')) {
@@ -149,39 +208,75 @@
       const m = /^(\d+)×(\d+)$/.exec(sel.value);
       if (m) { editor.largo = m[1]; editor.alto = m[2]; editor.tamano = ''; } else if (sel.value) { editor.tamano = sel.value; editor.largo = ''; editor.alto = ''; }
     } else return;
+    apuntarModelo(caja);
     repintar();
   }
 
-  async function guardarModelo(btn) {
-    const caja = btn.closest('.bm-medidas');
+  /*
+   * MEDIDAS Y MODELO SE GUARDAN SOLOS (24-nov-2026, JC midiendo VE-S2.14:
+   * «Autoguardado siempre ehhh»). Antes hacía falta «Guardar medidas» /
+   * «Guardar modelo» y, si se salía sin pulsarlo, se perdía. Ahora cada tecla
+   * o elección deja la boca en el teléfono (`cx.borrador.bocaManual.…`) y a
+   * los 0,8 s se manda; al salir (atrás, otra pantalla, la app al fondo) se
+   * manda ya. Sin red, la cola lo manda al volver. El borrador se borra
+   * cuando el servidor lo guarda y no se ha tecleado nada más mientras.
+   */
+  const claveMedidas = (pl, pu) => `bocaManual.medidas.${pl}.${pu}`;
+  const claveModelo = (pl, pu) => `bocaManual.modelo.${pl}.${pu}`;
+  const ESPERA = 800;
+  const relojes = new Map();   /* clave del borrador → temporizador */
+  const marcaDe = (caja) => (caja && caja.closest && caja.closest('li[data-boca]')) || caja;
+  function apuntar(caja, clave, c) {
+    if (!AG) return;
+    AG.guardar(clave, { ruta: 'api/boca-medidas', cuerpo: c });
+    AG.pintarMarca(marcaDe(caja), 'movil');
+    clearTimeout(relojes.get(clave));
+    relojes.set(clave, setTimeout(() => { enviarYa(clave, caja); }, ESPERA));
+  }
+  function cuerpoMedidas(caja) {
+    const c = { planoId: caja.dataset.plano, puntoId: caja.dataset.punto };
+    for (const k of ['largo', 'alto', 'tamano']) { const i = caja.querySelector(`input[data-bmm="${k}"]`); if (i) c[k] = i.value.trim(); }
+    return c;
+  }
+  function apuntarMedidas(caja) {
+    const c = cuerpoMedidas(caja);
+    apuntar(caja, claveMedidas(c.planoId, c.puntoId), c);
+  }
+  function apuntarModelo(caja) {
+    if (!editor || !caja) return;
     leerEditor(caja);
     const e = editor;
     const c = { planoId: caja.dataset.plano, puntoId: caja.dataset.punto, tipo: e.tipo, largo: e.largo || '', alto: e.alto || '', tamano: e.tamano || '', ak: e.ak || '', akFuente: e.akFuente || '', todas: Boolean(e.todas) };
-    btn.disabled = true;
-    const r = await mandar('api/boca-medidas', c, `bocaManual.medidas.${c.planoId}.${c.puntoId}`);
-    btn.disabled = false;
-    if (r.enCola) { editor = null; return; }
-    if (!r.ok) { C.aviso(r.error || 'No se ha podido guardar el modelo.'); return; }
-    editor = null;
-    gancho.poner(r);
-    const sin = /^Ak sin dato/.test(r.akOrigen || '');
-    C.aviso([sin ? 'Modelo guardado. Ak sin dato para esa medida: sin caudal.' : `Modelo guardado. ${String(r.akOrigen || '').split(' (')[0]}.`, ...(r.avisos || [])].join(' '), sin ? 'info' : 'bien');
+    apuntar(caja, claveModelo(c.planoId, c.puntoId), c);
   }
-
-  async function guardarMedidas(btn) {
-    const caja = btn.closest('.bm-medidas');
-    const val = (k) => { const i = caja.querySelector(`input[data-bmm="${k}"]`); return i ? i.value.trim() : undefined; };
-    const c = { planoId: caja.dataset.plano, puntoId: caja.dataset.punto };
-    for (const k of ['largo', 'alto', 'tamano']) if (val(k) !== undefined) c[k] = val(k);
-    btn.disabled = true;
-    const r = await mandar('api/boca-medidas', c, `bocaManual.medidas.${c.planoId}.${c.puntoId}`);
-    btn.disabled = false;
-    if (r.enCola) { btn.hidden = true; return; }
-    if (!r.ok) { C.aviso(r.error || 'No se han podido guardar las medidas.'); return; }
-    gancho.poner(r);
-    const sin = /^Ak sin dato/.test(r.akOrigen || '');
-    const que = c.tamano !== undefined ? `Longitud ${c.tamano} mm` : `Medidas ${c.largo}×${c.alto}`;
-    C.aviso([sin ? `${que} guardada${c.tamano !== undefined ? '' : 's'}. Ak sin dato para ese tamaño: sin caudal.` : `Medidas guardadas. ${String(r.akOrigen || '').split(' (')[0]}.`, ...(r.avisos || [])].join(' '), sin ? 'info' : 'bien');
+  /* Largo sin alto (o al revés): el servidor no lo admite; se queda en el móvil hasta tener los dos. */
+  const aMedias = (c) => Boolean(c && c.tipo === undefined && ('largo' in c || 'alto' in c) && (!String(c.largo || '').trim() || !String(c.alto || '').trim()));
+  /* Manda el borrador `clave` ahora. Solo lo borra si no ha cambiado mientras viajaba. */
+  async function enviarYa(clave, caja) {
+    clearTimeout(relojes.get(clave));
+    relojes.delete(clave);
+    const b = AG && AG.leer(clave);
+    if (!b || !b.cuerpo) return;
+    if (aMedias(b.cuerpo)) { AG.pintarMarca(marcaDe(caja), 'movil', 'Guardado en el móvil · falta el largo o el alto'); return; }
+    const enviado = JSON.stringify(b.cuerpo);
+    const r = await mandar(b.ruta || 'api/boca-medidas', b.cuerpo, clave);
+    const el = marcaDe(caja);
+    if (r.enCola) { AG.pintarMarca(el, 'sinRed'); return; }
+    /* El «no» del servidor se dice en la boca (sin aviso que tape mientras se escribe); lo tecleado sigue en el móvil. */
+    if (!r.ok) { AG.pintarMarca(el, 'error', `No se ha guardado: ${r.error || 'error'}`); return; }
+    const ahora = AG.leer(clave);
+    if (ahora && JSON.stringify(ahora.cuerpo) === enviado) AG.olvidar(clave);
+    if (caja && caja.querySelectorAll) for (const i of caja.querySelectorAll('input[data-bmm]')) if (b.cuerpo[i.dataset.bmm] === i.value.trim()) i.defaultValue = i.value;
+    if (r.avisos && r.avisos.length) C.aviso(r.avisos.join(' '), 'info');
+    ponerGuardado(r);
+    /* Tras repintar, la marca de la boca nueva (o la de siempre) dice si ya está en la nube. */
+    const f = !porRepintar && document.querySelector ? document.querySelector(`.bm-medidas[data-plano="${CSS.escape(b.cuerpo.planoId)}"][data-punto="${CSS.escape(b.cuerpo.puntoId)}"]`) : null;
+    AG.pintarNube(marcaDe(f || caja));
+  }
+  /* Todo lo que esperaba sus 0,8 s, ya: al salir de la pantalla o de la app. */
+  function enviarTodoYa() {
+    const claves = [...relojes.keys()];
+    return Promise.all(claves.map((k) => enviarYa(k, null)));
   }
 
   /*
@@ -409,7 +504,9 @@
       return r;
     } catch (e) {
       if (AG && AG.sinRed(e)) {
-        AG.guardar(clave, { ruta, cuerpo: c });
+        const ya = AG.leer(clave);
+        /* Si mientras viajaba se tecleó algo más, se queda lo último. */
+        if (!ya || !ya.cuerpo) AG.guardar(clave, { ruta, cuerpo: c });
         if (COLA) COLA.masTarde();
         C.aviso('Sin conexión: la boca queda guardada en el móvil y se mandará sola.', 'info');
         return { ok: false, enCola: true };
@@ -468,23 +565,32 @@
 
   /* Lo que quedó en el teléfono sin mandar: la cola lo manda al volver la red. */
   async function enviarPendiente(clave, b) {
+    /* Con el dedo aún en esa boca no se manda desde aquí: lo manda su propio guardado (0,8 s). */
+    if (relojes.has(clave) || aMedias(b.cuerpo)) return false;
+    const enviado = JSON.stringify(b.cuerpo);
     const r = await C.postJson(b.ruta, b.cuerpo);
-    AG.olvidar(clave);
+    const ahora = AG.leer(clave);
+    if (!ahora || JSON.stringify(ahora.cuerpo) === enviado) AG.olvidar(clave);
     const f = gancho.ficha();
-    if (r && r.ok && f && r.equipo && f.equipo.id === r.equipo.id && !capa) gancho.poner(r);
+    if (r && r.ok && f && r.equipo && f.equipo.id === r.equipo.id && !capa) ponerGuardado(r);
     return true;
   }
 
   document.addEventListener('click', (ev) => {
-    const gm = ev.target.closest && ev.target.closest('[data-bmm-guardar]');
-    if (gm) { ev.preventDefault(); guardarMedidas(gm); return; }
     const mo = ev.target.closest && ev.target.closest('[data-bmm-modelo]');
-    if (mo) { ev.preventDefault(); abrirModelo(mo.closest('.bm-medidas')); return; }
-    const mg = ev.target.closest && ev.target.closest('[data-bmm-modelo-guardar]');
-    if (mg) { ev.preventDefault(); guardarModelo(mg); return; }
+    if (mo) {
+      ev.preventDefault();
+      const caja = mo.closest('.bm-medidas');
+      const k = caja && claveModelo(caja.dataset.plano, caja.dataset.punto);
+      if (k && relojes.has(k)) enviarYa(k, caja);
+      abrirModelo(caja);
+      return;
+    }
     const b = ev.target.closest && ev.target.closest('[data-bm]');
     if (!b) return;
     const que = b.dataset.bm;
+    if (que === 'quitar-boca') { ev.preventDefault(); quitarBoca(b.dataset.plano, b.dataset.punto); return; }
+    if (que === 'reponer-boca') { ev.preventDefault(); reponerBoca(b.dataset.plano, b.dataset.punto); return; }
     if (que === 'nueva') abrir({ sistema: b.dataset.sistema });
     else if (que === 'editar') abrir({ planoId: b.dataset.plano, puntoId: b.dataset.punto });
     else if (que === 'colocar') abrir({ planoId: b.dataset.plano, puntoId: b.dataset.punto, colocar: true });
@@ -501,23 +607,34 @@
       pintar();
     }
   });
-  /* Al teclear una medida, aparece «Guardar medidas». */
+  /* Al teclear una medida: al teléfono ya, y al ordenador a los 0,8 s (sin botón). */
   document.addEventListener('input', (ev) => {
     const m = ev.target.dataset && ev.target.dataset.bmm;
     if (!m) return;
     const caja = ev.target.closest('.bm-medidas');
-    const btn = caja && caja.querySelector('[data-bmm-guardar]');
-    if (editor && caja && editor.clave === `${caja.dataset.plano}|${caja.dataset.punto}`) editor[m] = ev.target.value.trim();
-    if (btn) btn.hidden = ![...caja.querySelectorAll('input[data-bmm]')].some((x) => x.value.trim() !== x.defaultValue.trim());
+    if (!caja) return;
+    if (editor && editor.clave === `${caja.dataset.plano}|${caja.dataset.punto}`) editor[m] = ev.target.value.trim();
+    apuntarMedidas(caja);
   });
   document.addEventListener('input', (ev) => {
     const k = ev.target.dataset && ev.target.dataset.bme;
-    if (k && editor && ev.target.tagName === 'INPUT' && k !== 'todas') editor[k] = ev.target.value.trim();
+    if (!k || !editor || ev.target.tagName !== 'INPUT' || k === 'todas') return;
+    editor[k] = ev.target.value.trim();
+    apuntarModelo(ev.target.closest('.bm-medidas'));
   });
+  /* Intro: se manda ya. */
   document.addEventListener('keydown', (ev) => {
-    if (ev.key !== 'Enter' || !ev.target.dataset || !ev.target.dataset.bmm) return;
-    const btn = ev.target.closest('.bm-medidas').querySelector('[data-bmm-guardar]');
-    if (btn && !btn.hidden) { ev.preventDefault(); guardarMedidas(btn); }
+    if (ev.key !== 'Enter' || !ev.target.dataset || !(ev.target.dataset.bmm || ev.target.dataset.bme)) return;
+    const caja = ev.target.closest('.bm-medidas');
+    if (!caja) return;
+    ev.preventDefault();
+    const k = ev.target.dataset.bmm ? claveMedidas(caja.dataset.plano, caja.dataset.punto) : claveModelo(caja.dataset.plano, caja.dataset.punto);
+    enviarYa(k, caja);
+  });
+  /* Al salir de la caja sin ir a otra casilla, se repinta con lo guardado (Ak, caudal). */
+  document.addEventListener('focusout', (ev) => {
+    if (!porRepintar || !ev.target.closest || !ev.target.closest('.bm-medidas') || ev.relatedTarget) return;
+    setTimeout(() => { if (porRepintar && !escribiendo()) { porRepintar = false; repintar(); } }, 0);
   });
   document.addEventListener('input', (ev) => {
     if (!capa || !estado || !capa.contains(ev.target) || !ev.target.dataset.bmCampo) return;
@@ -525,7 +642,7 @@
   });
   document.addEventListener('change', (ev) => {
     if (ev.target.dataset && ev.target.dataset.bme && ev.target.tagName === 'SELECT') { cambioEditor(ev.target); return; }
-    if (ev.target.dataset && ev.target.dataset.bme === 'todas' && editor) { editor.todas = ev.target.checked; return; }
+    if (ev.target.dataset && ev.target.dataset.bme === 'todas' && editor) { editor.todas = ev.target.checked; apuntarModelo(ev.target.closest('.bm-medidas')); return; }
   });
   document.addEventListener('change', (ev) => {
     if (!capa || !estado || !capa.contains(ev.target) || ev.target.dataset.bmCampo !== 'planoId') return;
@@ -569,6 +686,12 @@ body.bm-abierta { overflow: hidden; }
 .bm-dos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .bm-ak { margin: 0; font-size: 12px; color: var(--aviso); }
 .bm-quitar { color: var(--mal); align-self: flex-start; margin-top: 8px; }
+.bm-quitar-fila { color: var(--mal); margin-left: auto; font-size: 13px; }
+.bm-quitadas { margin: 6px 0 12px; font-size: 14px; }
+.bm-quitadas summary { cursor: pointer; color: var(--textoTenue); }
+.bm-quitadas ul { list-style: none; margin: 6px 0 0; padding: 0; }
+.bm-quitadas li { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; border-bottom: 1px solid var(--borde); }
+.bm-quitadas li .enlace { margin-left: auto; }
 .bm-medidas { margin: 4px 0 2px; }
 .bm-medidas-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 13px; color: var(--textoSuave); }
 .bm-medidas-fila label { display: inline-flex; align-items: center; gap: 3px; }
@@ -595,6 +718,9 @@ body.bm-abierta { overflow: hidden; }
     gancho = { ...gancho, ...g };
   }
   if (COLA && AG) COLA.registrar('bocaManual.', enviarPendiente);
+  /* Atrás, otra pantalla, la app al fondo o cerrada: lo que esperaba se manda ya (y queda en el móvil si no hay red). */
+  try { window.addEventListener('hashchange', () => { enviarTodoYa(); }); } catch { /* sin ventana */ }
+  if (AG && AG.alSalir) AG.alSalir(() => { enviarTodoYa(); });
   /* Al volver al móvil (la hoja seguía abierta): trae lo de la nube ya, sin
      esperar al ciclo de 30 s, para no medir sobre una copia vieja. */
   document.addEventListener('visibilitychange', () => {
@@ -602,5 +728,5 @@ body.bm-abierta { overflow: hidden; }
     try { const s = globalThis.cxObra && globalThis.cxObra.sync; if (s && typeof s.ahora === 'function') s.ahora(); } catch { /* sin motor: la web lee de la nube */ }
   });
 
-  window.BOCA_MANUAL_MOVIL = { boton, marca, medidas, enganchar, abrir, cerrar };
+  window.BOCA_MANUAL_MOVIL = { boton, marca, medidas, enganchar, abrir, cerrar, botonQuitar, quitadas, enviarTodoYa };
 })();
