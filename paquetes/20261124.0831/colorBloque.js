@@ -8,6 +8,10 @@
  *                                  la certificación va por partida, no por unidad: lo dice estadoEjecucionPlano).
  *   VERDE commissioning hecho .... la regla de Cx de siempre (planoEquipos.estadoEnPlano 'verde': completo, entregado a
  *                                  la DF o «En marcha» de los KPI).
+ *   VERDE CLARO toma de datos hecha (24-nov, JC: «Toma de datos hecha, falta documentación») .. su conjunto tiene la
+ *                                  toma de datos PM completa y no llega a Cx hecho. La toma cuenta como en el Avance de
+ *                                  la puesta en marcha (electron/obra/data/avancePMDatos.js: la exterior de un split
+ *                                  cuenta con la toma completa de su interior); aquí solo se junta por conjunto.
  *   GRIS  instalado sin Cx ....... (validado por JC el 18-nov) consta instalado (estado instalado / en
  *                                  marcha / recepcionado, fecha de instalación o instalación verificada) o ya se ha
  *                                  empezado su commissioning (alguien ha trabajado en él: está montado).
@@ -24,6 +28,8 @@
 const ESTADOS_BLOQUE = [
   { id: 'certificado', nombre: 'Certificado', corto: 'Azul', hex: '#1f63c6' },
   { id: 'cxHecho', nombre: 'Commissioning hecho', corto: 'Verde', hex: '#1a7f4b' },
+  /* Verde claro (24-nov): el contorno #3f9e68 da 3,3:1 sobre blanco (WCAG 1.4.11); el relleno suave es #7cc59a. */
+  { id: 'tomaHecha', nombre: 'Toma de datos hecha, falta documentación', corto: 'Verde claro', hex: '#7cc59a', contorno: '#3f9e68' },
   { id: 'instalado', nombre: 'Instalado, sin Cx', corto: 'Gris', hex: '#7d838c' },
   { id: 'noInstalado', nombre: 'No instalado', corto: 'Gris claro discontinuo', hex: '#e3e5e8', contorno: '#5b626c', trazo: '3 2', nota: 'Contorno discontinuo' },
   { id: 'sinDato', nombre: 'Sin dato', corto: 'Gris claro', hex: '#d3d6db', contorno: '#8a9099', nota: 'Ninguna fuente dice si está instalado' },
@@ -39,17 +45,29 @@ const constaInstalado = (e) => Boolean(e && (MONTADOS.has(e.estado) || hay(e.fec
 /**
  * El estado del bloque. `e`: el equipo (estado, fechaInstalacion, instalacionVerificadaEn). `ctx`:
  *   cxHecho     → la regla de Cx da verde;
+ *   tomaHecha   → su conjunto tiene la toma de datos PM completa (tomaHechaConjunto);
  *   cxEmpezado  → alguien ha trabajado ya en su commissioning (azul de la regla de Cx);
  *   cert        → la certificación del equipo (vidaEquipo.certificacion) o su estado ('certificada'…); null si no se sabe;
  *   ejecucion   → el estado de estadoEjecucionPlano ('sinPedir'…), si se tiene.
  */
-function estadoBloque(e, { cxHecho = false, cxEmpezado = false, cert = null, ejecucion = null } = {}) {
+function estadoBloque(e, { cxHecho = false, tomaHecha = false, cxEmpezado = false, cert = null, ejecucion = null } = {}) {
   const c = cert && typeof cert === 'object' ? cert.estado : cert;
   if (c === 'certificada' || c === 'certificado' || ejecucion === 'certificado') return 'certificado';
   if (cxHecho) return 'cxHecho';
+  if (tomaHecha) return 'tomaHecha';
   if (constaInstalado(e) || cxEmpezado) return 'instalado';
   if ((e && e.estado === 'acopiado') || ejecucion === 'sinPedir') return 'noInstalado';
   return 'sinDato';
+}
+
+/**
+ * ¿Tiene el conjunto la toma de datos PM completa? `ids`: las unidades del conjunto (o la suelta). `tomaDe`: Map
+ * equipoId → fecha de la toma completa o null, solo de los equipos con ficha de toma de datos (avancePMDatos, con la
+ * exterior de un split ya heredando de su interior). Las unidades sin ficha de toma no cuentan; hace falta al menos una.
+ */
+function tomaHechaConjunto(ids = [], tomaDe = new Map()) {
+  const con = (ids || []).filter((id) => tomaDe.has(id));
+  return con.length > 0 && con.every((id) => Boolean(tomaDe.get(id)));
 }
 
 /** El recuento por estado, con todos los estados aunque salgan a cero (leyenda de arriba). */
@@ -73,7 +91,7 @@ function cssBloques(sel = '.marca-boca') {
 }
 
 /* El naranja del equipo con incidencia abierta NO vive aquí: es shared/commissioning/incidenciaPlano.js (14-nov). */
-const API = { ESTADOS_BLOQUE, ORDEN_BLOQUE, COLOR_BLOQUE, RELLENO_BLOQUE, estadoBloque, recuentoBloques, constaInstalado, cssBloques, contornoDe, trazoDe };
+const API = { ESTADOS_BLOQUE, ORDEN_BLOQUE, COLOR_BLOQUE, RELLENO_BLOQUE, estadoBloque, recuentoBloques, tomaHechaConjunto, constaInstalado, cssBloques, contornoDe, trazoDe };
 if (typeof module !== 'undefined' && module.exports) module.exports = API;
 if (typeof window !== 'undefined') window.COLOR_BLOQUE = API;
 })();

@@ -45,7 +45,7 @@
   const RD = window.RECEPCION_DF;
   const NOMBRE_BQ = EEP ? EEP.NOMBRE : CB ? Object.fromEntries(CB.ESTADOS_BLOQUE.map((x) => [x.id, x.nombre])) : { cxHecho: 'Commissioning hecho', instalado: 'Instalado, sin Cx', sinDato: 'Sin dato' };
   const NOMBRE = { ...NOMBRE_BQ, ...(RD ? RD.ETIQUETAS : {}) };
-  const CORTO = { ...(EEP ? EEP.CORTO : { certificado: 'Certificado', cxHecho: 'Cx hecho', instalado: 'Instalado', noInstalado: 'No instalado', sinDato: 'Sin dato' }), ...(RD ? RD.ETIQUETAS : {}) };
+  const CORTO = { ...(EEP ? EEP.CORTO : { certificado: 'Certificado', cxHecho: 'Cx hecho', tomaHecha: 'Toma hecha', instalado: 'Instalado', noInstalado: 'No instalado', sinDato: 'Sin dato' }), ...(RD ? RD.ETIQUETAS : {}) };
   let colorRdf = false;
   const enRdf = () => Boolean(colorRdf && RD && datos && datos.rdf);
   const ordenV = () => (enRdf() ? RD.ORDEN_PLANO : ORDEN);

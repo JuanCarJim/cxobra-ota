@@ -11868,7 +11868,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261124.0116" : "0";
+      var VERSION = true ? "20261124.0831" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -51185,6 +51185,8 @@ ${obsO}` : obsO).slice(0, 4e3);
         const ESTADOS_BLOQUE = [
           { id: "certificado", nombre: "Certificado", corto: "Azul", hex: "#1f63c6" },
           { id: "cxHecho", nombre: "Commissioning hecho", corto: "Verde", hex: "#1a7f4b" },
+          /* Verde claro (24-nov): el contorno #3f9e68 da 3,3:1 sobre blanco (WCAG 1.4.11); el relleno suave es #7cc59a. */
+          { id: "tomaHecha", nombre: "Toma de datos hecha, falta documentaci\xF3n", corto: "Verde claro", hex: "#7cc59a", contorno: "#3f9e68" },
           { id: "instalado", nombre: "Instalado, sin Cx", corto: "Gris", hex: "#7d838c" },
           { id: "noInstalado", nombre: "No instalado", corto: "Gris claro discontinuo", hex: "#e3e5e8", contorno: "#5b626c", trazo: "3 2", nota: "Contorno discontinuo" },
           { id: "sinDato", nombre: "Sin dato", corto: "Gris claro", hex: "#d3d6db", contorno: "#8a9099", nota: "Ninguna fuente dice si est\xE1 instalado" }
@@ -51194,13 +51196,18 @@ ${obsO}` : obsO).slice(0, 4e3);
         const MONTADOS = /* @__PURE__ */ new Set(["instalado", "enMarcha", "recepcionado"]);
         const hay = (v) => v !== null && v !== void 0 && String(v).trim() !== "";
         const constaInstalado = (e) => Boolean(e && (MONTADOS.has(e.estado) || hay(e.fechaInstalacion) || hay(e.instalacionVerificadaEn)));
-        function estadoBloque(e, { cxHecho = false, cxEmpezado = false, cert = null, ejecucion = null } = {}) {
+        function estadoBloque(e, { cxHecho = false, tomaHecha = false, cxEmpezado = false, cert = null, ejecucion = null } = {}) {
           const c = cert && typeof cert === "object" ? cert.estado : cert;
           if (c === "certificada" || c === "certificado" || ejecucion === "certificado") return "certificado";
           if (cxHecho) return "cxHecho";
+          if (tomaHecha) return "tomaHecha";
           if (constaInstalado(e) || cxEmpezado) return "instalado";
           if (e && e.estado === "acopiado" || ejecucion === "sinPedir") return "noInstalado";
           return "sinDato";
+        }
+        function tomaHechaConjunto(ids = [], tomaDe = /* @__PURE__ */ new Map()) {
+          const con = (ids || []).filter((id) => tomaDe.has(id));
+          return con.length > 0 && con.every((id) => Boolean(tomaDe.get(id)));
         }
         function recuentoBloques(lista = [], de = (x) => x.bloque) {
           const c = Object.fromEntries(ORDEN_BLOQUE.map((k) => [k, 0]));
@@ -51216,7 +51223,7 @@ ${obsO}` : obsO).slice(0, 4e3);
         function cssBloques(sel = ".marca-boca") {
           return ESTADOS_BLOQUE.map((x) => `${sel}.bq-${x.id}{color:${contornoDe(x)};--bq:${x.hex}}${sel}.bq-${x.id} .cuerpo{fill:${x.hex};fill-opacity:${RELLENO_BLOQUE}${x.trazo ? `;stroke-dasharray:${x.trazo}` : ""}}.bq-punto-${x.id}{background:${x.hex}${x.trazo ? `;border:1.5px dashed ${contornoDe(x)};box-sizing:border-box` : ""}}`).join("");
         }
-        const API = { ESTADOS_BLOQUE, ORDEN_BLOQUE, COLOR_BLOQUE, RELLENO_BLOQUE, estadoBloque, recuentoBloques, constaInstalado, cssBloques, contornoDe, trazoDe };
+        const API = { ESTADOS_BLOQUE, ORDEN_BLOQUE, COLOR_BLOQUE, RELLENO_BLOQUE, estadoBloque, recuentoBloques, tomaHechaConjunto, constaInstalado, cssBloques, contornoDe, trazoDe };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.COLOR_BLOQUE = API;
       })();
@@ -51423,7 +51430,7 @@ ${obsO}` : obsO).slice(0, 4e3);
         const ESTADOS = CB.ESTADOS_BLOQUE;
         const ORDEN = CB.ORDEN_BLOQUE;
         const NOMBRE = Object.fromEntries(ESTADOS.map((x) => [x.id, x.nombre]));
-        const CORTO = { certificado: "Certificado", cxHecho: "Cx hecho", instalado: "Instalado", noInstalado: "No instalado", sinDato: "Sin dato" };
+        const CORTO = { certificado: "Certificado", cxHecho: "Cx hecho", tomaHecha: "Toma hecha", instalado: "Instalado", noInstalado: "No instalado", sinDato: "Sin dato" };
         const esEstado = (k) => ORDEN.includes(k);
         function estadoDe(x) {
           if (!x) return "sinDato";
@@ -111946,6 +111953,67 @@ ${fallos.join("\r\n")}\r
     }
   });
 
+  // electron/data/avancePMDatos.js
+  var require_avancePMDatos = __commonJS({
+    "electron/data/avancePMDatos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var FPM = require_fechaPM();
+      var CX = require_control();
+      function heredarTomaDelConjunto(sal, equipos) {
+        const porId = new Map(sal.map((x) => [x.id, x]));
+        const hereda = /* @__PURE__ */ new Map();
+        let grupos = [];
+        try {
+          grupos = CX.conjuntosDeEquipos(equipos);
+        } catch {
+          grupos = [];
+        }
+        for (const g of grupos) {
+          if (g.clase !== "par" || g.interiores.length !== 1) continue;
+          const ue = porId.get(g.exterior.id);
+          const ui = porId.get(g.interiores[0].id);
+          if (ue && ui && !ue.fecha && ui.fecha) hereda.set(ue.id, ui.fecha);
+        }
+        return sal.map((x) => hereda.has(x.id) ? { ...x, fecha: hereda.get(x.id), porConjunto: true } : x);
+      }
+      function equiposAvancePM(repo, ses, obraId, { equivalencias = {} } = {}) {
+        let fichas = [];
+        try {
+          fichas = repo.listar("fichasPM", ses, { condicion: "obraId = ? AND clase = 'fichaPM'", params: [obraId] });
+        } catch {
+          fichas = [];
+        }
+        const fechaDe = require_fichasPM().diasDeToma(repo, fichas);
+        const porEquipo = /* @__PURE__ */ new Map();
+        for (const f of fichas) {
+          const m = /^equipo:(.+)$/.exec(String(f.clave || "").trim());
+          const eq = String(f.equipoId || "").trim() || m && m[1];
+          if (!eq) continue;
+          if (!porEquipo.has(eq)) porEquipo.set(eq, []);
+          porEquipo.get(eq).push({ clase: "fichaPM", fichaId: f.id, estado: f.estado });
+        }
+        if (!porEquipo.size) return [];
+        let equipos = [];
+        try {
+          equipos = repo.listar("equiposObra", ses, { condicion: "obraId = ?", params: [obraId] });
+        } catch {
+          equipos = [];
+        }
+        const sal = [];
+        for (const e of equipos) {
+          const fs = porEquipo.get(e.id);
+          if (!fs) continue;
+          const t = FPM.tomaDeFichas(fs, (id) => fechaDe.get(id) || null);
+          const p0 = String(e.planta || "").trim();
+          sal.push({ id: e.id, tag: e.tag, planta: equivalencias[p0] || p0 || "Sin planta", fecha: t.tomaEstado === "completa" ? t.fechaToma : null });
+        }
+        return heredarTomaDelConjunto(sal, equipos);
+      }
+      module.exports = { equiposAvancePM, heredarTomaDelConjunto };
+    }
+  });
+
   // shared/obra/proyectoInstalado.js
   var require_proyectoInstalado = __commonJS({
     "shared/obra/proyectoInstalado.js"(exports, module) {
@@ -116035,6 +116103,13 @@ ${fallos.join("\r\n")}\r
           }
         })();
         const certBloque = datosCert || (VE.veCertificacion(ses.rol) ? certificacionDeObra(repo, obraId) : null);
+        const tomaDe = (() => {
+          try {
+            return new Map(require_avancePMDatos().equiposAvancePM(repo, sesionDeLectura(ses), obraId).map((x) => [x.id, x.fecha || null]));
+          } catch {
+            return /* @__PURE__ */ new Map();
+          }
+        })();
         const bloqueDe = (f, e) => {
           let cert = certDe.get(f.id) || null;
           if (!cert && certBloque) {
@@ -116044,7 +116119,9 @@ ${fallos.join("\r\n")}\r
               cert = null;
             }
           }
-          return CB.estadoBloque(montaje.get(f.id) || f, { cxHecho: e.color === "verde", cxEmpezado: e.color === "azul", cert });
+          const ids = Array.isArray(e.miembros) && e.miembros.length ? e.miembros.map((m) => m.id) : [f.id];
+          const tomaHecha = e.color !== "verde" && CB.tomaHechaConjunto(ids, tomaDe);
+          return CB.estadoBloque(montaje.get(f.id) || f, { cxHecho: e.color === "verde", tomaHecha, cxEmpezado: e.color === "azul", cert });
         };
         return bloqueDe;
       }
@@ -208156,7 +208233,7 @@ ${texto.slice(0, 4e3)}`, (r.mes || "").slice(0, 4) || null),
         ["noInstalado", /sin pedir|no (estan |se han )?pedid|falta\w* (por|de) pedir|por pedir|acopiad/, ["noInstalado"], "no instalados (acopiados o sin pedir)"],
         ["cxHecho", /puest\w* en marcha|en marcha|commissioning hecho|cx hecho|arrancad/, ["cxHecho"], "con el commissioning hecho"],
         ["certificado", /certificad/, ["certificado"], "certificados"],
-        ["instalado", /\binstalad[oa]s?\b|montad[oa]s?\b/, ["instalado", "cxHecho", "certificado"], "instalados"],
+        ["instalado", /\binstalad[oa]s?\b|montad[oa]s?\b/, ["instalado", "tomaHecha", "cxHecho", "certificado"], "instalados"],
         ["sinDato", /sin dato/, ["sinDato"], "sin dato"],
         ["sinFicha", /sin ficha|sin cruzar|sin enlazar|sin casar/, ["sinFicha"], "sin ficha en la obra"]
       ];

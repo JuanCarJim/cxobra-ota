@@ -24,7 +24,7 @@ const ESTADOS = CB.ESTADOS_BLOQUE;
 const ORDEN = CB.ORDEN_BLOQUE;
 const NOMBRE = Object.fromEntries(ESTADOS.map((x) => [x.id, x.nombre]));
 /* 14-nov (JC en el iPhone, chips cortados a 390 px): los nombres cortos. */
-const CORTO = { certificado: 'Certificado', cxHecho: 'Cx hecho', instalado: 'Instalado', noInstalado: 'No instalado', sinDato: 'Sin dato' };
+const CORTO = { certificado: 'Certificado', cxHecho: 'Cx hecho', tomaHecha: 'Toma hecha', instalado: 'Instalado', noInstalado: 'No instalado', sinDato: 'Sin dato' };
 const esEstado = (k) => ORDEN.includes(k);
 
 /** La clave del estado de un equipo ya calculado: `bloque` (móvil) o `estado` (marca del plano del modelo). */
