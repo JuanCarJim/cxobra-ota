@@ -68,7 +68,7 @@
     if (!completo && e === 'faltaEnsayo') nombre = nombreEnsayoFalta(ensayoFalta) || nombre;
     return `<span class="chip ${clase}">${esc(nombre)}</span>`;
   };
-  const ESTADO_BOCA = { aRevisar: ['aviso', 'A REVISAR'], dentro: ['bien', 'OK'], ok: ['bien', 'OK'], sinFactor: ['aviso', 'Falta el Ak'], medido: ['neutra', 'Medida'], alto: ['alto', 'Alto'], bajo: ['mal', 'Bajo'], sinMedir: ['neutra', 'Sin medir'], sinProyecto: ['neutra', 'Sin Q proyecto'], sinTolerancia: ['neutra', 'Medida'] };
+  const ESTADO_BOCA = { aRevisar: ['aviso', 'A REVISAR'], dentro: ['bien', 'OK'], ok: ['bien', 'OK'], sinFactor: ['aviso', 'Falta el Ak'], medido: ['info', 'Medida'], alto: ['alto', 'Alto'], bajo: ['mal', 'Bajo'], sinMedir: ['neutra', 'Sin medir'], sinProyecto: ['neutra', 'Sin Q proyecto'], sinTolerancia: ['neutra', 'Medida'] };
   const INCIDENCIA = { sinSerie: 'Sin nº de serie', modeloSinAlta: 'Modelo sin dar de alta' };
   const pct = (q, d) => (q === null || q === undefined || !d ? null : Math.round((q / d) * 100));
 
@@ -1671,7 +1671,10 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
 
   /* «Balanceo de caudales», «Caudales de extracción»… según lo que se mide. */
   const tituloMedicion = (f) => (f.medicion && f.medicion.titulo) || 'Balanceo de caudales';
-  const claseMarca = (estado) => (estado === 'dentro' || estado === 'ok' ? 'bien' : estado === 'alto' ? 'alto' : estado === 'bajo' ? 'mal' : 'neutra');
+  /* 25-nov-2026 (JC: «esa reja tiene que salir dibujada con su color»): medida y sin caudal de proyecto con que
+     compararla, en azul (como el escritorio, «Medido»), no en el gris de «Sin medir»; «A REVISAR», en ámbar. */
+  const claseMarca = (estado) => (estado === 'dentro' || estado === 'ok' ? 'bien' : estado === 'alto' ? 'alto' : estado === 'bajo' ? 'mal'
+    : estado === 'aRevisar' || estado === 'sinFactor' ? 'aviso' : estado === 'medido' || estado === 'sinProyecto' || estado === 'sinTolerancia' ? 'info' : 'neutra');
   /*
    * LA BOCA SIEMPRE EN SU COLOR (16-nov-2026, JC en la UTA-N10-PITCH 03: «No salen
    * bien los difusores con los colores que tienen que salir»). La I1 medía 53 de
@@ -1741,7 +1744,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
           data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}"${otro ? ` data-circuito="${esRetorno(b) ? 'retorno' : 'impulsion'}"` : ''} aria-label="Ir a la boca ${esc(b.nombre)}">${simbolo(b)}<span class="rotulo-boca">${esc(b.nombre)}</span></button>`; }).join('')}
         ${(conIfc ? [] : p.ajenas || []).map((b) => `<span class="marca-boca ajena" aria-hidden="true" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%">${simbolo({ tipoId: b.tipo })}<span class="rotulo-boca">${esc(b.nombre)}</span></span>`).join('')}
       </div></div>
-      <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Por debajo <i class="alto"></i>Por encima</span>
+      <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Por debajo <i class="alto"></i>Por encima <i class="info"></i>Sin Q proyecto</span>
         <span class="zoom-botones"><button class="enlace" data-cx="zoom-menos" aria-label="Alejar">−</button><button class="enlace" data-cx="zoom-mas" aria-label="Acercar">+</button>
         <button class="enlace" data-cx="plano-ifc" data-plano="${esc(p.id)}" ${ifc && ifc.cargando ? 'disabled' : ''}
           title="La red de esta máquina dibujada desde el modelo IFC">${ifc && ifc.cargando ? 'Leyendo el modelo…' : conIfc ? 'Ver lámina' : 'Plano IFC'}</button>
@@ -1772,8 +1775,70 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     const mw = marco.clientWidth, mh = marco.clientHeight;
     const w = lz.offsetWidth * v.s, h = lz.offsetHeight * v.s;
     v.x = w > mw ? Math.min(0, Math.max(mw - w, v.x)) : (mw - w) / 2;
-    v.y = h > mh ? Math.min(0, Math.max(mh - h, v.y)) : grande ? (mh - h) / 2 : 0;
+    /* Más bajo que el marco, centrado (a pantalla completa y en el marco alto del teléfono). */
+    v.y = h > mh ? Math.min(0, Math.max(mh - h, v.y)) : grande || mh > lz.offsetHeight + 1 ? (mh - h) / 2 : 0;
     return v;
+  }
+
+  /*
+   * EL PLANO GRANDE EN EL TELÉFONO (25-nov-2026, JC con VE-S2.13.1: «Necesitaría que ese mapa se viese más
+   * grandecito»). En el móvil el marco del plano ocupa ~58 % del alto de la pantalla (movil.css) y abre encuadrado en
+   * las bocas del equipo; con «Solo R2», en esa boca y lo que la rodea. Solo cambia el encuadre (zoom y posición), no
+   * las bocas. En pantallas anchas (iPad, web, escritorio) el plano sigue como estaba.
+   */
+  const ANCHO_TELEFONO = '(max-width: 699px)';
+  const planoAlto = (fig) => Boolean(fig && !fig.classList.contains('red-cx') && !fig.classList.contains('grande')
+    && window.matchMedia && window.matchMedia(ANCHO_TELEFONO).matches);
+  const encuadrados = new Set(); /* planoId ya encuadrado al abrir: al repintar se respeta el zoom que haya */
+  const altosMarco = new Map();  /* planoId → alto del marco (px) cuando el plano, ya acercado, no llena el de la hoja de estilos */
+  const ALTO_MIN_MARCO = 360;
+  function ponerAltoMarco(fig) {
+    const marco = fig.querySelector('.plano-marco');
+    const a = planoAlto(fig) ? altosMarco.get(fig.dataset.planoFig) : null;
+    if (marco) marco.style.height = a ? `${a}px` : '';
+  }
+  function encuadrar(fig, clave = null) {
+    if (!planoAlto(fig)) return false;
+    const marco = fig.querySelector('.plano-marco');
+    const lz = fig.querySelector('.plano-lienzo');
+    const img = lz && lz.querySelector('img');
+    if (!marco || !lz || (img && !(img.complete && img.naturalWidth))) return false; /* sin la imagen no hay alto */
+    const id = fig.dataset.planoFig;
+    if (!clave) { altosMarco.delete(id); marco.style.height = ''; }
+    const W = lz.offsetWidth, H = lz.offsetHeight, mw = marco.clientWidth;
+    let mh = marco.clientHeight;
+    if (!W || !H || !mw || !mh) return false;
+    const todas = [...fig.querySelectorAll('.marca-boca[data-boca]')];
+    const suyas = todas.filter((m) => !m.classList.contains('otro-circuito'));
+    const elegida = clave ? todas.find((m) => m.dataset.boca === clave) : null;
+    const pts = (elegida ? [elegida] : suyas.length ? suyas : todas)
+      .map((m) => [parseFloat(m.style.left) / 100 * W, parseFloat(m.style.top) / 100 * H]).filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y));
+    if (!pts.length) return false;
+    const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    /* Con aire alrededor (los rótulos van a la derecha de la marca); la boca sola, con un tercio del plano de entorno. */
+    const minW = W * (elegida ? 0.25 : 0.15);
+    const bw = Math.max(x1 - x0, minW) * 1.2 + 48, bh = Math.max(y1 - y0, minW * mh / mw) * 1.2 + 32;
+    /* Un plano muy apaisado (un sótano entero) con las bocas de punta a punta cabría a escala 1 en una franja de
+       100 px: se abre al menos lo bastante cerca para llenar el marco (hasta ×4) y el resto se ve arrastrando de lado;
+       si aun así no llega, el marco se queda a su alto (mínimo 360 px) en vez de dejar bandas en blanco. */
+    const sLegible = Math.min(4, 0.9 * mh / H);
+    const s = Math.min(ZOOM_MAX, Math.max(1, sLegible, Math.min(mw / bw, mh / bh)));
+    if (!clave && H * s < mh - 1) {
+      mh = Math.max(ALTO_MIN_MARCO, Math.round(H * s));
+      altosMarco.set(id, mh);
+      marco.style.height = `${mh}px`;
+    }
+    const cx = (x0 + x1) / 2 + 12, cy = (y0 + y1) / 2;
+    vistas.set(id, { s, x: mw / 2 - cx * s, y: mh / 2 - cy * s });
+    aplicarVista(fig);
+    return true;
+  }
+  /* El encuadre de la boca abierta (o de todas) en el plano donde está. */
+  function encuadrarBoca(clave) {
+    const m = clave && $app.querySelector(`.marca-boca[data-boca="${CSS.escape(clave)}"]`);
+    const fig = m ? m.closest('.plano-bocas') : null;
+    if (fig) encuadrar(fig, clave);
   }
   function aplicarVista(fig) {
     const id = fig.dataset.planoFig;
@@ -1831,9 +1896,19 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       return true;
     }
     if (g.tipo === 'arrastre') {
+      if (g.pagina) return false;
       const dx = toques[0].clientX - g.x0, dy = toques[0].clientY - g.y0;
       if (Math.abs(dx) + Math.abs(dy) > 6) movido = true;
       if (g.v0.s <= 1.001 && !g.fig.classList.contains('grande')) return false; /* sin zoom: se mueve la página */
+      /* 25-nov (plano alto del teléfono): un dedo que va en vertical cuando el plano ya está en su borde mueve la
+         página, no el plano: el dedo no se queda atrapado en el marco y la página sigue bajando. */
+      if (!g.decidido && (dx || dy)) {
+        g.decidido = true;
+        if (planoAlto(g.fig) && Math.abs(dy) >= Math.abs(dx)) {
+          const lim = limitarVista(g.fig, { s: g.v0.s, x: g.v0.x, y: g.v0.y + dy });
+          if (Math.abs(lim.y - g.v0.y) < 0.5) { g.pagina = true; return false; }
+        }
+      }
       vistas.set(g.fig.dataset.planoFig, { s: g.v0.s, x: g.v0.x + dx, y: g.v0.y + dy });
       aplicarVista(g.fig);
       return true;
@@ -1935,7 +2010,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     const sig = claves[claves.indexOf(bocaAbierta) + paso];
     /* El foco pasa a la boca vecina solo si ya se estaba escribiendo (Intro); con ‹ › no se abre el teclado. */
     const escribiendo = Boolean(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.punto);
-    if (sig) abrirHojaBoca(sig, { foco: escribiendo });
+    if (sig) { abrirHojaBoca(sig, { foco: escribiendo }); encuadrarBoca(sig); }
   }
 
   /* Tocar una boca del plano la abre SIN foco: el teclado del iPhone solo sale
@@ -1943,6 +2018,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
      pantalla saltaba). El foco automático era la causa. */
   function irABoca(clave) {
     abrirHojaBoca(clave, { foco: false });
+    encuadrarBoca(clave);
   }
 
   /* Tras repintar la ficha: el zoom de cada plano, la pantalla completa y la tarjeta abierta, como estaban. */
@@ -1953,10 +2029,15 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
         const b = fig.querySelector('[data-cx="plano-grande"]');
         if (b) b.textContent = 'Cerrar';
       }
+      ponerAltoMarco(fig);
       aplicarVista(fig);
+      /* El teléfono abre el plano encuadrado en sus bocas, una vez: luego manda el zoom que se deje. */
+      const id = fig.dataset.planoFig;
+      const encuadre = () => { if (!encuadrados.has(id) && encuadrar(fig)) { encuadrados.add(id); if (bocaAbierta) encuadrar(fig, bocaAbierta); } };
+      encuadre();
       /* La imagen llega después: con su alto ya puesto, se vuelve a encajar. */
       const img = fig.querySelector('img');
-      if (img) img.addEventListener('load', () => aplicarVista(fig), { once: true });
+      if (img) img.addEventListener('load', () => { aplicarVista(fig); encuadre(); }, { once: true });
     }
     if (!grandeId) document.body.classList.remove('sin-scroll');
     if (bocaAbierta) abrirHojaBoca(bocaAbierta);
@@ -1967,6 +2048,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     if (!fig) return;
     if (fig.classList.contains('grande')) { cerrarPlanoGrande(fig); return; }
     fig.classList.add('grande');
+    ponerAltoMarco(fig); /* a pantalla completa, el marco sin el alto del teléfono */
     grandeId = fig.dataset.planoFig;
     boton.textContent = 'Cerrar';
     document.body.classList.add('sin-scroll');
@@ -1983,8 +2065,10 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     const b = fig.querySelector('[data-cx="plano-grande"]');
     if (b) b.textContent = 'Ampliar';
     document.body.classList.remove('sin-scroll');
+    ponerAltoMarco(fig);
     vistas.set(fig.dataset.planoFig, { s: 1, x: 0, y: 0 });
     aplicarVista(fig);
+    if (encuadrar(fig) && bocaAbierta) encuadrar(fig, bocaAbierta);
   }
 
   /*
@@ -4654,7 +4738,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
     }
     else if (que === 'zoom-mas' && ficha) zoomBoton(b, 1.6);
     else if (que === 'zoom-menos' && ficha) zoomBoton(b, 1 / 1.6);
-    else if (que === 'cerrar-boca' && ficha) cerrarHojaBoca();
+    else if (que === 'cerrar-boca' && ficha) { const fig = $app.querySelector('.marca-boca.elegida') && $app.querySelector('.marca-boca.elegida').closest('.plano-bocas'); cerrarHojaBoca(); if (fig) encuadrar(fig); }
     else if (que === 'boca-siguiente' && ficha) bocaVecina(1);
     else if (que === 'boca-anterior' && ficha) bocaVecina(-1);
     else if (que === 'avisar-modelo') avisarModelo();
