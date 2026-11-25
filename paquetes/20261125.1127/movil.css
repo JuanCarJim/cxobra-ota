@@ -649,6 +649,13 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .marca-boca.bien .rotulo-boca { background: var(--bien); }
 .marca-boca.mal .rotulo-boca { background: var(--mal); }
 .marca-boca.alto .rotulo-boca { background: var(--alto); }
+/* Medida sin caudal de proyecto (azul) y «A REVISAR» (ámbar), 25-nov-2026. */
+.marca-boca.info { color: var(--info); }
+.marca-boca.aviso { color: var(--aviso); }
+.marca-boca.info .simbolo-boca .cuerpo { fill: color-mix(in srgb, var(--info) 22%, var(--vd-lienzo)); }
+.marca-boca.aviso .simbolo-boca .cuerpo { fill: color-mix(in srgb, var(--aviso) 22%, var(--vd-lienzo)); }
+.marca-boca.info .rotulo-boca { background: var(--info); }
+.marca-boca.aviso .rotulo-boca { background: var(--aviso); }
 /* Las bocas del otro circuito (impulsión/retorno) se ven con el mismo contraste
    (JC, 30-oct: «faltan rejas de retorno por poner»): solo el rótulo lleva un borde punteado. */
 .marca-boca.otro-circuito .rotulo-boca { outline: 1px dashed var(--vd-lienzo); outline-offset: -2px; }
@@ -663,6 +670,7 @@ a.fila-dato strong { color: var(--acento); font-weight: 600; }
 .plano-bocas .leyenda i.bien { background: var(--bien); }
 .plano-bocas .leyenda i.mal { background: var(--mal); }
 .plano-bocas .leyenda i.alto { background: var(--alto); }
+.plano-bocas .leyenda i.info { background: var(--info); }
 /* Ampliado: a pantalla completa, el plano al 250 % y se arrastra con el dedo. */
 .plano-bocas.grande { position: fixed; inset: 0; z-index: 50; margin: 0; border-radius: 0; display: flex; flex-direction: column;
   padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }

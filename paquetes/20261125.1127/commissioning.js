@@ -68,7 +68,7 @@
     if (!completo && e === 'faltaEnsayo') nombre = nombreEnsayoFalta(ensayoFalta) || nombre;
     return `<span class="chip ${clase}">${esc(nombre)}</span>`;
   };
-  const ESTADO_BOCA = { aRevisar: ['aviso', 'A REVISAR'], dentro: ['bien', 'OK'], ok: ['bien', 'OK'], sinFactor: ['aviso', 'Falta el Ak'], medido: ['neutra', 'Medida'], alto: ['alto', 'Alto'], bajo: ['mal', 'Bajo'], sinMedir: ['neutra', 'Sin medir'], sinProyecto: ['neutra', 'Sin Q proyecto'], sinTolerancia: ['neutra', 'Medida'] };
+  const ESTADO_BOCA = { aRevisar: ['aviso', 'A REVISAR'], dentro: ['bien', 'OK'], ok: ['bien', 'OK'], sinFactor: ['aviso', 'Falta el Ak'], medido: ['info', 'Medida'], alto: ['alto', 'Alto'], bajo: ['mal', 'Bajo'], sinMedir: ['neutra', 'Sin medir'], sinProyecto: ['neutra', 'Sin Q proyecto'], sinTolerancia: ['neutra', 'Medida'] };
   const INCIDENCIA = { sinSerie: 'Sin nº de serie', modeloSinAlta: 'Modelo sin dar de alta' };
   const pct = (q, d) => (q === null || q === undefined || !d ? null : Math.round((q / d) * 100));
 
@@ -789,7 +789,8 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       </div>
       ${rev ? `<div class="sub"><span class="marca-revisar">${rev} a revisar</span> fuera de la suma${c.disenoRevisar ? ` (${cifra(c.disenoRevisar)} m³/h de proyecto)` : ''}: no se pueden atribuir al equipo con seguridad. Suma de las atribuidas: ${cifra(c.disenoPuntos)} m³/h en ${c.puntos || 0}.</div>` : ''}
       ${c.faltan ? `<div class="sub">Faltan ${c.faltan} boca${c.faltan === 1 ? '' : 's'} atribuida${c.faltan === 1 ? '' : 's'} por medir.</div>` : ''}
-      ${c.puntos ? `<div class="sub">Tª frío ${c.tFrio || 0}/${c.puntos} · Tª calor ${c.tCalor || 0}/${c.puntos} · completas ${c.completas || 0}/${c.puntos} (caudal y las dos Tª)</div>` : ''}
+      ${c.puntos && c.sinTemperaturas ? `<div class="sub">completas ${c.completas || 0}/${c.puntos} (caudal)</div>`
+        : c.puntos ? `<div class="sub">Tª frío ${c.tFrio || 0}/${c.puntos} · Tª calor ${c.tCalor || 0}/${c.puntos} · completas ${c.completas || 0}/${c.puntos} (caudal y las dos Tª)</div>` : ''}
     </div>`;
   }
 
@@ -799,6 +800,12 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
    * el caudal que da el anemómetro, que manda. Es el caudal medido del equipo
    * de la hoja de balanceo (el mismo que lee la ficha de puesta en marcha).
    */
+  /* Ventilador o extractor (24-nov-2026, JC): sin Tª frío ni calor. Lo decide el
+     motor (shared/commissioning/balanceo.js › sinTemperaturas) y llega en el equipo. */
+  function sinTemperaturasF(f) {
+    return Boolean(f && ((f.equipo && f.equipo.sinTemperaturas) || f.sinTemperaturas));
+  }
+
   function htmlConducto(f, red, nombre, puede) {
     const c = f.conducto && f.conducto[red];
     if (!c) return '';
@@ -815,7 +822,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
         ${circ ? campo('diametro', 'Ø (mm)', c.diametro) : `${campo('ancho', 'Ancho (mm)', c.ancho)}${campo('alto', 'Alto (mm)', c.alto)}`}
         ${campo('velocidades', 'Velocidades (m/s, separadas por espacios)', null)}
         ${campo('caudal', 'Q del aparato (m³/h, manda)', apuntado ? c.caudalMedido : null)}
-        ${campo('tFrio', 'Tª frío (°C)', c.tFrio, 1)}${campo('tCalor', 'Tª calor (°C)', c.tCalor, 1)}
+        ${sinTemperaturasF(f) ? '' : `${campo('tFrio', 'Tª frío (°C)', c.tFrio, 1)}${campo('tCalor', 'Tª calor (°C)', c.tCalor, 1)}`}
       </div>
       ${c.velocidades && c.velocidades.length ? `<div class="sub">Puntos: ${c.velocidades.map((x) => comaD(x, 1)).join(' · ')} → v̄ ${v(c.velocidad, 2)} m/s</div>` : ''}
       <div class="cifras-total">
@@ -1602,7 +1609,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
       ${f.planos.length ? planosVistos.map((p) => `
         <h2>${esc(p.nombre)} <span class="cuenta">${p.bocas.length} boca${p.bocas.length === 1 ? '' : 's'}${circ ? ` de ${circ === 'retorno' ? esc(nombreRet.toLowerCase()) : 'impulsión'}` : ''}</span></h2>
         ${htmlPlano(p, circ ? delCircuito : null, f.tolerancias)}
-        <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puedeToma, f.tolerancias)).join('')}</ul>
+        <ul class="bocas">${p.bocas.map((b) => htmlBoca(p, b, puedeToma, f.tolerancias, sinTemperaturasF(f))).join('')}</ul>
         ${window.BOCA_MANUAL_MOVIL && window.BOCA_MANUAL_MOVIL.quitadas ? window.BOCA_MANUAL_MOVIL.quitadas(p, puedeToma) : ''}`).join('') : sinPlano()}
       ${window.BOCA_MANUAL_MOVIL ? window.BOCA_MANUAL_MOVIL.boton(f, circ, nombreRet, puedeToma) : ''}
       <details class="plegado-bal"><summary><span class="t">Cuadrilla y cronómetro</span><span class="tenue">quién mide y cuánto tarda</span></summary><div class="crono-bal">${htmlCrono()}</div></details>
@@ -1664,7 +1671,10 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
 
   /* «Balanceo de caudales», «Caudales de extracción»… según lo que se mide. */
   const tituloMedicion = (f) => (f.medicion && f.medicion.titulo) || 'Balanceo de caudales';
-  const claseMarca = (estado) => (estado === 'dentro' || estado === 'ok' ? 'bien' : estado === 'alto' ? 'alto' : estado === 'bajo' ? 'mal' : 'neutra');
+  /* 25-nov-2026 (JC: «esa reja tiene que salir dibujada con su color»): medida y sin caudal de proyecto con que
+     compararla, en azul (como el escritorio, «Medido»), no en el gris de «Sin medir»; «A REVISAR», en ámbar. */
+  const claseMarca = (estado) => (estado === 'dentro' || estado === 'ok' ? 'bien' : estado === 'alto' ? 'alto' : estado === 'bajo' ? 'mal'
+    : estado === 'aRevisar' || estado === 'sinFactor' ? 'aviso' : estado === 'medido' || estado === 'sinProyecto' || estado === 'sinTolerancia' ? 'info' : 'neutra');
   /*
    * LA BOCA SIEMPRE EN SU COLOR (16-nov-2026, JC en la UTA-N10-PITCH 03: «No salen
    * bien los difusores con los colores que tienen que salir»). La I1 medía 53 de
@@ -1734,7 +1744,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
           data-cx="ir-boca" data-boca="${esc(claveBoca(p.id, b.id))}"${otro ? ` data-circuito="${esRetorno(b) ? 'retorno' : 'impulsion'}"` : ''} aria-label="Ir a la boca ${esc(b.nombre)}">${simbolo(b)}<span class="rotulo-boca">${esc(b.nombre)}</span></button>`; }).join('')}
         ${(conIfc ? [] : p.ajenas || []).map((b) => `<span class="marca-boca ajena" aria-hidden="true" style="left:${(b.x * 100).toFixed(2)}%;top:${(b.y * 100).toFixed(2)}%">${simbolo({ tipoId: b.tipo })}<span class="rotulo-boca">${esc(b.nombre)}</span></span>`).join('')}
       </div></div>
-      <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Por debajo <i class="alto"></i>Por encima</span>
+      <figcaption><span class="leyenda"><i class="neutra"></i>Sin medir <i class="bien"></i>Dentro <i class="mal"></i>Por debajo <i class="alto"></i>Por encima <i class="info"></i>Sin Q proyecto</span>
         <span class="zoom-botones"><button class="enlace" data-cx="zoom-menos" aria-label="Alejar">−</button><button class="enlace" data-cx="zoom-mas" aria-label="Acercar">+</button>
         <button class="enlace" data-cx="plano-ifc" data-plano="${esc(p.id)}" ${ifc && ifc.cargando ? 'disabled' : ''}
           title="La red de esta máquina dibujada desde el modelo IFC">${ifc && ifc.cargando ? 'Leyendo el modelo…' : conIfc ? 'Ver lámina' : 'Plano IFC'}</button>
@@ -2441,7 +2451,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
         role="radio" aria-checked="${actual === id}" class="${actual === id ? 'activa' : ''}" ${datos} data-eplano="${esc(p.id)}" data-epunto="${esc(b.id)}">${esc(largo)}</button>`).join('')}</div></details>`;
   }
 
-  function htmlBoca(p, b, puede, tol) {
+  function htmlBoca(p, b, puede, tol, sinT = false) {
     const estado = estadoPintado(b, tol);
     const [clase, nombre] = ESTADO_BOCA[estado] || ['neutra', estado || ''];
     const porc = pct(b.caudal, b.caudalDiseno);
@@ -2471,17 +2481,17 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
             <input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-q="1"
               value="${qLeido ? comaD(b.caudalMedido, 1) : ''}" aria-label="${esc(rotulo)} en ${esc(b.nombre)}"></label>`;
     return `<li class="boca ${clase}" data-boca="${esc(clave)}" ${vivo}>
-      <div class="boca-cabeza"><strong>${esc(b.nombre)}</strong><span class="sub">${esc(b.circuito === 'retorno' ? 'Retorno' : 'Impulsión')} · ${esc(b.tipo || '')}</span>${botonInstrumento(p, b, bal ? 'balometro' : enQ ? 'anemQ' : 'anemV', puede)}${window.BOCA_MANUAL_MOVIL && window.BOCA_MANUAL_MOVIL.botonQuitar ? window.BOCA_MANUAL_MOVIL.botonQuitar(p, b, puede) : ''}</div>
+      <div class="boca-cabeza"><strong>${esc(b.nombre)}</strong><span class="sub">${esc(b.circuitoNombre || (b.circuito === 'retorno' ? 'Retorno' : 'Impulsión'))} · ${esc(b.tipo || '')}</span>${botonInstrumento(p, b, bal ? 'balometro' : enQ ? 'anemQ' : 'anemV', puede)}${window.BOCA_MANUAL_MOVIL && window.BOCA_MANUAL_MOVIL.botonQuitar ? window.BOCA_MANUAL_MOVIL.botonQuitar(p, b, puede) : ''}</div>
       ${b.manual || b.sinPosicion || b.sinAtribuir || b.desdeCaptura || b.caudalDudoso || b.discrepanciaAk ? `<div class="boca-marcas">${b.discrepanciaAk ? `<span class="marca-revisar">Ak a mano ${comaD(b.factor, 4)} m² · la tabla del fabricante da ${comaD(b.akTabla, 4)} m²: revisar</span>` : ''}${window.BOCA_MANUAL_MOVIL ? window.BOCA_MANUAL_MOVIL.marca(p, b, puede) : ''}${b.sinPosicion && !b.manual ? '<span class="marca-sin-posicion">sin posición: falta el PDF del plano</span>' : ''}${b.sinAtribuir ? `<span class="marca-revisar">a revisar · ${esc(b.sinAtribuir)}</span>` : ''}${b.desdeCaptura ? '<span class="marca-revisar">posición desde captura, a revisar</span>' : ''}${b.caudalDudoso ? `<span class="marca-revisar">${esc(b.caudalDudoso)}</span>` : ''}</div>` : ''}
       ${bal
         ? casillaQ('Q balómetro (m³/h)')
         : `<div class="lecturas">${[0, 1, 2, 3].map((i) => `<label>M${i + 1} <small class="unidad-m">${unidadM}</small>
             <input inputmode="decimal" enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-m="${i}"
               value="${lect[i] === undefined ? '' : comaD(lect[i], enQ ? 1 : 2)}" aria-label="Lectura M${i + 1} en ${unidadM} en ${esc(b.nombre)}"></label>`).join('')}</div>`}
-      <div class="t-bocas">${[['tFrio', 'Tª frío'], ['tCalor', 'Tª calor']].map(([k, rot]) => `<label class="t-boca">${rot} (°C)
+      ${sinT ? '' : `<div class="t-bocas">${[['tFrio', 'Tª frío'], ['tCalor', 'Tª calor']].map(([k, rot]) => `<label class="t-boca">${rot} (°C)
         <input inputmode="decimal" data-menos enterkeyhint="next" autocomplete="off" ${dis} ${datos} data-t="${k}"
           value="${b[k] === null || b[k] === undefined ? '' : comaD(b[k], 1)}" aria-label="${rot} en ${esc(b.nombre)}, en grados"></label>`).join('')}
-        ${b.temperatura === null || b.temperatura === undefined ? '' : `<span class="t-sin-modo">Tª ${comaD(b.temperatura, 1)} °C · modo sin indicar</span>`}</div>
+        ${b.temperatura === null || b.temperatura === undefined ? '' : `<span class="t-sin-modo">Tª ${comaD(b.temperatura, 1)} °C · modo sin indicar</span>`}</div>`}
       ${AG ? `<div class="boca-guardado">${AG.marca(AG.leer(claveBorradorBoca(p.id, b.id)) || AG.leer(`bocaManual.medidas.${p.id}.${b.id}`) || AG.leer(`bocaManual.modelo.${p.id}.${b.id}`) ? 'movil' : '')}</div>` : ''}
       ${bal ? '' : `<div data-vivo="formula">${formula}</div>`}
       ${window.BOCA_MANUAL_MOVIL && window.BOCA_MANUAL_MOVIL.medidas ? window.BOCA_MANUAL_MOVIL.medidas(p, b, puede) : ''}
