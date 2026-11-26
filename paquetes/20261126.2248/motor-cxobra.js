@@ -11391,12 +11391,14 @@ globalThis.CX_VARIANTE="cxobra";
           "documentos",
           /* 13-nov (JC en obra, NCN: «Ninguna planta tiene todavía el plano del IFC»): los planos del IFC por edificio y
              planta (fondo y posición de cada máquina), solo de ida. Sin ellos el móvil no tenía ningún plano del modelo. */
-          "plantasIfc"
+          "plantasIfc",
+          /* 26-nov: lo certificado de cada equipo, para el azul del plano (certificacionAlMovil.js), solo de ida. */
+          "certPlanoEquipos"
         ],
         /* 29-oct (JC): el plano lo ve todo el enrolado en la obra, aunque su rol no tenga
            Commissioning: con él, lo mínimo para pintar los colores (equipos, modelos,
            fichas y config). Quien tiene Commissioning ya lo trae todo. */
-        plano: ["planosEquipos", "materialesInstalados", "equiposObra", "modelosEquipo", "configCommissioning", "fichasPM", "documentos", "plantasIfc", "validacionesEquipo", "recepcionesEquipo"],
+        plano: ["planosEquipos", "materialesInstalados", "equiposObra", "modelosEquipo", "configCommissioning", "fichasPM", "documentos", "plantasIfc", "validacionesEquipo", "recepcionesEquipo", "certPlanoEquipos"],
         ncr: [
           "ncr",
           "ncrEquipos",
@@ -11446,6 +11448,8 @@ globalThis.CX_VARIANTE="cxobra";
       };
       var TABLAS_PERSONALES = {
         notas: "bloc",
+        /* 26-nov: Mi firma, la de quien lleva el teléfono. */
+        firmasPersona: "bloc",
         jornadaFichajes: "jornada",
         jornadaCorrecciones: "jornada",
         solicitudesDias: "jornada",
@@ -11465,6 +11469,7 @@ globalThis.CX_VARIANTE="cxobra";
         "ncrEquipos",
         "ncrAplazamientos",
         "notas",
+        "firmasPersona",
         "albaranes",
         "albaranLineas",
         "pedidoDocumentos",
@@ -11907,7 +11912,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261125.1713" : "0";
+      var VERSION = true ? "20261126.2248" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -12548,6 +12553,484 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
+  // shared/commissioning/garantia.js
+  var require_garantia = __commonJS({
+    "shared/commissioning/garantia.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fechaISO = (v) => {
+        const s = String(v || "").trim();
+        return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null;
+      };
+      function sumarAnios(iso, anios) {
+        const [a, m, d] = iso.split("-").map(Number);
+        const meses = Math.round(Number(anios) * 12);
+        const f = new Date(Date.UTC(a, m - 1 + meses, d));
+        if (f.getUTCDate() !== d) f.setUTCDate(0);
+        return f.toISOString().slice(0, 10);
+      }
+      var hoyLocal = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
+      var fechaVisible = (iso) => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "";
+      function garantiaDe(e, hoy = hoyLocal()) {
+        const g = garantiaSola(e, hoy);
+        const u = e && e.diasUso !== void 0 && e.diasUso !== null && e.diasUso !== "" ? usoDe(e, hoy) : null;
+        return u && u.textoGarantia ? { ...g, usoAntesEntrega: u.antesEntrega, textoUso: u.textoGarantia } : g;
+      }
+      function garantiaSola(e, hoy) {
+        const inicio = fechaISO(e && e.fechaEnvioDF);
+        const n = Number(e && e.garantiaAnios);
+        const anios = Number.isFinite(n) && n > 0 ? n : null;
+        if (!inicio) return { estado: "sinEmpezar", inicio: null, fin: null, anios, texto: "Garant\xEDa: sin empezar (pendiente de entrega a DF)" };
+        if (!anios) return { estado: "sinAnios", inicio, fin: null, anios: null, texto: `Garant\xEDa: desde ${fechaVisible(inicio)} (faltan los a\xF1os de garant\xEDa)` };
+        const fin = sumarAnios(inicio, anios);
+        const estado = fin < hoy ? "vencida" : "vigente";
+        return { estado, inicio, fin, anios, texto: `Garant\xEDa: ${fechaVisible(inicio)} \u2192 ${fechaVisible(fin)}${estado === "vencida" ? " (vencida)" : ""}` };
+      }
+      var GARANTIA_DIA_MS = 864e5;
+      var MAX_DIAS_USO = 36500;
+      var diasEntreGarantia = (desde, hasta) => Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / GARANTIA_DIA_MS);
+      var restarDiasGarantia = (iso, n) => new Date(Date.parse(`${iso}T00:00:00Z`) - n * GARANTIA_DIA_MS).toISOString().slice(0, 10);
+      function leerDiasUso(v) {
+        const s = v === null || v === void 0 ? "" : String(v).trim().replace(",", ".");
+        if (s === "") return null;
+        const n = Number(s);
+        if (!Number.isFinite(n) || n < 0 || n > MAX_DIAS_USO || Math.round(n) !== n) return { error: `\xAB${v}\xBB no son unos d\xEDas de uso (un n\xFAmero entero entre 0 y ${MAX_DIAS_USO}).` };
+        return n;
+      }
+      function sugerenciaDiasUso(fechaPuestaMarcha, hoy = hoyLocal()) {
+        const f = fechaISO(fechaPuestaMarcha);
+        if (!f) return null;
+        const n = diasEntreGarantia(f, hoy);
+        return n >= 0 ? n : null;
+      }
+      function usoDe(e, hoy = hoyLocal()) {
+        const x = e || {};
+        const n = Number(x.diasUso);
+        const dias = x.diasUso !== null && x.diasUso !== void 0 && x.diasUso !== "" && Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+        const fecha = dias === null ? null : fechaISO(x.diasUsoFecha) || hoy;
+        const inicio = dias === null ? null : restarDiasGarantia(fecha, dias);
+        const entrega = fechaISO(x.fechaEnvioDF);
+        const antesEntrega = dias === null ? null : !entrega || entrega >= fecha ? dias : Math.max(0, dias - diasEntreGarantia(entrega, fecha));
+        const sugerencia = dias === null ? sugerenciaDiasUso(x.fechaPuestaMarcha, hoy) : null;
+        const d = (k) => `${k} ${k === 1 ? "d\xEDa" : "d\xEDas"}`;
+        const texto = dias === null ? null : `${d(dias)} de uso (a ${fechaVisible(fecha)})`;
+        const textoGarantia = dias === null ? null : entrega ? `${d(antesEntrega)} de uso antes de la entrega` : `${d(antesEntrega)} de uso, a\xFAn sin entregar a DF`;
+        return { dias, fecha, inicio, antesEntrega, entregado: Boolean(entrega), sugerencia, texto, textoGarantia };
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.GARANTIA_CX = API;
+      })({ garantiaDe, sumarAnios, fechaVisible, fechaISO, leerDiasUso, sugerenciaDiasUso, usoDe, MAX_DIAS_USO });
+    }
+  });
+
+  // shared/commissioning/fechaPM.js
+  var require_fechaPM = __commonJS({
+    "shared/commissioning/fechaPM.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function(raiz, fabrica) {
+        const api = fabrica();
+        if (typeof module === "object" && module.exports) module.exports = api;
+        if (raiz) raiz.FECHA_PM = api;
+      })(typeof window !== "undefined" ? window : null, function() {
+        const iso = (v) => {
+          const s = String(v || "").trim().slice(0, 10);
+          return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+        };
+        const texto = (f) => f ? f.split("-").reverse().join("/") : null;
+        const FECHAS_SOLO_GARANTIA = Object.freeze(["2025-04-01", "2025-05-01", "2025-07-01", "2025-08-01", "2025-09-01"]);
+        const soloGarantia = (f) => FECHAS_SOLO_GARANTIA.includes(f);
+        const isoToma = (v) => {
+          const f = iso(v);
+          return f && !soloGarantia(f) ? f : null;
+        };
+        const HECHA = (x) => x && (x.estado === "completa" || x.estado === "firmada") && !x.sinFechaNiFirma;
+        function tomaDeFichas(fichas, fechaDe2 = () => null) {
+          const tomas = (fichas || []).filter((x) => x && x.clase === "fichaPM");
+          const dia = (x) => x.fichaId ? isoToma(fechaDe2(x.fichaId)) : null;
+          const hechas = tomas.filter(HECHA).map(dia).filter(Boolean).sort();
+          if (hechas.length) return { tomaEstado: "completa", fechaToma: hechas[0] };
+          const medias = tomas.map(dia).filter(Boolean).sort();
+          if (medias.length) return { tomaEstado: "aMedias", fechaToma: medias[0] };
+          return { tomaEstado: "sinToma", fechaToma: null };
+        }
+        function diaDeToma(fila, { aMano = false } = {}) {
+          let d = fila && fila.datos;
+          if (typeof d === "string") {
+            try {
+              d = JSON.parse(d);
+            } catch {
+              d = null;
+            }
+          }
+          const fe = isoToma(d && d.cabecera && d.cabecera.fechaEnsayo);
+          if (!fe) return null;
+          const nacio = iso(fila && fila.creadoEn);
+          if (nacio && fe < nacio && !aMano) return null;
+          return fe;
+        }
+        function puestaEnMarcha(u) {
+          const p = u && u.pmFichas || {};
+          const fecha = isoToma(p.fechaToma);
+          const estado = fecha ? p.tomaEstado === "aMedias" ? "aMedias" : "enMarcha" : "sinToma";
+          const fechaTexto = texto(fecha);
+          if (estado === "enMarcha") return { estado, fecha, fechaTexto, etiqueta: `En marcha desde ${fechaTexto}`, tono: "bien", deToma: true };
+          if (estado === "aMedias") return { estado, fecha, fechaTexto, etiqueta: `${fechaTexto} \xB7 toma a medias`, tono: "info", deToma: true };
+          return { estado, fecha: null, fechaTexto: null, etiqueta: "Sin toma de datos", tono: "gris", deToma: false };
+        }
+        const fechaDe = (u) => puestaEnMarcha(u).fecha;
+        return { tomaDeFichas, diaDeToma, puestaEnMarcha, fechaDe, texto, FECHAS_SOLO_GARANTIA, soloGarantia };
+      });
+    }
+  });
+
+  // shared/commissioning/vidaEquipo.js
+  var require_vidaEquipo = __commonJS({
+    "shared/commissioning/vidaEquipo.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var G = typeof __require !== "undefined" ? require_garantia() : window.GARANTIA_CX;
+      var ROLES = typeof __require !== "undefined" ? require_roles() : window.ROLES;
+      var FPM = () => typeof __require === "function" ? require_fechaPM() : window.FECHA_PM;
+      var DIA = 864e5;
+      var diasEntre = (desde, hasta) => Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / DIA);
+      var hoyLocal = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
+      var fecha = (iso) => iso ? G.fechaVisible(iso) : null;
+      var aniosTexto = (n) => n ? `${String(n).replace(".", ",")} ${Number(n) === 1 ? "a\xF1o" : "a\xF1os"}` : null;
+      function puestaEnMarcha(u) {
+        return FPM().puestaEnMarcha(u);
+      }
+      function garantia(u, linea, hoy = hoyLocal()) {
+        const enConjunto = linea && Array.isArray(linea.miembros) && linea.miembros.length > 1;
+        const base = enConjunto ? {
+          fechaEnvioDF: linea.fechaEnvioDF || null,
+          garantiaAnios: linea.miembros.map((m) => Number(m.garantiaAnios) || 0).reduce((x, y) => Math.max(x, y), 0) || null,
+          diasUso: linea.diasUso ?? null,
+          diasUsoFecha: linea.diasUsoFecha || null
+        } : { fechaEnvioDF: u && u.fechaEnvioDF || null, garantiaAnios: u && u.garantiaAnios, diasUso: u ? u.diasUso ?? null : null, diasUsoFecha: u && u.diasUsoFecha || null };
+        const g = G.garantiaDe(base, hoy);
+        const duracion = aniosTexto(g.anios);
+        const sal = {
+          desde: g.inicio,
+          hasta: g.fin,
+          desdeTexto: fecha(g.inicio),
+          hastaTexto: fecha(g.fin),
+          anios: g.anios,
+          duracion,
+          quedanDias: null,
+          conjunto: enConjunto ? linea.tag || null : null,
+          /* Los días de uso antes de la entrega a DF (30-oct): aparte, no mueven la garantía. */
+          usoAntesEntrega: g.usoAntesEntrega ?? null,
+          textoUso: g.textoUso || null
+        };
+        if (g.estado === "sinEmpezar") return { ...sal, estado: "sinEntregaDF", tono: "gris", resumen: "Pendiente de entrega a DF" };
+        if (g.estado === "sinAnios") return { ...sal, estado: "sinDuracion", tono: "gris", resumen: "Duraci\xF3n sin dato" };
+        const quedan = diasEntre(hoy, g.fin);
+        if (g.estado === "vencida") return { ...sal, estado: "caducada", tono: "gris", quedanDias: quedan, resumen: `Caducada hace ${-quedan} ${-quedan === 1 ? "d\xEDa" : "d\xEDas"}` };
+        return { ...sal, estado: "vigente", tono: "bien", quedanDias: quedan, resumen: `Vigente \xB7 quedan ${quedan} ${quedan === 1 ? "d\xEDa" : "d\xEDas"}` };
+      }
+      var veCertificacion = (rol, { entregable = false } = {}) => !entregable && Boolean(ROLES && ROLES.puede(rol, "certificaciones", "ver"));
+      var norm = (t) => ` ${String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim()} `;
+      var casable = (t) => {
+        const n = norm(t).trim();
+        return n.length >= 4 && /\d/.test(n) ? n : null;
+      };
+      var textosDeLista = /* @__PURE__ */ new WeakMap();
+      var textosDe = (lista) => {
+        const ya = textosDeLista.get(lista);
+        if (ya && ya.length === lista.length) return ya;
+        const t = lista.map((p) => norm(p ? `${p.codigo || ""} ${p.resumen || ""} ${p.descripcion || ""}` : ""));
+        t.porPalabra = /* @__PURE__ */ new Map();
+        t.forEach((x, i) => {
+          for (const w of new Set(x.trim().split(" "))) {
+            if (!t.porPalabra.has(w)) t.porPalabra.set(w, []);
+            t.porPalabra.get(w).push(i);
+          }
+        });
+        textosDeLista.set(lista, t);
+        return t;
+      };
+      function partidaDe(u, partidas) {
+        const lista = partidas || [];
+        let textos = null;
+        for (const [por, valor] of [["tag", u && u.tag], ["modelo", u && u.modelo]]) {
+          const c = casable(valor);
+          if (!c) continue;
+          textos ||= textosDe(lista);
+          const aguja = ` ${c} `;
+          let candidatas = null;
+          for (const w of new Set(c.split(" "))) {
+            const l = textos.porPalabra.get(w) || [];
+            if (!candidatas || l.length < candidatas.length) candidatas = l;
+            if (!l.length) break;
+          }
+          const hit = (candidatas || []).filter((i) => textos[i].includes(aguja)).map((i) => lista[i]);
+          if (hit.length === 1) return { partida: hit[0], por, varias: [] };
+          if (hit.length > 1) return { partida: null, por, varias: hit };
+        }
+        return { partida: null, por: null, varias: [] };
+      }
+      var redondo = (n) => Math.round(Number(n) * 1e3) / 1e3;
+      var cifra = (n) => String(redondo(n)).replace(".", ",");
+      function certificadoPorPartida(lineas) {
+        const out = {};
+        for (const l of lineas || []) {
+          if (!l || l.certificacionEstado === "borrador") continue;
+          const a = out[l.lineaId] || (out[l.lineaId] = { cantidad: 0, ultima: null });
+          a.cantidad = redondo(a.cantidad + (Number(l.cantidad) || 0));
+          if (!a.ultima || Number(l.certificacionNumero) > a.ultima.numero) a.ultima = { numero: Number(l.certificacionNumero), estado: l.certificacionEstado, periodo: l.periodo || null };
+        }
+        return out;
+      }
+      var STOCK = /\b(STOCK|ESTOCAJE|NOT INSTALLED|NO INSTALAD[OA]S?)\b/;
+      var numPlanta = (p) => {
+        const m = /^N\s*(\d{1,2})\b/i.exec(String(p || "").trim());
+        return m ? Number(m[1]) : null;
+      };
+      function tramoDe(texto) {
+        const t = String(texto || "");
+        let m = /\bN(\d{2})\s*[–—-]\s*N?(\d{2})\b/.exec(t);
+        if (m) return [Number(m[1]), Number(m[2])];
+        m = /\bN(\d{2})\s+y\s+superiores\b/i.exec(t);
+        return m ? [Number(m[1]), 99] : null;
+      }
+      var capitulosDe = /* @__PURE__ */ new WeakMap();
+      function antecesores(codigo, capitulos) {
+        if (!capitulos) return [];
+        let idx = capitulosDe.get(capitulos);
+        if (!idx) {
+          idx = new Map(capitulos.map((c) => [String(c.codigo), c]));
+          capitulosDe.set(capitulos, idx);
+        }
+        const partes = String(codigo || "").split(".");
+        const out = [];
+        for (let i = 1; i < partes.length; i += 1) {
+          const c = idx.get(partes.slice(0, i).join("."));
+          if (c) out.push(c);
+        }
+        return out;
+      }
+      function resolverVarias(u, varias, { porPartida = {}, capitulos = null } = {}) {
+        const hecho = (p) => (porPartida[p.lineaId] || {}).cantidad || 0;
+        let cand = varias.filter((p) => (Number(p.cantidad) || 0) > 0 || hecho(p) > 0).filter((p) => !antecesores(p.codigo, capitulos).some((c) => STOCK.test(norm(c.resumen))));
+        const n = numPlanta(u && u.planta);
+        if (n !== null && capitulos) {
+          const conTramo = cand.map((p) => ({ p, tramos: antecesores(p.codigo, capitulos).map((c) => tramoDe(c.resumen)).filter(Boolean) }));
+          if (conTramo.some((x) => x.tramos.length)) cand = conTramo.filter((x) => x.tramos.some(([a, b]) => n >= a && n <= b)).map((x) => x.p);
+        }
+        const textos = new Set(cand.map((p) => norm(p.resumen).trim()));
+        return cand.length && textos.size === 1 ? cand : null;
+      }
+      function certificacion(u, datos) {
+        const { partidas = [], porPartida = {}, capitulos = null } = datos || {};
+        const { partida, por, varias } = partidaDe(u, partidas);
+        const grupo = !partida && varias.length ? resolverVarias(u, varias, { porPartida, capitulos }) : null;
+        if (grupo) {
+          const total2 = grupo.reduce((s, p3) => s + (Number(p3.cantidad) || 0), 0);
+          let cant = 0;
+          let ultima = null;
+          for (const p3 of grupo) {
+            const h = porPartida[p3.lineaId];
+            if (!h) continue;
+            cant += h.cantidad;
+            if (h.ultima && (!ultima || h.ultima.numero > ultima.numero)) ultima = h.ultima;
+          }
+          cant = redondo(cant);
+          const unidad = grupo[0].unidad || null;
+          const codigos = grupo.map((p3) => p3.codigo || "");
+          const pct2 = total2 > 0 ? Math.round(cant / total2 * 1e3) / 10 : null;
+          const p2 = { codigo: codigos.length > 1 ? `${codigos[0]} +${codigos.length - 1}` : codigos[0], codigos, resumen: grupo[0].resumen || "", por };
+          const base2 = { partida: p2, cantidad: cant, total: redondo(total2), unidad, pct: pct2, ultima };
+          return conEstado(base2, unidad ? ` ${unidad}` : "", codigos.length > 1 ? ` \xB7 ${codigos.length} partidas` : "");
+        }
+        if (!partida) {
+          if (varias.length) return { estado: "variasPartidas", tono: "gris", resumen: `Su ${por === "tag" ? "TAG" : "modelo"} sale en ${varias.length} partidas: ${varias.slice(0, 3).map((p2) => p2.codigo).join(", ")}${varias.length > 3 ? "\u2026" : ""}`, partida: null };
+          return { estado: "sinPartida", tono: "gris", resumen: "Sin partida del Costs Plan con su TAG o su modelo", partida: null };
+        }
+        const total = Number(partida.cantidad) || 0;
+        const hecho = porPartida[partida.lineaId] || { cantidad: 0, ultima: null };
+        const pct = total > 0 ? Math.round(hecho.cantidad / total * 1e3) / 10 : null;
+        const p = { codigo: partida.codigo || "", resumen: partida.resumen || "", por };
+        const ud = partida.unidad ? ` ${partida.unidad}` : "";
+        const base = { partida: p, cantidad: hecho.cantidad, total, unidad: partida.unidad || null, pct, ultima: hecho.ultima };
+        return conEstado(base, ud, "");
+      }
+      function conEstado(base, ud, de) {
+        const { cantidad: cant, total, pct } = base;
+        if (!cant) return { ...base, estado: "sinCertificar", tono: "gris", resumen: `Sin certificar${de}` };
+        if (!(total > 0)) return { ...base, estado: "certificada", tono: "bien", resumen: `Certificada: ${cifra(cant)}${ud} (partida sin cantidad de contrato)${de}` };
+        if (cant >= total - 1e-9) return { ...base, estado: "certificada", tono: "bien", resumen: `Certificada (${cifra(cant)} de ${cifra(total)}${ud})${de}` };
+        return { ...base, estado: "parcial", tono: "info", resumen: `Certificada en parte: ${cifra(cant)} de ${cifra(total)}${ud}${pct !== null ? ` (${String(pct).replace(".", ",")} %)` : ""}${de}` };
+      }
+      function fichaVida(u, linea, { rol, hoy, datosCertificacion = null, entregable = false } = {}) {
+        const out = { puestaMarcha: puestaEnMarcha(u), garantia: garantia(u, linea, hoy || hoyLocal()) };
+        if (veCertificacion(rol, { entregable }) && datosCertificacion) out.certificacion = certificacion(u, datosCertificacion);
+        return out;
+      }
+      var ESTADO_CERT_TXT = { borrador: "borrador", emitida: "emitida", aprobada: "aprobada" };
+      function bloquesFicha(vida) {
+        if (!vida) return [];
+        const v = (texto, tono = null) => ({ texto: texto || null, tono: texto ? tono : null });
+        const pm = vida.puestaMarcha;
+        const g = vida.garantia;
+        const out = [];
+        if (pm) {
+          out.push({ id: "puestaMarcha", titulo: "Puesta en marcha", filas: [
+            ["Fecha", pm.fechaTexto ? v(pm.fechaTexto) : v("Sin toma de datos", "gris")],
+            ["Estado", v(pm.etiqueta, pm.tono)]
+          ] });
+        }
+        if (g) {
+          out.push({ id: "garantia", titulo: "Garant\xEDa", filas: [
+            ["Desde", g.desdeTexto ? v(`${g.desdeTexto} (entrega a DF${g.conjunto ? " del conjunto" : ""})`) : v("Pendiente de entrega a DF", "gris")],
+            ["Hasta", g.hastaTexto ? v(g.hastaTexto) : v(null)],
+            ["Duraci\xF3n", g.duracion ? v(g.duracion) : v("Duraci\xF3n sin dato", "gris")],
+            ["D\xEDas de uso", g.textoUso ? v(g.textoUso, "info") : v("Sin dato", "gris")],
+            ...g.estado === "vigente" || g.estado === "caducada" ? [["Estado", v(g.resumen, g.tono)]] : []
+          ] });
+        }
+        const c = vida.certificacion;
+        if (c) {
+          const filas = [];
+          if (c.partida) filas.push(["Partida", v(`${c.partida.codigo}${c.partida.resumen ? ` \xB7 ${c.partida.resumen.slice(0, 70)}` : ""}`)]);
+          filas.push(["Estado", v(c.resumen, c.tono)]);
+          if (c.ultima) filas.push(["\xDAltima", v(`Certificaci\xF3n n\xBA ${c.ultima.numero} (${ESTADO_CERT_TXT[c.ultima.estado] || c.ultima.estado})${c.ultima.periodo ? ` \xB7 ${c.ultima.periodo}` : ""}`)]);
+          out.push({ id: "certificacion", titulo: "Certificaci\xF3n", filas });
+        }
+        return out;
+      }
+      var NOMBRE_CIRCUITO = { impulsion: "Impulsi\xF3n", retorno: "Retorno" };
+      var cifraBal = (n, dec = 0) => Number(n).toLocaleString("es-ES", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+      var pctBal = (d) => `${d > 0 ? "+" : ""}${cifraBal(d * 100, 1)} %`;
+      function bloqueBalanceo(resumen) {
+        const circuitos = resumen && resumen.circuitos;
+        if (!circuitos) return null;
+        const v = (texto, tono = null) => ({ texto: texto || null, tono: texto ? tono : null });
+        const tol = resumen.tolerancias || {};
+        const filas = [];
+        for (const id of ["impulsion", "retorno"]) {
+          const c = circuitos[id];
+          if (!c || !c.puntos) continue;
+          const nombre = NOMBRE_CIRCUITO[id];
+          filas.push([`${nombre} \xB7 bocas`, v(`${c.medidos} de ${c.puntos} medidas${c.faltan ? ` \xB7 faltan ${c.faltan}` : ""}`, c.faltan ? "gris" : "bien")]);
+          const ref = c.disenoReferencia;
+          if (c.suma !== null && c.suma !== void 0) {
+            filas.push([`${nombre} \xB7 caudal`, v(`${cifraBal(c.suma)} m\xB3/h medidos${ref !== null && ref !== void 0 ? ` frente a ${cifraBal(ref)} de proyecto` : ""}`)]);
+          } else if (c.sinAk) {
+            filas.push([`${nombre} \xB7 caudal`, v(`${c.sinAk} ${c.sinAk === 1 ? "boca" : "bocas"} sin factor Ak: sin caudal`, "gris")]);
+          }
+          let juicio;
+          if (c.estado === "dentro") juicio = v(`Dentro de tolerancia${c.desviacion !== null && c.desviacion !== void 0 ? ` (${pctBal(c.desviacion)})` : ""}`, "bien");
+          else if (c.estado === "alto" || c.estado === "bajo") juicio = v(`Fuera de tolerancia: ${c.estado === "alto" ? "alto" : "bajo"}${c.desviacion !== null && c.desviacion !== void 0 ? ` (${pctBal(c.desviacion)})` : ""}`, "mal");
+          else if (c.estado === "sinDiseno") juicio = v("Sin caudal de proyecto con el que comparar", "gris");
+          else juicio = v("Total sin juzgar hasta medir todas las bocas", "gris");
+          filas.push([`${nombre} \xB7 total`, juicio]);
+          if (c.dentro || c.fuera) {
+            filas.push([`${nombre} \xB7 por boca`, v(`${c.dentro} dentro \xB7 ${c.fuera} fuera${tol.boca ? ` de \xB1${cifraBal(tol.boca * 100)} %` : ""}`)]);
+          }
+        }
+        return filas.length ? { id: "balanceo", titulo: "Balanceo de caudales", filas } : null;
+      }
+      function codigosCasables(equipos) {
+        const out = /* @__PURE__ */ new Set();
+        for (const u of equipos || []) for (const v of [u && u.tag, u && u.modelo]) {
+          const c = casable(v);
+          if (c) out.add(c);
+        }
+        return [...out];
+      }
+      var API = { codigosCasables, puestaEnMarcha, garantia, veCertificacion, partidaDe, certificadoPorPartida, certificacion, fichaVida, bloquesFicha, bloqueBalanceo };
+      if (typeof module !== "undefined" && module.exports) module.exports = API;
+      if (typeof window !== "undefined") window.VIDA_EQUIPO = API;
+    }
+  });
+
+  // shared/commissioning/certificacionAlMovil.js
+  var require_certificacionAlMovil = __commonJS({
+    "shared/commissioning/certificacionAlMovil.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var TABLA = "certPlanoEquipos";
+      var SIN_DATO = /* @__PURE__ */ new Set(["sinPartida", "variasPartidas"]);
+      var existe = (db, t) => Boolean(db.prepare("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = ?").get(t));
+      function datosDeObra(db, obraId) {
+        const VE = require_vidaEquipo();
+        try {
+          const obra = db.prepare("SELECT presupuestoId FROM obras WHERE id = ?").get(obraId);
+          if (!obra || !obra.presupuestoId || !existe(db, "lineas") || !existe(db, "certificaciones")) return null;
+          const partidas = db.prepare("SELECT id AS lineaId, codigo, resumen, descripcion, cantidad, unidad FROM lineas WHERE presupuestoId = ? AND tipo = 'partida'").all(obra.presupuestoId);
+          if (!partidas.length) return null;
+          const lineas = db.prepare(
+            `SELECT l.lineaId, l.cantidad, x.numero AS certificacionNumero, x.estado AS certificacionEstado, x.periodo
+         FROM lineasCertificacion l JOIN certificaciones x ON x.id = l.certificacionId WHERE x.obraId = ?`
+          ).all(obraId);
+          const capitulos = db.prepare("SELECT codigo, resumen FROM lineas WHERE presupuestoId = ? AND tipo = 'capitulo'").all(obra.presupuestoId);
+          return { partidas, capitulos, porPartida: VE.certificadoPorPartida(lineas) };
+        } catch {
+          return null;
+        }
+      }
+      function estadosDeObra(db, obraId, datos = datosDeObra(db, obraId)) {
+        if (!datos) return null;
+        const VE = require_vidaEquipo();
+        const out = {};
+        for (const f of db.prepare("SELECT * FROM equiposObra WHERE obraId = ? ORDER BY id").all(obraId)) {
+          let c = null;
+          try {
+            c = VE.certificacion(f, datos);
+          } catch {
+            c = null;
+          }
+          if (c && c.estado && !SIN_DATO.has(c.estado)) out[f.id] = c.estado;
+        }
+        return out;
+      }
+      var huellas = /* @__PURE__ */ new WeakMap();
+      function huellaDe(db, obraId) {
+        const una = (sql, ...p) => {
+          try {
+            return JSON.stringify(db.prepare(sql).get(...p));
+          } catch {
+            return "-";
+          }
+        };
+        return [
+          una("SELECT COUNT(*) AS n, MAX(modificadoEn) AS m FROM equiposObra WHERE obraId = ?", obraId),
+          una("SELECT COUNT(*) AS n, MAX(l.modificadoEn) AS m FROM lineas l JOIN obras o ON o.presupuestoId = l.presupuestoId WHERE o.id = ?", obraId),
+          una("SELECT COUNT(*) AS n, MAX(modificadoEn) AS m FROM certificaciones WHERE obraId = ?", obraId),
+          una("SELECT COUNT(*) AS n, MAX(modificadoEn) AS m, SUM(cantidad) AS c FROM lineasCertificacion WHERE obraId = ?", obraId)
+        ].join("|");
+      }
+      function refrescar(db, obraId, ahora = (/* @__PURE__ */ new Date()).toISOString()) {
+        if (!existe(db, TABLA)) return false;
+        const h = huellaDe(db, obraId);
+        const vistas = huellas.get(db) || /* @__PURE__ */ new Map();
+        huellas.set(db, vistas);
+        if (vistas.get(obraId) === h) return false;
+        const estados = estadosDeObra(db, obraId);
+        if (!estados) return false;
+        const json = JSON.stringify(estados);
+        const actual = db.prepare(`SELECT estados FROM "${TABLA}" WHERE id = ?`).get(obraId);
+        vistas.set(obraId, h);
+        if (actual && actual.estados === json) return false;
+        if (actual) db.prepare(`UPDATE "${TABLA}" SET estados = ?, modificadoEn = ? WHERE id = ?`).run(json, ahora, obraId);
+        else db.prepare(`INSERT INTO "${TABLA}" (id, obraId, estados, creadoEn, modificadoEn) VALUES (?, ?, ?, ?, ?)`).run(obraId, obraId, json, ahora, ahora);
+        return true;
+      }
+      function leer(db, obraId) {
+        try {
+          if (!existe(db, TABLA)) return null;
+          const f = db.prepare(`SELECT estados FROM "${TABLA}" WHERE id = ?`).get(obraId);
+          return f ? new Map(Object.entries(JSON.parse(f.estados || "{}"))) : null;
+        } catch {
+          return null;
+        }
+      }
+      module.exports = { TABLA, datosDeObra, estadosDeObra, refrescar, leer };
+    }
+  });
+
   // shared/sync/frontera.js
   var require_frontera = __commonJS({
     "shared/sync/frontera.js"(exports, module) {
@@ -12602,6 +13085,12 @@ globalThis.CX_VARIANTE="cxobra";
           }
           const usadas = existe(db, "planosDifusores") ? new Set(db.prepare(`SELECT imagenId FROM planosDifusores WHERE obraId IN (${enLista(ids.length)})`).all(...ids).map((p) => p.imagenId).filter(Boolean)) : /* @__PURE__ */ new Set();
           const recuentosCx = existe(db, "inventarioRecuentos") ? new Set(db.prepare(`SELECT id FROM inventarioRecuentos WHERE origen = 'cx' AND obraId IN (${enLista(ids.length)})`).all(...ids).map((r) => r.id)) : /* @__PURE__ */ new Set();
+          for (const id of ids) {
+            try {
+              require_certificacionAlMovil().refrescar(db, id);
+            } catch {
+            }
+          }
           for (const t of POR_OBRA) {
             if (!existe(db, t)) continue;
             const cols = columnas(db, t);
@@ -14192,6 +14681,8 @@ globalThis.CX_VARIANTE="cxobra";
         equiposNoDuplicados: { porObra: "obraId" },
         crucesIfc: { porObra: "obraId" },
         plantasIfc: { porObra: "obraId" },
+        /* 26-nov: lo certificado por equipo para el plano del móvil (shared/commissioning/certificacionAlMovil.js). */
+        certPlanoEquipos: { porObra: "obraId" },
         fotosEquipo: { porObra: "obraId" },
         documentos: { porObra: "obraId" },
         buzonDocumentos: { porObra: "obraId" },
@@ -14423,6 +14914,8 @@ globalThis.CX_VARIANTE="cxobra";
         tareasRepetitivas: { privadoDe: "personaId" },
         tareasRepetitivasHechas: { privadoDe: "personaId" },
         obrasSeguidas: { privadoDe: "personaId" },
+        /* 26-nov: la firma de cada persona (Ajustes › Mi firma): solo la suya. */
+        firmasPersona: { privadoDe: "personaId" },
         /* La biblioteca es de la casa: la ve cualquiera que pueda presupuestar. */
         descripcionesConcepto: { publico: true },
         /*
@@ -15073,6 +15566,7 @@ globalThis.CX_VARIANTE="cxobra";
       var TANDA = 150;
       var TABLAS_DESPUES = /* @__PURE__ */ new Set([
         "firmasEquipo",
+        "firmasPersona",
         "imagenesPlanoDif",
         "planosEquipos",
         "materialesInstalados",
@@ -16429,6 +16923,174 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
+  // shared/nubeEmpresa.js
+  var require_nubeEmpresa = __commonJS({
+    "shared/nubeEmpresa.js"(exports, module) {
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var RPC_EMPRESA = "nube_empresa";
+      var VARS_DE_VIDAIRE = ["VIDAIRE_NUBE_URL", "VIDAIRE_NUBE_ANON", "VIDAIRE_CX_URL", "VIDAIRE_CX_ANON", "VIDAIRE_CX_SECRETA"];
+      var PERFILES_GENERICOS = ["vidaire", "cliente-final", "contrata-instalaciones", "ingenieria-df", "subcontrata"];
+      var RE_EMPRESA = /^[a-z0-9][a-z0-9-]{1,40}$/;
+      function normalizarEmpresa(id) {
+        const s = String(id == null ? "" : id).trim().toLowerCase();
+        return RE_EMPRESA.test(s) ? s : null;
+      }
+      function esPerfilDeEmpresa(perfil) {
+        return Boolean(perfil && perfil.id && !PERFILES_GENERICOS.includes(perfil.id));
+      }
+      function empresaDelPerfil(perfil) {
+        if (!perfil) return null;
+        return normalizarEmpresa(perfil.nube && perfil.nube.empresaId || perfil.id);
+      }
+      function sufijo(empresaId) {
+        return String(empresaId).toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+      }
+      function variablesDeEmpresa(empresaId) {
+        const e = normalizarEmpresa(empresaId);
+        if (!e) throw new Error(`empresa \xAB${empresaId}\xBB no v\xE1lida: min\xFAsculas, cifras y guiones`);
+        const s = sufijo(e);
+        return {
+          urlVar: `NUBE_${s}_URL`,
+          claveAnonVar: `NUBE_${s}_ANON`,
+          cxUrlVar: `NUBE_${s}_CX_URL`,
+          cxClaveAnonVar: `NUBE_${s}_CX_ANON`,
+          claveSecretaVar: `NUBE_${s}_CX_SECRETA`
+        };
+      }
+      function servicioLlavero(empresaId) {
+        const e = normalizarEmpresa(empresaId);
+        if (!e) throw new Error(`empresa \xAB${empresaId}\xBB no v\xE1lida`);
+        return `vidaire-nube:${e}`;
+      }
+      var MOTIVOS = {
+        "sin-empresa": "Este perfil no dice de qu\xE9 empresa es: no se sincroniza.",
+        "nube-sin-sellar": "La nube no est\xE1 sellada con su empresa: no se sincroniza hasta sellarla (docs/alta-empresa-nube.md).",
+        "otra-empresa": "Esta nube es de OTRA empresa: no se sincroniza nada con ella.",
+        "sin-red": "Sin conexi\xF3n con la nube: se vuelve a intentar."
+      };
+      async function comprobarEmpresa({ leerEmpresa, empresaId }) {
+        const mia = normalizarEmpresa(empresaId);
+        if (!mia) return { ok: false, empresaNube: null, motivo: "sin-empresa", mensaje: MOTIVOS["sin-empresa"] };
+        let crudo;
+        try {
+          crudo = await leerEmpresa();
+        } catch (e) {
+          if (e && e.sinRed) return { ok: false, empresaNube: null, motivo: "sin-red", mensaje: MOTIVOS["sin-red"] };
+          const cuerpo = e && e.cuerpo || {};
+          const m = [e && e.codigo, e && e.code, cuerpo.code, e && e.message].filter(Boolean).join(" ");
+          if (/PGRST202|42883|\b404\b/i.test(m)) return { ok: false, empresaNube: null, motivo: "nube-sin-sellar", mensaje: MOTIVOS["nube-sin-sellar"] };
+          return { ok: false, empresaNube: null, motivo: "sin-red", mensaje: MOTIVOS["sin-red"] };
+        }
+        const valor = Array.isArray(crudo) ? crudo[0] && (crudo[0].empresa_id || crudo[0].nube_empresa) : crudo && typeof crudo === "object" ? crudo.empresa_id : crudo;
+        const suya = normalizarEmpresa(valor);
+        if (!suya) return { ok: false, empresaNube: null, motivo: "nube-sin-sellar", mensaje: MOTIVOS["nube-sin-sellar"] };
+        if (suya !== mia) return { ok: false, empresaNube: suya, motivo: "otra-empresa", mensaje: MOTIVOS["otra-empresa"] };
+        return { ok: true, empresaNube: suya, motivo: null, mensaje: null };
+      }
+      function lectorPorRest({ url, clave, fetch: pedir = globalThis.fetch }) {
+        return async () => {
+          const base = String(url || "").replace(/\/+$/, "");
+          const r = await pedir(`${base}/rest/v1/rpc/${RPC_EMPRESA}`, {
+            method: "POST",
+            headers: { apikey: clave, Authorization: `Bearer ${clave}`, "Content-Type": "application/json" },
+            body: "{}"
+          });
+          if (!r.ok) {
+            const e = new Error(`nube_empresa: ${r.status}`);
+            e.codigo = String(r.status);
+            throw e;
+          }
+          const t = await r.text();
+          try {
+            return JSON.parse(t);
+          } catch {
+            return t;
+          }
+        };
+      }
+      function crearBarrera({ leerEmpresa, empresaId, registro = () => {
+      }, reintento = 5 * 60 * 1e3, ahora = () => Date.now() }) {
+        let ultimo = null;
+        let en = 0;
+        let enCurso = null;
+        let avisado = null;
+        async function comprobar() {
+          if (ultimo && ultimo.ok) return ultimo;
+          if (ultimo && ultimo.motivo !== "sin-red" && ahora() - en < reintento) return ultimo;
+          if (!enCurso) {
+            enCurso = comprobarEmpresa({ leerEmpresa, empresaId }).then((r) => {
+              ultimo = r;
+              en = ahora();
+              if (!r.ok && r.motivo !== "sin-red" && avisado !== r.motivo) {
+                avisado = r.motivo;
+                registro(`Nube: ${r.mensaje}${r.empresaNube ? ` (la nube es de \xAB${r.empresaNube}\xBB, este perfil de \xAB${empresaId}\xBB)` : ""}`);
+              }
+              return r;
+            }).finally(() => {
+              enCurso = null;
+            });
+          }
+          return enCurso;
+        }
+        return { comprobar, ultimo: () => ultimo };
+      }
+      var LOCALES = /* @__PURE__ */ new Set(["sesion", "yo", "salir"]);
+      function protegerNube(nube, barrera, { empresaId = null } = {}) {
+        return new Proxy(nube, {
+          get(obj, prop) {
+            const v = obj[prop];
+            if (typeof v !== "function" || LOCALES.has(prop)) return v;
+            return async (...args) => {
+              if (!(prop === "rpc" && args[0] === RPC_EMPRESA)) {
+                const r = await barrera.comprobar();
+                if (!r.ok) throw Object.assign(new Error(r.mensaje), { sinRed: true, otraEmpresa: r.motivo === "otra-empresa", barrera: r.motivo });
+              }
+              if (prop === "llamarFuncion" && empresaId) args[2] = conEmpresa(args[2], empresaId);
+              return v.apply(obj, args);
+            };
+          }
+        });
+      }
+      function conEmpresa(cuerpo, empresaId) {
+        const e = normalizarEmpresa(empresaId);
+        if (!e) return cuerpo;
+        if (typeof cuerpo === "string") {
+          try {
+            const j = JSON.parse(cuerpo || "{}");
+            return j && typeof j === "object" && !Array.isArray(j) ? JSON.stringify({ ...j, empresa: e }) : cuerpo;
+          } catch {
+            return cuerpo;
+          }
+        }
+        if (cuerpo && typeof cuerpo === "object" && !Array.isArray(cuerpo)) return { ...cuerpo, empresa: e };
+        if (cuerpo == null) return JSON.stringify({ empresa: e });
+        return cuerpo;
+      }
+      function prefijoSiembra(perfil) {
+        if (!esPerfilDeEmpresa(perfil)) return "";
+        const e = empresaDelPerfil(perfil);
+        return e ? `${e}-` : "";
+      }
+      module.exports = {
+        RPC_EMPRESA,
+        VARS_DE_VIDAIRE,
+        PERFILES_GENERICOS,
+        MOTIVOS,
+        normalizarEmpresa,
+        esPerfilDeEmpresa,
+        empresaDelPerfil,
+        variablesDeEmpresa,
+        servicioLlavero,
+        comprobarEmpresa,
+        lectorPorRest,
+        crearBarrera,
+        protegerNube,
+        conEmpresa,
+        prefijoSiembra
+      };
+    }
+  });
+
   // shared/sync/telefono.js
   var require_telefono = __commonJS({
     "shared/sync/telefono.js"(exports, module) {
@@ -16438,6 +17100,7 @@ globalThis.CX_VARIANTE="cxobra";
       var { crearMotor } = require_motor2();
       var { crearArchivos } = require_archivos();
       var { crearTimbre } = require_tiempoReal();
+      var NE = require_nubeEmpresa();
       async function entrarConHuella(nube, email, hashClave) {
         const clave = claveNube(hashClave);
         if (!clave || !email) throw new Error("Sin huella para entrar en la nube.");
@@ -16483,7 +17146,9 @@ globalThis.CX_VARIANTE="cxobra";
         io = null
         /* las fotos: { existe, leer, escribir, carpeta } (archivos.js) */
       }) {
-        const nube = crearNube({ url: config.url, clave: config.publishableKey, fetch: f, sesion, alCambiarSesion });
+        const nubeCruda = crearNube({ url: config.url, clave: config.publishableKey, fetch: f, sesion, alCambiarSesion });
+        const barrera = config.empresaId ? NE.crearBarrera({ empresaId: config.empresaId, registro, leerEmpresa: () => nubeCruda.rpc(NE.RPC_EMPRESA) }) : null;
+        const nube = barrera ? NE.protegerNube(nubeCruda, barrera, { empresaId: config.empresaId }) : nubeCruda;
         let motor = null;
         let timbre = null;
         let reloj = null;
@@ -16520,7 +17185,8 @@ globalThis.CX_VARIANTE="cxobra";
           }
           return motor;
         }
-        return {
+        let reintento = null;
+        const api = {
           nube,
           yo: () => nube.yo(),
           entrarConHuella: async (email, hashClave) => {
@@ -16535,8 +17201,20 @@ globalThis.CX_VARIANTE="cxobra";
           },
           montar,
           motor: () => motor,
-          arrancar() {
-            if (!montar()) return Promise.resolve(null);
+          /** ¿La nube es de esta empresa? { ok, motivo, empresaNube } (sin barrera, siempre sí). */
+          comprobarEmpresa: () => barrera ? barrera.comprobar() : Promise.resolve({ ok: true }),
+          async arrancar() {
+            if (!montar()) return null;
+            if (barrera) {
+              const b = await barrera.comprobar();
+              if (!b.ok) {
+                clearTimeout(reintento);
+                reintento = setTimeout(() => {
+                  api.arrancar();
+                }, 5 * 60 * 1e3);
+                return { barrera: b.motivo, empresaNube: b.empresaNube };
+              }
+            }
             if (timbre) timbre.arrancar();
             clearInterval(reloj);
             let ultima = Date.now();
@@ -16561,6 +17239,7 @@ globalThis.CX_VARIANTE="cxobra";
           },
           parar() {
             clearInterval(reloj);
+            clearTimeout(reintento);
             if (motor) motor.parar();
             if (timbre) timbre.parar();
           },
@@ -16570,8 +17249,13 @@ globalThis.CX_VARIANTE="cxobra";
             motor = null;
             timbre = null;
           },
-          estado: () => motor ? { ...motor.estado(), tiempoReal: Boolean(timbre && timbre.conectado()), conectado: true } : { estado: nube.yo() ? "parado" : "sin-sesion", conectado: false }
+          estado: () => {
+            const b = barrera && barrera.ultimo();
+            if (b && !b.ok && b.motivo !== "sin-red") return { estado: "otra-nube", barrera: b.motivo, mensaje: b.mensaje, conectado: false };
+            return motor ? { ...motor.estado(), tiempoReal: Boolean(timbre && timbre.conectado()), conectado: true } : { estado: nube.yo() ? "parado" : "sin-sesion", conectado: false };
+          }
         };
+        return api;
       }
       module.exports = { crearSyncTelefono, entrarConHuella, entrarConClave, ponerMiFicha: ponerMiFicha2 };
     }
@@ -16582,7 +17266,8 @@ globalThis.CX_VARIANTE="cxobra";
     "cxobra/sync-publico.json"(exports, module) {
       module.exports = {
         url: "https://dgwqczsbzwblbhbhqkjd.supabase.co",
-        publishableKey: "sb_publishable_yi72T-CIiextCBGIEynNlQ_ChIlMNXB"
+        publishableKey: "sb_publishable_yi72T-CIiextCBGIEynNlQ_ChIlMNXB",
+        empresaId: "cbre"
       };
     }
   });
@@ -18658,6 +19343,8 @@ globalThis.CX_VARIANTE="cxobra";
         ncrComentarios: "ncr",
         parteIncidenciaComentarios: "partesIncidencia",
         certificaciones: "certificaciones",
+        /* 26-nov: lo certificado por equipo (solo el estado) para el plano del móvil: se ve con certificaciones. */
+        certPlanoEquipos: "certificaciones",
         lineasCertificacion: "certificaciones",
         correccionesCertificacion: "certificaciones",
         /* Lo que se le certifica a cada industrial, por pedido y mes. */
@@ -18783,6 +19470,7 @@ globalThis.CX_VARIANTE="cxobra";
         tareasRepetitivas: "notas",
         tareasRepetitivasHechas: "notas",
         obrasSeguidas: "notas",
+        firmasPersona: "notas",
         descripcionesConcepto: "biblioteca",
         ausencias: "vacaciones",
         festivos: "vacaciones",
@@ -19044,6 +19732,18 @@ globalThis.CX_VARIANTE="cxobra";
         function textoPendiente(rellenos, total) {
           return total > rellenos ? `PENDIENTE: faltan ${total - rellenos} de ${total} valores.` : null;
         }
+        const FAMILIAS_VENTILADOR = Object.freeze(["SP_PARKING", "SP_VENTILACION", "SP_PRESURIZACION"]);
+        const HOJA_VENTILADOR = /^(VENTILADOR_|VENT_|CHECKLIST_VENTILADOR$)/;
+        function esVentilador(equipo, hoja) {
+          const e = equipo || {};
+          return FAMILIAS_VENTILADOR.includes(String(e.familia || "").toUpperCase()) || HOJA_VENTILADOR.test(String(e.plantillaPM || "")) || HOJA_VENTILADOR.test(String(hoja || ""));
+        }
+        function denominacionDeHoja(equipo, hoja) {
+          const e = equipo || {};
+          const tag = String(e.tag || "").trim();
+          if (tag && esVentilador(e, hoja)) return tag;
+          return e.denominacion == null ? "" : String(e.denominacion);
+        }
         const FAMILIAS_CON_VELOCIDADES = Object.freeze(["AIRLAN_FANCOIL"]);
         function llevaVelocidades(familia, hoja) {
           if (familia) return FAMILIAS_CON_VELOCIDADES.includes(String(familia).toUpperCase());
@@ -19099,6 +19799,9 @@ globalThis.CX_VARIANTE="cxobra";
           pieFoto,
           FAMILIAS_CON_VELOCIDADES,
           llevaVelocidades,
+          FAMILIAS_VENTILADOR,
+          esVentilador,
+          denominacionDeHoja,
           redDeBocas,
           origenCaudal,
           origenDeMedido,
@@ -21189,74 +21892,36 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // shared/commissioning/garantia.js
-  var require_garantia = __commonJS({
-    "shared/commissioning/garantia.js"(exports, module) {
+  // shared/commissioning/sinHojaFabricante.js
+  var require_sinHojaFabricante = __commonJS({
+    "shared/commissioning/sinHojaFabricante.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
-      var fechaISO = (v) => {
-        const s = String(v || "").trim();
-        return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null;
-      };
-      function sumarAnios(iso, anios) {
-        const [a, m, d] = iso.split("-").map(Number);
-        const meses = Math.round(Number(anios) * 12);
-        const f = new Date(Date.UTC(a, m - 1 + meses, d));
-        if (f.getUTCDate() !== d) f.setUTCDate(0);
-        return f.toISOString().slice(0, 10);
-      }
-      var hoyLocal = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
-      var fechaVisible = (iso) => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "";
-      function garantiaDe(e, hoy = hoyLocal()) {
-        const g = garantiaSola(e, hoy);
-        const u = e && e.diasUso !== void 0 && e.diasUso !== null && e.diasUso !== "" ? usoDe(e, hoy) : null;
-        return u && u.textoGarantia ? { ...g, usoAntesEntrega: u.antesEntrega, textoUso: u.textoGarantia } : g;
-      }
-      function garantiaSola(e, hoy) {
-        const inicio = fechaISO(e && e.fechaEnvioDF);
-        const n = Number(e && e.garantiaAnios);
-        const anios = Number.isFinite(n) && n > 0 ? n : null;
-        if (!inicio) return { estado: "sinEmpezar", inicio: null, fin: null, anios, texto: "Garant\xEDa: sin empezar (pendiente de entrega a DF)" };
-        if (!anios) return { estado: "sinAnios", inicio, fin: null, anios: null, texto: `Garant\xEDa: desde ${fechaVisible(inicio)} (faltan los a\xF1os de garant\xEDa)` };
-        const fin = sumarAnios(inicio, anios);
-        const estado = fin < hoy ? "vencida" : "vigente";
-        return { estado, inicio, fin, anios, texto: `Garant\xEDa: ${fechaVisible(inicio)} \u2192 ${fechaVisible(fin)}${estado === "vencida" ? " (vencida)" : ""}` };
-      }
-      var GARANTIA_DIA_MS = 864e5;
-      var MAX_DIAS_USO = 36500;
-      var diasEntreGarantia = (desde, hasta) => Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / GARANTIA_DIA_MS);
-      var restarDiasGarantia = (iso, n) => new Date(Date.parse(`${iso}T00:00:00Z`) - n * GARANTIA_DIA_MS).toISOString().slice(0, 10);
-      function leerDiasUso(v) {
-        const s = v === null || v === void 0 ? "" : String(v).trim().replace(",", ".");
-        if (s === "") return null;
-        const n = Number(s);
-        if (!Number.isFinite(n) || n < 0 || n > MAX_DIAS_USO || Math.round(n) !== n) return { error: `\xAB${v}\xBB no son unos d\xEDas de uso (un n\xFAmero entero entre 0 y ${MAX_DIAS_USO}).` };
-        return n;
-      }
-      function sugerenciaDiasUso(fechaPuestaMarcha, hoy = hoyLocal()) {
-        const f = fechaISO(fechaPuestaMarcha);
-        if (!f) return null;
-        const n = diasEntreGarantia(f, hoy);
-        return n >= 0 ? n : null;
-      }
-      function usoDe(e, hoy = hoyLocal()) {
-        const x = e || {};
-        const n = Number(x.diasUso);
-        const dias = x.diasUso !== null && x.diasUso !== void 0 && x.diasUso !== "" && Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
-        const fecha = dias === null ? null : fechaISO(x.diasUsoFecha) || hoy;
-        const inicio = dias === null ? null : restarDiasGarantia(fecha, dias);
-        const entrega = fechaISO(x.fechaEnvioDF);
-        const antesEntrega = dias === null ? null : !entrega || entrega >= fecha ? dias : Math.max(0, dias - diasEntreGarantia(entrega, fecha));
-        const sugerencia = dias === null ? sugerenciaDiasUso(x.fechaPuestaMarcha, hoy) : null;
-        const d = (k) => `${k} ${k === 1 ? "d\xEDa" : "d\xEDas"}`;
-        const texto = dias === null ? null : `${d(dias)} de uso (a ${fechaVisible(fecha)})`;
-        const textoGarantia = dias === null ? null : entrega ? `${d(antesEntrega)} de uso antes de la entrega` : `${d(antesEntrega)} de uso, a\xFAn sin entregar a DF`;
-        return { dias, fecha, inicio, antesEntrega, entregado: Boolean(entrega), sugerencia, texto, textoGarantia };
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.GARANTIA_CX = API;
-      })({ garantiaDe, sumarAnios, fechaVisible, fechaISO, leerDiasUso, sugerenciaDiasUso, usoDe, MAX_DIAS_USO });
+      (function(raiz, fabrica) {
+        const api = fabrica();
+        if (typeof module === "object" && module.exports) module.exports = api;
+        if (raiz) raiz.SIN_HOJA_FABRICANTE = api;
+      })(typeof window !== "undefined" ? window : null, function() {
+        const FAMILIAS = /* @__PURE__ */ new Set([
+          "SP_VENTILACION",
+          "SP_PARKING",
+          "SP_PRESURIZACION",
+          /* El catálogo genérico por tipo del Gestor. */
+          "VENTILACION",
+          "VENTILACION_PARKING",
+          "PRESURIZACION"
+        ]);
+        const PLANTILLAS_PM = /* @__PURE__ */ new Set(["VENTILADOR_AXIAL", "VENTILADOR_EXTRACTOR", "VENT_COMPLETO"]);
+        const clave = (v) => String(v == null ? "" : v).trim().toUpperCase();
+        function sinHojaFabricante(x) {
+          if (x == null) return false;
+          if (typeof x !== "object") return FAMILIAS.has(clave(x));
+          if (Array.isArray(x.miembros) && x.miembros.length) return x.miembros.every(sinHojaFabricante);
+          return FAMILIAS.has(clave(x.familia)) || FAMILIAS.has(clave(x.codigoFamilia)) || PLANTILLAS_PM.has(clave(x.plantillaPM));
+        }
+        const esPuntoInformeFabricante = (etiqueta) => /informe de puesta en marcha del fabricante/i.test(String(etiqueta || ""));
+        return { FAMILIAS_SIN_HOJA_FABRICANTE: FAMILIAS, sinHojaFabricante, esPuntoInformeFabricante };
+      });
     }
   });
 
@@ -21304,7 +21969,7 @@ globalThis.CX_VARIANTE="cxobra";
             codigo,
             titulo,
             tipo: "checklist",
-            puntos: puntos.map(([c, t]) => ({ codigo: c, etiqueta: t, tipo: "siNoNa" }))
+            puntos: puntos.map(([c, t, extra]) => ({ codigo: c, etiqueta: t, tipo: "siNoNa", ...extra || {} }))
           };
         }
         function identificacion() {
@@ -24646,7 +25311,8 @@ globalThis.CX_VARIANTE="cxobra";
               ["08.04", "El sistema se enciende sin ning\xFAn ruido o vibraci\xF3n anormal"],
               ["08.05", "Verificaci\xF3n del arranque y paro por sistema de control"],
               ["08.06", "Los ventiladores giran correctamente y su velocidad se corresponde con el Proyecto"],
-              ["08.07", "Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes"]
+              /* 26-nov (JC): en ventiladores no hay hoja de puesta en marcha del fabricante: este punto va siempre en NA. */
+              ["08.07", "Se adjunta informe de puesta en marcha del fabricante con detalle de las pruebas, medidas y ajustes", { naFija: true }]
             ]),
             bloque("09", "MANTENIMIENTO", P_MANTENIMIENTO_LARGO)
           ]),
@@ -26051,9 +26717,9 @@ globalThis.CX_VARIANTE="cxobra";
                 }
                 resultado = peorFx(resultado, ev.resultado);
               } else {
-                const val = v ? v.v : null;
+                const val = punto.naFija ? "na" : v ? v.v : null;
                 fila.valor = val;
-                if (ob) {
+                if (ob && !punto.naFija) {
                   obligatorios += 1;
                   if (val !== null && val !== void 0) rellenos += 1;
                   else faltan.push(s.tipo === "checklist" ? `Respuesta ${punto.numero || punto.codigo}` : punto.etiqueta);
@@ -26689,7 +27355,7 @@ ${obsO}` : obsO).slice(0, 4e3);
               if (hayValorFx(punto.valorPorDefecto)) d.valores[punto.codigo] = { v: punto.valorPorDefecto, o: "plantilla" };
               continue;
             }
-            const v = equipo[punto.origen];
+            const v = punto.origen === "denominacion" && reglasFx && reglasFx.denominacionDeHoja ? reglasFx.denominacionDeHoja(equipo, plantilla && plantilla.codigo) : equipo[punto.origen];
             if (!hayValorFx(v)) continue;
             const val = punto.tipo === "numero" ? numFx(v) : llanoFx(v);
             if (val === null) continue;
@@ -26954,67 +27620,6 @@ ${obsO}` : obsO).slice(0, 4e3);
     }
   });
 
-  // shared/commissioning/fechaPM.js
-  var require_fechaPM = __commonJS({
-    "shared/commissioning/fechaPM.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function(raiz, fabrica) {
-        const api = fabrica();
-        if (typeof module === "object" && module.exports) module.exports = api;
-        if (raiz) raiz.FECHA_PM = api;
-      })(typeof window !== "undefined" ? window : null, function() {
-        const iso = (v) => {
-          const s = String(v || "").trim().slice(0, 10);
-          return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
-        };
-        const texto = (f) => f ? f.split("-").reverse().join("/") : null;
-        const FECHAS_SOLO_GARANTIA = Object.freeze(["2025-04-01", "2025-05-01", "2025-07-01", "2025-08-01", "2025-09-01"]);
-        const soloGarantia = (f) => FECHAS_SOLO_GARANTIA.includes(f);
-        const isoToma = (v) => {
-          const f = iso(v);
-          return f && !soloGarantia(f) ? f : null;
-        };
-        const HECHA = (x) => x && (x.estado === "completa" || x.estado === "firmada") && !x.sinFechaNiFirma;
-        function tomaDeFichas(fichas, fechaDe2 = () => null) {
-          const tomas = (fichas || []).filter((x) => x && x.clase === "fichaPM");
-          const dia = (x) => x.fichaId ? isoToma(fechaDe2(x.fichaId)) : null;
-          const hechas = tomas.filter(HECHA).map(dia).filter(Boolean).sort();
-          if (hechas.length) return { tomaEstado: "completa", fechaToma: hechas[0] };
-          const medias = tomas.map(dia).filter(Boolean).sort();
-          if (medias.length) return { tomaEstado: "aMedias", fechaToma: medias[0] };
-          return { tomaEstado: "sinToma", fechaToma: null };
-        }
-        function diaDeToma(fila, { aMano = false } = {}) {
-          let d = fila && fila.datos;
-          if (typeof d === "string") {
-            try {
-              d = JSON.parse(d);
-            } catch {
-              d = null;
-            }
-          }
-          const fe = isoToma(d && d.cabecera && d.cabecera.fechaEnsayo);
-          if (!fe) return null;
-          const nacio = iso(fila && fila.creadoEn);
-          if (nacio && fe < nacio && !aMano) return null;
-          return fe;
-        }
-        function puestaEnMarcha(u) {
-          const p = u && u.pmFichas || {};
-          const fecha = isoToma(p.fechaToma);
-          const estado = fecha ? p.tomaEstado === "aMedias" ? "aMedias" : "enMarcha" : "sinToma";
-          const fechaTexto = texto(fecha);
-          if (estado === "enMarcha") return { estado, fecha, fechaTexto, etiqueta: `En marcha desde ${fechaTexto}`, tono: "bien", deToma: true };
-          if (estado === "aMedias") return { estado, fecha, fechaTexto, etiqueta: `${fechaTexto} \xB7 toma a medias`, tono: "info", deToma: true };
-          return { estado, fecha: null, fechaTexto: null, etiqueta: "Sin toma de datos", tono: "gris", deToma: false };
-        }
-        const fechaDe = (u) => puestaEnMarcha(u).fecha;
-        return { tomaDeFichas, diaDeToma, puestaEnMarcha, fechaDe, texto, FECHAS_SOLO_GARANTIA, soloGarantia };
-      });
-    }
-  });
-
   // shared/commissioning/control.js
   var require_control = __commonJS({
     "shared/commissioning/control.js"(exports, module) {
@@ -27022,6 +27627,7 @@ ${obsO}` : obsO).slice(0, 4e3);
       var import_buffer_global10 = __toESM(require_buffer_global());
       var sistemasCx = typeof __require !== "undefined" ? require_sistemas() : window.SISTEMAS_CX;
       var garantiaCx = typeof __require !== "undefined" ? require_garantia() : window.GARANTIA_CX;
+      var sinHojaCx = typeof __require !== "undefined" ? require_sinHojaFabricante() : window.SIN_HOJA_FABRICANTE;
       var conjuntosCx = () => typeof __require !== "undefined" ? require_conjuntos() : window.CONJUNTOS_CX;
       var ESTADOS_MONTAJE = ["pendiente", "acopiado", "instalado", "enMarcha", "recepcionado"];
       var ESTADOS_PM = ["pendiente", "programada", "enProceso", "enMarcha", "hecha", "conReservas"];
@@ -27164,7 +27770,7 @@ ${obsO}` : obsO).slice(0, 4e3);
         conReservas: "Con reservas",
         enMarcha: "En marcha"
       };
-      var hojaFabricantePM = (e) => hayDoc(e && e.docFichaPM);
+      var hojaFabricantePM = (e) => sinHojaCx.sinHojaFabricante(e) || hayDoc(e && e.docFichaPM);
       function estadoPMDerivado(e) {
         const a = e && e.pmFichas ? e.pmFichas.fichaPM : null;
         if (a === "noApta") return "conReservas";
@@ -27206,7 +27812,7 @@ ${obsO}` : obsO).slice(0, 4e3);
         const ft = hayDoc(e.docFichaTecnica) || hayDoc(modelo && modelo.docFichaTecnica);
         const ce = hayDoc(e.docMarcadoCE) || hayDoc(modelo && modelo.docMarcadoCE);
         const manual = hayDoc(e.docManual) || hayDoc(modelo && modelo.docManual);
-        const fichaPM = hojaFabricantePM(e);
+        const fichaPM = sinHojaCx.sinHojaFabricante(e) ? Boolean(e.pmFichas && e.pmFichas.fichaPM === "hecha") : hojaFabricantePM(e);
         e = conEstadoPM(e);
         const ensayo = ensayoSuperado(e);
         const checklist = checklistHecho(e);
@@ -27401,7 +28007,7 @@ ${obsO}` : obsO).slice(0, 4e3);
         const ft = todos("ft");
         const ce = todos("ce");
         const manual = todos("manual");
-        const fichaPM = miembros.some((m) => hayDoc(m.docFichaPM));
+        const fichaPM = miembros.some((m) => hayDoc(m.docFichaPM)) || miembros.every((m) => sinHojaCx.sinHojaFabricante(m) && Boolean(m.pmFichas && m.pmFichas.fichaPM === "hecha"));
         const conChecklist = miembros.filter((m) => m.checklist === true || m.checklist === false);
         const checklist = conChecklist.length ? conChecklist.every((m) => m.checklist) : null;
         const bloqueadoPor = (miembros.find((m) => m.bloqueadoPor) || {}).bloqueadoPor || null;
@@ -27717,12 +28323,14 @@ ${obsO}` : obsO).slice(0, 4e3);
         if (clave === "faltaDocumentacion") return faltaDocPropia(l);
         if (clave === "entregados") return l.envio === "enviada";
         if (clave === "conIncidencias") return (l.incidencias || []).length > 0;
-        if (clave === "listos") {
-          if (l.envio === "enviada") return false;
-          const v = veredictoDe ? veredictoDe.get(l.id) : null;
-          return v ? v.estado === "completo" : puedeEnviarse(l);
-        }
+        if (clave === "listos") return estadoListoDF(l, veredictoDe) === "listo";
         return false;
+      }
+      function estadoListoDF(l, veredictoDe = null) {
+        if (!l) return "pendiente";
+        if (l.envio === "enviada") return "entregado";
+        const v = veredictoDe ? veredictoDe.get(l.id) : null;
+        return (v ? v.estado === "completo" : puedeEnviarse(l)) ? "listo" : "pendiente";
       }
       function kpiEquipos(lineas = [], veredicto = null, censo = null) {
         const porId = veredicto ? new Map(veredicto.map((v) => [v.id, v])) : null;
@@ -27756,8 +28364,9 @@ ${obsO}` : obsO).slice(0, 4e3);
           const tipo = tipoParaEntrega(l);
           if (!grupos.has(tipo)) grupos.set(tipo, { tipo, listos: [], entregados: [], pendientes: [] });
           const g = grupos.get(tipo);
-          if (l.envio === "enviada") g.entregados.push(l);
-          else if (v ? v.estado === "completo" : puedeEnviarse(l)) g.listos.push(l);
+          const e = estadoListoDF(l0, porId);
+          if (e === "entregado") g.entregados.push(l);
+          else if (e === "listo") g.listos.push(l);
           else g.pendientes.push(l);
         }
         const porTag = (a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true });
@@ -27855,10 +28464,22 @@ ${obsO}` : obsO).slice(0, 4e3);
         if (q && !`${l.tag || ""} ${l.planta || ""} ${l.tipoEntrega} ${l.marca || ""} ${l.modelo || ""} ${l.numSerie || ""} ${x.texto || ""}`.toLowerCase().includes(q)) return false;
         return true;
       }
-      function entregasPlantaTipo(grupos = [], filtro = {}, info = null) {
+      var CASI_DF = 2;
+      function casiListosDe(grupos = [], max = CASI_DF) {
+        const r = [];
+        for (const g of grupos || []) {
+          for (const l of g.pendientes || []) {
+            const falta = faltaParaEntrega(l);
+            if (falta.length && falta.length <= max) r.push({ ...l, tipoEntrega: g.tipo, entrega: "casi", falta });
+          }
+        }
+        return r;
+      }
+      function entregasPlantaTipo(grupos = [], filtro = {}, info = null, { casi = 0 } = {}) {
         const porTag = (a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true });
         const plantas = /* @__PURE__ */ new Map();
-        for (const l of completosDe(grupos)) {
+        const ordenEntrega = { listo: 0, casi: 1, entregado: 2 };
+        for (const l of [...completosDe(grupos), ...casi ? casiListosDe(grupos, casi) : []]) {
           if (!pasaFiltroEntrega(l, filtro, info)) continue;
           const pl = String(l.planta || "").trim() || "Sin planta";
           if (!plantas.has(pl)) plantas.set(pl, /* @__PURE__ */ new Map());
@@ -27868,10 +28489,11 @@ ${obsO}` : obsO).slice(0, 4e3);
         }
         const ordenP = (a, b) => (a === "Sin planta") - (b === "Sin planta") || a.localeCompare(b, "es", { numeric: true });
         const lista = [...plantas.entries()].sort((a, b) => ordenP(a[0], b[0])).map(([planta, tipos]) => {
-          const ts = [...tipos.entries()].sort((a, b) => (a[0] === "Sin tipolog\xEDa") - (b[0] === "Sin tipolog\xEDa") || a[0].localeCompare(b[0], "es")).map(([tipo, filas]) => ({ tipo, filas: filas.sort(porTag) }));
+          const ts = [...tipos.entries()].sort((a, b) => (a[0] === "Sin tipolog\xEDa") - (b[0] === "Sin tipolog\xEDa") || a[0].localeCompare(b[0], "es")).map(([tipo, filas]) => ({ tipo, filas: filas.sort((a, b) => (casi ? ordenEntrega[a.entrega] - ordenEntrega[b.entrega] : 0) || porTag(a, b)) }));
           return { planta, tipos: ts, total: ts.reduce((n, t) => n + t.filas.length, 0) };
         });
-        return { plantas: lista, total: lista.reduce((n, p) => n + p.total, 0), retenidos: (grupos || []).reduce((n, g) => n + g.pendientes.length, 0) };
+        const nCasi = lista.reduce((n, p) => n + p.tipos.reduce((m, t) => m + t.filas.filter((f) => f.entrega === "casi").length, 0), 0);
+        return { plantas: lista, total: lista.reduce((n, p) => n + p.total, 0) - nCasi, casi: nCasi, retenidos: (grupos || []).reduce((n, g) => n + g.pendientes.length, 0) - (casi ? casiListosDe(grupos, casi).length : 0) };
       }
       function opcionesEntregasCompletas(grupos = [], info = null) {
         const cuenta = (campo) => {
@@ -27967,6 +28589,9 @@ ${obsO}` : obsO).slice(0, 4e3);
         contarConjuntos,
         tipoDeEquipo: tipologiaDeEquipo,
         entregasPorTipo,
+        estadoListoDF,
+        casiListosDe,
+        CASI_DF,
         filtrarEntregas,
         opcionesFiltroEntregas,
         entregasPlantaTipo,
@@ -28865,6 +29490,16 @@ ${obsO}` : obsO).slice(0, 4e3);
      creadoEn           TEXT NOT NULL,
      modificadoEn       TEXT NOT NULL
    )`,
+        /* LO CERTIFICADO DE CADA EQUIPO, PARA EL PLANO DEL MÓVIL CX (26-nov-2026, JC: «salen en azul equipos que no me salen en
+           azul en el móvil»). Una fila por obra (id = obraId) con { equipoId: estado de su certificación }, sin importes: la rehace
+           el escritorio (shared/commissioning/certificacionAlMovil.js) y solo viaja de ida, para que el móvil pinte el azul. */
+        `CREATE TABLE IF NOT EXISTS certPlanoEquipos (
+     id                 TEXT PRIMARY KEY,
+     obraId             TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     estados            TEXT NOT NULL DEFAULT '{}',
+     creadoEn           TEXT NOT NULL,
+     modificadoEn       TEXT NOT NULL
+   )`,
         /* LOS MATERIALES INSTALADOS (29-oct, JC): compuertas, VAV, difusores,
            rejillas, válvulas, detectores, actuadores, sondas… No son equipos de
            commissioning: cada uno es una pieza en el plano de su planta (x, y en
@@ -29758,6 +30393,22 @@ ${obsO}` : obsO).slice(0, 4e3);
      anclaResumen  TEXT,
      fijada        INTEGER NOT NULL DEFAULT 0,
      adjuntos      TEXT,
+     creadoEn      TEXT NOT NULL,
+     modificadoEn  TEXT NOT NULL
+   )`,
+        /*
+         * MI FIRMA (JC, 26-nov-2026): la firma de cada persona, la que se pone sola
+         * (con un toque suyo) en los papeles que firma su rol (shared/firma/). Una por
+         * persona: el dibujo (dedo, ratón o imagen subida con el fondo transparente)
+         * en PNG data URL y el nombre con el que firma. Privada como las notas: solo
+         * la ve y la cambia su dueño; viaja a su teléfono y a la nube con persona_id.
+         */
+        `CREATE TABLE IF NOT EXISTS firmasPersona (
+     id            TEXT PRIMARY KEY,
+     personaId     TEXT NOT NULL REFERENCES personas(id) ON DELETE CASCADE,
+     nombre        TEXT NOT NULL DEFAULT '',
+     imagen        TEXT NOT NULL,
+     origen        TEXT NOT NULL DEFAULT 'trazo',
      creadoEn      TEXT NOT NULL,
      modificadoEn  TEXT NOT NULL
    )`,
@@ -33373,6 +34024,7 @@ ${obsO}` : obsO).slice(0, 4e3);
         `CREATE INDEX IF NOT EXISTS idx_cambiosEstado_fecha ON cambiosEstadoEquipo (creadoEn)`,
         /* El bloc se abre por persona y se ordena por lo último tocado. */
         `CREATE INDEX IF NOT EXISTS idx_notas_persona     ON notas (personaId, modificadoEn)`,
+        `CREATE INDEX IF NOT EXISTS idx_firmasPersona_persona ON firmasPersona (personaId, modificadoEn)`,
         `CREATE INDEX IF NOT EXISTS idx_descconcepto      ON descripcionesConcepto (firma)`,
         `CREATE INDEX IF NOT EXISTS idx_notas_ancla       ON notas (anclaTipo, anclaId)`,
         `CREATE INDEX IF NOT EXISTS idx_notas_fecha       ON notas (personaId, fecha)`,
@@ -34003,6 +34655,9 @@ ${obsO}` : obsO).slice(0, 4e3);
         ["ofertasProveedor", "cobertura", "TEXT NOT NULL DEFAULT 'sumMO'"],
         ["ofertasProveedor", "totalEscrito", "REAL"],
         ["ofertasProveedor", "motivoDescarte", "TEXT"],
+        /* Lo leído de las condiciones de la oferta y a quién se avisó (26-nov,
+           electron/data/condicionesOfertas.js), JSON con su empresaId. */
+        ["ofertasProveedor", "condicionesLeidas", "TEXT"],
         ["pedidosCompra", "adjudicacionId", "TEXT"],
         /* Las subcontratas que trabajan A HORAS (21-oct, shared/compras/aHoras.js):
            la modalidad del paquete ('partidas' o 'horas') y su cuadrilla tipo
@@ -43999,6 +44654,9 @@ ${a.texto}` : a.texto;
         recuperador: { nombre: "Recuperador de calor", circuitos: ["impulsion", "retorno"] },
         rooftop: { nombre: "Rooftop / compacto", circuitos: ["impulsion", "retorno"] },
         fancoil: { nombre: "Fancoil / unidad de conductos", circuitos: ["impulsion", "retorno"] },
+        interiorDx: { nombre: "Unidad interior VRF / split de conductos", circuitos: ["impulsion", "retorno"] },
+        crac: { nombre: "CRAC (expansi\xF3n directa)", circuitos: ["impulsion", "retorno"] },
+        crah: { nombre: "CRAH (agua fr\xEDa)", circuitos: ["impulsion", "retorno"] },
         impulsion: { nombre: "Ventilador de impulsi\xF3n", circuitos: ["impulsion"] },
         extractor: { nombre: "Extractor", circuitos: ["retorno"] }
       };
@@ -44049,6 +44707,112 @@ ${a.texto}` : a.texto;
         { id: "rpm", nombre: "Velocidad del ventilador", unidad: "rpm" }
       ];
       var MAGNITUD = Object.fromEntries(MAGNITUDES.map((m) => [m.id, m]));
+      var NOMBRES_VENTILADOR_BAL = { potenciaVentilador: "Potencia del motor" };
+      var MAGNITUDES_POR_TIPO = {
+        uta: { ids: MAGNITUDES.map((m) => m.id) },
+        recuperador: { ids: [
+          "caudalImpulsion",
+          "caudalRetorno",
+          "presionImpulsion",
+          "presionRetorno",
+          "tempImpulsion",
+          "tempRetorno",
+          "tempExterior",
+          "potenciaVentilador",
+          "rpm"
+        ] },
+        rooftop: { ids: [
+          "caudalImpulsion",
+          "caudalRetorno",
+          "presionImpulsion",
+          "presionRetorno",
+          "tempImpulsion",
+          "tempRetorno",
+          "tempExterior",
+          "potenciaFrio",
+          "potenciaCalor",
+          "potenciaVentilador",
+          "rpm"
+        ] },
+        fancoil: {
+          ids: [
+            "caudalImpulsion",
+            "caudalRetorno",
+            "presionImpulsion",
+            "tempImpulsion",
+            "tempRetorno",
+            "tempAguaEntrada",
+            "tempAguaSalida",
+            "potenciaFrio",
+            "potenciaCalor",
+            "potenciaVentilador"
+          ],
+          nombres: { potenciaVentilador: "Potencia del ventilador" }
+        },
+        interiorDx: {
+          ids: [
+            "caudalImpulsion",
+            "caudalRetorno",
+            "presionImpulsion",
+            "tempImpulsion",
+            "tempRetorno",
+            "potenciaFrio",
+            "potenciaCalor",
+            "potenciaVentilador"
+          ],
+          nombres: { potenciaVentilador: "Potencia del ventilador" }
+        },
+        crac: { ids: [
+          "caudalImpulsion",
+          "caudalRetorno",
+          "presionImpulsion",
+          "tempImpulsion",
+          "tempRetorno",
+          "potenciaFrio",
+          "potenciaVentilador",
+          "rpm"
+        ] },
+        crah: { ids: [
+          "caudalImpulsion",
+          "caudalRetorno",
+          "presionImpulsion",
+          "tempImpulsion",
+          "tempRetorno",
+          "tempAguaEntrada",
+          "tempAguaSalida",
+          "potenciaFrio",
+          "potenciaVentilador",
+          "rpm"
+        ] },
+        impulsion: {
+          ids: ["caudalImpulsion", "presionImpulsion", "potenciaVentilador", "rpm"],
+          nombres: NOMBRES_VENTILADOR_BAL
+        },
+        extractor: {
+          ids: ["caudalRetorno", "presionRetorno", "potenciaVentilador", "rpm"],
+          nombres: { ...NOMBRES_VENTILADOR_BAL, caudalRetorno: "Caudal de extracci\xF3n", presionRetorno: "Presi\xF3n disponible extracci\xF3n" }
+        },
+        /* Sin hoja de balanceo: lo que se apunta en su ficha. */
+        cassette: { sinBalanceo: true, nombre: "Cassette de agua", ids: [
+          "caudalImpulsion",
+          "tempImpulsion",
+          "tempRetorno",
+          "tempAguaEntrada",
+          "tempAguaSalida",
+          "potenciaFrio",
+          "potenciaCalor",
+          "potenciaVentilador"
+        ] },
+        interiorPared: { sinBalanceo: true, nombre: "Split de pared / cassette VRF", ids: ["caudalImpulsion", "tempImpulsion", "tempRetorno", "potenciaFrio", "potenciaCalor"] },
+        exteriorDx: { sinBalanceo: true, nombre: "Unidad exterior VRF / split", ids: ["tempExterior", "potenciaFrio", "potenciaCalor"] },
+        enfriadora: { sinBalanceo: true, nombre: "Enfriadora", ids: ["tempAguaEntrada", "tempAguaSalida", "tempExterior", "potenciaFrio"] },
+        bombaCalor: { sinBalanceo: true, nombre: "Bomba de calor", ids: ["tempAguaEntrada", "tempAguaSalida", "tempExterior", "potenciaFrio", "potenciaCalor"] }
+      };
+      function magnitudesDelTipo(tipo) {
+        const t = MAGNITUDES_POR_TIPO[tipo] || MAGNITUDES_POR_TIPO.uta;
+        const nombres = t.nombres || {};
+        return MAGNITUDES.filter((m) => t.ids.includes(m.id)).map((m) => nombres[m.id] ? { ...m, nombre: nombres[m.id] } : m);
+      }
       var SIN_TOLERANCIAS = { boca: null, total: null };
       var TOLERANCIA_FUGAS = 0.1;
       function circuitoVacio(id) {
@@ -44079,7 +44843,14 @@ ${a.texto}` : a.texto;
         };
       }
       function tipoDeEquipo(equipo = {}) {
+        const forzado = tipoForzadoBal(equipo);
+        if (forzado) return forzado;
+        const familia = String(equipo.familia || "").toUpperCase();
+        if (FAMILIA_TIPO_BAL[familia]) return FAMILIA_TIPO_BAL[familia];
         const t = [equipo.grupo, equipo.tag, equipo.modelo].filter(Boolean).join(" ").toLowerCase();
+        if (/\bcrah\b/.test(t)) return "crah";
+        if (/\bcrac\b/.test(t)) return "crac";
+        if (/\bvrf\b|\bsplit\b|\bvrv\b/.test(t)) return "interiorDx";
         if (/recup/.test(t)) return "recuperador";
         if (/roof|compact/.test(t)) return "rooftop";
         if (/fanc|fan-c|\bfc\b|conductos/.test(t)) return "fancoil";
@@ -44087,6 +44858,23 @@ ${a.texto}` : a.texto;
         if (/impuls|\bvi-|ventil/.test(t)) return "impulsion";
         return "uta";
       }
+      var TAG_TIPO_BAL = /^(VI|VE)(?=[\s\-_.\d]|$)/i;
+      function tipoForzadoBal(equipo = {}) {
+        const m = TAG_TIPO_BAL.exec(String(equipo && equipo.tag || "").trim());
+        return m ? m[1].toUpperCase() === "VI" ? "impulsion" : "extractor" : null;
+      }
+      var FAMILIA_TIPO_BAL = {
+        TROX_UTA: "uta",
+        AIRLAN_HRU: "recuperador",
+        CARRIER_ROOFTOPS: "rooftop",
+        AIRLAN_FANCOIL: "fancoil",
+        PANASONIC_VRF: "interiorDx",
+        PANASONIC_SPLIT: "interiorDx",
+        PANASONIC_CRACS: "crac",
+        SP_VENTILACION: "extractor",
+        SP_PARKING: "extractor",
+        SP_PRESURIZACION: "extractor"
+      };
       var FAMILIA_SIN_T_BAL = /VENTILAC|PARKING|PRESURIZ|EXTRAC/i;
       var TEXTO_SIN_T_BAL = /ventilador|extractor|extracci[oó]n/i;
       var TAG_SIN_T_BAL = /^(VEX|VE|VI|EX|VP|VT)(?=[\s\-_.\d])/i;
@@ -44398,9 +45186,10 @@ ${a.texto}` : a.texto;
         if (!usados.length) return null;
         return usados.map((k, i) => i ? NOMBRE_EQUIPO_MEDIDA[k].toLowerCase() : NOMBRE_EQUIPO_MEDIDA[k]).join(" y ");
       }
-      function evaluarMagnitudes(hoja, tol = SIN_TOLERANCIAS, proyecto = hoja.proyecto) {
-        const circuitos = TIPOS_EQUIPO[hoja.tipo].circuitos;
-        return MAGNITUDES.filter((m) => !m.circuito || circuitos.includes(m.circuito)).map((m) => {
+      function evaluarMagnitudes(hoja, tol = SIN_TOLERANCIAS, proyecto = hoja.proyecto, tipo = hoja.tipo) {
+        const delTipo = Object.fromEntries(magnitudesDelTipo(tipo).map((m) => [m.id, m]));
+        const guardada = (id) => ["fabrica", "proyecto", "medido"].some((k) => numBal((hoja[k] || {})[id]) !== null);
+        return MAGNITUDES.filter((m) => delTipo[m.id] || guardada(m.id)).map((m) => ({ ...delTipo[m.id] || m, ...delTipo[m.id] ? {} : { fueraDeTipo: true } })).map((m) => {
           const f = numBal(hoja.fabrica[m.id]);
           const p = numBal(proyecto[m.id]);
           const x = numBal(hoja.medido[m.id]);
@@ -44418,7 +45207,9 @@ ${a.texto}` : a.texto;
         const hoja = normalizarHoja(entrada, equipo);
         const tol = toleranciasBal(opciones.tolerancias);
         const pctTol = (v) => `\xB1${cifraBal(v * 100)} %`;
-        const tipo = TIPOS_EQUIPO[hoja.tipo];
+        const tipoForzado = tipoForzadoBal(equipo);
+        const tipoId = tipoForzado || hoja.tipo;
+        const tipo = TIPOS_EQUIPO[tipoId];
         const sinT = Boolean(opciones.sinTemperaturas) || balanceoSinTemperaturas(equipo);
         const avisos = [];
         const plano = Array.isArray(opciones.plano) && opciones.plano.length ? opciones.plano : null;
@@ -44432,7 +45223,9 @@ ${a.texto}` : a.texto;
             origenProyecto[id] = "fuera";
           }
         }
-        const circuitos = tipo.circuitos.map((id) => {
+        const conDatos = (id) => (plano ? plano.some((f) => f && f.circuito === id && !f.sinAtribuir) : (hoja.circuitos[id].bocas || []).some((b) => b.caudalMedido !== null || b.caudalProyecto !== null)) || Boolean(hoja.conductoPrincipal && hoja.conductoPrincipal[id]);
+        const redes = Object.keys(CIRCUITOS).filter((id) => tipo.circuitos.includes(id) || conDatos(id));
+        const circuitos = redes.map((id) => {
           const bocas = plano ? bocasDelPlano(plano, id, tol.boca) : evaluarBocas(hoja, id, tol.boca);
           const perdida = plano ? { total: null, partidas: [], avisos: [], supuestos: [] } : perdidaCircuito(hoja, id);
           const cuentan = bocas.filter((b) => !b.sinAtribuir);
@@ -44569,9 +45362,9 @@ ${a.texto}` : a.texto;
           instrumentos: revInst.lista,
           instrumentosMalos: revInst.malos,
           hoja,
-          tipo: { id: hoja.tipo, ...tipo },
+          tipo: { id: tipoId, ...tipo, forzado: Boolean(tipoForzado) },
           sinTemperaturas: sinT,
-          equipo: evaluarMagnitudes(hoja, tol, proyectoEf),
+          equipo: evaluarMagnitudes(hoja, tol, proyectoEf, tipoId),
           conPlano: Boolean(plano),
           circuitos,
           /* «Anemómetro», «Balómetro», los dos o null: con qué se midieron las bocas. */
@@ -44729,13 +45522,14 @@ ${a.texto}` : a.texto;
         if (!Object.keys(valores).length) avisos.push("No se ha reconocido ning\xFAn dato: si es un escaneo no lleva texto dentro.");
         return { valores, avisos };
       }
-      function aplicarLeido(hojaEntrada, seccion, leido, { fuente = null, sobrescribir = [] } = {}) {
+      function aplicarLeido(hojaEntrada, seccion, leido, { fuente = null, sobrescribir = [], tipo = null } = {}) {
         const hoja = normalizarHoja(hojaEntrada);
         const destino = { ...hoja[seccion] };
         const puestos = [];
         const conflictos = [];
+        const admitidas = tipo ? new Set(magnitudesDelTipo(tipo).map((m) => m.id)) : null;
         for (const [id, { valor, linea }] of Object.entries(leido && leido.valores || {})) {
-          if (!MAGNITUD[id]) continue;
+          if (!MAGNITUD[id] || admitidas && !admitidas.has(id)) continue;
           const actual = numBal(destino[id]);
           if (actual === null) {
             destino[id] = valor;
@@ -44913,6 +45707,9 @@ ${a.texto}` : a.texto;
         ELEMENTOS,
         MAGNITUDES,
         MAGNITUD,
+        MAGNITUDES_POR_TIPO,
+        magnitudesDelTipo,
+        tipoForzado: tipoForzadoBal,
         SIN_TOLERANCIAS,
         tolerancias: toleranciasBal,
         hojaVacia,
@@ -46968,7 +47765,10 @@ ${a.texto}` : a.texto;
           referencia: llano(x.referencia) || null,
           cantidad: Number.isFinite(Number(x.cantidad)) && llano(x.cantidad) !== "" ? Number(x.cantidad) : null,
           archivo: llano(x.archivo) || null,
-          cargadoEn: llano(x.cargadoEn) || null
+          cargadoEn: llano(x.cargadoEn) || null,
+          /* De dónde sale cuando viene de una hoja (control de pedidos): la hoja y la fila dentro de «archivo». */
+          ...llano(x.hoja) ? { hoja: llano(x.hoja) } : {},
+          ...Number.isInteger(Number(x.fila)) && llano(x.fila) !== "" ? { fila: Number(x.fila) } : {}
         })).filter((x) => x.pedido || x.albaran);
       }
       var clave = (x) => `${llano(x.albaran).toUpperCase()}|${llano(x.pedido).toUpperCase()}`;
@@ -52809,6 +53609,12 @@ ${a.texto}` : a.texto;
           const nombre = c.clave === IP.CLAVE ? IP.NOMBRE : c.clave === IP.CLAVE_TERCEROS ? IP.NOMBRE_TERCEROS : c.clave === IP.CLAVE_RESUELTA ? IP.NOMBRE_RESUELTA : NOMBRE[estado];
           return { estado, clave: c.clave, hex, nombre, corto: CORTO[estado], distintivo: c.distintivo, incidencia: c.incidencia, terceros: Boolean(c.terceros), resuelta: c.resuelta };
         }
+        function estadoDelEquipo(f, e = {}, { montaje = null, tomaDe = /* @__PURE__ */ new Map(), cert = null } = {}) {
+          const hecho = e.color === "verde" && e.completo !== false;
+          const ids = Array.isArray(e.miembros) && e.miembros.length ? e.miembros.map((m) => m.id) : [f.id];
+          const tomaHecha = !hecho && CB.tomaHechaConjunto(ids, tomaDe);
+          return CB.estadoBloque(montaje || f, { cxHecho: hecho, tomaHecha, cxEmpezado: e.color === "azul" || e.color === "verde" && !hecho, cert });
+        }
         function cuentas(lista = []) {
           return { bloques: CB.recuentoBloques(lista, estadoDe), conIncidencia: IP.recuento(lista), incTerceros: IP.recuentoTerceros(lista), incResuelta: IP.recuentoResueltas(lista) };
         }
@@ -52827,7 +53633,7 @@ ${a.texto}` : a.texto;
           const a = CB.RELLENO_BLOQUE;
           return ESTADOS.map((x) => `.pesPunto:where(.${x.id}){border-color:${contornoDe(x)};background:${x.hex};border-width:1.5px;border-style:${x.trazo ? "dashed" : "solid"}}.pesBloque:where(.${x.id}){stroke:${contornoDe(x)};fill:${x.hex};fill-opacity:${a}${x.trazo ? `;stroke-dasharray:${x.trazo}` : ""}}.pesSimbolo:where(.${x.id}){color:${contornoDe(x)}}.pesRacimoTira:where(.${x.id}){fill:${x.hex}}`).join("");
         }
-        const API = { ESTADOS, ORDEN, NOMBRE, CORTO, esEstado, estadoDe, colorEquipo, cuentas, leyenda, cssPlanoModelo };
+        const API = { ESTADOS, ORDEN, NOMBRE, CORTO, esEstado, estadoDe, estadoDelEquipo, colorEquipo, cuentas, leyenda, cssPlanoModelo };
         if (enNode) module.exports = API;
         if (typeof window !== "undefined") window.ESTADO_EQUIPO_PLANO = API;
       })();
@@ -54113,7 +54919,7 @@ ${a.texto}` : a.texto;
         const llanoRc = (v) => String(v ?? "").trim();
         const hayRc = (v) => v !== null && v !== void 0 && llanoRc(v) !== "";
         function puntosChecklist(plantilla) {
-          return (plantilla && plantilla.secciones || []).filter((s) => s.tipo === "checklist").flatMap((s) => (s.puntos || []).map((p) => ({ codigo: p.codigo, numero: p.numero, etiqueta: p.etiqueta, tipo: p.tipo, seccion: s.titulo })));
+          return (plantilla && plantilla.secciones || []).filter((s) => s.tipo === "checklist").flatMap((s) => (s.puntos || []).filter((p) => !p.naFija).map((p) => ({ codigo: p.codigo, numero: p.numero, etiqueta: p.etiqueta, tipo: p.tipo, seccion: s.titulo })));
         }
         function copiarRespuestas(plantilla, origen = {}, destino = {}, { pisar = false } = {}) {
           const valoresO = origen.valores || {};
@@ -55081,7 +55887,8 @@ ${subtitulo}`, c[5]] : c.slice())]);
               planta: esc([eq.planta, salaVisibleFx(eq)].filter(Boolean).join(" / ")),
               aparatos: blanco ? "" : aparatosHtml(ev.instrumentos, c.aparatos),
               condiciones: blanco ? "" : esc(c.condiciones || ""),
-              denominacion: esc(eq.denominacion || ""),
+              /* En los ventiladores, el TAG (reglasCx.js › denominacionDeHoja, JC 26-nov). */
+              denominacion: esc(RG() && RG().denominacionDeHoja ? RG().denominacionDeHoja(eq, plantilla.codigo) : eq.denominacion || ""),
               acta: esc(c.actaFabricante || ""),
               tecnico: esc(c.tecnicoFabricante || "")
             })[k] || "",
@@ -55622,6 +56429,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
         }
         function valorFh(punto, blanco = false, tipoSeccion) {
           const v = punto.valor;
+          if (punto.naFija) return `<span class="resp">${RESPUESTA_FH.na || "NA"}</span>`;
           if (blanco && CASILLAS_FH[punto.tipo]) return CASILLAS_FH[punto.tipo].map((o) => `<span class="casilla">\u2610 ${o}</span>`).join(" ");
           if (blanco && punto.unidad) return `<span class="ud">${escFh(punto.unidad)}</span>`;
           if ((v === null || v === void 0 || v === "") && punto.pendiente && !blanco) {
@@ -55808,7 +56616,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
           const cuadroFirma = (rol, rotulo) => {
             const f = firma(rol);
             if (soloJefe) return `<td><div class="rolFirma">${rotulo}</div>${f ? `${trazoFh(f)}<div class="firmante">${escFh(f.nombre)}</div>` : '<div class="hueco">Nombre y firma</div>'}</td>`;
-            return `<td><div class="rolFirma">${rotulo}</div>${f ? `${trazoFh(f)}<div class="firmante">${escFh(f.nombre)}</div><div class="fechaFirma">Firmado el ${fechaFh(f.fecha)}</div>` : '<div class="hueco">Nombre, firma y fecha</div>'}</td>`;
+            return `<td><div class="rolFirma">${rotulo}</div>${f ? `<div class="selloCx">${trazoFh(f)}<div class="selloCxTexto"><div class="firmante">Firmado por ${escFh(f.nombre)}</div><div class="rolSello">${rotulo}</div><div class="fechaFirma">Firmado el ${fechaFh(f.fecha)}</div></div></div>` : '<div class="hueco">Nombre, firma y fecha</div>'}</td>`;
           };
           const resultado = `${!blanco && ev.datosPrueba ? '<p class="pendiente">DATOS DE PRUEBA: esta ficha no vale como documento.</p>' : ""}${ev.resultado ? `<div class="resultadoFicha">Resultado: ${celdaResultado(ev.resultado)}${firmada ? "" : " (sin firmar)"}</div>` : ""}`;
           return `<article class="hojaPM${blanco ? " enBlanco" : ""}">
@@ -55944,7 +56752,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
     <header class="cab"><div class="logo">${logoFh(ctx.obra)}</div><h1>DOSSIER DE PUESTA EN MARCHA</h1></header>
     <table class="datos cabecera">
       <tr><th>Edificio</th><td>${escFh(ctx.cabeceraObra && ctx.cabeceraObra.edificio || ctx.obra && ctx.obra.nombre || "")}</td><th>TAG</th><td><strong>${escFh(equipo.tag)}</strong></td></tr>
-      <tr><th>Denominaci\xF3n</th><td>${escFh(equipo.denominacion || "")}</td><th>Planta / sala</th><td>${escFh([equipo.planta, salaVisibleFh(equipo)].filter(Boolean).join(" / "))}</td></tr>
+      <tr><th>Denominaci\xF3n</th><td>${escFh(reglasFh() && reglasFh().denominacionDeHoja ? reglasFh().denominacionDeHoja(equipo) : equipo.denominacion || "")}</td><th>Planta / sala</th><td>${escFh([equipo.planta, salaVisibleFh(equipo)].filter(Boolean).join(" / "))}</td></tr>
       <tr><th>Marca / modelo</th><td>${escFh([equipo.marca, equipo.modelo].filter(Boolean).join(" / "))}</td><th>N\xBA serie</th><td>${escFh(equipo.numSerie || "")}</td></tr>
       <tr><th>Familia</th><td>${escFh(ctx.familia && ctx.familia.nombre || "")}</td><th>Generado</th><td>${fecha}</td></tr>${filasMarcasFh(ctx.marcasDF)}
     </table>
@@ -85046,6 +85854,279 @@ ${subtitulo}`, c[5]] : c.slice())]);
     }
   });
 
+  // shared/firma/documentos.js
+  var require_documentos2 = __commonJS({
+    "shared/firma/documentos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const JEFES_OBRA = ["jefeObra", "jefeProduccion", "jefeProyectos", "jefeDepartamento", "administrador"];
+        const DOCUMENTOS = [
+          {
+            id: "certCliente",
+            nombre: "Certificaci\xF3n al cliente",
+            modulo: "certificaciones",
+            donde: "shared/obra/hojaCertificacion.js",
+            casillas: [
+              { id: "contratista", rotulo: "El contratista", roles: [...JEFES_OBRA, "contractSupport"] },
+              { id: "df", rotulo: "La Direcci\xF3n Facultativa", roles: ["direccionFacultativa"], externa: true },
+              { id: "propiedad", rotulo: "La Propiedad", roles: ["propiedadObra", "clienteObra"], externa: true }
+            ]
+          },
+          {
+            id: "certSubcontrata",
+            nombre: "Certificaci\xF3n a la subcontrata (industriales)",
+            modulo: "certificaciones",
+            donde: "electron/ipc/canales.js certInd:pdf",
+            casillas: [
+              { id: "jefeObra", rotulo: "Jefe de obra", roles: JEFES_OBRA },
+              { id: "subcontrata", rotulo: "La subcontrata", roles: ["subcontrata"], externa: true }
+            ]
+          },
+          {
+            id: "commissioning",
+            nombre: "Commissioning: PM, checklist y balanceo de cada equipo",
+            modulo: "commissioning",
+            donde: "electron/data/firmasEquipo.js",
+            casillas: [
+              { id: "jefeObra", rotulo: "T\xE9cnico responsable", roles: [...JEFES_OBRA, "jefeCommissioning", "jefeMantenimiento", "encargadoObra"] },
+              { id: "cliente", rotulo: "Cliente / DF / DEO", roles: ["direccionFacultativa", "propiedadObra", "clienteObra"], externa: true },
+              { id: "mantenimiento", rotulo: "Mantenimiento", roles: ["mantenimientoPropiedad"], externa: true }
+            ]
+          },
+          {
+            id: "estanqueidad",
+            nombre: "Prueba de estanqueidad",
+            modulo: "pruebasEstanqueidad",
+            donde: "shared/commissioning/fichaHtml.js",
+            casillas: [{ id: "jefeObra", rotulo: "Jefe de obra", roles: [...JEFES_OBRA, "encargadoObra"] }]
+          },
+          {
+            id: "reparacion",
+            nombre: "Reparaci\xF3n de un equipo",
+            modulo: "incidencias",
+            donde: "electron/data/firmasReparacion.js",
+            casillas: [
+              { id: "jefeObra", rotulo: "T\xE9cnico responsable", roles: [...JEFES_OBRA, "jefeMantenimiento", "encargadoMantenimiento", "operarioMantenimiento", "encargadoObra"] },
+              { id: "cliente", rotulo: "Cliente", roles: ["propiedadObra", "clienteObra"], externa: true }
+            ]
+          },
+          {
+            id: "parteHoras",
+            nombre: "Parte de horas de reparaciones",
+            modulo: "incidencias",
+            donde: "shared/incidencias/parteDeHoras.js",
+            casillas: [
+              { id: "jefeObra", rotulo: "Jefe de obra", roles: JEFES_OBRA },
+              { id: "cliente", rotulo: "Cliente", roles: ["propiedadObra", "clienteObra"], externa: true }
+            ]
+          },
+          {
+            id: "ppi",
+            nombre: "PPI (puntos de inspecci\xF3n)",
+            modulo: "ppi",
+            donde: "shared/ppi/plantilla.js",
+            casillas: [
+              { id: "jefeObra", rotulo: "Jefe de obra", roles: JEFES_OBRA },
+              { id: "jefeGrupo", rotulo: "Jefe de grupo", roles: ["jefeGrupo"] },
+              { id: "encargado", rotulo: "Encargado", roles: ["encargadoObra"] }
+            ]
+          },
+          {
+            id: "acta",
+            nombre: "Actas (obra, entrega, reuni\xF3n)",
+            modulo: "actas",
+            donde: "shared/maquetaActa.js",
+            casillas: [
+              { id: "contratista", rotulo: "Por la empresa", roles: [...JEFES_OBRA, "gerente"] },
+              { id: "otraParte", rotulo: "La otra parte", roles: ["direccionFacultativa", "propiedadObra", "clienteObra", "subcontrata"], externa: true }
+            ]
+          },
+          {
+            id: "entregaDF",
+            nombre: "Entrega a la DF (informe de commissioning)",
+            modulo: "commissioning",
+            donde: "shared/commissioning/informeDF.js",
+            casillas: [
+              { id: "instaladora", rotulo: "Empresa instaladora", roles: [...JEFES_OBRA, "jefeCommissioning"] },
+              { id: "pm", rotulo: "Project management", roles: [], externa: true },
+              { id: "df", rotulo: "Direcci\xF3n facultativa", roles: ["direccionFacultativa"], externa: true }
+            ]
+          },
+          {
+            id: "legalizacion",
+            nombre: "Impresos de legalizaci\xF3n (organismo)",
+            modulo: "legalizaciones",
+            donde: "electron/data/legalizaciones.js",
+            casillas: [{ id: "instalador", rotulo: "El instalador", roles: JEFES_OBRA }]
+          }
+        ];
+        const POR_ID = Object.fromEntries(DOCUMENTOS.map((d) => [d.id, d]));
+        const documentoFirma = (id) => POR_ID[id] || null;
+        function casillaDe(rol, docId) {
+          const d = documentoFirma(docId);
+          if (!d || !rol) return null;
+          return d.casillas.find((c) => c.roles.includes(rol)) || null;
+        }
+        const puedeFirmar = (rol, docId) => Boolean(casillaDe(rol, docId));
+        function tabla() {
+          return DOCUMENTOS.map((d) => ({
+            documento: d.nombre,
+            casillas: d.casillas.map((c) => `${c.rotulo}: ${c.roles.length ? c.roles.join(", ") : "\u2014"}${c.externa ? " (externa)" : ""}`)
+          }));
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.FIRMA_DOCUMENTOS = API;
+        })({ DOCUMENTOS, documento: documentoFirma, casillaDe, puedeFirmar, tabla });
+      })();
+    }
+  });
+
+  // shared/firma/sello.js
+  var require_sello = __commonJS({
+    "shared/firma/sello.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const escSello = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        const dosSello = (n) => String(n).padStart(2, "0");
+        function fechaHora(valor) {
+          const dia = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(valor || ""));
+          if (dia) return `${dia[3]}/${dia[2]}/${dia[1]}`;
+          const d = valor instanceof Date ? valor : new Date(valor || Date.now());
+          if (Number.isNaN(d.getTime())) return "";
+          return `${dosSello(d.getDate())}/${dosSello(d.getMonth() + 1)}/${d.getFullYear()} ${dosSello(d.getHours())}:${dosSello(d.getMinutes())}`;
+        }
+        function textoSello({ nombre, rol, fecha, empresa } = {}) {
+          const partes = [nombre ? `Firmado por ${String(nombre).trim()}` : "Firmado", rol, fechaHora(fecha), empresa].map((x) => String(x || "").trim()).filter(Boolean);
+          return partes.join(" \xB7 ");
+        }
+        const esImagen = (s) => /^data:image\/(png|jpe?g);base64,[A-Za-z0-9+/=]+$/.test(String(s || ""));
+        const CSS_SELLO = `
+.selloFirma { display: flex; align-items: center; gap: 8px; border: 1px solid #2f8f83; border-radius: 4px; padding: 4px 8px;
+  background: #f3faf8; min-height: 52px; page-break-inside: avoid; break-inside: avoid; max-width: 100%; box-sizing: border-box; }
+.selloFirma img { height: 46px; max-width: 48%; object-fit: contain; }
+.selloFirma .selloTexto { font-size: 8pt; line-height: 1.3; color: #17484a; }
+.selloFirma .selloTexto b { display: block; color: #0e6b62; }
+.selloFirma .selloTexto span { display: block; }
+.selloHueco { border: 1px dashed #8fb8b3; border-radius: 4px; min-height: 52px; padding: 4px 8px; font-size: 8pt; color: #4d6f70;
+  display: flex; align-items: flex-end; box-sizing: border-box; }`;
+        function selloHtml(f = {}, { rotulo = "" } = {}) {
+          if (!f || !esImagen(f.imagen)) return huecoHtml(rotulo);
+          return `<div class="selloFirma" data-sello="1">
+    <img src="${escSello(f.imagen)}" alt="Firma de ${escSello(f.nombre)}">
+    <div class="selloTexto">${rotulo ? `<span>${escSello(rotulo)}</span>` : ""}<b>Firmado por ${escSello(String(f.nombre || "").trim())}</b>${f.rol ? `<span>${escSello(f.rol)}</span>` : ""}<span>${escSello(fechaHora(f.fecha))}</span>${f.empresa ? `<span>${escSello(f.empresa)}</span>` : ""}</div>
+  </div>`;
+        }
+        function huecoHtml(rotulo = "") {
+          return `<div class="selloHueco" data-sello="0">${escSello(rotulo || "Pendiente de firma")} \xB7 pendiente de firma</div>`;
+        }
+        function fondoATransparente(rgba, { umbral = 235, suave = 200 } = {}) {
+          let n = 0;
+          for (let i = 0; i < rgba.length; i += 4) {
+            const m = Math.min(rgba[i], rgba[i + 1], rgba[i + 2]);
+            if (m >= umbral) {
+              if (rgba[i + 3]) n += 1;
+              rgba[i + 3] = 0;
+              continue;
+            }
+            if (m > suave) {
+              const a = Math.round(rgba[i + 3] * (umbral - m) / (umbral - suave));
+              if (a !== rgba[i + 3]) {
+                rgba[i + 3] = a;
+                n += 1;
+              }
+            }
+          }
+          return n;
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.FIRMA_SELLO = API;
+        })({ fechaHora, textoSello, selloHtml, huecoHtml, esImagen, fondoATransparente, CSS_SELLO });
+      })();
+    }
+  });
+
+  // electron/data/firmaPersona.js
+  var require_firmaPersona = __commonJS({
+    "electron/data/firmaPersona.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var ROLES = require_roles();
+      var DOCS = require_documentos2();
+      var { esImagen } = require_sello();
+      var MAX_IMAGEN = 400 * 1024;
+      var llano = (s) => String(s == null ? "" : s).trim();
+      function suNombre(repo, sesion) {
+        let p = null;
+        try {
+          p = sesion && sesion.personaId && repo.db ? repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(sesion.personaId) : null;
+        } catch {
+        }
+        return llano(p && p.nombre || sesion && sesion.nombre);
+      }
+      function filaPropia(repo, sesion) {
+        if (!sesion || !sesion.personaId) return null;
+        const filas = repo.listar("firmasPersona", sesion, { condicion: "personaId = ?", params: [sesion.personaId], orden: "modificadoEn DESC" });
+        return filas[0] || null;
+      }
+      function miFirma(repo, sesion) {
+        if (!sesion || !sesion.personaId) return { ok: false, error: "Entra con tu usuario para tener firma." };
+        const f = filaPropia(repo, sesion);
+        return {
+          ok: true,
+          nombre: suNombre(repo, sesion),
+          firma: f ? { nombre: f.nombre, imagen: f.imagen, origen: f.origen, modificadoEn: f.modificadoEn } : null
+        };
+      }
+      function guardarMiFirma(repo, sesion, { imagen, origen, nombre } = {}) {
+        if (!sesion || !sesion.personaId) return { ok: false, error: "Entra con tu usuario para guardar tu firma." };
+        const img = llano(imagen);
+        if (!esImagen(img)) return { ok: false, error: "No llega la firma: dib\xFAjala o sube una imagen." };
+        if (img.length > MAX_IMAGEN) return { ok: false, error: "La firma es demasiado grande (m\xE1x. 400 KB)." };
+        const n = (llano(nombre) || suNombre(repo, sesion)).slice(0, 80);
+        if (!n) return { ok: false, error: "Falta tu nombre." };
+        const o = origen === "imagen" ? "imagen" : "trazo";
+        const previa = filaPropia(repo, sesion);
+        if (previa) repo.modificar("firmasPersona", sesion, previa.id, { nombre: n, imagen: img, origen: o });
+        else repo.crear("firmasPersona", sesion, { personaId: sesion.personaId, nombre: n, imagen: img, origen: o });
+        return miFirma(repo, sesion);
+      }
+      function quitarMiFirma(repo, sesion) {
+        if (!sesion || !sesion.personaId) return { ok: false, error: "Entra con tu usuario." };
+        const filas = repo.listar("firmasPersona", sesion, { condicion: "personaId = ?", params: [sesion.personaId] });
+        for (const f of filas) repo.borrar("firmasPersona", sesion, f.id);
+        return miFirma(repo, sesion);
+      }
+      function firmaDePersona(db, personaId) {
+        if (!db || !personaId) return null;
+        try {
+          const f = db.prepare("SELECT nombre, imagen FROM firmasPersona WHERE personaId = ? ORDER BY modificadoEn DESC LIMIT 1").get(personaId);
+          return f && esImagen(f.imagen) ? { nombre: f.nombre, imagen: f.imagen } : null;
+        } catch {
+          return null;
+        }
+      }
+      function selloPara(repo, sesion, docId, { fecha, empresa } = {}) {
+        if (!sesion || !sesion.personaId) return null;
+        const casilla = DOCS.casillaDe(sesion.rol, docId);
+        if (!casilla) return null;
+        const d = DOCS.documento(docId);
+        if (!casilla.externa && d.modulo && ROLES.rol(sesion.rol) && !ROLES.puede(sesion.rol, d.modulo, "editar") && !ROLES.puede(sesion.rol, d.modulo, "crear")) return null;
+        const f = filaPropia(repo, sesion);
+        if (!f || !esImagen(f.imagen)) return { casilla: casilla.id, sinFirma: true };
+        const r = ROLES.rol(sesion.rol);
+        return {
+          casilla: casilla.id,
+          sello: { imagen: f.imagen, nombre: f.nombre || suNombre(repo, sesion), rol: r && r.nombre || sesion.rol, fecha: fecha || (/* @__PURE__ */ new Date()).toISOString(), empresa: llano(empresa) }
+        };
+      }
+      module.exports = { miFirma, guardarMiFirma, quitarMiFirma, firmaDePersona, selloPara, MAX_IMAGEN };
+    }
+  });
+
   // electron/data/firmasEquipo.js
   var require_firmasEquipo = __commonJS({
     "electron/data/firmasEquipo.js"(exports, module) {
@@ -85495,6 +86576,8 @@ ${subtitulo}`, c[5]] : c.slice())]);
         }
         const suNombre = llano(p && p.nombre);
         if (!suNombre) return null;
+        const mia = require_firmaPersona().firmaDePersona(repo.db, id);
+        if (mia) return { nombre: suNombre, imagen: mia.imagen };
         const filas = repo.db.prepare(`SELECT id, nombre, imagen, trazoPor FROM firmasEquipo
     WHERE rol = 'jefeObra' AND (trazoPor = ? OR trazoPor IS NULL OR trazoPor = '')
     ORDER BY COALESCE(trazoEn, '') DESC, modificadoEn DESC`).all(id);
@@ -101284,7 +102367,7 @@ ${linea}` : linea;
         const svg = m && m.esLogo ? m.svg : logo;
         return svg ? `<div class="logoHoja" data-marca="${m ? m.clave : ""}">${svg}</div>` : '<div class="logoHoja logoTexto">Vidaire Cx</div>';
       }
-      function documentoHtml({ obra = {}, proyecto = "", cliente = "", certificacion = {}, filas = [], totales = {}, fases = [], fecha = "", regimenIva = null, logo = "", retenciones = null, trazabilidad = null } = {}) {
+      function documentoHtml({ obra = {}, proyecto = "", cliente = "", certificacion = {}, filas = [], totales = {}, fases = [], fecha = "", regimenIva = null, logo = "", retenciones = null, trazabilidad = null, firmas = null } = {}) {
         const todos = agruparPorCapitulo(filas);
         const posCap = new Map(todos.map((g, i) => [g.clave, i + 1]));
         const posPar = /* @__PURE__ */ new Map();
@@ -101373,11 +102456,7 @@ ${linea}` : linea;
       ${retencionesHtml(retenciones, certificacion)}
       ${fases.length > 1 ? `<table class="cierreHoja"><thead><tr><th>Fase</th><th class="n">Contrato</th><th class="n">Este mes</th><th class="n">A origen</th><th class="n">%</th></tr></thead>
         <tbody>${fases.map((f) => `<tr><td>${escHoja(f.nombre)}</td><td class="n">${eurHoja(f.contrato)}</td><td class="n">${eurHoja(f.periodo)}</td><td class="n">${eurHoja(f.origen)}</td><td class="n">${pctTxt(f.pctOrigen)}</td></tr>`).join("")}</tbody></table>` : ""}
-      <div class="firmas">
-        <div class="firma"><span>El contratista</span></div>
-        <div class="firma"><span>La Direcci\xF3n Facultativa</span></div>
-        <div class="firma"><span>La Propiedad</span></div>
-      </div>
+      ${firmasHoja(firmas)}
     </section>
     ${trazabilidadHtml(trazabilidad, certificacion)}`;
       }
@@ -101424,10 +102503,22 @@ ${linea}` : linea;
       <p class="huellaHoja">Huella del contenido (SHA-256): <strong>${escHoja(t.huella)}</strong>${t.estado === "borrador" ? " \xB7 BORRADOR: puede cambiar" : ""}</p>
     </section>`;
       }
+      var CASILLAS_CERT = [["contratista", "El contratista"], ["df", "La Direcci\xF3n Facultativa"], ["propiedad", "La Propiedad"]];
+      function firmasHoja(firmas) {
+        if (!firmas) return `<div class="firmas">
+        ${CASILLAS_CERT.map(([, r]) => `<div class="firma"><span>${r}</span></div>`).join("\n        ")}
+      </div>`;
+        const S = typeof window !== "undefined" && window.FIRMA_SELLO || require_sello();
+        return `<style>${S.CSS_SELLO} .documentoHojaCert .firma.conSello { display: block; height: auto; min-height: 26mm; border: 0; padding: 0; }
+    .documentoHojaCert .firma.conSello .selloFirma, .documentoHojaCert .firma.conSello .selloHueco { min-height: 26mm; }</style>
+      <div class="firmas">
+        ${CASILLAS_CERT.map(([k, r]) => `<div class="firma conSello">${firmas[k] ? S.selloHtml(firmas[k], { rotulo: r }) : S.huecoHtml(r)}</div>`).join("\n        ")}
+      </div>`;
+      }
       (function exportar(API) {
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.HOJA_CERT = API;
-      })({ agruparPorCapitulo, totalPorFase, totalesDeFilas, filtrarFilas, historico, hojasExcelHistorico, tsvHistorico, documentoHtml, nombreMes, lineasTotales, fechaEnLetra, retencionesHtml, trazabilidadHtml });
+      })({ agruparPorCapitulo, totalPorFase, totalesDeFilas, filtrarFilas, historico, hojasExcelHistorico, tsvHistorico, documentoHtml, nombreMes, lineasTotales, fechaEnLetra, retencionesHtml, trazabilidadHtml, firmasHoja, CASILLAS_CERT });
     }
   });
 
@@ -120816,267 +121907,6 @@ ${texto}`;
     }
   });
 
-  // shared/commissioning/vidaEquipo.js
-  var require_vidaEquipo = __commonJS({
-    "shared/commissioning/vidaEquipo.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var G = typeof __require !== "undefined" ? require_garantia() : window.GARANTIA_CX;
-      var ROLES = typeof __require !== "undefined" ? require_roles() : window.ROLES;
-      var FPM = () => typeof __require === "function" ? require_fechaPM() : window.FECHA_PM;
-      var DIA = 864e5;
-      var diasEntre = (desde, hasta) => Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / DIA);
-      var hoyLocal = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
-      var fecha = (iso) => iso ? G.fechaVisible(iso) : null;
-      var aniosTexto = (n) => n ? `${String(n).replace(".", ",")} ${Number(n) === 1 ? "a\xF1o" : "a\xF1os"}` : null;
-      function puestaEnMarcha(u) {
-        return FPM().puestaEnMarcha(u);
-      }
-      function garantia(u, linea, hoy = hoyLocal()) {
-        const enConjunto = linea && Array.isArray(linea.miembros) && linea.miembros.length > 1;
-        const base = enConjunto ? {
-          fechaEnvioDF: linea.fechaEnvioDF || null,
-          garantiaAnios: linea.miembros.map((m) => Number(m.garantiaAnios) || 0).reduce((x, y) => Math.max(x, y), 0) || null,
-          diasUso: linea.diasUso ?? null,
-          diasUsoFecha: linea.diasUsoFecha || null
-        } : { fechaEnvioDF: u && u.fechaEnvioDF || null, garantiaAnios: u && u.garantiaAnios, diasUso: u ? u.diasUso ?? null : null, diasUsoFecha: u && u.diasUsoFecha || null };
-        const g = G.garantiaDe(base, hoy);
-        const duracion = aniosTexto(g.anios);
-        const sal = {
-          desde: g.inicio,
-          hasta: g.fin,
-          desdeTexto: fecha(g.inicio),
-          hastaTexto: fecha(g.fin),
-          anios: g.anios,
-          duracion,
-          quedanDias: null,
-          conjunto: enConjunto ? linea.tag || null : null,
-          /* Los días de uso antes de la entrega a DF (30-oct): aparte, no mueven la garantía. */
-          usoAntesEntrega: g.usoAntesEntrega ?? null,
-          textoUso: g.textoUso || null
-        };
-        if (g.estado === "sinEmpezar") return { ...sal, estado: "sinEntregaDF", tono: "gris", resumen: "Pendiente de entrega a DF" };
-        if (g.estado === "sinAnios") return { ...sal, estado: "sinDuracion", tono: "gris", resumen: "Duraci\xF3n sin dato" };
-        const quedan = diasEntre(hoy, g.fin);
-        if (g.estado === "vencida") return { ...sal, estado: "caducada", tono: "gris", quedanDias: quedan, resumen: `Caducada hace ${-quedan} ${-quedan === 1 ? "d\xEDa" : "d\xEDas"}` };
-        return { ...sal, estado: "vigente", tono: "bien", quedanDias: quedan, resumen: `Vigente \xB7 quedan ${quedan} ${quedan === 1 ? "d\xEDa" : "d\xEDas"}` };
-      }
-      var veCertificacion = (rol, { entregable = false } = {}) => !entregable && Boolean(ROLES && ROLES.puede(rol, "certificaciones", "ver"));
-      var norm = (t) => ` ${String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim()} `;
-      var casable = (t) => {
-        const n = norm(t).trim();
-        return n.length >= 4 && /\d/.test(n) ? n : null;
-      };
-      var textosDeLista = /* @__PURE__ */ new WeakMap();
-      var textosDe = (lista) => {
-        const ya = textosDeLista.get(lista);
-        if (ya && ya.length === lista.length) return ya;
-        const t = lista.map((p) => norm(p ? `${p.codigo || ""} ${p.resumen || ""} ${p.descripcion || ""}` : ""));
-        t.porPalabra = /* @__PURE__ */ new Map();
-        t.forEach((x, i) => {
-          for (const w of new Set(x.trim().split(" "))) {
-            if (!t.porPalabra.has(w)) t.porPalabra.set(w, []);
-            t.porPalabra.get(w).push(i);
-          }
-        });
-        textosDeLista.set(lista, t);
-        return t;
-      };
-      function partidaDe(u, partidas) {
-        const lista = partidas || [];
-        let textos = null;
-        for (const [por, valor] of [["tag", u && u.tag], ["modelo", u && u.modelo]]) {
-          const c = casable(valor);
-          if (!c) continue;
-          textos ||= textosDe(lista);
-          const aguja = ` ${c} `;
-          let candidatas = null;
-          for (const w of new Set(c.split(" "))) {
-            const l = textos.porPalabra.get(w) || [];
-            if (!candidatas || l.length < candidatas.length) candidatas = l;
-            if (!l.length) break;
-          }
-          const hit = (candidatas || []).filter((i) => textos[i].includes(aguja)).map((i) => lista[i]);
-          if (hit.length === 1) return { partida: hit[0], por, varias: [] };
-          if (hit.length > 1) return { partida: null, por, varias: hit };
-        }
-        return { partida: null, por: null, varias: [] };
-      }
-      var redondo = (n) => Math.round(Number(n) * 1e3) / 1e3;
-      var cifra = (n) => String(redondo(n)).replace(".", ",");
-      function certificadoPorPartida(lineas) {
-        const out = {};
-        for (const l of lineas || []) {
-          if (!l || l.certificacionEstado === "borrador") continue;
-          const a = out[l.lineaId] || (out[l.lineaId] = { cantidad: 0, ultima: null });
-          a.cantidad = redondo(a.cantidad + (Number(l.cantidad) || 0));
-          if (!a.ultima || Number(l.certificacionNumero) > a.ultima.numero) a.ultima = { numero: Number(l.certificacionNumero), estado: l.certificacionEstado, periodo: l.periodo || null };
-        }
-        return out;
-      }
-      var STOCK = /\b(STOCK|ESTOCAJE|NOT INSTALLED|NO INSTALAD[OA]S?)\b/;
-      var numPlanta = (p) => {
-        const m = /^N\s*(\d{1,2})\b/i.exec(String(p || "").trim());
-        return m ? Number(m[1]) : null;
-      };
-      function tramoDe(texto) {
-        const t = String(texto || "");
-        let m = /\bN(\d{2})\s*[–—-]\s*N?(\d{2})\b/.exec(t);
-        if (m) return [Number(m[1]), Number(m[2])];
-        m = /\bN(\d{2})\s+y\s+superiores\b/i.exec(t);
-        return m ? [Number(m[1]), 99] : null;
-      }
-      var capitulosDe = /* @__PURE__ */ new WeakMap();
-      function antecesores(codigo, capitulos) {
-        if (!capitulos) return [];
-        let idx = capitulosDe.get(capitulos);
-        if (!idx) {
-          idx = new Map(capitulos.map((c) => [String(c.codigo), c]));
-          capitulosDe.set(capitulos, idx);
-        }
-        const partes = String(codigo || "").split(".");
-        const out = [];
-        for (let i = 1; i < partes.length; i += 1) {
-          const c = idx.get(partes.slice(0, i).join("."));
-          if (c) out.push(c);
-        }
-        return out;
-      }
-      function resolverVarias(u, varias, { porPartida = {}, capitulos = null } = {}) {
-        const hecho = (p) => (porPartida[p.lineaId] || {}).cantidad || 0;
-        let cand = varias.filter((p) => (Number(p.cantidad) || 0) > 0 || hecho(p) > 0).filter((p) => !antecesores(p.codigo, capitulos).some((c) => STOCK.test(norm(c.resumen))));
-        const n = numPlanta(u && u.planta);
-        if (n !== null && capitulos) {
-          const conTramo = cand.map((p) => ({ p, tramos: antecesores(p.codigo, capitulos).map((c) => tramoDe(c.resumen)).filter(Boolean) }));
-          if (conTramo.some((x) => x.tramos.length)) cand = conTramo.filter((x) => x.tramos.some(([a, b]) => n >= a && n <= b)).map((x) => x.p);
-        }
-        const textos = new Set(cand.map((p) => norm(p.resumen).trim()));
-        return cand.length && textos.size === 1 ? cand : null;
-      }
-      function certificacion(u, datos) {
-        const { partidas = [], porPartida = {}, capitulos = null } = datos || {};
-        const { partida, por, varias } = partidaDe(u, partidas);
-        const grupo = !partida && varias.length ? resolverVarias(u, varias, { porPartida, capitulos }) : null;
-        if (grupo) {
-          const total2 = grupo.reduce((s, p3) => s + (Number(p3.cantidad) || 0), 0);
-          let cant = 0;
-          let ultima = null;
-          for (const p3 of grupo) {
-            const h = porPartida[p3.lineaId];
-            if (!h) continue;
-            cant += h.cantidad;
-            if (h.ultima && (!ultima || h.ultima.numero > ultima.numero)) ultima = h.ultima;
-          }
-          cant = redondo(cant);
-          const unidad = grupo[0].unidad || null;
-          const codigos = grupo.map((p3) => p3.codigo || "");
-          const pct2 = total2 > 0 ? Math.round(cant / total2 * 1e3) / 10 : null;
-          const p2 = { codigo: codigos.length > 1 ? `${codigos[0]} +${codigos.length - 1}` : codigos[0], codigos, resumen: grupo[0].resumen || "", por };
-          const base2 = { partida: p2, cantidad: cant, total: redondo(total2), unidad, pct: pct2, ultima };
-          return conEstado(base2, unidad ? ` ${unidad}` : "", codigos.length > 1 ? ` \xB7 ${codigos.length} partidas` : "");
-        }
-        if (!partida) {
-          if (varias.length) return { estado: "variasPartidas", tono: "gris", resumen: `Su ${por === "tag" ? "TAG" : "modelo"} sale en ${varias.length} partidas: ${varias.slice(0, 3).map((p2) => p2.codigo).join(", ")}${varias.length > 3 ? "\u2026" : ""}`, partida: null };
-          return { estado: "sinPartida", tono: "gris", resumen: "Sin partida del Costs Plan con su TAG o su modelo", partida: null };
-        }
-        const total = Number(partida.cantidad) || 0;
-        const hecho = porPartida[partida.lineaId] || { cantidad: 0, ultima: null };
-        const pct = total > 0 ? Math.round(hecho.cantidad / total * 1e3) / 10 : null;
-        const p = { codigo: partida.codigo || "", resumen: partida.resumen || "", por };
-        const ud = partida.unidad ? ` ${partida.unidad}` : "";
-        const base = { partida: p, cantidad: hecho.cantidad, total, unidad: partida.unidad || null, pct, ultima: hecho.ultima };
-        return conEstado(base, ud, "");
-      }
-      function conEstado(base, ud, de) {
-        const { cantidad: cant, total, pct } = base;
-        if (!cant) return { ...base, estado: "sinCertificar", tono: "gris", resumen: `Sin certificar${de}` };
-        if (!(total > 0)) return { ...base, estado: "certificada", tono: "bien", resumen: `Certificada: ${cifra(cant)}${ud} (partida sin cantidad de contrato)${de}` };
-        if (cant >= total - 1e-9) return { ...base, estado: "certificada", tono: "bien", resumen: `Certificada (${cifra(cant)} de ${cifra(total)}${ud})${de}` };
-        return { ...base, estado: "parcial", tono: "info", resumen: `Certificada en parte: ${cifra(cant)} de ${cifra(total)}${ud}${pct !== null ? ` (${String(pct).replace(".", ",")} %)` : ""}${de}` };
-      }
-      function fichaVida(u, linea, { rol, hoy, datosCertificacion = null, entregable = false } = {}) {
-        const out = { puestaMarcha: puestaEnMarcha(u), garantia: garantia(u, linea, hoy || hoyLocal()) };
-        if (veCertificacion(rol, { entregable }) && datosCertificacion) out.certificacion = certificacion(u, datosCertificacion);
-        return out;
-      }
-      var ESTADO_CERT_TXT = { borrador: "borrador", emitida: "emitida", aprobada: "aprobada" };
-      function bloquesFicha(vida) {
-        if (!vida) return [];
-        const v = (texto, tono = null) => ({ texto: texto || null, tono: texto ? tono : null });
-        const pm = vida.puestaMarcha;
-        const g = vida.garantia;
-        const out = [];
-        if (pm) {
-          out.push({ id: "puestaMarcha", titulo: "Puesta en marcha", filas: [
-            ["Fecha", pm.fechaTexto ? v(pm.fechaTexto) : v("Sin toma de datos", "gris")],
-            ["Estado", v(pm.etiqueta, pm.tono)]
-          ] });
-        }
-        if (g) {
-          out.push({ id: "garantia", titulo: "Garant\xEDa", filas: [
-            ["Desde", g.desdeTexto ? v(`${g.desdeTexto} (entrega a DF${g.conjunto ? " del conjunto" : ""})`) : v("Pendiente de entrega a DF", "gris")],
-            ["Hasta", g.hastaTexto ? v(g.hastaTexto) : v(null)],
-            ["Duraci\xF3n", g.duracion ? v(g.duracion) : v("Duraci\xF3n sin dato", "gris")],
-            ["D\xEDas de uso", g.textoUso ? v(g.textoUso, "info") : v("Sin dato", "gris")],
-            ...g.estado === "vigente" || g.estado === "caducada" ? [["Estado", v(g.resumen, g.tono)]] : []
-          ] });
-        }
-        const c = vida.certificacion;
-        if (c) {
-          const filas = [];
-          if (c.partida) filas.push(["Partida", v(`${c.partida.codigo}${c.partida.resumen ? ` \xB7 ${c.partida.resumen.slice(0, 70)}` : ""}`)]);
-          filas.push(["Estado", v(c.resumen, c.tono)]);
-          if (c.ultima) filas.push(["\xDAltima", v(`Certificaci\xF3n n\xBA ${c.ultima.numero} (${ESTADO_CERT_TXT[c.ultima.estado] || c.ultima.estado})${c.ultima.periodo ? ` \xB7 ${c.ultima.periodo}` : ""}`)]);
-          out.push({ id: "certificacion", titulo: "Certificaci\xF3n", filas });
-        }
-        return out;
-      }
-      var NOMBRE_CIRCUITO = { impulsion: "Impulsi\xF3n", retorno: "Retorno" };
-      var cifraBal = (n, dec = 0) => Number(n).toLocaleString("es-ES", { minimumFractionDigits: dec, maximumFractionDigits: dec });
-      var pctBal = (d) => `${d > 0 ? "+" : ""}${cifraBal(d * 100, 1)} %`;
-      function bloqueBalanceo(resumen) {
-        const circuitos = resumen && resumen.circuitos;
-        if (!circuitos) return null;
-        const v = (texto, tono = null) => ({ texto: texto || null, tono: texto ? tono : null });
-        const tol = resumen.tolerancias || {};
-        const filas = [];
-        for (const id of ["impulsion", "retorno"]) {
-          const c = circuitos[id];
-          if (!c || !c.puntos) continue;
-          const nombre = NOMBRE_CIRCUITO[id];
-          filas.push([`${nombre} \xB7 bocas`, v(`${c.medidos} de ${c.puntos} medidas${c.faltan ? ` \xB7 faltan ${c.faltan}` : ""}`, c.faltan ? "gris" : "bien")]);
-          const ref = c.disenoReferencia;
-          if (c.suma !== null && c.suma !== void 0) {
-            filas.push([`${nombre} \xB7 caudal`, v(`${cifraBal(c.suma)} m\xB3/h medidos${ref !== null && ref !== void 0 ? ` frente a ${cifraBal(ref)} de proyecto` : ""}`)]);
-          } else if (c.sinAk) {
-            filas.push([`${nombre} \xB7 caudal`, v(`${c.sinAk} ${c.sinAk === 1 ? "boca" : "bocas"} sin factor Ak: sin caudal`, "gris")]);
-          }
-          let juicio;
-          if (c.estado === "dentro") juicio = v(`Dentro de tolerancia${c.desviacion !== null && c.desviacion !== void 0 ? ` (${pctBal(c.desviacion)})` : ""}`, "bien");
-          else if (c.estado === "alto" || c.estado === "bajo") juicio = v(`Fuera de tolerancia: ${c.estado === "alto" ? "alto" : "bajo"}${c.desviacion !== null && c.desviacion !== void 0 ? ` (${pctBal(c.desviacion)})` : ""}`, "mal");
-          else if (c.estado === "sinDiseno") juicio = v("Sin caudal de proyecto con el que comparar", "gris");
-          else juicio = v("Total sin juzgar hasta medir todas las bocas", "gris");
-          filas.push([`${nombre} \xB7 total`, juicio]);
-          if (c.dentro || c.fuera) {
-            filas.push([`${nombre} \xB7 por boca`, v(`${c.dentro} dentro \xB7 ${c.fuera} fuera${tol.boca ? ` de \xB1${cifraBal(tol.boca * 100)} %` : ""}`)]);
-          }
-        }
-        return filas.length ? { id: "balanceo", titulo: "Balanceo de caudales", filas } : null;
-      }
-      function codigosCasables(equipos) {
-        const out = /* @__PURE__ */ new Set();
-        for (const u of equipos || []) for (const v of [u && u.tag, u && u.modelo]) {
-          const c = casable(v);
-          if (c) out.add(c);
-        }
-        return [...out];
-      }
-      var API = { codigosCasables, puestaEnMarcha, garantia, veCertificacion, partidaDe, certificadoPorPartida, certificacion, fichaVida, bloquesFicha, bloqueBalanceo };
-      if (typeof module !== "undefined" && module.exports) module.exports = API;
-      if (typeof window !== "undefined") window.VIDA_EQUIPO = API;
-    }
-  });
-
   // shared/commissioning/equiposPresupuesto.js
   var require_equiposPresupuesto = __commonJS({
     "shared/commissioning/equiposPresupuesto.js"(exports, module) {
@@ -127493,6 +128323,10 @@ ${fallos.join("\r\n")}\r
         const r = require_marcaCambios().recordar(repo, sesion, `estadoEntregaDF|${obraId}`, () => estadoEntregaDFSinRecordar(repo, sesion, obraId));
         return r ? structuredClone(r) : r;
       }
+      function listoDesdeDF(l) {
+        const f = Object.values(l && l.fichas || {}).map((x) => String(x && x.fecha || "").slice(0, 10)).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x)).sort();
+        return f.length ? f[f.length - 1] : null;
+      }
       function estadoEntregaDFSinRecordar(repo, sesion, obraId) {
         const d = datosPaqueteDF(repo, sesion, obraId, { soloVer: true });
         if (!d || !d.ok) return d || { ok: false, error: "No se puede leer el estado de la entrega." };
@@ -127503,7 +128337,15 @@ ${fallos.join("\r\n")}\r
         };
         return {
           ok: true,
-          lineas: d.lineas.map((l) => ({ id: l.id, tipo: l.tipoEntrega, estado: l.estado === "entregado" ? "completo" : "retenido", motivos: l.motivos || [], estanqueidad: estanq(l.estanqueidad) }))
+          lineas: d.lineas.map((l) => ({
+            id: l.id,
+            tipo: l.tipoEntrega,
+            estado: l.estado === "entregado" ? "completo" : "retenido",
+            motivos: l.motivos || [],
+            estanqueidad: estanq(l.estanqueidad),
+            /* Desde cuándo está listo (26-nov, JC: el listado se llena solo): la última toma de datos de sus hojas. */
+            ...l.estado === "entregado" ? { listoDesde: listoDesdeDF(l) } : {}
+          }))
         };
       }
       function alcanceEntregaDF(repo, sesion, obraId) {
@@ -128352,11 +129194,21 @@ ${fallos.join("\r\n")}\r
           LG: /^\d{3}[A-Z0-9]{6,12}$/,
           SAMSUNG: /^[0-9A-Z]{13,16}$/,
           TOSHIBA: /^[0-9A-Z]{7,12}$/,
-          CARRIER: /^(?:\d{9}[A-Z]|[A-Z]\d{10})$/
+          CARRIER: /^(?:\d{9}[A-Z]|[A-Z]\d{10})$/,
+          /* Soler & Palau (26-nov, placas de los ventiladores de NCN): 10 cifras, sin etiqueta. */
+          SOLERPALAU: /^\d{10}$/
         };
+        const FORMATO_CRUDO = /* @__PURE__ */ new Set(["SOLERPALAU"]);
+        const ALIAS_MARCA = [
+          [/\bSOLER\b|\bPALAU\b|\bS\s*&\s*P\b|\(S\s*[&.]\s*P\)/i, "SOLERPALAU"]
+        ];
+        const VERSION_REGLAS = "2026-11-26";
         const llano = (v) => String(v ?? "").trim();
         const normal = (v) => llano(v).toUpperCase().replace(/[\s\-_/.]/g, "");
-        const marcaDe = (m) => Object.keys(FORMATO_MARCA).find((k) => normal(m).includes(k)) || null;
+        const marcaDe = (m) => {
+          const a = ALIAS_MARCA.find(([r]) => r.test(llano(m)));
+          return a ? a[1] : Object.keys(FORMATO_MARCA).find((k) => normal(m).includes(k)) || null;
+        };
         const UNIDAD = /^(?:K?W|V|HZ|A|BAR|MPA|KG|KPA|PA|DB|M3\/H|L\/S|PH|IPX?\d+)$/i;
         const RENGLON_ELECTRICO = /POWER|VOLT|SOURCE|SUPPLY|ALIMENTACI|\bHZ\b|\d\s*V\b|\bV\s*\d|CURRENT|INPUT|\bKW\b/i;
         function pareceSerie(token, { modelo } = {}) {
@@ -128387,7 +129239,7 @@ ${fallos.join("\r\n")}\r
           const lineas = (Array.isArray(texto) ? texto : String(texto ?? "").split(/\r?\n/)).map(llano).filter(Boolean);
           const marca = marcaDe(opciones.marca) || marcaDe(lineas.slice(0, 4).join(" "));
           const formato = marca ? FORMATO_MARCA[marca] : null;
-          const delFormato = (v) => Boolean(formato && formato.test(normal(v)));
+          const delFormato = (v) => Boolean(formato && formato.test(FORMATO_CRUDO.has(marca) ? llano(v) : normal(v)));
           const hallados = [];
           lineas.forEach((l, i) => {
             ETIQUETA.lastIndex = 0;
@@ -128429,11 +129281,23 @@ ${fallos.join("\r\n")}\r
             };
           }
           if (formato) {
-            const sueltos = [...new Set(lineas.filter((l) => !RENGLON_ELECTRICO.test(l)).flatMap(trozos).map((t) => t.replace(/^[:#]+|[:;,.]+$/g, "")).filter((t) => pareceSerie(t, opciones) && delFormato(t)))];
+            const buscar = (ls) => [...new Set(ls.flatMap((l) => unirPartidos(trozos(l).map((t) => t.replace(/^[:#]+|[:;,.]+$/g, "")), delFormato)).filter((t) => pareceSerie(t, opciones) && delFormato(t) && !TENSIONES.test(t)))];
+            let sueltos = buscar(lineas.filter((l) => !RENGLON_ELECTRICO.test(l)));
+            if (!sueltos.length && FORMATO_CRUDO.has(marca)) sueltos = buscar(lineas);
             if (sueltos.length === 1) return { valor: sueltos[0], confianza: "baja", candidatos: sueltos, motivo: "Sin etiqueta: por el formato de la marca" };
             if (sueltos.length > 1) return { valor: null, confianza: null, candidatos: sueltos, motivo: "Sin etiqueta y con varios n\xFAmeros posibles" };
           }
           return { valor: null, confianza: null, candidatos: [], motivo: "No se ve ning\xFAn n\xBA de serie en la foto" };
+        }
+        const TENSIONES = /^(?:(?:1[12]0|2[234]0|3[89]0|4[01][05]|400|415|440|460|480|690)){2,3}$/;
+        function unirPartidos(ts, delFormato) {
+          const salida = [];
+          ts.forEach((t, i) => {
+            salida.push(t);
+            const s = ts[i + 1];
+            if (s && /^\d{2,}$/.test(t) && /^\d{2,}$/.test(s) && !delFormato(t) && !delFormato(s) && delFormato(`${t}${s}`)) salida.push(`${t}${s}`);
+          });
+          return salida;
         }
         function modeloDistinto(lineas, modelo) {
           const m = normal(modelo);
@@ -128446,15 +129310,18 @@ ${fallos.join("\r\n")}\r
           /MODEL|МОДЕЛЬ/i,
           /SERIAL|S\/N|SERIE|СЕРИЙН|СЕРІЙН|MFG/i,
           /REFRIGERANT|R410A|R32\b|R-?407C|R-?134A|ХЛАДАГЕНТ/i,
-          /POWER\s*SOURCE|POWER\s*SUPPLY|ALIMENTACI|\d\s*HZ\b/i,
+          /POWER\s*SOURCE|POWER\s*SUPPLY|ALIMENTACI|\d\s*HZ\b|\bHZ\b/i,
           /\bK?W\b|KW/i,
           /MPA|BAR\b/i,
           /\bIPX?\d/i,
-          /\bKG\b/i
+          /\bKG\b/i,
+          /* 26-nov: las placas de los ventiladores (S&P) no dicen MODEL ni SERIAL: dicen la marca y dónde se fabricó. */
+          /MADE\s*IN|FABRICADO\s*EN|HECHO\s*EN/i
         ];
         function pareceplaca(texto) {
           const t = (Array.isArray(texto) ? texto : String(texto ?? "").split(/\r?\n/)).join(" ");
-          return SE\u00D1ALES_PLACA.filter((r) => r.test(t)).length >= 3;
+          const marca = ALIAS_MARCA.some(([r]) => r.test(t));
+          return SE\u00D1ALES_PLACA.filter((r) => r.test(t)).length + (marca ? 1 : 0) >= 3;
         }
         function estadoSerie(v) {
           const s = llano(v);
@@ -128468,6 +129335,30 @@ ${fallos.join("\r\n")}\r
           if (!placa) return lectura.confianza === "baja" ? "nada" : "proponer";
           if (est === "vacio" && lectura.confianza === "alta") return "aplicar";
           return "proponer";
+        }
+        const lecturaCaducada = (nota) => Boolean(nota && (nota.estado === "nada" || nota.estado === "sinLectura") && nota.reglas !== VERSION_REGLAS);
+        function renglonesDeTrozos(lista = []) {
+          const ts = (Array.isArray(lista) ? lista : []).filter((t) => t && llano(t.t)).map((t) => ({ t: llano(t.t), x: +t.x || 0, y: +t.y || 0, h: +t.h || 0.01 })).sort((a, b) => a.y + a.h / 2 - (b.y + b.h / 2));
+          const filas = [];
+          for (const t of ts) {
+            const centro = t.y + t.h / 2;
+            let fila = null;
+            for (let i = filas.length - 1; i >= Math.max(0, filas.length - 3); i -= 1) {
+              const f = filas[i];
+              const solape = Math.min(f.y + f.h, t.y + t.h) - Math.max(f.y, t.y);
+              if (solape > 0.5 * Math.min(f.h, t.h) || centro >= f.y && centro <= f.y + f.h) {
+                fila = f;
+                break;
+              }
+            }
+            if (fila) {
+              fila.celdas.push(t);
+              const abajo = Math.max(fila.y + fila.h, t.y + t.h);
+              fila.y = Math.min(fila.y, t.y);
+              fila.h = abajo - fila.y;
+            } else filas.push({ y: t.y, h: t.h, celdas: [t] });
+          }
+          return filas.map((f) => f.celdas.sort((a, b) => a.x - b.x).map((c) => c.t).join(" "));
         }
         function leerEstado(v) {
           if (!v) return null;
@@ -128517,7 +129408,7 @@ ${fallos.join("\r\n")}\r
             placa: ps.some((p) => pareceplaca(p))
           };
         }
-        const API = { extraerNumeroSerie, pareceSerie, pareceplaca, estadoSerie, esFotoPlaca, decidir, leerEstado, combinarLecturas, leerPasadas, FORMATO_MARCA };
+        const API = { extraerNumeroSerie, pareceSerie, pareceplaca, estadoSerie, esFotoPlaca, decidir, leerEstado, combinarLecturas, leerPasadas, lecturaCaducada, renglonesDeTrozos, FORMATO_MARCA, VERSION_REGLAS };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         else globalThis.PLACA_SERIE = API;
       })();
@@ -128633,9 +129524,7 @@ ${fallos.join("\r\n")}\r
       async function textoMac(ruta) {
         if (true) return null;
         const O = require_ocr();
-        const A = require_albaranes();
-        const filas = A.filasDeTrozos(await O.trozosMac(ruta));
-        return filas.map((f) => f.texto);
+        return PS.renglonesDeTrozos(await O.trozosMac(ruta));
       }
       function claseDeFoto(pie) {
         if (PS.esFotoPlaca(pie)) return "placa";
@@ -128644,14 +129533,15 @@ ${fallos.join("\r\n")}\r
       function prepararTabla(db) {
         db.exec(`CREATE TABLE IF NOT EXISTS _lecturasPlaca (
     fotoId TEXT PRIMARY KEY, equipoId TEXT, estado TEXT NOT NULL, valor TEXT, texto TEXT, en TEXT NOT NULL)`);
+        if (!db.prepare("PRAGMA table_info(_lecturasPlaca)").all().some((c) => c.name === "reglas")) db.exec("ALTER TABLE _lecturasPlaca ADD COLUMN reglas TEXT");
       }
       function pendientes(db, { obraId = null } = {}) {
         prepararTabla(db);
         const filas = db.prepare(`
     SELECT f.id, f.obraId, f.equipoId, f.ruta, f.pie, f.creadoEn, e.tag, e.marca, e.modelo, e.numSerie
       FROM fotosEquipo f JOIN equiposObra e ON e.id = f.equipoId
-     WHERE f.id NOT IN (SELECT fotoId FROM _lecturasPlaca) ${obraId ? "AND f.obraId = ?" : ""}
-     ORDER BY f.creadoEn`).all(...obraId ? [obraId] : []);
+     WHERE f.id NOT IN (SELECT fotoId FROM _lecturasPlaca WHERE NOT (estado = 'sinLectura' AND IFNULL(reglas, '') <> ?)) ${obraId ? "AND f.obraId = ?" : ""}
+     ORDER BY f.creadoEn`).all(PS.VERSION_REGLAS, ...obraId ? [obraId] : []);
         const leidas = leidasEn(db);
         return filas.filter((f) => claseDeFoto(f.pie) && PS.estadoSerie(f.numSerie) !== "tiene" && !yaLeida(leidas.get(f.equipoId), f));
       }
@@ -128660,7 +129550,7 @@ ${fallos.join("\r\n")}\r
         for (const e of db.prepare("SELECT id, seriePlaca FROM equiposObra WHERE seriePlaca IS NOT NULL AND seriePlaca <> ''").all()) m.set(e.id, PS.leerEstado(e.seriePlaca));
         return m;
       }
-      var yaLeida = (nota, f) => Boolean(nota && (nota.fotoId === f.id || Array.isArray(nota.leidas) && nota.leidas.includes(f.id) || nota.en && String(f.creadoEn || "") <= String(nota.en)));
+      var yaLeida = (nota, f) => Boolean(nota && !PS.lecturaCaducada(nota) && (nota.fotoId === f.id || Array.isArray(nota.leidas) && nota.leidas.includes(f.id) || !nota.reglas && nota.en && String(f.creadoEn || "") <= String(nota.en)));
       var fallos = /* @__PURE__ */ new Map();
       async function leerPendientes(repo, { leer = textoMac, obraId = null, registro = () => {
       } } = {}) {
@@ -128704,10 +129594,12 @@ ${fallos.join("\r\n")}\r
           const w = fpm().ponerNumSerie(repo, ses, eq.id, lectura.valor);
           estado = w.ok ? "aplicada" : "propuesta";
         } else if (que === "proponer") estado = "propuesta";
-        const antes = PS.leerEstado(eq.seriePlaca);
+        const guardada = PS.leerEstado(eq.seriePlaca);
+        const antes = PS.lecturaCaducada(guardada) ? null : guardada;
         const pisa = estado !== "sinLectura" || !antes || antes.estado === "sinLectura";
         const leidas = [...new Set([...antes && antes.leidas || [], foto.id].filter(Boolean))].slice(-20);
-        const nueva = pisa && (estado !== "sinLectura" || placa) ? { estado, ...nota, leidas, en: (/* @__PURE__ */ new Date()).toISOString(), ...ses.personaId ? { por: ses.nombre || null } : {} } : antes ? { ...antes, leidas } : { estado: "nada", leidas, en: (/* @__PURE__ */ new Date()).toISOString() };
+        const reglas = PS.VERSION_REGLAS;
+        const nueva = pisa && (estado !== "sinLectura" || placa) ? { estado, ...nota, leidas, reglas, en: (/* @__PURE__ */ new Date()).toISOString(), ...ses.personaId ? { por: ses.nombre || null } : {} } : antes ? { ...antes, leidas, reglas } : { estado: "nada", leidas, reglas, en: (/* @__PURE__ */ new Date()).toISOString() };
         if (nueva) repo.modificar("equiposObra", ses, eq.id, { seriePlaca: JSON.stringify(nueva) });
         apuntarLeida(repo.db, foto, { estado, valor: nota.valor }, pasadas.map((p) => Array.isArray(p) ? p.join("\n") : String(p || "")).join("\n----\n"));
         return { estado, ...nota };
@@ -128715,7 +129607,7 @@ ${fallos.join("\r\n")}\r
       function apuntarLeida(db, foto, { estado, valor }, texto) {
         if (!foto || !foto.id) return;
         prepararTabla(db);
-        db.prepare("INSERT OR REPLACE INTO _lecturasPlaca (fotoId, equipoId, estado, valor, texto, en) VALUES (?, ?, ?, ?, ?, ?)").run(foto.id, foto.equipoId, estado, valor || null, String(texto || "").slice(0, 8e3), (/* @__PURE__ */ new Date()).toISOString());
+        db.prepare("INSERT OR REPLACE INTO _lecturasPlaca (fotoId, equipoId, estado, valor, texto, en, reglas) VALUES (?, ?, ?, ?, ?, ?, ?)").run(foto.id, foto.equipoId, estado, valor || null, String(texto || "").slice(0, 8e3), (/* @__PURE__ */ new Date()).toISOString(), PS.VERSION_REGLAS);
       }
       function lecturaDelCliente(repo, ses, { equipoId, fotoId, pasadas } = {}) {
         const eq = repo.leer("equiposObra", ses, llano(equipoId));
@@ -131921,7 +132813,6 @@ ${fallos.join("\r\n")}\r
         return { t, filasEq, est };
       }
       function reglaBloque(repo, ses, obraId, { certDe = /* @__PURE__ */ new Map(), datosCert = null } = {}) {
-        const CB = require_colorBloque();
         const montaje = (() => {
           try {
             return new Map(repo.db.prepare("SELECT id, estado, fechaInstalacion, instalacionVerificadaEn FROM equiposObra WHERE obraId = ?").all(obraId).map((x) => [x.id, x]));
@@ -131937,18 +132828,19 @@ ${fallos.join("\r\n")}\r
             return /* @__PURE__ */ new Map();
           }
         })();
+        const certMovil = VE.veCertificacion(ses.rol) && !(certBloque && certBloque.partidas && certBloque.partidas.length) ? require_certificacionAlMovil().leer(repo.db, obraId) : null;
+        const EEP = require_estadoEquipoPlano();
         const bloqueDe = (f, e) => {
           let cert = certDe.get(f.id) || null;
-          if (!cert && certBloque) {
+          if (!cert && certMovil) cert = certMovil.get(f.id) || null;
+          else if (!cert && certBloque) {
             try {
               cert = VE.certificacion(f, certBloque);
             } catch {
               cert = null;
             }
           }
-          const ids = Array.isArray(e.miembros) && e.miembros.length ? e.miembros.map((m) => m.id) : [f.id];
-          const tomaHecha = e.color !== "verde" && CB.tomaHechaConjunto(ids, tomaDe);
-          return CB.estadoBloque(montaje.get(f.id) || f, { cxHecho: e.color === "verde", tomaHecha, cxEmpezado: e.color === "azul", cert });
+          return EEP.estadoDelEquipo(f, e, { montaje: montaje.get(f.id) || null, tomaDe, cert });
         };
         return bloqueDe;
       }
@@ -137642,6 +138534,711 @@ ${reglas}`;
     }
   });
 
+  // shared/compras/condicionesEmpresa.js
+  var require_condicionesEmpresa = __commonJS({
+    "shared/compras/condicionesEmpresa.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function condicionesEmpresaModulo() {
+        const ROLES_RELAJAN = ["administrador", "gerente", "jefeDepartamento", "jefeProyectos"];
+        const TIPOS = {
+          dias: { unidad: "d\xEDas" },
+          meses: { unidad: "meses" },
+          pct: { unidad: "%" },
+          euros: { unidad: "\u20AC" },
+          si: { unidad: "" },
+          opcion: { unidad: "" },
+          lista: { unidad: "" }
+        };
+        const REGLAS = ["max", "min", "igual", "si", "enOpciones", "todos"];
+        const NIVELES = ["obligatoria", "recomendable"];
+        const OPCIONES_PAGO = [
+          { id: "transferencia", texto: "Transferencia" },
+          { id: "confirming", texto: "Confirming" },
+          { id: "pagare", texto: "Pagar\xE9" },
+          { id: "recibo", texto: "Recibo domiciliado" },
+          { id: "contado", texto: "Contado" }
+        ];
+        const DOCUMENTOS_FINALES = [
+          { id: "fichas", texto: "Fichas t\xE9cnicas" },
+          { id: "ce", texto: "Certificados CE / DoP" },
+          { id: "manuales", texto: "Manuales" },
+          { id: "asBuilt", texto: "Planos as-built" }
+        ];
+        const CATALOGO = [
+          { clave: "formaPago", titulo: "Forma de pago", tipo: "opcion", regla: "enOpciones", valor: ["transferencia", "confirming"], tolerancia: 0, nivel: "recomendable" },
+          { clave: "plazoPago", titulo: "Plazo de pago", tipo: "dias", regla: "igual", valor: 60, tolerancia: 0, nivel: "obligatoria" },
+          { clave: "retencion", titulo: "Retenci\xF3n de garant\xEDa", tipo: "pct", regla: "min", valor: 5, tolerancia: 0, nivel: "obligatoria" },
+          { clave: "garantiaObra", titulo: "Plazo de garant\xEDa de los trabajos", tipo: "meses", regla: "min", valor: 12, tolerancia: 0, nivel: "recomendable" },
+          { clave: "aval", titulo: "Aval", tipo: "si", regla: "si", valor: true, tolerancia: 0, nivel: "recomendable" },
+          { clave: "penalizaciones", titulo: "Penalizaciones por retraso", tipo: "si", regla: "si", valor: true, tolerancia: 0, nivel: "recomendable" },
+          { clave: "seguroRC", titulo: "Seguro de responsabilidad civil", tipo: "euros", regla: "min", valor: 6e5, tolerancia: 0, nivel: "obligatoria" },
+          { clave: "prlCae", titulo: "PRL y documentaci\xF3n CAE", tipo: "si", regla: "si", valor: true, tolerancia: 0, nivel: "obligatoria" },
+          { clave: "validez", titulo: "Validez de la oferta", tipo: "dias", regla: "min", valor: 60, tolerancia: 0, nivel: "obligatoria" },
+          { clave: "ivaAparte", titulo: "Precios sin IVA (IVA aparte)", tipo: "si", regla: "si", valor: true, tolerancia: 0, nivel: "recomendable" },
+          { clave: "portes", titulo: "Portes incluidos", tipo: "si", regla: "si", valor: true, tolerancia: 0, nivel: "recomendable" },
+          { clave: "plazoEntrega", titulo: "Plazo de entrega", tipo: "dias", regla: "max", valor: 30, tolerancia: 0, nivel: "recomendable" },
+          { clave: "preciosCerrados", titulo: "Precios cerrados (sin revisi\xF3n)", tipo: "si", regla: "si", valor: true, tolerancia: 0, nivel: "recomendable" },
+          { clave: "garantiaEquipos", titulo: "Garant\xEDa de los equipos", tipo: "meses", regla: "min", valor: 24, tolerancia: 0, nivel: "recomendable" },
+          { clave: "documentacionFinal", titulo: "Documentaci\xF3n final", tipo: "lista", regla: "todos", valor: ["fichas", "ce", "manuales", "asBuilt"], tolerancia: 0, nivel: "obligatoria" }
+        ];
+        const POR_CLAVE = new Map(CATALOGO.map((c) => [c.clave, c]));
+        const copia = (o) => JSON.parse(JSON.stringify(o));
+        const num = (v) => {
+          if (v === null || v === void 0 || v === "") return null;
+          const n = typeof v === "number" ? v : Number(String(v).replace(/\./g, "").replace(",", "."));
+          return Number.isFinite(n) ? n : null;
+        };
+        const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+        const miles = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        function limpiarClausula(c) {
+          if (!c || typeof c !== "object") return null;
+          const base = POR_CLAVE.get(c.clave);
+          if (!base) return null;
+          const out = { ...copia(base), activa: c.activa !== false };
+          if (NIVELES.includes(c.nivel)) out.nivel = c.nivel;
+          if (["max", "min", "igual"].includes(base.regla) && ["max", "min", "igual"].includes(c.regla)) out.regla = c.regla;
+          if (["dias", "meses", "pct", "euros"].includes(base.tipo)) {
+            const v = num(c.valor);
+            if (v !== null && v >= 0) out.valor = v;
+            const t = num(c.tolerancia);
+            out.tolerancia = t !== null && t >= 0 ? t : 0;
+          } else if (base.tipo === "opcion" || base.tipo === "lista") {
+            const validos = (base.tipo === "opcion" ? OPCIONES_PAGO : DOCUMENTOS_FINALES).map((x) => x.id);
+            if (Array.isArray(c.valor)) {
+              const v = c.valor.filter((x) => validos.includes(x));
+              if (v.length) out.valor = [...new Set(v)];
+            }
+            out.tolerancia = 0;
+          } else {
+            out.valor = true;
+            out.tolerancia = 0;
+          }
+          return out;
+        }
+        function limpiarCatalogo(lista) {
+          const dadas = new Map((Array.isArray(lista) ? lista : []).filter((c) => c && c.clave).map((c) => [c.clave, c]));
+          return CATALOGO.map((b) => limpiarClausula(dadas.has(b.clave) ? dadas.get(b.clave) : b));
+        }
+        function cambiosProyecto(empresa, proyecto) {
+          const E = new Map(limpiarCatalogo(empresa).map((c) => [c.clave, c]));
+          const salida = [];
+          for (const p of limpiarCatalogo(proyecto)) {
+            const e = E.get(p.clave);
+            if (!e) continue;
+            const relaja = [];
+            const endurece = [];
+            if (e.activa && !p.activa) relaja.push("se quita");
+            if (!e.activa && p.activa) endurece.push("se a\xF1ade");
+            if (e.nivel === "obligatoria" && p.nivel === "recomendable") relaja.push("pasa a recomendable");
+            if (e.nivel === "recomendable" && p.nivel === "obligatoria") endurece.push("pasa a obligatoria");
+            if (p.tolerancia > e.tolerancia) relaja.push("m\xE1s tolerancia");
+            if (p.tolerancia < e.tolerancia) endurece.push("menos tolerancia");
+            if (p.regla !== e.regla) relaja.push("cambia la regla");
+            else if (typeof e.valor === "number" && p.valor !== e.valor) {
+              if (e.regla === "max") (p.valor > e.valor ? relaja : endurece).push(`${textoValor(e, e.valor)} \u2192 ${textoValor(p, p.valor)}`);
+              else if (e.regla === "min") (p.valor < e.valor ? relaja : endurece).push(`${textoValor(e, e.valor)} \u2192 ${textoValor(p, p.valor)}`);
+              else relaja.push(`${textoValor(e, e.valor)} \u2192 ${textoValor(p, p.valor)}`);
+            } else if (Array.isArray(e.valor)) {
+              if (e.regla === "enOpciones") {
+                if (p.valor.some((x) => !e.valor.includes(x))) relaja.push("admite m\xE1s formas de pago");
+                if (e.valor.some((x) => !p.valor.includes(x))) endurece.push("admite menos formas de pago");
+              } else {
+                if (e.valor.some((x) => !p.valor.includes(x))) relaja.push("pide menos documentos");
+                if (p.valor.some((x) => !e.valor.includes(x))) endurece.push("pide m\xE1s documentos");
+              }
+            }
+            if (relaja.length) salida.push({ clave: p.clave, titulo: p.titulo, cambio: "relaja", porque: relaja.join(", ") });
+            else if (endurece.length) salida.push({ clave: p.clave, titulo: p.titulo, cambio: "endurece", porque: endurece.join(", ") });
+          }
+          return salida;
+        }
+        const puedeRelajar = (rol) => ROLES_RELAJAN.includes(rol);
+        function textoValor(c, v) {
+          if (v === null || v === void 0) return "no indicado";
+          switch (c.tipo) {
+            case "dias":
+              return `${v} d\xEDas`;
+            case "meses":
+              return `${v} meses`;
+            case "pct":
+              return `${String(v).replace(".", ",")} %`;
+            case "euros":
+              return `${miles(v)} \u20AC`;
+            case "si":
+              return v === true ? "s\xED" : v === false ? "no" : String(v);
+            case "opcion":
+              return (Array.isArray(v) ? v : [v]).map((x) => (OPCIONES_PAGO.find((o) => o.id === x) || { texto: x }).texto).join(" o ");
+            case "lista":
+              return (Array.isArray(v) ? v : [v]).map((x) => (DOCUMENTOS_FINALES.find((o) => o.id === x) || { texto: x }).texto).join(", ");
+            default:
+              return String(v);
+          }
+        }
+        function textoExige(c) {
+          const tol = c.tolerancia ? ` (\xB1 ${textoValor(c, c.tolerancia)})` : "";
+          switch (c.regla) {
+            case "max":
+              return `como mucho ${textoValor(c, c.valor)}${tol}`;
+            case "min":
+              return `al menos ${textoValor(c, c.valor)}${tol}`;
+            case "igual":
+              return `${textoValor(c, c.valor)}${tol}`;
+            case "si":
+              return "s\xED";
+            case "enOpciones":
+              return textoValor(c, c.valor);
+            case "todos":
+              return textoValor(c, c.valor);
+            default:
+              return "";
+          }
+        }
+        const NIEGA = /\b(no\s+(se\s+)?(incluye|incluido|incluidos|incluidas|acepta|aceptan|aceptamos|aporta|aportamos|admite|admiten)|excluid[oa]s?|sin\s|quedan?\s+excluid|no\s+aplica)/;
+        const DETECTORES = {
+          formaPago(t) {
+            if (!/(pago|pagar|abono|factura)/.test(t)) return void 0;
+            if (/confirming/.test(t)) return "confirming";
+            if (/pagare/.test(t)) return "pagare";
+            if (/transferencia/.test(t)) return "transferencia";
+            if (/recibo|domicilia/.test(t)) return "recibo";
+            if (/contado|al contado|pronto pago/.test(t)) return "contado";
+            return void 0;
+          },
+          plazoPago(t) {
+            if (!/(pago|pagar|confirming|pagare|vencimiento|transferencia|f\.?\s?f\.?|fecha (de )?factura)/.test(t)) return void 0;
+            if (/(validez|valida|entrega|garantia)/.test(t) && !/pago/.test(t)) return void 0;
+            const m = t.match(/(\d{1,3})\s*(dias|d\.)/);
+            if (m) return Number(m[1]);
+            if (/al contado|pago contado|a la recepcion/.test(t)) return 0;
+            return void 0;
+          },
+          retencion(t) {
+            if (!/retenci/.test(t)) return void 0;
+            if (/sin retenci|no se acepta(n)? retenci|no (se )?admite(n)? retenci/.test(t)) return 0;
+            const m = t.match(/(\d{1,2}(?:[.,]\d+)?)\s*%/);
+            return m ? Number(m[1].replace(",", ".")) : void 0;
+          },
+          garantiaObra(t) {
+            if (!/garantia/.test(t) || /equipo|fabricante|compresor|maquina/.test(t)) return void 0;
+            const m = t.match(/(\d{1,3})\s*(meses|mes|anos|ano)\b/);
+            if (!m) return void 0;
+            return /ano/.test(m[2]) ? Number(m[1]) * 12 : Number(m[1]);
+          },
+          aval(t) {
+            if (!/\baval/.test(t)) return void 0;
+            return NIEGA.test(t) ? false : true;
+          },
+          penalizaciones(t) {
+            if (!/penaliza/.test(t)) return void 0;
+            return NIEGA.test(t) ? false : true;
+          },
+          seguroRC(t, original) {
+            if (!/(responsabilidad civil|seguro (de )?r\.?c\b|poliza (de )?r\.?c\b|\br\.c\.)/.test(t)) return void 0;
+            if (NIEGA.test(t) && !/\d/.test(t)) return 0;
+            const o = original || t;
+            const re = /(\d{1,3}(?:[.\s]\d{3})+|\d+(?:[.,]\d+)?)\s*(m€|millones|mill\.?|€|eur\b|euros)/gi;
+            let m;
+            while (m = re.exec(o)) {
+              let n = Number(m[1].replace(/[.\s]/g, "").replace(",", "."));
+              if (/^(m€|millones|mill)/i.test(m[2])) n *= 1e6;
+              if (Number.isFinite(n)) return n;
+            }
+            return "sinImporte";
+          },
+          prlCae(t) {
+            if (!/(\bcae\b|coordinacion de actividades|\bprl\b|prevencion de riesgos)/.test(t)) return void 0;
+            return NIEGA.test(t) ? false : true;
+          },
+          validez(t) {
+            if (!/(validez|valida (durante|por|hasta)|oferta valida)/.test(t)) return void 0;
+            const m = t.match(/(\d{1,3})\s*(dias|meses|mes)\b/);
+            if (!m) return void 0;
+            return /mes/.test(m[2]) ? Number(m[1]) * 30 : Number(m[1]);
+          },
+          ivaAparte(t) {
+            if (!/\biva\b/.test(t)) return void 0;
+            if (/iva incluido|incluido (el )?iva|con iva/.test(t) && !/no incluido/.test(t)) return false;
+            if (/(iva (no incluido|excluido|aparte)|\+\s*iva|sin iva|no incluyen? (el )?iva|iva no esta incluido)/.test(t)) return true;
+            return void 0;
+          },
+          portes(t) {
+            if (!/porte/.test(t)) return void 0;
+            if (/portes? (no incluidos?|excluidos?|debidos?|a (su|vuestro|cargo))/.test(t) || NIEGA.test(t)) return false;
+            if (/portes? (incluidos?|pagados?)/.test(t)) return true;
+            return void 0;
+          },
+          plazoEntrega(t) {
+            if (!/(plazo de entrega|entrega en|plazo de suministro|entrega:)/.test(t)) return void 0;
+            const m = t.match(/(\d{1,3})\s*(dias|semanas|semana)\b/);
+            if (!m) return void 0;
+            return /semana/.test(m[2]) ? Number(m[1]) * 7 : Number(m[1]);
+          },
+          preciosCerrados(t) {
+            if (/(precios? cerrados?|precio fijo|sin revision de precios|no sujetos? a revision)/.test(t)) return true;
+            if (/(revision de precios|sujetos? a revision|actualizacion de precios|precios? revisables?)/.test(t)) return false;
+            return void 0;
+          },
+          garantiaEquipos(t) {
+            if (!/garantia/.test(t) || !/equipo|fabricante|compresor|maquina/.test(t)) return void 0;
+            const m = t.match(/(\d{1,3})\s*(meses|mes|anos|ano)\b/);
+            if (!m) return void 0;
+            return /ano/.test(m[2]) ? Number(m[1]) * 12 : Number(m[1]);
+          },
+          documentacionFinal(t) {
+            const hay = [];
+            if (/fichas? tecnicas?/.test(t)) hay.push("fichas");
+            if (/(\bce\b|marcado ce|\bdop\b|declaracion de (conformidad|prestaciones))/.test(t)) hay.push("ce");
+            if (/manual(es)?/.test(t)) hay.push("manuales");
+            if (/(as[\s-]?built|planos? (finales|final de obra|de lo ejecutado))/.test(t)) hay.push("asBuilt");
+            if (!hay.length) return void 0;
+            if (/(documentacion|entrega|incluye|aporta)/.test(t) && NIEGA.test(t)) return { niega: hay };
+            return hay;
+          }
+        };
+        function frases_(t) {
+          return String(t).split(new RegExp("(?<=[.;])\\s+(?=[A-Z\xC1\xC9\xCD\xD3\xDA\xD1\xBF(])")).map((x) => x.trim()).filter(Boolean);
+        }
+        function lineasDe(entrada) {
+          const salida = [];
+          if (!entrada) return salida;
+          if (Array.isArray(entrada.paginas) && entrada.paginas.length) {
+            entrada.paginas.forEach((p, i) => {
+              for (const l of p && p.lineas || []) {
+                const t = typeof l === "string" ? l : l && l.texto;
+                if (t && String(t).trim()) salida.push({ pagina: i + 1, texto: String(t).trim() });
+              }
+            });
+          } else if (entrada.texto) {
+            String(entrada.texto).split("\f").forEach((pag, i) => {
+              for (const t of pag.split(/\r?\n/)) if (t.trim()) salida.push({ pagina: i + 1, texto: t.trim() });
+            });
+          }
+          return salida;
+        }
+        function extraer(entrada = {}) {
+          const leidas = {};
+          const poner = (clave, valor, fuente) => {
+            if (valor === void 0 || valor === null) return;
+            const previa = leidas[clave];
+            if (clave === "documentacionFinal") {
+              if (valor && valor.niega) return;
+              const junta = [.../* @__PURE__ */ new Set([...previa && Array.isArray(previa.valor) ? previa.valor : [], ...valor])];
+              leidas[clave] = { ...previa || fuente, valor: junta };
+              return;
+            }
+            if (previa) return;
+            leidas[clave] = { valor, ...fuente };
+          };
+          const campos = entrada.campos || {};
+          const vd = num(campos.validezDias);
+          if (vd !== null) poner("validez", vd, { pagina: null, fragmento: `Validez: ${vd} d\xEDas`, origen: "Datos de la oferta" });
+          const pe = num(campos.plazoEntregaDias);
+          if (pe !== null) poner("plazoEntrega", pe, { pagina: null, fragmento: `Plazo de entrega: ${pe} d\xEDas`, origen: "Datos de la oferta" });
+          const trozos = [];
+          for (const [k, etiqueta] of [["condicionesPago", "Condiciones de pago"], ["observaciones", "Observaciones"]]) {
+            if (campos[k]) {
+              for (const t of String(campos[k]).split(/\r?\n|;\s*/)) if (t.trim()) trozos.push({ pagina: null, texto: t.trim(), origen: etiqueta });
+            }
+          }
+          const origen = entrada.origen || "Documento de la oferta";
+          for (const l of lineasDe(entrada)) trozos.push({ ...l, origen });
+          const frases = [];
+          for (const t of trozos) for (const f of frases_(t.texto)) frases.push({ ...t, texto: f });
+          trozos.length = 0;
+          trozos.push(...frases);
+          for (let i = 0; i < trozos.length; i++) {
+            const a = trozos[i];
+            const b = trozos[i + 1] && trozos[i + 1].pagina === a.pagina && trozos[i + 1].origen === a.origen ? trozos[i + 1] : null;
+            for (const [clave, detectar] of Object.entries(DETECTORES)) {
+              let v = detectar(norm(a.texto), a.texto);
+              let frag = a.texto;
+              if ((v === void 0 || v === "sinImporte") && b && detectar(norm(b.texto), b.texto) === void 0) {
+                const junto = `${a.texto} ${b.texto}`;
+                const v2 = detectar(norm(junto), junto);
+                if (v2 !== void 0 && v2 !== "sinImporte") {
+                  v = v2;
+                  frag = junto;
+                }
+              }
+              if (v === void 0) continue;
+              poner(clave, v, { pagina: a.pagina, fragmento: frag.slice(0, 240), origen: a.origen });
+            }
+          }
+          return leidas;
+        }
+        function juzgar(c, leida) {
+          const v = leida ? leida.valor : void 0;
+          if (v === void 0 || v === null) return "noIndicado";
+          if (v === "sinImporte") return "incumple";
+          const tol = Number(c.tolerancia) || 0;
+          switch (c.regla) {
+            case "max":
+              return v <= c.valor + tol ? "cumple" : "incumple";
+            case "min":
+              return v >= c.valor - tol ? "cumple" : "incumple";
+            case "igual":
+              return Math.abs(v - c.valor) <= tol ? "cumple" : "incumple";
+            case "si":
+              return v === true ? "cumple" : "incumple";
+            case "enOpciones":
+              return c.valor.includes(v) ? "cumple" : "incumple";
+            case "todos":
+              return c.valor.every((x) => Array.isArray(v) && v.includes(x)) ? "cumple" : "incumple";
+            default:
+              return "noIndicado";
+          }
+        }
+        function textoDice(c, leida) {
+          if (!leida || leida.valor === void 0 || leida.valor === null) return "no indicado";
+          if (leida.valor === "sinImporte") return "menciona el seguro, sin importe";
+          if (c.regla === "todos") {
+            const faltan = c.valor.filter((x) => !leida.valor.includes(x));
+            return faltan.length ? `${textoValor(c, leida.valor)} (falta: ${textoValor(c, faltan)})` : textoValor(c, leida.valor);
+          }
+          return textoValor(c, leida.valor);
+        }
+        function revisar(condiciones, leidas = {}) {
+          const clausulas = [];
+          for (const c of limpiarCatalogo(condiciones)) {
+            if (!c.activa) continue;
+            const l = leidas[c.clave];
+            const estado = juzgar(c, l);
+            const alarma = estado !== "cumple" ? c.nivel === "obligatoria" ? "rojo" : "ambar" : null;
+            clausulas.push({
+              clave: c.clave,
+              titulo: c.titulo,
+              nivel: c.nivel,
+              estado,
+              exige: textoExige(c),
+              dice: textoDice(c, l),
+              fuente: l ? { pagina: l.pagina ?? null, fragmento: l.fragmento || "", origen: l.origen || "" } : null,
+              alarma
+            });
+          }
+          const alarmas = clausulas.filter((x) => x.alarma);
+          const obligatoriasQueFallan = alarmas.filter((x) => x.alarma === "rojo").length;
+          const recomendablesQueFallan = alarmas.length - obligatoriasQueFallan;
+          return {
+            semaforo: obligatoriasQueFallan ? "rojo" : recomendablesQueFallan ? "ambar" : "verde",
+            obligatoriasQueFallan,
+            recomendablesQueFallan,
+            clausulas,
+            alarmas
+          };
+        }
+        function textoAlarma(a) {
+          const donde = a.fuente ? a.fuente.pagina ? ` (p\xE1g. ${a.fuente.pagina}: \xAB${a.fuente.fragmento}\xBB)` : a.fuente.fragmento ? ` (\xAB${a.fuente.fragmento}\xBB)` : "" : "";
+          return `${a.titulo}: la empresa exige ${a.exige}; la oferta dice ${a.dice}${donde}.`;
+        }
+        function resumen(rev) {
+          if (!rev) return "Sin revisar";
+          if (rev.semaforo === "verde") return "Cumple las condiciones";
+          const partes = [];
+          if (rev.obligatoriasQueFallan) partes.push(`${rev.obligatoriasQueFallan} obligatoria${rev.obligatoriasQueFallan === 1 ? "" : "s"}`);
+          if (rev.recomendablesQueFallan) partes.push(`${rev.recomendablesQueFallan} recomendable${rev.recomendablesQueFallan === 1 ? "" : "s"}`);
+          return `No cumple: ${partes.join(" y ")}`;
+        }
+        const API = {
+          CATALOGO,
+          TIPOS,
+          REGLAS,
+          NIVELES,
+          OPCIONES_PAGO,
+          DOCUMENTOS_FINALES,
+          ROLES_RELAJAN,
+          limpiarClausula,
+          limpiarCatalogo,
+          cambiosProyecto,
+          puedeRelajar,
+          textoValor,
+          textoExige,
+          extraer,
+          lineasDe,
+          revisar,
+          textoAlarma,
+          resumen
+        };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.CONDICIONES_EMPRESA = API;
+      })();
+    }
+  });
+
+  // electron/data/condicionesOfertas.js
+  var require_condicionesOfertas = __commonJS({
+    "electron/data/condicionesOfertas.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var CE = require_condicionesEmpresa();
+      var { puede } = require_roles();
+      var ID_EMPRESA = "condicionesEmpresa";
+      var idProyecto = (proyectoId) => `condicionesProyecto:${proyectoId}`;
+      var CLAVE_AVISO = (ofertaId) => `condicionesOferta:${ofertaId}`;
+      var ahora = () => (/* @__PURE__ */ new Date()).toISOString();
+      var leerJson = (t, def = null) => {
+        if (!t) return def;
+        if (typeof t === "object") return t;
+        try {
+          return JSON.parse(t);
+        } catch {
+          return def;
+        }
+      };
+      function empresaDe(repo) {
+        if (repo && repo.empresaId) return String(repo.empresaId);
+        const p = typeof globalThis !== "undefined" && globalThis.PERFIL_EDICION;
+        const id = p && (p.empresaId || p.empresa && p.empresa.id);
+        return id ? String(id) : "propia";
+      }
+      function catalogoDelPerfil() {
+        const p = typeof globalThis !== "undefined" && globalThis.PERFIL_EDICION;
+        const lista = p && p.compras && Array.isArray(p.compras.condiciones) ? p.compras.condiciones : null;
+        return lista ? CE.limpiarCatalogo(lista) : null;
+      }
+      function filaPlantilla(repo, id) {
+        return repo.db.prepare("SELECT id, datos, modificadoPor, modificadoEn FROM plantillasCompras WHERE id = ?").get(id) || null;
+      }
+      function datosDeEstaEmpresa(repo, fila) {
+        if (!fila) return null;
+        const d = leerJson(fila.datos, null);
+        if (!d || typeof d !== "object") return null;
+        if (String(d.empresaId || "") !== empresaDe(repo)) return null;
+        return d;
+      }
+      function escribirPlantilla(repo, sesion, id, datos) {
+        const texto = JSON.stringify({ ...datos, empresaId: empresaDe(repo) });
+        const ya = filaPlantilla(repo, id);
+        const t = ahora();
+        if (ya) repo.db.prepare("UPDATE plantillasCompras SET datos = ?, modificadoPor = ?, modificadoEn = ? WHERE id = ?").run(texto, sesion && sesion.personaId || null, t, id);
+        else repo.db.prepare("INSERT INTO plantillasCompras (id, datos, modificadoPor, creadoEn, modificadoEn) VALUES (?, ?, ?, ?, ?)").run(id, texto, sesion && sesion.personaId || null, t, t);
+      }
+      function catalogoEmpresa(repo, sesion) {
+        const f = filaPlantilla(repo, ID_EMPRESA);
+        const d = datosDeEstaEmpresa(repo, f);
+        const perfil = d ? null : catalogoDelPerfil();
+        return {
+          empresaId: empresaDe(repo),
+          clausulas: d ? CE.limpiarCatalogo(d.clausulas) : perfil || CE.limpiarCatalogo(CE.CATALOGO),
+          propio: Boolean(d),
+          definido: Boolean(d || perfil),
+          modificadoEn: d && f ? f.modificadoEn : null
+        };
+      }
+      function guardarCatalogoEmpresa(repo, sesion, clausulas) {
+        if (!sesion || !CE.puedeRelajar(sesion.rol)) {
+          return { error: "Las condiciones de la empresa las cambia la direcci\xF3n (administrador, gerente, jefe de departamento o de proyectos)." };
+        }
+        escribirPlantilla(repo, sesion, ID_EMPRESA, { clausulas: CE.limpiarCatalogo(clausulas) });
+        return { ok: true, ...catalogoEmpresa(repo, sesion) };
+      }
+      function condicionesProyecto(repo, sesion, proyectoId) {
+        const empresa = catalogoEmpresa(repo, sesion);
+        if (!proyectoId) return { proyectoId: null, clausulas: empresa.clausulas, cambios: [], relajadas: [], empresa: empresa.clausulas, vigentes: empresa.definido };
+        let d = datosDeEstaEmpresa(repo, filaPlantilla(repo, idProyecto(proyectoId)));
+        if (!d && !empresa.definido) {
+          return { proyectoId, clausulas: empresa.clausulas, cambios: [], relajadas: [], empresa: empresa.clausulas, vigentes: false };
+        }
+        if (!d) {
+          d = { clausulas: empresa.clausulas, copiadoEn: ahora(), relajadas: [] };
+          try {
+            escribirPlantilla(repo, sesion, idProyecto(proyectoId), d);
+          } catch {
+          }
+        }
+        const clausulas = CE.limpiarCatalogo(d.clausulas);
+        return {
+          proyectoId,
+          clausulas,
+          empresa: empresa.clausulas,
+          vigentes: true,
+          cambios: CE.cambiosProyecto(empresa.clausulas, clausulas),
+          relajadas: Array.isArray(d.relajadas) ? d.relajadas : []
+        };
+      }
+      function copiarAlProyecto(repo, sesion, proyectoId) {
+        try {
+          condicionesProyecto(repo, sesion, proyectoId);
+        } catch {
+        }
+      }
+      function guardarCondicionesProyecto(repo, sesion, proyectoId, clausulas) {
+        if (!proyectoId || !repo.leer("proyectos", sesion, proyectoId)) return { error: "Ese proyecto no existe, o no es de los que t\xFA ves." };
+        if (!(puede(sesion.rol, "compras", "editar") || puede(sesion.rol, "compras", "aprobar"))) {
+          return { error: "Tu rol no puede cambiar las condiciones de compra del proyecto." };
+        }
+        const actual = condicionesProyecto(repo, sesion, proyectoId);
+        const nuevas = CE.limpiarCatalogo(clausulas);
+        const antes = new Set(CE.cambiosProyecto(actual.empresa, actual.clausulas).filter((c) => c.cambio === "relaja").map((c) => c.clave));
+        const relaja = CE.cambiosProyecto(actual.empresa, nuevas).filter((c) => c.cambio === "relaja" && !antes.has(c.clave));
+        if (relaja.length && !CE.puedeRelajar(sesion.rol)) {
+          return {
+            error: `El proyecto puede endurecer las condiciones de la empresa, pero no relajarlas: ${relaja.map((c) => `${c.titulo} (${c.porque})`).join("; ")}. Lo hace la direcci\xF3n.`,
+            relaja
+          };
+        }
+        const relajadas = actual.relajadas.concat(relaja.map((c) => ({ clave: c.clave, porque: c.porque, por: sesion.personaId || null, rol: sesion.rol, fecha: ahora() })));
+        escribirPlantilla(repo, sesion, idProyecto(proyectoId), { clausulas: nuevas, relajadas });
+        return { ok: true, ...condicionesProyecto(repo, sesion, proyectoId) };
+      }
+      function destinoDeLaPeticion(repo, peticionId) {
+        const pet = repo.db.prepare("SELECT presupuestoId, obraId FROM peticionesOferta WHERE id = ?").get(peticionId) || {};
+        const pres = pet.presupuestoId ? repo.db.prepare("SELECT proyectoId, obraIdVinculada, obraId FROM presupuestos WHERE id = ?").get(pet.presupuestoId) : null;
+        const obraId = pet.obraId || pres && (pres.obraIdVinculada || pres.obraId) || null;
+        const COLS = "SELECT id, proyectoId, jefeObraId, jefesObraIds FROM obras";
+        let obra = obraId ? repo.db.prepare(`${COLS} WHERE id = ?`).get(obraId) : null;
+        if (!obra && pet.presupuestoId) obra = repo.db.prepare(`${COLS} WHERE presupuestoId = ? LIMIT 1`).get(pet.presupuestoId) || null;
+        const proyectoId = pres && pres.proyectoId || obra && obra.proyectoId || null;
+        return { proyectoId, obra };
+      }
+      function camposDeLaOferta(o) {
+        return { validezDias: o.validezDias, plazoEntregaDias: o.plazoEntregaDias, condicionesPago: o.condicionesPago, observaciones: o.observaciones };
+      }
+      function leidasGuardadas(repo, oferta) {
+        const d = leerJson(oferta && oferta.condicionesLeidas, null);
+        if (!d || String(d.empresaId || "") !== empresaDe(repo)) return null;
+        return d;
+      }
+      function revisionDe(repo, sesion, oferta) {
+        if (!oferta) return null;
+        const { proyectoId } = destinoDeLaPeticion(repo, oferta.peticionId);
+        const cond = condicionesProyecto(repo, sesion, proyectoId);
+        if (!cond.vigentes) return null;
+        const g = leidasGuardadas(repo, oferta);
+        const delDocumento = g && g.delDocumento || {};
+        const deCampos = CE.extraer({ campos: camposDeLaOferta(oferta) });
+        const leidas = { ...deCampos, ...delDocumento };
+        for (const k of ["validez", "plazoEntrega"]) if (deCampos[k]) leidas[k] = deCampos[k];
+        const rev = CE.revisar(cond.clausulas, leidas);
+        rev.documento = g && g.documento ? g.documento : null;
+        rev.resumen = CE.resumen(rev);
+        return rev;
+      }
+      function destinatarios(repo, obra, proyectoId) {
+        const ids = /* @__PURE__ */ new Set();
+        if (obra) {
+          if (obra.jefeObraId) ids.add(obra.jefeObraId);
+          for (const x of leerJson(obra.jefesObraIds, []) || []) ids.add(x);
+        }
+        if (proyectoId) {
+          const p = repo.db.prepare("SELECT jefeObraId FROM proyectos WHERE id = ?").get(proyectoId);
+          if (p && p.jefeObraId) ids.add(p.jefeObraId);
+        }
+        for (const p of repo.db.prepare("SELECT id, rol FROM personas WHERE activo = 1").all()) {
+          if (puede(p.rol, "compras", "aprobar")) ids.add(p.id);
+        }
+        const activos = new Set(repo.db.prepare("SELECT id FROM personas WHERE activo = 1").all().map((p) => p.id));
+        return [...ids].filter((id) => activos.has(id));
+      }
+      function revisarOferta(repo, sesion, ofertaId, documento = null) {
+        const oferta = repo.leer("ofertasProveedor", sesion, ofertaId);
+        if (!oferta) return { error: "Esa oferta no existe, o no es de las que t\xFA ves." };
+        const previa = leidasGuardadas(repo, oferta) || {};
+        let delDocumento = previa.delDocumento || {};
+        let doc = previa.documento || null;
+        if (documento && (documento.paginas || documento.texto)) {
+          delDocumento = CE.extraer({ paginas: documento.paginas, texto: documento.texto, origen: documento.origen || "PDF de la oferta" });
+          doc = { nombre: documento.nombre || null, paginas: Array.isArray(documento.paginas) ? documento.paginas.length : null, leidoEn: ahora() };
+        }
+        const { obra, proyectoId } = destinoDeLaPeticion(repo, oferta.peticionId);
+        const guardar = { empresaId: empresaDe(repo), delDocumento, documento: doc, revisadoEn: ahora(), avisados: previa.avisados || [] };
+        repo.db.prepare("UPDATE ofertasProveedor SET condicionesLeidas = ? WHERE id = ?").run(JSON.stringify(guardar), ofertaId);
+        const rev = revisionDe(repo, sesion, { ...oferta, condicionesLeidas: JSON.stringify(guardar) });
+        if (!rev) return { sinCondiciones: true, semaforo: null, alarmas: [], clausulas: [], resumen: "La empresa no tiene condiciones fijadas" };
+        if (rev.alarmas.length) {
+          guardar.avisados = [.../* @__PURE__ */ new Set([...guardar.avisados, ...destinatarios(repo, obra, proyectoId)])];
+          repo.db.prepare("UPDATE ofertasProveedor SET condicionesLeidas = ? WHERE id = ?").run(JSON.stringify(guardar), ofertaId);
+          repo.db.prepare("DELETE FROM avisosLeidos WHERE clave = ?").run(CLAVE_AVISO(ofertaId));
+        }
+        rev.avisados = guardar.avisados;
+        return rev;
+      }
+      function avisosCondiciones(repo, sesion) {
+        if (!sesion || !sesion.personaId) return [];
+        let ofertas = [];
+        try {
+          ofertas = repo.listar("ofertasProveedor", sesion, { condicion: "condicionesLeidas IS NOT NULL AND estado <> 'descartada'" });
+        } catch {
+          ofertas = [];
+        }
+        const vistos = new Set(repo.db.prepare("SELECT clave FROM avisosLeidos WHERE personaId = ? AND clave LIKE 'condicionesOferta:%'").all(sesion.personaId).map((r) => r.clave));
+        const nombres = new Map(repo.db.prepare("SELECT id, nombre FROM proveedores").all().map((p) => [p.id, p.nombre]));
+        const salida = [];
+        for (const o of ofertas) {
+          const g = leidasGuardadas(repo, o);
+          if (!g || !(g.avisados || []).includes(sesion.personaId) || vistos.has(CLAVE_AVISO(o.id))) continue;
+          const rev = revisionDe(repo, sesion, o);
+          if (!rev || !rev.alarmas.length) continue;
+          const pet = repo.db.prepare("SELECT grupo, presupuestoId FROM peticionesOferta WHERE id = ?").get(o.peticionId) || {};
+          salida.push({
+            ofertaId: o.id,
+            peticionId: o.peticionId,
+            presupuestoId: pet.presupuestoId || null,
+            grupo: pet.grupo || "",
+            proveedor: nombres.get(o.proveedorId) || o.proveedorId,
+            semaforo: rev.semaforo,
+            resumen: rev.resumen,
+            alarmas: rev.alarmas.map((a) => ({ ...a, texto: CE.textoAlarma(a) }))
+          });
+        }
+        return salida.sort((a, b) => a.semaforo === b.semaforo ? 0 : a.semaforo === "rojo" ? -1 : 1);
+      }
+      function marcarAvisoVisto(repo, sesion, ofertaId) {
+        if (!sesion || !sesion.personaId || !ofertaId) return { error: "Falta la persona o la oferta." };
+        repo.db.prepare(`INSERT INTO avisosLeidos (personaId, clave, hasta) VALUES (?, ?, ?)
+    ON CONFLICT(personaId, clave) DO UPDATE SET hasta = excluded.hasta`).run(sesion.personaId, CLAVE_AVISO(ofertaId), ahora());
+        return { ok: true };
+      }
+      function comprobarParaAdjudicar(repo, sesion, ofertaId, justificacion) {
+        const oferta = repo.leer("ofertasProveedor", sesion, ofertaId);
+        if (!oferta) return null;
+        const rev = revisionDe(repo, sesion, oferta);
+        if (!rev || !rev.obligatoriasQueFallan) return { revision: rev, justificacion: null };
+        const rojas = rev.alarmas.filter((a) => a.alarma === "rojo");
+        const texto = String(justificacion || "").trim();
+        if (!texto) {
+          return {
+            error: `Esta oferta no cumple ${rojas.length === 1 ? "una condici\xF3n obligatoria" : `${rojas.length} condiciones obligatorias`} de la empresa: ${rojas.map((a) => CE.textoAlarma(a)).join(" ")} Para adjudicarla hace falta una justificaci\xF3n firmada por la direcci\xF3n.`,
+            condiciones: rojas.map((a) => ({ ...a, texto: CE.textoAlarma(a) })),
+            pideJustificacion: true
+          };
+        }
+        if (!CE.puedeRelajar(sesion.rol)) {
+          return {
+            error: "La justificaci\xF3n para adjudicar con una condici\xF3n obligatoria sin cumplir la firma la direcci\xF3n (administrador, gerente, jefe de departamento o de proyectos).",
+            condiciones: rojas.map((a) => ({ ...a, texto: CE.textoAlarma(a) }))
+          };
+        }
+        const p = sesion.personaId ? repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(sesion.personaId) : null;
+        return {
+          revision: rev,
+          justificacion: {
+            texto,
+            personaId: sesion.personaId || null,
+            nombre: p && p.nombre || null,
+            rol: sesion.rol,
+            fecha: ahora(),
+            incumplidas: rojas.map((a) => ({ clave: a.clave, titulo: a.titulo, exige: a.exige, dice: a.dice }))
+          }
+        };
+      }
+      module.exports = {
+        empresaDe,
+        catalogoEmpresa,
+        guardarCatalogoEmpresa,
+        condicionesProyecto,
+        copiarAlProyecto,
+        guardarCondicionesProyecto,
+        revisarOferta,
+        revisionDe,
+        avisosCondiciones,
+        marcarAvisoVisto,
+        comprobarParaAdjudicar,
+        destinoDeLaPeticion
+      };
+    }
+  });
+
   // electron/data/repositorioPrecios.js
   var require_repositorioPrecios2 = __commonJS({
     "electron/data/repositorioPrecios.js"(exports, module) {
@@ -137753,6 +139350,7 @@ ${reglas}`;
       var condicionesPet = require_condicionesPeticion();
       var { puede } = require_roles();
       var repositorioPrecios = require_repositorioPrecios();
+      var condicionesOfertas = require_condicionesOfertas();
       var { armarArbol } = require_presupuestos();
       function deFilaPeticion(f) {
         if (!f) return null;
@@ -137976,6 +139574,11 @@ ${reglas}`;
           } catch {
             guardada.avisosPrecio = [];
           }
+          try {
+            guardada.condiciones = condicionesOfertas.revisarOferta(repo, sesion, guardada.id, datos.documentoLeido || null);
+          } catch {
+            guardada.condiciones = null;
+          }
         }
         return guardada;
       }
@@ -138084,7 +139687,7 @@ ${reglas}`;
         const ofertas = peticion ? ofertasDe(repo, sesion, peticion.id) : [];
         if (peticion && peticion.modalidad === "horas") {
           const h = aHoras.comparar(paquete, ofertas, { cuadrilla: peticion.cuadrilla });
-          return {
+          return conCondiciones(repo, sesion, {
             ...h,
             /* Los nombres que la pantalla y adjudicar() esperan de cualquier comparativo. */
             presupuestado: h.planificado,
@@ -138092,7 +139695,7 @@ ${reglas}`;
             peticion,
             adjudicacion: adjudicacionDe(repo, sesion, peticion.id),
             ofertas
-          };
+          }, ofertas);
         }
         const { cumplimientoIndustriales } = require_personal2();
         const c = comparativo.comparar(
@@ -138115,6 +139718,26 @@ ${reglas}`;
           }
         );
         c.ofertas = ofertas;
+        return conCondiciones(repo, sesion, c, ofertas);
+      }
+      function conCondiciones(repo, sesion, c, ofertas) {
+        for (const col of c.columnas || []) {
+          const o = col.ofertaId ? repo.leer("ofertasProveedor", sesion, col.ofertaId) : null;
+          let rev = null;
+          try {
+            rev = o ? condicionesOfertas.revisionDe(repo, sesion, o) : null;
+          } catch {
+            rev = null;
+          }
+          col.condiciones = rev ? {
+            semaforo: rev.semaforo,
+            resumen: rev.resumen,
+            obligatoriasQueFallan: rev.obligatoriasQueFallan,
+            recomendablesQueFallan: rev.recomendablesQueFallan,
+            clausulas: rev.clausulas,
+            documento: rev.documento
+          } : null;
+        }
         return c;
       }
       function deFilaAdjudicacion(f) {
@@ -138144,7 +139767,7 @@ ${reglas}`;
         });
         return filas.length ? deFilaAdjudicacion(filas[0]) : null;
       }
-      function adjudicar(repo, sesion, { presupuestoId, grupo, proveedorId, motivo, importe } = {}) {
+      function adjudicar(repo, sesion, { presupuestoId, grupo, proveedorId, motivo, importe, justificacionCondiciones } = {}) {
         if (!puede(sesion.rol, "compras", "aprobar")) {
           return {
             error: "Su rol puede pedir ofertas y compararlas, pero no adjudicar. Adjudicar compromete el dinero de la obra y es del departamento de Proyectos."
@@ -138154,7 +139777,7 @@ ${reglas}`;
         const c = comparativoDe(repo, sesion, presupuestoId, grupo);
         if (c.error) return c;
         if (!c.peticion) return { error: "Ese paquete no tiene ninguna petici\xF3n de oferta abierta." };
-        if (c.modalidad === "horas") return adjudicarAHoras(repo, sesion, c, { grupo, proveedorId, motivo, importe });
+        if (c.modalidad === "horas") return adjudicarAHoras(repo, sesion, c, { grupo, proveedorId, motivo, importe, justificacionCondiciones });
         const columna = c.columnas.find((x) => x.proveedorId === proveedorId);
         if (!columna && (c.ofertas || []).some((o) => o.proveedorId === proveedorId && o.estado === "descartada")) {
           return { error: "Esa oferta est\xE1 descartada: se readmite antes de adjudic\xE1rsela." };
@@ -138189,6 +139812,8 @@ ${reglas}`;
             }
           };
         }
+        const cond = condicionesOfertas.comprobarParaAdjudicar(repo, sesion, columna.ofertaId, justificacionCondiciones);
+        if (cond && cond.error) return cond;
         const traza = comparativo.trazaAdjudicacion({
           paquete: { codigo: grupo },
           comparativo: c,
@@ -138196,6 +139821,7 @@ ${reglas}`;
           personaId: sesion.personaId,
           motivo: limpio || null
         });
+        if (traza && cond) traza.condiciones = trazaCondiciones(cond);
         const registro = cuadroComparativo.registroAdjudicacion(c.cuadro, proveedorId);
         if (traza && registro) {
           traza.registro = {
@@ -138232,7 +139858,15 @@ ${reglas}`;
         repo.modificar("peticionesOferta", sesion, c.peticion.id, { estado: "adjudicada" }, decidir);
         return adjudicacionDe(repo, sesion, c.peticion.id);
       }
-      function adjudicarAHoras(repo, sesion, c, { grupo, proveedorId, motivo, importe }) {
+      function trazaCondiciones(cond) {
+        const r = cond.revision;
+        return {
+          semaforo: r ? r.semaforo : null,
+          clausulas: r ? r.clausulas.map((x) => ({ clave: x.clave, titulo: x.titulo, nivel: x.nivel, estado: x.estado, exige: x.exige, dice: x.dice, fuente: x.fuente })) : [],
+          justificacion: cond.justificacion || null
+        };
+      }
+      function adjudicarAHoras(repo, sesion, c, { grupo, proveedorId, motivo, importe, justificacionCondiciones }) {
         const columna = c.columnas.find((x) => x.proveedorId === proveedorId);
         if (!columna) {
           const proveedor = repo.leer("proveedores", sesion, proveedorId);
@@ -138254,7 +139888,10 @@ ${reglas}`;
             masBarato: c.mejor
           };
         }
+        const cond = condicionesOfertas.comprobarParaAdjudicar(repo, sesion, columna.ofertaId, justificacionCondiciones);
+        if (cond && cond.error) return cond;
         const traza = aHoras.trazaAdjudicacion({ paquete: { codigo: grupo }, comparativo: c, proveedorId, personaId: sesion.personaId, motivo: limpio || null });
+        if (traza && cond) traza.condiciones = trazaCondiciones(cond);
         const tarifa = aHoras.tarifaDeTraza(traza);
         if (tarifa.precioHora === null) return { error: `As\xED no hay tarifa con la que calcular el coste: ${tarifa.motivo}.` };
         traza.importeSegunHoras = !(Number(importe) > 0) && !(columna.horasCompletas && columna.totalOfertado !== null);
@@ -171683,7 +173320,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           origen: require_auditoria2().origenDe(sesion)
         });
       }
-      function copiarRespuestasChecklist(repo, sesion, obraId, plantilla, { origen, destinos = [], pisar = false, simular = false } = {}) {
+      function copiarRespuestasChecklist(repo, sesion, obraId, plantilla, { origen, destinos = [], pisar = false, simular = false, sinCabecera = false } = {}) {
         if (!obraVisible(repo, sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
         if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: NO_EDITA };
         const fo = ficha(repo, sesion, obraId, { clave: origen, plantilla });
@@ -171708,7 +173345,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
             r.firmadas.push(f.titulo);
             continue;
           }
-          const c = RC.copiarRespuestas(f.plantilla, datosO, f.evaluacion.datos, { pisar });
+          const c = RC.copiarRespuestas(f.plantilla, sinCabecera ? { ...datosO, cabecera: {} } : datosO, f.evaluacion.datos, { pisar });
           r.copiadas += c.copiadas;
           r.pisadas += c.pisadas;
           r.conservadas += c.conservadas;
@@ -171741,6 +173378,37 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           r.equipos += 1;
         }
         return { ok: true, simulado: Boolean(simular), de: fo.titulo, ...r };
+      }
+      function crearChecklistQueFalta(repo, sesion, obraId, plantilla, { modelo, equipos = null, simular = false } = {}) {
+        if (!obraVisible(repo, sesion, obraId)) return { ok: false, error: "No se encuentra la obra." };
+        if (!puede(sesion.rol, "commissioning", "editar")) return { ok: false, error: NO_EDITA };
+        const def = (catalogo.PLANTILLAS || []).find((x) => x.codigo === plantilla);
+        if (!def || def.clase !== "checklist") return { ok: false, error: `${plantilla} no es un checklist.` };
+        const deLaObra = repo.listar("equiposObra", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const rm = resolverClave(repo, sesion, obraId, modelo, deLaObra);
+        if (rm.error || !rm.dueno) return { ok: false, error: rm.error || "El modelo tiene que ser la ficha de un equipo." };
+        if (!filaFicha(repo, sesion, obraId, modelo, plantilla)) return { ok: false, error: `${rm.titulo} no tiene ${plantilla} guardado que copiar.` };
+        const fichas = repo.listar("fichasPM", sesion, { condicion: "obraId = ?", params: [obraId] });
+        const conChecklist = new Set(fichas.filter((f) => f.plantilla === plantilla).map((f) => f.equipoId));
+        const conPM = new Set(fichas.filter((f) => f.clase === "fichaPM").map((f) => f.equipoId));
+        const famModelo = F.familiaDe(rm.dueno, catalogo.FAMILIAS);
+        const lleva = (e) => {
+          const fam = F.familiaDe(e, catalogo.FAMILIAS);
+          if (!fam) return false;
+          if ((fam.anexos || []).some((a) => a.plantilla === plantilla)) return true;
+          return Boolean(famModelo && fam.codigo === famModelo.codigo);
+        };
+        const acotar = Array.isArray(equipos) ? new Set(equipos) : null;
+        const destinos = deLaObra.filter((e) => e.id !== rm.dueno.id && !conChecklist.has(e.id) && (!acotar || acotar.has(e.id)) && lleva(e));
+        const r = copiarRespuestasChecklist(repo, sesion, obraId, plantilla, {
+          origen: modelo,
+          destinos: destinos.map((e) => `equipo:${e.id}`),
+          pisar: false,
+          simular,
+          sinCabecera: true
+        });
+        if (!r.ok) return r;
+        return { ...r, creadas: r.equipos, candidatos: destinos.length, sinFichaPM: destinos.filter((e) => !conPM.has(e.id)).map((e) => e.tag) };
       }
       function anotarDeshacerCopia(repo, sesion, fichaId, texto, cuenta) {
         const fila = {
@@ -172210,6 +173878,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         rejillaChecklist,
         guardarRejillaChecklist,
         copiarRespuestasChecklist,
+        crearChecklistQueFalta,
         deshacerCopiaChecklist,
         conCabeceraDelBalanceo,
         sinMedidoDelBalanceo,
@@ -177345,7 +179014,42 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         new vm.Script(fs.readFileSync(path.join(raiz, f), "utf8"), { filename: f }).runInContext(contexto);
         return ventana.DEMO_COMPRAS;
       }
-      function sembrarSiVacia(db, { completar = false } = {}) {
+      var TABLAS_MAESTRAS = ["personas", "clientes", "proveedores", "proyectos", "presupuestos", "obras"];
+      function prefijarSiembra(db, prefijo) {
+        if (!prefijo) return { prefijados: 0 };
+        const tablas = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all().map((t) => t.name);
+        const ids = /* @__PURE__ */ new Set();
+        for (const t of TABLAS_MAESTRAS) {
+          if (!tablas.includes(t)) continue;
+          for (const { id } of db.prepare(`SELECT id FROM "${t}"`).all()) if (typeof id === "string" && !id.startsWith(prefijo)) ids.add(id);
+        }
+        if (!ids.size) return { prefijados: 0 };
+        const lista = [...ids];
+        const marcas = lista.map(() => "?").join(",");
+        const fk = db.prepare("PRAGMA foreign_keys").get();
+        db.exec("PRAGMA foreign_keys = OFF");
+        try {
+          db.exec("BEGIN");
+          const guardianes = db.prepare("SELECT name, sql FROM sqlite_master WHERE type = 'trigger' AND sql LIKE '%RAISE%'").all();
+          for (const g of guardianes) db.exec(`DROP TRIGGER "${g.name}"`);
+          for (const t of tablas) {
+            const cols = db.prepare(`PRAGMA table_info("${t}")`).all().map((c) => c.name).filter((c) => c === "id" && TABLAS_MAESTRAS.includes(t) || /(Id|Por)$/.test(c));
+            for (const c of cols) db.prepare(`UPDATE "${t}" SET "${c}" = ? || "${c}" WHERE "${c}" IN (${marcas})`).run(prefijo, ...lista);
+          }
+          for (const g of guardianes) db.exec(g.sql);
+          db.exec("COMMIT");
+        } catch (e) {
+          try {
+            db.exec("ROLLBACK");
+          } catch {
+          }
+          throw e;
+        } finally {
+          if (fk && Object.values(fk)[0]) db.exec("PRAGMA foreign_keys = ON");
+        }
+        return { prefijados: lista.length };
+      }
+      function sembrarSiVacia(db, { completar = false, prefijo = "" } = {}) {
         const hay = db.prepare("SELECT COUNT(*) AS n FROM personas").get();
         if (hay && hay.n > 0 && !completar) return { sembrado: false };
         const yaBase = !!(hay && hay.n > 0);
@@ -177506,6 +179210,18 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           ["documentacionRecibida", "Proyecto de ejecuci\xF3n"],
           ["plazoEjecucionMeses", "14"]
         ]) if (!db.prepare("SELECT 1 FROM hojaAlcance WHERE proyectoId = ? AND campo = ?").get(proyectoId, campo)) insAlcance.run(nuevoId(), proyectoId, campo, valor, "ana", ahora, ahora);
+        if (prefijo && !yaBase) {
+          prefijarSiembra(db, prefijo);
+          return {
+            sembrado: true,
+            prefijo,
+            proyectoId: prefijo + proyectoId,
+            presupuestoId: prefijo + presupuestoId,
+            proyectos: OTROS.length + 1,
+            personas: PERSONAS.length,
+            proveedores: PROVEEDORES.length
+          };
+        }
         return {
           sembrado: true,
           proyectoId,
@@ -177676,7 +179392,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         }
         return { completado: true, obras: db.prepare("SELECT COUNT(*) AS n FROM obras").get().n, flujoDeshecho: aMedias.length, ...r };
       }
-      module.exports = { sembrarSiVacia, completarEjemplos, presupuestoDeEjemplo };
+      module.exports = { sembrarSiVacia, completarEjemplos, presupuestoDeEjemplo, prefijarSiembra };
     }
   });
 
@@ -177849,7 +179565,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
   });
 
   // electron/data/documentos.js
-  var require_documentos2 = __commonJS({
+  var require_documentos3 = __commonJS({
     "electron/data/documentos.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
@@ -179044,7 +180760,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             userData = require_electronFalso().app.getPath("userData");
           } catch {
           }
-          const a = await require_documentos2().archivo(repo, ses, r.doc.documentoId, { carpetaApp: userData });
+          const a = await require_documentos3().archivo(repo, ses, r.doc.documentoId, { carpetaApp: userData });
           if (!a.ok || !a.ruta) return [404, { ok: false, error: a && a.error || "No est\xE1 ese documento." }];
           try {
             return { bytes: fs.readFileSync(a.ruta), tipo: a.mime || TIPO_DE_EXT[path.extname(a.ruta).toLowerCase()] || "application/octet-stream" };
@@ -183895,7 +185611,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
                 ["Equipo de medida", textoMedida],
                 ["Tolerancia por boca", textoTol(tol.boca, tol.bocaPorDefecto)],
                 ["Tolerancia del total", textoTol(tol.total, tol.totalPorDefecto)],
-                ["Caudal de la UTA (proyecto)", uta ? `${uta} m\xB3/h \xB7 solo de referencia` : null],
+                ["Caudal del equipo (proyecto)", uta ? `${uta} m\xB3/h \xB7 solo de referencia` : null],
                 ...filasTiempo(ses, e)
               ],
               bloques: [
@@ -217540,20 +219256,46 @@ ${a}`.trim();
         const t = llano(texto).replace(/[^a-z]+/g, " ").trim();
         return t === z.sigla.toLowerCase() || t === llano(z.nombre);
       };
-      function entender(pregunta) {
-        const q = llano(pregunta);
+      var RE_ZIP = /\b(zip|zips|comprimido)\b/;
+      var RE_ENTREGA = /\b(entrega|paquete|dossier)\b/;
+      var RE_CON_TODO = /\b(complet[ao]s?|entera|indice|carpetas?|documentos?|documentacion|todo)\b/;
+      var RE_TIPO_EQUIPO = /\b(splits?|vrf|fan ?coils?|utas?|ventiladores?|extractores?|crac|crah|enfriadoras?|bombas?|cassettes?|conductos?|cortinas?|recuperadores?|climatizadoras?|equipos?)\b/;
+      var RE_PREGUNTA_CUENTA = /\b(cuant[oa]s|como (va|la llevamos|vamos)|esta (ya )?(mandad|enviad|list|complet)\w*|que (conjuntos|equipos|splits) (hay|faltan|estan))\b|\?/;
+      var RE_SEGUIMIENTO = /^(lo que (quiero|digo|pido)|no[, ]|si[, ]|vale[, ]|y (el|la|los|las|lo|con)\b|pero\b|eso\b|con todo|todo\b|el zip|en zip)/;
+      function entender(pregunta, { previa = null } = {}) {
+        const q = llano(pregunta).trim();
         if (!q) return null;
         const zona = zonaDicha(pregunta);
-        const tipo = /gardentona/.test(q) ? "VRF Gardentona" : /\bvrf\b.*\bn ?20\b|\bn ?20\b.*\bvrf\b/.test(q) ? "VRF N20" : /\bsplits?\b/.test(q) ? "Splits" : "";
+        const tipoDicho = /gardentona/.test(q) ? "VRF Gardentona" : /\bvrf\b.*\bn ?20\b|\bn ?20\b.*\bvrf\b/.test(q) ? "VRF N20" : /\bsplits?\b/.test(q) ? "Splits" : "";
+        const tipo = tipoDicho || previa && previa.tipo || "";
         const conjuntos = /\bconjuntos?\b/.test(q);
-        const armar = RE_PAQUETE.test(q) && /\b(prepar|genera|monta|arma|saca|haz)\w*/.test(q);
+        const zip = RE_ZIP.test(q);
+        const armar = RE_PAQUETE.test(q) && /\b(prepar|genera|monta|arma|saca|haz)\w*/.test(q) || zip;
         const porQue = /\bpor ?que\b/.test(q) && /\b(retenid\w*|no entra\w*|no (esta|estan) complet\w*|incomplet\w*)\b/.test(q);
-        if ((conjuntos || RE_DF.test(q) || porQue) && RE_FALTAN.test(q) && !armar) return { que: "faltan", tipo, ...zona ? { zona } : {} };
-        if (zona && !armar && /\b(entregad\w*|entrega|listos?|complet\w*|retenid\w*)\b/.test(q)) return { que: "faltan", tipo, zona };
-        if (conjuntos && /\bcuant[oa]s\b|\bnumero de\b|\btotal\b/.test(q) && !armar) return { que: "faltan", tipo, ...zona ? { zona } : {} };
-        if (RE_DF.test(q) && RE_PAQUETE.test(q) && !armar && /\b(dame|pasame|enlaces?|descarga\w*|bajar\w*|quiero)\b/.test(q)) return { que: "dar", tipo };
+        if ((conjuntos || RE_DF.test(q) || porQue) && RE_FALTAN.test(q) && !armar) return { que: "faltan", tipo: tipoDicho, ...zona ? { zona } : {} };
+        if (zona && !armar && /\b(entregad\w*|entrega|listos?|complet\w*|retenid\w*)\b/.test(q)) return { que: "faltan", tipo: tipoDicho, zona };
+        if (conjuntos && /\bcuant[oa]s\b|\bnumero de\b|\btotal\b/.test(q) && !armar) return { que: "faltan", tipo: tipoDicho, ...zona ? { zona } : {} };
+        if (RE_DF.test(q) && RE_PAQUETE.test(q) && !armar && !tipoDicho && /\b(dame|pasame|enlaces?|descarga\w*|bajar\w*|quiero)\b/.test(q)) return { que: "dar", tipo };
         if (RE_DF.test(q) && RE_PAQUETE.test(q) && (RE_PREPARAR.test(q) || /^entrega/.test(q))) return { que: "preparar", tipo };
+        const conTodo = RE_CON_TODO.test(q) || RE_TIPO_EQUIPO.test(q) || Boolean(tipoDicho);
+        if (zip && (RE_ENTREGA.test(q) || conTodo || previa && previa.que)) return { que: "preparar", tipo };
+        if (RE_ENTREGA.test(q) && conTodo && RE_PREPARAR.test(q) && !RE_FALTAN.test(q)) return { que: "preparar", tipo };
+        if (previa && previa.que && (RE_SEGUIMIENTO.test(q) || conTodo && q.split(" ").length <= 14) && !RE_FALTAN.test(q)) {
+          return { que: previa.que === "dudar" ? zip || RE_CON_TODO.test(q) ? "preparar" : "dudar" : previa.que, tipo };
+        }
+        if (RE_ENTREGA.test(q) && conTodo && !RE_PREGUNTA_CUENTA.test(q) && !RE_FALTAN.test(q)) return { que: "dudar", tipo };
         return null;
+      }
+      var PREVIAS = /* @__PURE__ */ new Map();
+      var VIDA_PREVIA = 15 * 60 * 1e3;
+      function previaDe(yo) {
+        const k = yo && (yo.id || yo.email);
+        const p = k ? PREVIAS.get(k) : null;
+        return p && Date.now() - p.t < VIDA_PREVIA ? p : null;
+      }
+      function apuntarPrevia(yo, q) {
+        const k = yo && (yo.id || yo.email);
+        if (k && q) PREVIAS.set(k, { que: q.que, tipo: q.tipo || "", t: Date.now() });
       }
       function obraDe(repo, yo, pregunta, obraId) {
         const q = ` ${llano(pregunta).replace(/[^a-z0-9]+/g, " ")} `;
@@ -217648,8 +219390,9 @@ ${ejemplos}${mas}${sinEmpezar}`,
       }
       var mb = (b) => `${(b / 1048576).toLocaleString("es-ES", { maximumFractionDigits: 1 })} MB`;
       async function responder(repo, yo, { pregunta, obraId } = {}, opciones = {}) {
-        const q = entender(pregunta);
+        const q = entender(pregunta, { previa: previaDe(yo) });
         if (!q || !repo) return null;
+        apuntarPrevia(yo, q);
         const id = obraDe(repo, yo, pregunta, obraId);
         if (!id) return fila(pregunta, { respuesta: "Elige primero la obra arriba a la izquierda (o dime cu\xE1l: \xABprepara la entrega a la DF de NCN\xBB)." });
         let obra = null;
@@ -217696,6 +219439,19 @@ Ojo: ${n(sinZona)} conjunto${sinZona === 1 ? "" : "s"} de la obra no tiene${sinZ
 Alcance de la entrega de esta obra: **${d.alcanceObra.texto}**; cuento solo lo que entra en \xE9l.` : "";
           return fila(pregunta, { respuesta: `${f.texto}${al}`, acciones: [retenidos], herramienta: "entregaDF" });
         }
+        if (q.que === "dudar") {
+          const de = q.tipo ? ` de los ${q.tipo.toLowerCase()}` : "";
+          const zipF = `Dame el ZIP de la entrega a la DF${de}`;
+          const listaF = `Qu\xE9 conjuntos${de} faltan para la DF y por qu\xE9`;
+          return fila(pregunta, {
+            respuesta: `\xBFQu\xE9 quieres${de ? `${de}` : ""}?
+- **El ZIP de la entrega a la DF**: \xEDndice, carpetas por planta y conjunto, y la documentaci\xF3n de cada equipo.
+- **C\xF3mo va la entrega**: cu\xE1ntos conjuntos est\xE1n listos y qu\xE9 le falta a cada uno.`,
+            acciones: [{ tipo: "preguntar", frase: zipF, texto: "El ZIP de la entrega" }, { tipo: "preguntar", frase: listaF, texto: "C\xF3mo va la entrega" }, ir],
+            enviar: [{ enviar: zipF, texto: "El ZIP de la entrega" }, { enviar: listaF, texto: "C\xF3mo va la entrega" }],
+            herramienta: "entregaDF"
+          });
+        }
         if (!puede(yo.rol, "commissioning", "exportar")) return fila(pregunta, { respuesta: "Tu rol puede ver el commissioning, pero no prepara la entrega a la DF (eso es de quien exporta: jefe de obra o commissioning)." });
         if (!opciones.prepararEntregaDF) return fila(pregunta, { respuesta: "Desde aqu\xED no puedo preparar el ZIP: hazlo con el bot\xF3n \xABEntrega DF\xBB de Commissioning.", acciones: [ir] });
         const nube = opciones.prepararEntregaDF.nube || null;
@@ -217725,6 +219481,22 @@ Alcance de la entrega de esta obra: **${d.alcanceObra.texto}**; cuento solo lo q
               return respuestaEnlaces(pregunta, { obra: ahora ? ahora.obra : obra, partes: firmadas, fecha: ya.fecha, ahora, deLaNube: true });
             }
             if (error) return fila(pregunta, { respuesta: `La entrega del ${fechaEs(ya.fecha)} est\xE1 en la nube, pero no he podido firmar sus enlaces: ${error}`, acciones: [ir], herramienta: "entregaDF" });
+          }
+        }
+        if (!q.tipo) {
+          try {
+            const d0 = datos.datosPaqueteDF(repo, yo, id, { soloVer: true });
+            const raiz = (t) => llano(t).split(/[^a-z0-9]+/).filter((p) => p.length > 2)[0] || "";
+            const pq = ` ${soloLetras(pregunta)} `;
+            const dicho = d0 && d0.ok ? (d0.tipos || []).map((t) => t.tipo).find((t) => {
+              const rz = raiz(t).replace(/(es|s)$/, "");
+              return rz.length > 2 && new RegExp(` ${rz}(es|s)? `).test(pq);
+            }) : null;
+            if (dicho) {
+              q.tipo = dicho;
+              apuntarPrevia(yo, q);
+            }
+          } catch {
           }
         }
         let r = null;
@@ -217797,7 +219569,7 @@ ${r.rotos.slice(0, MAX_CHAT).map((x) => `- ${x}`).join("\n")}` : "";
           `He preparado la entrega a la DF de **${obra.nombre}**${tipo ? ` (${tipo})` : ""}: ${partes.length > 1 ? `**${n(partes.length)} partes** de 45 MB como m\xE1ximo (por planta y sin partir ning\xFAn conjunto)` : `**${partes[0] ? partes[0].nombre : ""}**`}, ${a.archivos ? `${n(Object.keys(a.archivos).length)} archivos, ` : ""}${mb(bytes)} en total.`,
           alcanceDicho,
           `- Conjuntos completos: **${n(completos)} de ${n(total)}**${total - completos ? ` (retenidos ${n(total - completos)}; preg\xFAntame \xABqu\xE9 conjuntos faltan y por qu\xE9\xBB)` : ""}.`,
-          partes.length > 1 ? "- **Cada parte se abre sola**: lleva su 00_ABRIR_INDICE.html, su Indice.pdf, su LEEME, los planos de sus conjuntos y la ficha t\xE9cnica, el manual y el CE de sus equipos. Todos sus enlaces son a ficheros de la misma parte (siguen valiendo aunque se mueva la carpeta)." : "- Dentro: 00_ABRIR_INDICE.html (se abre sin la app, descomprimido), LEEME.txt y una carpeta por planta; dentro, una por conjunto (TAG y sala).",
+          partes.length > 1 ? "- **Cada parte se abre sola**: lleva su 00_ABRIR_INDICE.html, su LEEME, sus conjuntos y, en 90_Fabricantes, la ficha t\xE9cnica, el manual y el CE de sus modelos. Todos sus enlaces son a ficheros de la misma parte (siguen valiendo aunque se mueva la carpeta). **Extrae todo antes de abrir.**" : "- Dentro: 00_ABRIR_INDICE.html (**extrae todo antes de abrir**), LEEME.txt, una carpeta por planta con lo de cada conjunto (TAG y sala: su PDF y la PEM del fabricante) y 90_Fabricantes/<Marca>/<Modelo>/ con la ficha t\xE9cnica, el CE y el manual una vez por modelo.",
           faltanDatos.length ? `- Equipos sin marca o modelo en la app: ${n(faltanDatos.length)} (${faltanDatos.slice(0, 6).map((x) => `${x.tag}: falta ${x.falta.join(" y ")}`).join("; ")}${faltanDatos.length > 6 ? "\u2026" : ""}): dato que falta en la app, no lo invento.` : "",
           pendFab ? `- Papeles del fabricante que no tengo: ${n(pendFab)} (en el \xEDndice salen como \xABDocumentaci\xF3n del fabricante pendiente\xBB; no retienen ning\xFAn conjunto).` : "",
           a.fallos && a.fallos.length ? `- No he podido preparar ${n(a.fallos.length)} documento${a.fallos.length === 1 ? "" : "s"} (lo dice LEEME_fallos.txt).` : "",
@@ -217833,7 +219605,7 @@ ${r.rotos.slice(0, MAX_CHAT).map((x) => `- ${x}`).join("\n")}` : "";
         const acciones = partes.map((p) => ({ tipo: "enlace", url: p.url, texto: `${prueba ? "Prueba \xB7 " : ""}Parte ${p.n} de ${p.de} \xB7 ${p.etiqueta} (${mb(p.bytes || 0)})`, caduca: p.caduca }));
         return fila(pregunta, { prueba, respuesta: lineas.join("\n"), acciones: [...acciones, ir], herramienta: "entregaDF", enlaces: partes.map((p) => ({ n: p.n, de: p.de, etiqueta: p.etiqueta, nombre: p.nombre, bytes: p.bytes, conjuntos: p.conjuntos, url: p.url, caduca: p.caduca, sha256: p.sha256 })) });
       }
-      module.exports = { ES_PRUEBA, entender, responder, obraDe, textoFaltan, causaDe, conjuntoNombrado, zonaDicha, ZONAS };
+      module.exports = { ES_PRUEBA, entender, previaDe, apuntarPrevia, PREVIAS, responder, obraDe, textoFaltan, causaDe, conjuntoNombrado, zonaDicha, ZONAS };
     }
   });
 
@@ -221370,6 +223142,7 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
         if (typeof module === "object" && module.exports) module.exports = api;
         if (raiz) raiz.PANEL_EQUIPO_PLANO = api;
       })(typeof window !== "undefined" ? window : null, function() {
+        const sinHojaCx = typeof __require !== "undefined" ? require_sinHojaFabricante() : window.SIN_HOJA_FABRICANTE;
         const esc = (v) => String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
         const VACIO = '<span class="pesVacio">\u2014</span>';
         const ESTADO_TOMA = { sinFicha: "Sin empezar", sinEmpezar: "Sin empezar", pendiente: "A medias", completa: "Completa", firmada: "Firmada" };
@@ -221396,9 +223169,9 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
           });
         }
         const PAPELES_MOVIL = ["ft", "ce", "manual", "fichaPM"];
-        function filasDocumentosEquipo(documentos) {
+        function filasDocumentosEquipo(documentos, equipo) {
           const docs = (Array.isArray(documentos) ? documentos : []).filter((x) => x && x.clase && (x.url || x.enOrdenador));
-          return PAPELES_MOVIL.map((k) => {
+          return PAPELES_MOVIL.filter((k) => !(k === "fichaPM" && sinHojaCx.sinHojaFabricante(equipo))).map((k) => {
             const clase = k === "fichaPM" ? "pm" : Object.keys(CLASE_A_COLUMNA).find((q) => CLASE_A_COLUMNA[q] === k);
             const archivos2 = docs.filter((y) => y.clase === clase).map((y) => ({
               nombre: y.nombre || y.etiqueta || TITULO_FILA[k],
@@ -228780,6 +230553,7 @@ No he podido con: ${fallos.join("; ")}.` : ""),
         const NOMBRE_ESTADO = Object.fromEntries(ESTADOS.map((e) => [e.id, e.nombre]));
         const SIN_RESOLVER = /* @__PURE__ */ new Set(["pendiente", "falta"]);
         const sinAcentos = (s) => String(s == null ? "" : s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+        const sinHojaCx = typeof __require !== "undefined" ? require_sinHojaFabricante() : window.SIN_HOJA_FABRICANTE;
         const hayDoc = (v) => typeof v === "string" && v.trim() !== "" && v.trim() !== "-";
         function estadoDeFicha(estado) {
           if (estado === "firmada") return "firmado";
@@ -228854,7 +230628,7 @@ No he podido con: ${fallos.join("; ")}.` : ""),
           for (const e of equipos || []) {
             const comun = { equipoId: e.id, equipo: e.tag, sistema: sistemaDe(e), planta: plantaDe(e) };
             const pm = hayDoc(e.docFichaPM);
-            salida.push(fila({
+            if (!sinHojaCx.sinHojaFabricante(e)) salida.push(fila({
               ...comun,
               id: `fab:${e.id}`,
               tipo: "fabricante",
@@ -233959,9 +235733,10 @@ No he podido con: ${fallos.join("; ")}.` : ""),
       modificadoPor = excluded.modificadoPor, modificadoEn = excluded.modificadoEn`).run(clave, nombre, JSON.stringify(tramos), firmado, sesion.personaId || null, ahora, ahora);
         return { ok: true, clave, tramos, firmado: Boolean(firmado), porDefecto: false };
       }
-      function porMarcaEnOtrasObras(repo, familiaEquipo, obraId) {
-        if (!familiaEquipo) return [];
-        return VC.volumenPorMarca(recoger(repo.db).movs, { familia: VC.idFamiliaEquipo(familiaEquipo), excluirObraId: obraId || null });
+      function porMarcaEnOtrasObras(repo, familiaEquipo, obraId, sesion) {
+        if (!familiaEquipo || !sesion || !sesion.rol) return [];
+        const filas = VC.volumenPorMarca(visibles(repo, sesion).movs, { familia: VC.idFamiliaEquipo(familiaEquipo), excluirObraId: obraId || null });
+        return verDinero(sesion) ? filas : VC.sinDinero(filas);
       }
       function lineas(repo, sesion) {
         if (!sesion || !puede(sesion.rol, "pedidos", "ver")) return null;
@@ -233996,9 +235771,9 @@ No he podido con: ${fallos.join("; ")}.` : ""),
       var PC = require_propuestaCambio();
       var modelo = require_modelo();
       var VC = require_volumenCompras();
-      var volumenPorMarca = (repo, familia, obraId) => {
+      var volumenPorMarca = (repo, familia, obraId, sesion) => {
         try {
-          return require_volumenCompras2().porMarcaEnOtrasObras(repo, familia, obraId);
+          return require_volumenCompras2().porMarcaEnOtrasObras(repo, familia, obraId, sesion);
         } catch {
           return [];
         }
@@ -234163,7 +235938,7 @@ No he podido con: ${fallos.join("; ")}.` : ""),
           return c ? c.coste : null;
         };
         const dinero = veDinero(sesion);
-        const porMarca = volumenPorMarca(repo, partida.familia, obraId);
+        const porMarca = volumenPorMarca(repo, partida.familia, obraId, sesion);
         const volumenDe = (f) => VC.marcaComun(porMarca, f.fabricante);
         const cant = Number(partida.cantidad) || 0;
         const importeDe = (c) => c && c.coste != null && cant > 0 ? modelo.euros(c.coste * cant) : null;
@@ -246735,6 +248510,7 @@ Lo que escribe algo (pedir ofertas, adjudicar, crear el presupuesto) te lo propo
           creadoPor: sesion.personaId
         });
         generarHojaAlcance(repo.db, sesion, repo.leer("proyectos", sesion, id));
+        require_condicionesOfertas().copiarAlProyecto(repo, sesion, id);
         return deFila(repo.leer("proyectos", sesion, id));
       }
       function generarHojaAlcance(db, sesion, proyecto) {
@@ -247184,6 +248960,7 @@ No se crea nada hasta que pulses **Confirmar**.`,
       var IPRES = require_iarvisPresupuesto();
       var RPREC = require_repositorioPrecios();
       var DATOS_PRECIOS = require_repositorioPrecios2();
+      var CE = require_condicionesEmpresa();
       var uuid = () => globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `l-${Date.now()}-${Math.random().toString(16).slice(2)}`;
       var fila = (pregunta, extra) => ({ id: uuid(), pregunta, estado: "respondida", local: true, creado: (/* @__PURE__ */ new Date()).toISOString(), acciones: [], ...extra });
       var norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -247238,7 +249015,15 @@ Dime \xABcomparativo de <grupo>\xBB y te cuento las ofertas.`, acciones: [{ tipo
         }
         const cols = c && c.columnas || [];
         if (!cols.length) return fila(pregunta, { respuesta: `**${p.nombre}**: petici\xF3n abierta, sin ofertas todav\xEDa. Cuando entren, las comparo.`, acciones });
-        const lineas = cols.slice(0, 5).map((x, i) => `${i + 1}. **${x.proveedor}** \u2014 cubre ${Math.round(x.cobertura)} %${sinDinero ? "" : ` \xB7 ${eur(x.totalComparable)} comparable`}`);
+        const SEM = { verde: "cumple las condiciones", ambar: "falla una recomendable", rojo: "NO cumple una condici\xF3n obligatoria" };
+        const cond = (x) => x.condiciones ? ` \xB7 ${SEM[x.condiciones.semaforo]}` : "";
+        const lineas = cols.slice(0, 5).map((x, i) => `${i + 1}. **${x.proveedor}** \u2014 cubre ${Math.round(x.cobertura)} %${sinDinero ? "" : ` \xB7 ${eur(x.totalComparable)} comparable`}${cond(x)}`);
+        const alarmas = cols.slice(0, 5).filter((x) => x.condiciones && x.condiciones.semaforo === "rojo").map((x) => `- **${x.proveedor}**: ${x.condiciones.clausulas.filter((a) => a.alarma === "rojo").map((a) => CE.textoAlarma(a)).join(" ")}`);
+        const textoAlarmas = alarmas.length ? `
+
+Condiciones de la empresa que no se cumplen:
+${alarmas.join("\n")}
+Adjudicar as\xED necesita una justificaci\xF3n firmada por la direcci\xF3n.` : "";
         const adj = c.adjudicacion ? `
 
 Ya adjudicado a **${(cols.find((x) => x.proveedorId === c.adjudicacion.proveedorId) || {}).proveedor || "un industrial"}**.` : "";
@@ -247246,7 +249031,7 @@ Ya adjudicado a **${(cols.find((x) => x.proveedorId === c.adjudicacion.proveedor
           acciones.unshift({ tipo: "hacer", hacer: "compraAdjudicar", presupuestoId: pres.id, grupo: p.codigo, proveedorId: cols[0].proveedorId, texto: `Adjudicar a ${cols[0].proveedor}` });
         }
         return fila(pregunta, { respuesta: `Comparativo de **${p.nombre}** (de menor a mayor total comparable):
-${lineas.join("\n")}${adj}${!c.adjudicacion && puedeAdjudicar ? "\n\nSi quieres adjudicarlo, pulsa el bot\xF3n: no se hace nada hasta que confirmes." : ""}`, acciones });
+${lineas.join("\n")}${textoAlarmas}${adj}${!c.adjudicacion && puedeAdjudicar ? "\n\nSi quieres adjudicarlo, pulsa el bot\xF3n: no se hace nada hasta que confirmes." : ""}`, acciones });
       }
       async function responder(repo, yo, d = {}) {
         const pregunta = String(d.pregunta || "").slice(0, 4e3);
@@ -247296,7 +249081,7 @@ ${lineas.join("\n")}${adj}${!c.adjudicacion && puedeAdjudicar ? "\n\nSi quieres 
           const t = norm(e.texto);
           const pedido = e.masBarato ? cols[0] : cols.find((x) => norm(x.proveedor).length >= 3 && t.includes(norm(x.proveedor)));
           if (!pedido) return paqueteFila(pregunta, yo, pres, p, c, sinDinero, puedePedir, puedeAdjudicar);
-          return fila(pregunta, { respuesta: `Voy a adjudicar **${p.nombre}** a **${pedido.proveedor}**${pedido === cols[0] ? ", el de menor total comparable" : " (no es el m\xE1s barato: te pedir\xE9 el motivo)"}. Esto compromete la compra; no se hace hasta que confirmes.`, acciones: [{ tipo: "hacer", hacer: "compraAdjudicar", presupuestoId: pres.id, grupo: p.codigo, proveedorId: pedido.proveedorId, texto: `Confirmar: adjudicar a ${pedido.proveedor}` }] });
+          return fila(pregunta, { respuesta: `Voy a adjudicar **${p.nombre}** a **${pedido.proveedor}**${pedido === cols[0] ? ", el de menor total comparable" : " (no es el m\xE1s barato: te pedir\xE9 el motivo)"}${pedido.condiciones && pedido.condiciones.semaforo === "rojo" ? `. Ojo: ${pedido.condiciones.resumen}; sin justificaci\xF3n firmada no se adjudica` : ""}. Esto compromete la compra; no se hace hasta que confirmes.`, acciones: [{ tipo: "hacer", hacer: "compraAdjudicar", presupuestoId: pres.id, grupo: p.codigo, proveedorId: pedido.proveedorId, texto: `Confirmar: adjudicar a ${pedido.proveedor}` }] });
         }
         return paqueteFila(pregunta, yo, pres, p, c, sinDinero, puedePedir, puedeAdjudicar);
       }
@@ -247344,7 +249129,7 @@ ${explicacion}`, acciones: [{ tipo: "ir", destino: "compras", texto: "Abrir Comp
         }
         if (a.hacer === "compraAdjudicar") {
           if (!H.permitida(yo.rol, "compras.adjudicar")) return fila(pregunta, { respuesta: "Adjudicar compromete el dinero de la obra y es de Proyectos: tu puesto no puede." });
-          const r = compras.adjudicar(repo, yo, { presupuestoId: pres.id, grupo, proveedorId: String(a.proveedorId || ""), motivo: a.motivo ? String(a.motivo).slice(0, 500) : void 0 });
+          const r = compras.adjudicar(repo, yo, { presupuestoId: pres.id, grupo, proveedorId: String(a.proveedorId || ""), motivo: a.motivo ? String(a.motivo).slice(0, 500) : void 0, justificacionCondiciones: a.justificacion ? String(a.justificacion).slice(0, 1e3) : void 0 });
           if (r && r.error) return fila(pregunta, { respuesta: `No lo he adjudicado: ${r.error}
 
 Escribe el motivo en el chat (o adjud\xEDcalo en Compras) y lo repito.`, acciones: [{ tipo: "ir", destino: "compras", texto: "Abrir Compras" }] });
@@ -250079,6 +251864,10 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
         "POST api/albaran": [["pedidos", "crear"]],
         "GET api/personal": [["partes", "ver"]],
         /* La firma guardada de quien tiene la sesión: la puede pedir cualquiera que firme algo (29-oct). */
+        /* 26-nov: Ajustes › Mi firma, la de quien lleva el teléfono (todos los roles con bloc). */
+        "GET api/miFirma": [["notas", "ver"]],
+        "POST api/miFirma": [["notas", "crear"]],
+        "POST api/miFirma/quitar": [["notas", "borrar"]],
         "GET api/firma/guardada": [["commissioning", "editar"], ["incidencias", "editar"], ["ordenesMant", "editar"], ["qhse", "editar"], ["ncr", "crear"], ["pruebasEstanqueidad", "crear"], ["partesIncidencia", "crear"], ["pedidos", "crear"]],
         /* Fichar con la tarjeta QR lo hace también el operario (el suyo); fichar a
            mano y dar de alta a alguien, el encargado o el jefe de obra (editar). */
@@ -250252,6 +252041,10 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
             return r;
           },
           /* ── El personal: la foto de la tarjeta del operario, y lo de hoy. */
+          /* ── Mi firma (26-nov): la guardada de la persona de la sesión, solo la suya. */
+          "GET api/miFirma": ({ ses }) => require_firmaPersona().miFirma(repo, ses),
+          "POST api/miFirma": ({ ses, json }) => require_firmaPersona().guardarMiFirma(repo, ses, json() || {}),
+          "POST api/miFirma/quitar": ({ ses }) => require_firmaPersona().quitarMiFirma(repo, ses),
           "GET api/firma/guardada": ({ ses }) => {
             const g = require_firmasEquipo().firmaPropia(repo, ses);
             return { ok: true, firma: g ? { nombre: g.nombre, imagen: g.imagen } : null };
@@ -250464,8 +252257,9 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
       function pluginNativo(C = globalThis.Capacitor) {
         if (!C || typeof C.isNativePlatform !== "function" || !C.isNativePlatform()) return null;
         if (typeof C.isPluginAvailable === "function" && !C.isPluginAvailable("LectorAlbaran")) return null;
+        if (globalThis.CX_LECTOR_NATIVO) return globalThis.CX_LECTOR_NATIVO;
         try {
-          return C.registerPlugin ? C.registerPlugin("LectorAlbaran") : C.Plugins && C.Plugins.LectorAlbaran || null;
+          return globalThis.CX_LECTOR_NATIVO = C.registerPlugin ? C.registerPlugin("LectorAlbaran") : C.Plugins && C.Plugins.LectorAlbaran || null;
         } catch {
           return null;
         }

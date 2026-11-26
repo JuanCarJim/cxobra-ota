@@ -23,6 +23,8 @@
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (raiz) raiz.PANEL_EQUIPO_PLANO = api;
 })(typeof window !== 'undefined' ? window : null, function () {
+  /* 26-nov (JC): en ventiladores no hay hoja de puesta en marcha del fabricante: ni fila ni aviso. */
+  const sinHojaCx = typeof require !== 'undefined' ? require('./sinHojaFabricante') : window.SIN_HOJA_FABRICANTE;
   const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const VACIO = '<span class="pesVacio">—</span>';
   const ESTADO_TOMA = { sinFicha: 'Sin empezar', sinEmpezar: 'Sin empezar', pendiente: 'A medias', completa: 'Completa', firmada: 'Firmada' };
@@ -62,9 +64,9 @@
         un conjunto trae los de todas sus unidades (`unidadTag`). Cuatro filas fijas: lo que no está sale «falta», nunca se
         deduce. La hoja del fabricante también: sin ella el equipo no pasa a «En marcha» (control.js › hojaFabricantePM). ── */
   const PAPELES_MOVIL = ['ft', 'ce', 'manual', 'fichaPM'];
-  function filasDocumentosEquipo(documentos) {
+  function filasDocumentosEquipo(documentos, equipo) {
     const docs = (Array.isArray(documentos) ? documentos : []).filter((x) => x && x.clase && (x.url || x.enOrdenador));
-    return PAPELES_MOVIL.map((k) => {
+    return PAPELES_MOVIL.filter((k) => !(k === 'fichaPM' && sinHojaCx.sinHojaFabricante(equipo))).map((k) => {
       const clase = k === 'fichaPM' ? 'pm' : Object.keys(CLASE_A_COLUMNA).find((q) => CLASE_A_COLUMNA[q] === k);
       const archivos = docs.filter((y) => y.clase === clase).map((y) => ({ nombre: y.nombre || y.etiqueta || TITULO_FILA[k], url: y.url || '',
         nivel: y.nivel || 'equipo', unidadTag: y.unidadTag || '', enOrdenador: Boolean(y.enOrdenador && !y.url) }));

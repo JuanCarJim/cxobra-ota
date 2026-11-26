@@ -1026,10 +1026,21 @@
       <p class="nota">${yo.local
         ? (sincro() ? 'Se guarda en este teléfono (funciona sin red) y se envía a la oficina en cuanto hay conexión.' : 'Todo se guarda en este teléfono; funciona sin red.')
         : 'Los datos están en el ordenador de la oficina y se llega a él por la wifi: con el ordenador apagado o fuera de su red, la app no puede traer ni guardar nada.'}</p>
+      ${window.FIRMA_MI ? '<section class="grupo"><h3 class="banda">Mi firma</h3><div id="cx-mi-firma" style="padding:8px 12px"></div></section>' : ''}
       ${yo.local && window.cxObra && window.cxObra.traerDatos ? conLaOficina() : ''}
       ${yo.local && !(window.cxObra && window.cxObra.salir) ? '' : '<button class="boton peligro" id="cx-salir">Salir</button>'}
       ${window.cxTiempos ? `<details class="nota"><summary>Tiempos de arranque</summary><pre style="white-space:pre-wrap;font-size:11px">${esc(window.cxTiempos.texto())}</pre></details>` : ''}
       <p class="nota pie">Vidaire Cx${window.cxObra && window.cxObra.ota ? ` · versión ${esc(window.cxObra.ota.info().version)}${window.cxObra.ota.info().lista ? ` (la ${esc(window.cxObra.ota.info().lista)} entra al volver a abrir)` : ''}` : ''}</p>`;
+    /* 26-nov (JC): Ajustes › Mi firma, con el dedo o con una imagen (shared/firma/miFirmaVista.js). */
+    const mf = document.getElementById('cx-mi-firma');
+    if (mf && window.FIRMA_MI) {
+      window.FIRMA_MI.montar(mf, {
+        leer: () => pedir('api/miFirma'),
+        guardar: (d) => postJson('api/miFirma', d).catch((e) => ({ ok: false, error: e.message })),
+        quitar: () => postJson('api/miFirma/quitar', {}),
+        rol: yo.rolNombre || yo.rol, aviso,
+      });
+    }
     const b = document.getElementById('cx-salir');
     if (b) b.onclick = () => {
       if (!yo.local) { window.ACCESO_MOVIL.salir(); return; }

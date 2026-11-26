@@ -424,3 +424,22 @@ body.teclado .iaMovil .iaEntrada, body.teclado-vv .iaMovil .iaEntrada { padding-
 .iaParaTi { margin-bottom: 10px; }
 .iaParaTiTit { font-weight: 600; margin-bottom: 4px; }
 .iaRespuesta a.iaEnlace { color: var(--vd-acento-texto, var(--vd-acento)); text-decoration: underline; word-break: break-all; }
+
+/* 26-nov · conversaciones por tema: las anteriores plegadas con su título, el contador del mes y «＋ Nueva» en el móvil. */
+.iaAnteriores { margin: 0 0 10px; border: 1px solid var(--vd-linea, var(--borde)); border-radius: 8px; background: var(--panel); font-size: 12.5px; }
+.iaAnteriores > summary { cursor: pointer; padding: 7px 10px; color: var(--vd-acento-texto, var(--marca-verde)); font-weight: 600; list-style: none; display: flex; align-items: center; gap: 6px; }
+.iaAnteriores > summary::-webkit-details-marker, .iaConv > summary::-webkit-details-marker { display: none; }
+.iaAnteriores > summary::before, .iaConv > summary::before { content: '▸'; font-size: 10px; transition: transform .15s; }
+.iaAnteriores[open] > summary::before, .iaConv[open] > summary::before { transform: rotate(90deg); }
+.iaAnteriores[open] > summary { border-bottom: 1px solid var(--vd-linea, var(--borde)); }
+.iaConv { border-bottom: 1px solid var(--vd-linea, var(--borde)); }
+.iaConv:last-child { border-bottom: 0; }
+.iaConv > summary { cursor: pointer; padding: 6px 10px; display: flex; align-items: baseline; gap: 6px; list-style: none; }
+.iaConv > summary::before { color: var(--textoSuave); }
+.iaConvTit { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--texto); }
+.iaConvDato { flex: none; color: var(--textoSuave); font-size: 11px; font-variant-numeric: tabular-nums; }
+.iaConvCuerpo { padding: 4px 10px 10px; max-height: 320px; overflow: auto; }
+.iaConvMas { padding: 6px 10px; color: var(--textoSuave); font-size: 11px; }
+.iaEntrada .iaUso { font-size: 11px; color: var(--textoSuave); text-align: right; padding: 0 2px 4px; font-variant-numeric: tabular-nums; }
+.iaEntrada .iaUso[hidden] { display: none; }
+.iaMovil .iaCabecera .iaNuevaMovil { font-size: 13px; font-weight: 600; height: 32px; padding: 0 10px; border-radius: 16px; color: var(--acento, var(--marca-verde)); border: 1px solid currentColor; background: transparent; }
