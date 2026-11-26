@@ -23,6 +23,8 @@
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (raiz) raiz.PANEL_EQUIPO_PLANO = api;
 })(typeof window !== 'undefined' ? window : null, function () {
+  /* 26-nov (JC): en ventiladores no hay hoja de puesta en marcha del fabricante: ni fila ni aviso. */
+  const sinHojaCx = typeof require !== 'undefined' ? require('./sinHojaFabricante') : window.SIN_HOJA_FABRICANTE;
   const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const VACIO = '<span class="pesVacio">—</span>';
   const ESTADO_TOMA = { sinFicha: 'Sin empezar', sinEmpezar: 'Sin empezar', pendiente: 'A medias', completa: 'Completa', firmada: 'Firmada' };
@@ -62,9 +64,9 @@
         un conjunto trae los de todas sus unidades (`unidadTag`). Cuatro filas fijas: lo que no está sale «falta», nunca se
         deduce. La hoja del fabricante también: sin ella el equipo no pasa a «En marcha» (control.js › hojaFabricantePM). ── */
   const PAPELES_MOVIL = ['ft', 'ce', 'manual', 'fichaPM'];
-  function filasDocumentosEquipo(documentos) {
+  function filasDocumentosEquipo(documentos, equipo) {
     const docs = (Array.isArray(documentos) ? documentos : []).filter((x) => x && x.clase && (x.url || x.enOrdenador));
-    return PAPELES_MOVIL.map((k) => {
+    return PAPELES_MOVIL.filter((k) => !(k === 'fichaPM' && sinHojaCx.sinHojaFabricante(equipo))).map((k) => {
       const clase = k === 'fichaPM' ? 'pm' : Object.keys(CLASE_A_COLUMNA).find((q) => CLASE_A_COLUMNA[q] === k);
       const archivos = docs.filter((y) => y.clase === clase).map((y) => ({ nombre: y.nombre || y.etiqueta || TITULO_FILA[k], url: y.url || '',
         nivel: y.nivel || 'equipo', unidadTag: y.unidadTag || '', enOrdenador: Boolean(y.enOrdenador && !y.url) }));
@@ -210,6 +212,29 @@
   }
 
   /* De arriba abajo: TAG, sus incidencias abiertas (15-nov, primero), su conjunto, estado de Cx y sala; sus botones; documentos y toma de datos con su botón; lo demás, plegado. */
+  /* ── LOS VALORES DE PROYECTO (25-nov-2026, JC: «para cada equipo sus valores de proyecto»). Plegado, como el fabricante: los
+        de la tabla de parámetros de sus tomas (planoEquipos.js › tomasDelEquipo › proyecto), cada uno con su fuente al pasar.
+        Sin ninguno, lo dice: no se inventa nada (valoresProyecto.js). La suma de rejas a la que le faltan rejas sale
+        marcada «(parcial)» (25-nov tarde). ── */
+  const numPes = (n) => (typeof n === 'number' ? n.toLocaleString('es-ES', { maximumFractionDigits: 2 }) : String(n));
+  function proyectoHtml(d) {
+    const ts = d.pesada && Array.isArray(d.pesada.tomas) ? d.pesada.tomas : null;
+    if (!ts) return '';
+    const vistos = new Set();
+    const filas = [];
+    for (const t of ts) for (const v of (t && t.proyecto) || []) {
+      const k = `${v.etiqueta}|${v.unidad}`;
+      if (vistos.has(k)) continue;
+      vistos.add(k);
+      filas.push(v);
+    }
+    const cuerpo = filas.length
+      ? `<table class="pesTablaFicha"><tbody>${filas.map((v) => `<tr title="${esc(v.fuente || '')}"><th>${esc(v.etiqueta)}</th><td>${esc(`${numPes(v.valor)}${v.unidad ? ` ${v.unidad}` : ''}`)}${v.parcial ? ' <span class="pesNota">(parcial)</span>' : ''}</td></tr>`).join('')}</tbody></table>`
+      : `<p class="pesNota">${VACIO} Sin valores de proyecto en la obra para este equipo.</p>`;
+    const dato = filas.length ? filas.slice(0, 2).map((v) => `${numPes(v.valor)}${v.unidad ? ` ${v.unidad}` : ''}`).join(' · ') : 'Sin datos';
+    return plegado('Valores de proyecto', cuerpo, dato, 'data-pes-proyecto');
+  }
+
   function html(d = {}) {
     const est = d.estado || {};
     const botones = (d.botones || []).filter(Boolean).map((b) => `<button type="button" class="botonMini" ${b.dato}>${esc(b.texto)}</button>`).join('');
@@ -222,6 +247,7 @@
       ${botones ? `<div class="pesFichaPie pesAcciones">${botones}</div>` : ''}
       ${documentosHtml(d)}
       ${tomasHtml(d)}
+      ${proyectoHtml(d)}
       ${vidaHtml(d)}
       ${estados.length ? plegado('Estado', tabla(estados), estados.map((f) => `${f[0]}: ${f[1]}`).join(' · ')) : ''}
       ${identificacion.length ? plegado('Identificación', tabla(identificacion), identificacion.filter((f) => f[0] === 'Conjunto' || f[0] === 'Pedido' || f[0] === 'Familia').map((f) => f[1]).filter(Boolean).join(' · ')) : ''}
@@ -230,5 +256,5 @@
       ${(d.notas || []).filter(Boolean).map((t) => `<p class="pesNota">${esc(t)}</p>`).join('')}`;
   }
 
-  return { html, conjuntoAlPulsar, conjuntoHtml, nombreConjunto, incidenciasHtml, documentosHtml, documentosDe, filasDocumentos, filasDocumentosEquipo, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA };
+  return { html, proyectoHtml, conjuntoAlPulsar, conjuntoHtml, nombreConjunto, incidenciasHtml, documentosHtml, documentosDe, filasDocumentos, filasDocumentosEquipo, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA };
 });

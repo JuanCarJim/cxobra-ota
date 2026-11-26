@@ -28,7 +28,8 @@
   const MAX_PREGUNTA = 4000;
   const COLA = 'vidaire.iarvis.cola';
   /* 14-nov: `motor` dice quién contestó (🧭 su modelo «ollama» o ✳︎ «claude»); el chat lo enseña bajo la respuesta. */
-  const CAMPOS = 'id,pregunta,respuesta,estado,valoracion,creado,adjuntos,propuesta,modelo,motor';
+  /* 26-nov: con el id de la conversación (el historial plegado por conversaciones) y su coste (el administrador). */
+  const CAMPOS = 'id,pregunta,respuesta,estado,valoracion,creado,adjuntos,propuesta,modelo,motor,conversacion:contexto->>conversacion,coste:contexto->>coste_usd';
   const SIN_RED = 'Sin conexión: tu pregunta queda guardada y Iarvis te contestará en cuanto haya red.';
   const MAS_TARDE = 'Iarvis te contestará en un rato. Tu pregunta queda guardada.';
   /* 8-nov (JC: «Iarvis tiene que responder AL MOMENTO»): la cola es SOLO para cuando no hay red.
@@ -51,8 +52,8 @@
     return (typeof window !== 'undefined' && window.IarvisCharla) || null;
   })();
   let convSinCharla = null;
-  const idConversacion = (almacen, nueva = false) => {
-    if (Charla && Charla.idConversacion) return Charla.idConversacion({ almacen, nueva });
+  const idConversacion = (almacen, nueva = false, tema = null) => {
+    if (Charla && Charla.idConversacion) return Charla.idConversacion({ almacen, nueva, tema });
     if (!convSinCharla || nueva) convSinCharla = uuid();
     return convSinCharla;
   };
@@ -72,7 +73,7 @@
       try {
         const r = await nube.llamarFuncion('iarvis', '', JSON.stringify({ ...(cuerpo && typeof cuerpo === 'object' ? cuerpo : {}), id, persona_id: personaId, espacio }), cuerpo ? Math.max(plazoRespuesta, 150000) : plazoRespuesta);
         const j = await r.json().catch(() => null);
-        if (j && j.estado) return { id, estado: j.estado, respuesta: j.respuesta || (j.estado === 'pendiente' ? MAS_TARDE : null), propuesta: j.propuesta || null, motor: j.motor || null, modelo: j.modelo || null };
+        if (j && j.estado) return { id, estado: j.estado, respuesta: j.respuesta || (j.estado === 'pendiente' ? MAS_TARDE : null), propuesta: j.propuesta || null, motor: j.motor || null, modelo: j.modelo || null, ...(j.uso ? { uso: j.uso } : {}), ...(j.coste_conversacion_usd != null ? { costeConversacion: j.coste_conversacion_usd } : {}) };
         /* La función no está desplegada (404) o no ha contestado nada que se entienda. */
         return { id, estado: 'fallo', respuesta: NO_PUDO };
       } catch (e) {
@@ -88,7 +89,9 @@
       const { personaId, espacio } = yo();
       /* Sin nube y sin cola no se toca el almacén (ni el id de la conversación). */
       if (sinCola && (!nube || !personaId)) return { id: uuid(), estado: 'fallo', respuesta: NO_PUDO };
-      const conversacion = idConversacion(almacen);
+      /* 26-nov: otra obra u otro equipo → otra conversación (charla.js · temaDe). */
+      const tema = Charla && Charla.temaDe ? Charla.temaDe({ obraId, mirando: contexto && contexto.mirando }) : null;
+      const conversacion = idConversacion(almacen, false, tema);
       const fila = { id: uuid(), espacio, persona_id: personaId, obra_id: obraId || null, app, pregunta: texto, contexto: { ...(contexto || {}), conversacion }, adjuntos };
       if (!nube || !personaId) {
         ponerCola([...leerCola(), fila]);

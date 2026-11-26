@@ -15,7 +15,14 @@
  * los renglones de cada pasada; quien decide qué se guarda es el motor
  * (electron/data/lecturaPlaca.js › lecturaDelCliente), con las mismas reglas.
  *
- *   OCR_PLACA.leer(blob, { marca, modelo, base }) → { pasadas: [[renglón…]…] }
+ * EN EL IPHONE (app Cx, 26-nov-2026, JC: «no se están reconociendo los
+ * números de serie cuando hago las fotos a las placas»): Tesseract no saca
+ * nada de las placas de S&P de NCN (etiqueta pequeña, foto de 1000 px). Si
+ * la app lleva el plugin nativo de Vision (cxobra/nativo/LectorAlbaranPlugin
+ * .swift, el del albarán), la placa se lee con él, igual que el Mac; si falla
+ * o no está, con Tesseract como siempre.
+ *
+ *   OCR_PLACA.leer(blob, { marca, modelo, base }) → { pasadas: [[renglón…]…], origen }
  *   OCR_PLACA.disponible() → si este navegador puede (Worker y WebAssembly)
  */
 (function () {
@@ -85,8 +92,37 @@
     return c;
   }
 
+  /* El Vision del iPhone (plugin de la app Cx), si está. */
+  function visionNativo() {
+    try {
+      const C = window.Capacitor;
+      if (!C || typeof C.isNativePlatform !== 'function' || !C.isNativePlatform()) return null;
+      if (typeof C.isPluginAvailable === 'function' && !C.isPluginAvailable('LectorAlbaran')) return null;
+      if (!window.CX_LECTOR_NATIVO) window.CX_LECTOR_NATIVO = C.registerPlugin ? C.registerPlugin('LectorAlbaran') : (C.Plugins && C.Plugins.LectorAlbaran) || null;
+      return window.CX_LECTOR_NATIVO && typeof window.CX_LECTOR_NATIVO.leer === 'function' ? window.CX_LECTOR_NATIVO : null;
+    } catch { return null; }
+  }
+  const enBase64 = (blob) => new Promise((ok, mal) => {
+    const r = new FileReader();
+    r.onload = () => ok(String(r.result || '').replace(/^data:[^,]*,/, ''));
+    r.onerror = () => mal(new Error('No se ha podido abrir la foto.'));
+    r.readAsDataURL(blob);
+  });
+  async function leerConVision(blob) {
+    const v = visionNativo();
+    const PS = window.PLACA_SERIE;
+    if (!v || !PS || typeof PS.renglonesDeTrozos !== 'function') return null;
+    try {
+      const r = await v.leer({ imagen: await enBase64(blob) });
+      const lineas = PS.renglonesDeTrozos(r && Array.isArray(r.trozos) ? r.trozos : []);
+      return lineas.length ? { pasadas: [lineas], origen: 'vision' } : null;
+    } catch { return null; }
+  }
+
   async function leer(blob, { marca = '', modelo = '', base = '' } = {}) {
-    if (!disponible()) throw new Error('Este navegador no puede leer fotos.');
+    const nativo = await leerConVision(blob);
+    if (nativo) return nativo;
+    if (!disponibleNavegador()) throw new Error('Este navegador no puede leer fotos.');
     const w = await elWorker(base);
     const PS = window.PLACA_SERIE;
     const pasadas = [];
@@ -99,12 +135,13 @@
       /* La primera pasada no parece una placa ni da nada: no merece la pena seguir. */
       if (PS && pasadas.length === 1 && !PS.pareceplaca(lineas) && !PS.extraerNumeroSerie(lineas, { marca, modelo }).valor) break;
     }
-    return { pasadas };
+    return { pasadas, origen: 'tesseract' };
   }
 
   function disponible() {
-    return typeof Worker !== 'undefined' && typeof WebAssembly !== 'undefined' && typeof createImageBitmap === 'function';
+    return Boolean(visionNativo()) || (typeof Worker !== 'undefined' && typeof WebAssembly !== 'undefined' && typeof createImageBitmap === 'function');
   }
+  const disponibleNavegador = () => typeof Worker !== 'undefined' && typeof WebAssembly !== 'undefined' && typeof createImageBitmap === 'function';
 
   /*
    * EL ALBARÁN DEL PROVEEDOR (29-oct, JC: «Que puedan crearlos también y/o
@@ -115,7 +152,7 @@
    * (descripción, cantidad, unidad) como celdas, igual que con Vision.
    */
   async function trozos(blob, { base = '' } = {}) {
-    if (!disponible()) throw new Error('Este navegador no puede leer fotos.');
+    if (!disponibleNavegador()) throw new Error('Este navegador no puede leer fotos.');
     const w = await elWorker(base);
     const c = await lienzo(blob, 2400);
     const { data } = await w.recognize(c, {}, { text: true, blocks: true });

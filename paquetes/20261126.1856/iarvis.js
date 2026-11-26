@@ -25,10 +25,14 @@
 (function () {
   const ESPERA_SONDEO = 8000;
   const SONDEOS = 15;
-  /* 8-nov (JC): la conversación se borra sola tras 2 horas sin actividad: al abrir el chat pasado
+  /* 8-nov (JC): la conversación se borra sola tras 2 horas sin actividad (26-nov: 30 minutos): al abrir el chat pasado
      ese tiempo, empieza vacía. Lo anterior sigue en la nube (para que Iarvis aprenda), no se enseña. */
+  /* 26-nov (JC: «el chat con Iarvis puede ser infinito»): conversaciones por tema. 30 minutos sin escribir, otra obra
+     u otro equipo → conversación nueva; las de antes quedan plegadas con su título («Conversaciones anteriores»). */
   const CHARLA = 'vidaire.iarvis.charla';
-  const CADUCA_MS = 2 * 60 * 60 * 1000;
+  const CADUCA_MS = 30 * 60 * 1000;
+  const MAX_ANTERIORES = 8;
+  const Ch = () => (typeof window !== 'undefined' && window.IarvisCharla) || null;
   const NOMBRES_PANTALLA = {
     presupuestos: 'Presupuestos', costsPlan: 'Costs Plan', presupuestoObra: 'Presupuesto de obra', medObra: 'Medición real de obra', certificaciones: 'Certificaciones',
     compras: 'Compras', comparativos: 'Comparativos', gantt: 'Gantt', commissioning: 'Commissioning', documentacion: 'Documentación',
@@ -38,7 +42,9 @@
   };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  const I = { panel: null, boton: null, lista: null, adaptador: null, ir: null, contexto: () => ({}), movil: false, ficheros: [], locales: [], filas: [], ocupado: false, deEstaVez: new Set(), idsEstaVez: new Set(), verAnteriores: false, pdfs: {}, ultima: 0, volver: null };
+  const I = { panel: null, boton: null, lista: null, adaptador: null, ir: null, contexto: () => ({}), movil: false, ficheros: [], locales: [], filas: [], ocupado: false, deEstaVez: new Set(), idsEstaVez: new Set(), verAnteriores: false, pdfs: {}, ultima: 0, volver: null, tema: null, uso: null, costeConv: null, verCoste: false };
+  /* El coste solo lo ve el administrador: la nube solo le manda a él coste_conversacion_usd (y el contexto puede decir el rol). */
+  I.esAdmin = () => { if (I.verCoste) return true; try { return (I.contexto() || {}).rol === 'administrador'; } catch { return false; } };
 
   function leerCharla() {
     try {
@@ -48,20 +54,50 @@
     return null;
   }
   function guardarCharla() {
-    try { localStorage.setItem(CHARLA, JSON.stringify({ ultima: I.ultima, ids: [...I.idsEstaVez].slice(-60) })); } catch { /* sin almacenamiento */ }
+    try { localStorage.setItem(CHARLA, JSON.stringify({ ultima: I.ultima, ids: [...I.idsEstaVez].slice(-60), tema: I.tema, uso: I.uso, mes: mesDe(), costeConv: I.costeConv, verCoste: I.verCoste })); } catch { /* sin almacenamiento */ }
   }
-  /** Hay actividad: la conversación sigue viva 2 horas más. */
+  const mesDe = (t = Date.now()) => new Date(t).toISOString().slice(0, 7);
+  /** El contador del mes (lo da la nube con cada respuesta) se recuerda entre aperturas, solo dentro del mismo mes. */
+  function leerUso() {
+    try {
+      const c = JSON.parse(localStorage.getItem(CHARLA) || 'null');
+      if (c && c.uso && c.mes === mesDe()) return c.uso;
+    } catch { /* sin almacenamiento */ }
+    return null;
+  }
+  /** Empieza otra conversación: lo de ahora pasa a «Conversaciones anteriores» y deja de contar para Iarvis. */
+  function nuevaConversacion() {
+    I.deEstaVez = new Set(); I.idsEstaVez = new Set(); I.ultima = 0; I.costeConv = null;
+    try { localStorage.removeItem(CHARLA); } catch { /* nada */ }
+    guardarCharla();
+    if (I.adaptador && I.adaptador.nueva) Promise.resolve().then(() => I.adaptador.nueva()).catch(() => { /* sin red: la siguiente caduca sola */ });
+  }
+  /** Otra obra u otro equipo que el de la conversación de ahora (si los dos se saben) → otra conversación. */
+  function cambiaDeTema(ctx) {
+    const C = Ch();
+    const tema = C && C.temaDe ? C.temaDe({ obraId: ctx.obraId, mirando: ctx.mirando, equipo: ctx.equipo }) : null;
+    const habia = I.deEstaVez.size || I.idsEstaVez.size;
+    const cambia = Boolean(tema && I.tema && tema !== I.tema && habia);
+    if (cambia) nuevaConversacion();
+    if (tema) I.tema = tema;
+    return cambia;
+  }
+  /** Hay actividad: la conversación sigue viva 30 minutos más. */
   function actividad() { I.ultima = Date.now(); guardarCharla(); }
-  /** Al abrir: pasadas 2 horas sin actividad, conversación vacía. */
+  /** Al abrir: pasados 30 minutos sin actividad, conversación vacía (la de antes, plegada en «Conversaciones anteriores»). */
   function caducar() {
     if (I.ultima && Date.now() - I.ultima < CADUCA_MS) return;
     const c = leerCharla();
     I.deEstaVez = new Set();
     I.idsEstaVez = new Set(c && Array.isArray(c.ids) ? c.ids : []);
     I.ultima = c ? Number(c.ultima) : 0;
+    I.tema = c && c.tema ? c.tema : null;
+    I.costeConv = c && c.costeConv != null ? c.costeConv : null;
+    if (!I.uso) I.uso = leerUso();
+    if (c && c.verCoste) I.verCoste = true;
   }
   /** Para las pruebas: el estado de la conversación de esta vez. */
-  const _charla = { filasVisibles: (f, d) => filasVisibles(f, d), pintarParaTi: (f) => pintarParaTi(f), leerCharla, caducar, actividad, CADUCA_MS, pintarPropuestas: (f) => pintarPropuestas(f), tarjetaArchivo: (a, id, o) => tarjetaArchivo(a, id, o), iconoDe: (a) => iconoDe(a), pintarAcciones: (f) => pintarAcciones(f), formato: (t) => formato(t), pintarRespuesta: (f) => pintarRespuesta(f) };
+  const _charla = { pintar: () => pintar(), filasVisibles: (f, d) => filasVisibles(f, d), pintarAnteriores: (f) => pintarAnteriores(f), pintarUso: () => pintarUso(), cambiaDeTema: (c) => cambiaDeTema(c), estado: () => I, pintarParaTi: (f) => pintarParaTi(f), leerCharla, caducar, actividad, CADUCA_MS, pintarPropuestas: (f) => pintarPropuestas(f), tarjetaArchivo: (a, id, o) => tarjetaArchivo(a, id, o), iconoDe: (a) => iconoDe(a), pintarAcciones: (f) => pintarAcciones(f), formato: (t) => formato(t), pintarRespuesta: (f) => pintarRespuesta(f) };
 
   function adaptadorDelPuente() {
     const p = window.puente;
@@ -554,9 +590,45 @@
     const P = window.IARVIS_PREGUNTAS;
     const { paraTi, ahora } = filasVisibles(I.filas, (f) => (I.deEstaVez.has(f) || (f.id && I.idsEstaVez.has(f.id))) && (!P || !P.vaConElHecho || P.vaConElHecho(f, abierto)));
     const bienvenida = ahora.length ? '' : `<div class="iaBienvenida"><h3>${saludo()}</h3><p>${esc(T('ia.bienvenida'))}</p><div class="iaSugerencias">${sugerencias()}</div></div>`;
-    I.lista.innerHTML = `${paraTi.map(pintarParaTi).join('')}${bienvenida}${[...ahora].reverse().map(pintarFila).join('')}`;
+    /* 26-nov: las conversaciones de antes, plegadas con su título (nada de lista infinita). */
+    const anteriores = pintarAnteriores(I.filas.filter((f) => !paraTi.includes(f) && !ahora.includes(f) && !f.proactiva && f.estado !== 'respondiendo'));
+    const abiertas = new Set([...I.lista.querySelectorAll('details[open][data-ia-conv]')].map((d) => d.getAttribute('data-ia-conv')));
+    I.lista.innerHTML = `${anteriores}${paraTi.map(pintarParaTi).join('')}${bienvenida}${[...ahora].reverse().map(pintarFila).join('')}`;
+    for (const d of I.lista.querySelectorAll('details[data-ia-conv]')) if (abiertas.has(d.getAttribute('data-ia-conv'))) d.open = true;
     I.lista.scrollTop = I.lista.scrollHeight;
+    pintarUso();
     rellenarMiniaturas();
+  }
+
+  /** «Conversaciones anteriores (N)»: un bloque plegado; dentro, las últimas 8 con título, fecha y nº de mensajes. */
+  function pintarAnteriores(filas) {
+    const C = Ch();
+    if (!C || !C.agruparConversaciones || !filas.length) return '';
+    const grupos = C.agruparConversaciones(filas);
+    if (!grupos.length) return '';
+    const cuando = (iso) => {
+      const t = Date.parse(iso || '');
+      if (!t) return '';
+      const d = new Date(t);
+      const hoy = new Date();
+      const hm = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      return d.toDateString() === hoy.toDateString() ? `hoy ${hm}` : `${d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} ${hm}`;
+    };
+    const admin = I.esAdmin && I.esAdmin();
+    const una = (g) => `<details class="iaConv" data-ia-conv="${esc(g.id)}"><summary><span class="iaConvTit">${esc(g.titulo)}</span><span class="iaConvDato">${esc(cuando(g.hasta))} · ${g.turnos}${admin && g.coste ? ` · ${esc(C.textoCoste(g.coste))}` : ''}</span></summary><div class="iaConvCuerpo">${[...g.filas].reverse().map(pintarFila).join('')}</div></details>`;
+    const vistas = grupos.slice(0, MAX_ANTERIORES);
+    const resto = grupos.length - vistas.length;
+    return `<details class="iaAnteriores" data-ia-conv="__anteriores"><summary>Conversaciones anteriores (${grupos.length})</summary>${vistas.map(una).join('')}${resto > 0 ? `<div class="iaConvMas">Y ${resto} más antiguas, guardadas en la nube.</div>` : ''}</details>`;
+  }
+  /** «Llevas N de 300 este mes» y, para el administrador, lo gastado en esta conversación. */
+  function pintarUso() {
+    const z = I.panel && I.panel.querySelector('.iaUso');
+    if (!z) return;
+    const C = Ch();
+    const uso = C && C.textoUso ? C.textoUso(I.uso) : '';
+    const coste = I.esAdmin && I.esAdmin() && I.costeConv != null && C && C.textoCoste ? C.textoCoste(I.costeConv) : '';
+    z.textContent = [uso, coste ? `esta conversación ${coste}` : ''].filter(Boolean).join(' · ');
+    z.hidden = !z.textContent;
   }
 
   async function cargarHistorial() {
@@ -611,6 +683,9 @@
     if (carta && (SI.test(pregunta) || (NO.test(pregunta) && carta.cancelar))) { caja.value = ''; accion(SI.test(pregunta) ? carta.confirmar : carta.cancelar); return; }
     I.ocupado = true;
     caducar();
+    let ctx = {};
+    try { ctx = I.contexto() || {}; } catch { /* sin contexto */ }
+    cambiaDeTema(ctx);
     actividad();
     const botonMandar = I.panel.querySelector('.iaMandar');
     botonMandar.disabled = true;
@@ -634,8 +709,6 @@
       meterHoja(claveMini(hoja), hoja.nombre);
       return;
     }
-    let ctx = {};
-    try { ctx = I.contexto() || {}; } catch { /* sin contexto */ }
     let r = adjuntos.length || archivos.length ? null : navegarLocal(pregunta);
     if (!r) {
       try {
@@ -644,6 +717,8 @@
     }
     Object.assign(provisional, r || {});
     if (provisional.id) I.idsEstaVez.add(provisional.id);
+    if (r && r.uso && Number.isFinite(Number(r.uso.llevadas))) I.uso = { llevadas: Number(r.uso.llevadas), tope: r.uso.tope == null ? null : Number(r.uso.tope) };
+    if (r && r.costeConversacion != null) { I.costeConv = Number(r.costeConversacion); I.verCoste = true; }
     actividad();
     pintar();
     I.ocupado = false;
@@ -897,11 +972,12 @@
     p.innerHTML = `
       ${I.movil
     /* 8-nov (JC): en el móvil, SOLO el chat: una cabecera mínima con «‹» para volver y «Iarvis». */
-    ? '<div class="iaCabecera"><button class="iaVolver" title="Volver" aria-label="Volver">‹</button><h2>Iarvis</h2></div>'
-    : '<div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso" data-ia-t="ia.aviso">' + esc(T('ia.aviso')) + '</span></div><button class="iaPlegar" type="button" aria-expanded="true" title="Plegar: deja solo la cabecera" aria-label="Plegar Iarvis">–</button><button class="iaNueva" title="Empezar de cero" aria-label="Conversación nueva">＋</button><button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button></div>'}
+    ? '<div class="iaCabecera"><button class="iaVolver" title="Volver" aria-label="Volver">‹</button><h2>Iarvis</h2><button class="iaNueva iaNuevaMovil" title="Nueva conversación" aria-label="Nueva conversación">＋ Nueva</button></div>'
+    : '<div class="iaCabecera"><span class="iaMarca" aria-hidden="true">I</span><div class="iaTitulo"><h2>Iarvis</h2><span class="iaAviso" data-ia-t="ia.aviso">' + esc(T('ia.aviso')) + '</span></div><button class="iaPlegar" type="button" aria-expanded="true" title="Plegar: deja solo la cabecera" aria-label="Plegar Iarvis">–</button><button class="iaNueva" title="Nueva conversación" aria-label="Nueva conversación">＋</button><button class="iaCerrar" title="Cerrar (Esc)" aria-label="Cerrar">×</button></div>'}
       <div class="iaSobre" hidden></div>
       <div class="iaLista" role="log" aria-live="polite"></div>
       <div class="iaEntrada">
+        <div class="iaUso" hidden></div>
         <div class="iaFicheros"></div>
         <div class="iaFila">
           <button class="iaClip" title="Adjuntar un archivo" aria-label="Adjuntar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5l-7.6 7.6a4.5 4.5 0 0 1-6.4-6.4l8-8a3 3 0 0 1 4.2 4.2l-8 8a1.5 1.5 0 0 1-2.1-2.1l7.3-7.3"/></svg></button>
@@ -953,7 +1029,7 @@
       if (sug) { mandar(sug.getAttribute('data-ia-sugerencia')); return; }
       if (e.target.closest('.iaAnclar')) { anclar(!I.anclado); return; }
       if (e.target.closest('.iaVolver')) { if (I.volver) I.volver(); else if (history.length > 1) history.back(); return; }
-      if (e.target.closest('.iaNueva')) { I.deEstaVez = new Set(); I.idsEstaVez = new Set(); I.ultima = 0; try { localStorage.removeItem(CHARLA); } catch { /* nada */ } if (I.adaptador && I.adaptador.nueva) Promise.resolve().then(() => I.adaptador.nueva()).catch(() => { /* sin red: la siguiente caduca sola */ }); pintar(); return; }
+      if (e.target.closest('.iaNueva')) { nuevaConversacion(); pintar(); return; }
       const arch = e.target.closest('[data-ia-archivo]');
       if (arch) { abrirArchivo(arch.getAttribute('data-ia-archivo')); return; }
       const pdf = e.target.closest('[data-ia-pdf]');
