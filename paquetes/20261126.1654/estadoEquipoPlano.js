@@ -48,6 +48,23 @@ function colorEquipo(x) {
   return { estado, clave: c.clave, hex, nombre, corto: CORTO[estado], distintivo: c.distintivo, incidencia: c.incidencia, terceros: Boolean(c.terceros), resuelta: c.resuelta };
 }
 
+/**
+ * EL ESTADO DE UN EQUIPO DEL PLANO A PARTIR DE SUS DATOS (26-nov-2026, JC: «Aquí salen en azul equipos que no me salen en
+ * azul en el móvil»). La regla de TODAS las apps: la web y el escritorio de Obras y del Gestor y el móvil Cx la llaman desde
+ * planoEquipos.reglaBloque; antes cada repo llevaba su copia y se habían separado (el Gestor ya exigía el Cx completo).
+ * `f`: la fila del equipo; `e`: su línea de Cx (planoEquipos.estados: color, completo, miembros). `montaje`: su fila de
+ * equiposObra (estado, fechaInstalacion, instalacionVerificadaEn); `tomaDe`: Map equipoId → fecha de la toma PM completa;
+ * `cert`: su certificación (vidaEquipo.certificacion o su estado: en el móvil, certificacionAlMovil).
+ */
+function estadoDelEquipo(f, e = {}, { montaje = null, tomaDe = new Map(), cert = null } = {}) {
+  /* 15-nov (regla de JC: «con Cx hecho no le puede faltar nada»): verde por estar en marcha no es Cx hecho; solo con todas
+     sus hojas y documentos completos (e.completo, la regla de la entrega a la DF). Lo demás, empezado. */
+  const hecho = e.color === 'verde' && e.completo !== false;
+  const ids = Array.isArray(e.miembros) && e.miembros.length ? e.miembros.map((m) => m.id) : [f.id];
+  const tomaHecha = !hecho && CB.tomaHechaConjunto(ids, tomaDe);
+  return CB.estadoBloque(montaje || f, { cxHecho: hecho, tomaHecha, cxEmpezado: e.color === 'azul' || (e.color === 'verde' && !hecho), cert });
+}
+
 /** Las cifras de la leyenda de una lista de equipos: por estado y las tres de incidencia. */
 function cuentas(lista = []) {
   return { bloques: CB.recuentoBloques(lista, estadoDe), conIncidencia: IP.recuento(lista), incTerceros: IP.recuentoTerceros(lista), incResuelta: IP.recuentoResueltas(lista) };
@@ -84,7 +101,7 @@ function cssPlanoModelo() {
     + `.pesSimbolo:where(.${x.id}){color:${contornoDe(x)}}.pesRacimoTira:where(.${x.id}){fill:${x.hex}}`).join('');
 }
 
-const API = { ESTADOS, ORDEN, NOMBRE, CORTO, esEstado, estadoDe, colorEquipo, cuentas, leyenda, cssPlanoModelo };
+const API = { ESTADOS, ORDEN, NOMBRE, CORTO, esEstado, estadoDe, estadoDelEquipo, colorEquipo, cuentas, leyenda, cssPlanoModelo };
 if (enNode) module.exports = API;
 if (typeof window !== 'undefined') window.ESTADO_EQUIPO_PLANO = API;
 })();

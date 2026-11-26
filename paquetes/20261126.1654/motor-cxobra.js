@@ -11391,12 +11391,14 @@ globalThis.CX_VARIANTE="cxobra";
           "documentos",
           /* 13-nov (JC en obra, NCN: «Ninguna planta tiene todavía el plano del IFC»): los planos del IFC por edificio y
              planta (fondo y posición de cada máquina), solo de ida. Sin ellos el móvil no tenía ningún plano del modelo. */
-          "plantasIfc"
+          "plantasIfc",
+          /* 26-nov: lo certificado de cada equipo, para el azul del plano (certificacionAlMovil.js), solo de ida. */
+          "certPlanoEquipos"
         ],
         /* 29-oct (JC): el plano lo ve todo el enrolado en la obra, aunque su rol no tenga
            Commissioning: con él, lo mínimo para pintar los colores (equipos, modelos,
            fichas y config). Quien tiene Commissioning ya lo trae todo. */
-        plano: ["planosEquipos", "materialesInstalados", "equiposObra", "modelosEquipo", "configCommissioning", "fichasPM", "documentos", "plantasIfc", "validacionesEquipo", "recepcionesEquipo"],
+        plano: ["planosEquipos", "materialesInstalados", "equiposObra", "modelosEquipo", "configCommissioning", "fichasPM", "documentos", "plantasIfc", "validacionesEquipo", "recepcionesEquipo", "certPlanoEquipos"],
         ncr: [
           "ncr",
           "ncrEquipos",
@@ -11446,6 +11448,8 @@ globalThis.CX_VARIANTE="cxobra";
       };
       var TABLAS_PERSONALES = {
         notas: "bloc",
+        /* 26-nov: Mi firma, la de quien lleva el teléfono. */
+        firmasPersona: "bloc",
         jornadaFichajes: "jornada",
         jornadaCorrecciones: "jornada",
         solicitudesDias: "jornada",
@@ -11465,6 +11469,7 @@ globalThis.CX_VARIANTE="cxobra";
         "ncrEquipos",
         "ncrAplazamientos",
         "notas",
+        "firmasPersona",
         "albaranes",
         "albaranLineas",
         "pedidoDocumentos",
@@ -11907,7 +11912,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261125.1127" : "0";
+      var VERSION = true ? "20261126.1654" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -12548,6 +12553,484 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
+  // shared/commissioning/garantia.js
+  var require_garantia = __commonJS({
+    "shared/commissioning/garantia.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var fechaISO = (v) => {
+        const s = String(v || "").trim();
+        return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null;
+      };
+      function sumarAnios(iso, anios) {
+        const [a, m, d] = iso.split("-").map(Number);
+        const meses = Math.round(Number(anios) * 12);
+        const f = new Date(Date.UTC(a, m - 1 + meses, d));
+        if (f.getUTCDate() !== d) f.setUTCDate(0);
+        return f.toISOString().slice(0, 10);
+      }
+      var hoyLocal = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
+      var fechaVisible = (iso) => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "";
+      function garantiaDe(e, hoy = hoyLocal()) {
+        const g = garantiaSola(e, hoy);
+        const u = e && e.diasUso !== void 0 && e.diasUso !== null && e.diasUso !== "" ? usoDe(e, hoy) : null;
+        return u && u.textoGarantia ? { ...g, usoAntesEntrega: u.antesEntrega, textoUso: u.textoGarantia } : g;
+      }
+      function garantiaSola(e, hoy) {
+        const inicio = fechaISO(e && e.fechaEnvioDF);
+        const n = Number(e && e.garantiaAnios);
+        const anios = Number.isFinite(n) && n > 0 ? n : null;
+        if (!inicio) return { estado: "sinEmpezar", inicio: null, fin: null, anios, texto: "Garant\xEDa: sin empezar (pendiente de entrega a DF)" };
+        if (!anios) return { estado: "sinAnios", inicio, fin: null, anios: null, texto: `Garant\xEDa: desde ${fechaVisible(inicio)} (faltan los a\xF1os de garant\xEDa)` };
+        const fin = sumarAnios(inicio, anios);
+        const estado = fin < hoy ? "vencida" : "vigente";
+        return { estado, inicio, fin, anios, texto: `Garant\xEDa: ${fechaVisible(inicio)} \u2192 ${fechaVisible(fin)}${estado === "vencida" ? " (vencida)" : ""}` };
+      }
+      var GARANTIA_DIA_MS = 864e5;
+      var MAX_DIAS_USO = 36500;
+      var diasEntreGarantia = (desde, hasta) => Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / GARANTIA_DIA_MS);
+      var restarDiasGarantia = (iso, n) => new Date(Date.parse(`${iso}T00:00:00Z`) - n * GARANTIA_DIA_MS).toISOString().slice(0, 10);
+      function leerDiasUso(v) {
+        const s = v === null || v === void 0 ? "" : String(v).trim().replace(",", ".");
+        if (s === "") return null;
+        const n = Number(s);
+        if (!Number.isFinite(n) || n < 0 || n > MAX_DIAS_USO || Math.round(n) !== n) return { error: `\xAB${v}\xBB no son unos d\xEDas de uso (un n\xFAmero entero entre 0 y ${MAX_DIAS_USO}).` };
+        return n;
+      }
+      function sugerenciaDiasUso(fechaPuestaMarcha, hoy = hoyLocal()) {
+        const f = fechaISO(fechaPuestaMarcha);
+        if (!f) return null;
+        const n = diasEntreGarantia(f, hoy);
+        return n >= 0 ? n : null;
+      }
+      function usoDe(e, hoy = hoyLocal()) {
+        const x = e || {};
+        const n = Number(x.diasUso);
+        const dias = x.diasUso !== null && x.diasUso !== void 0 && x.diasUso !== "" && Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+        const fecha = dias === null ? null : fechaISO(x.diasUsoFecha) || hoy;
+        const inicio = dias === null ? null : restarDiasGarantia(fecha, dias);
+        const entrega = fechaISO(x.fechaEnvioDF);
+        const antesEntrega = dias === null ? null : !entrega || entrega >= fecha ? dias : Math.max(0, dias - diasEntreGarantia(entrega, fecha));
+        const sugerencia = dias === null ? sugerenciaDiasUso(x.fechaPuestaMarcha, hoy) : null;
+        const d = (k) => `${k} ${k === 1 ? "d\xEDa" : "d\xEDas"}`;
+        const texto = dias === null ? null : `${d(dias)} de uso (a ${fechaVisible(fecha)})`;
+        const textoGarantia = dias === null ? null : entrega ? `${d(antesEntrega)} de uso antes de la entrega` : `${d(antesEntrega)} de uso, a\xFAn sin entregar a DF`;
+        return { dias, fecha, inicio, antesEntrega, entregado: Boolean(entrega), sugerencia, texto, textoGarantia };
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.GARANTIA_CX = API;
+      })({ garantiaDe, sumarAnios, fechaVisible, fechaISO, leerDiasUso, sugerenciaDiasUso, usoDe, MAX_DIAS_USO });
+    }
+  });
+
+  // shared/commissioning/fechaPM.js
+  var require_fechaPM = __commonJS({
+    "shared/commissioning/fechaPM.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function(raiz, fabrica) {
+        const api = fabrica();
+        if (typeof module === "object" && module.exports) module.exports = api;
+        if (raiz) raiz.FECHA_PM = api;
+      })(typeof window !== "undefined" ? window : null, function() {
+        const iso = (v) => {
+          const s = String(v || "").trim().slice(0, 10);
+          return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+        };
+        const texto = (f) => f ? f.split("-").reverse().join("/") : null;
+        const FECHAS_SOLO_GARANTIA = Object.freeze(["2025-04-01", "2025-05-01", "2025-07-01", "2025-08-01", "2025-09-01"]);
+        const soloGarantia = (f) => FECHAS_SOLO_GARANTIA.includes(f);
+        const isoToma = (v) => {
+          const f = iso(v);
+          return f && !soloGarantia(f) ? f : null;
+        };
+        const HECHA = (x) => x && (x.estado === "completa" || x.estado === "firmada") && !x.sinFechaNiFirma;
+        function tomaDeFichas(fichas, fechaDe2 = () => null) {
+          const tomas = (fichas || []).filter((x) => x && x.clase === "fichaPM");
+          const dia = (x) => x.fichaId ? isoToma(fechaDe2(x.fichaId)) : null;
+          const hechas = tomas.filter(HECHA).map(dia).filter(Boolean).sort();
+          if (hechas.length) return { tomaEstado: "completa", fechaToma: hechas[0] };
+          const medias = tomas.map(dia).filter(Boolean).sort();
+          if (medias.length) return { tomaEstado: "aMedias", fechaToma: medias[0] };
+          return { tomaEstado: "sinToma", fechaToma: null };
+        }
+        function diaDeToma(fila, { aMano = false } = {}) {
+          let d = fila && fila.datos;
+          if (typeof d === "string") {
+            try {
+              d = JSON.parse(d);
+            } catch {
+              d = null;
+            }
+          }
+          const fe = isoToma(d && d.cabecera && d.cabecera.fechaEnsayo);
+          if (!fe) return null;
+          const nacio = iso(fila && fila.creadoEn);
+          if (nacio && fe < nacio && !aMano) return null;
+          return fe;
+        }
+        function puestaEnMarcha(u) {
+          const p = u && u.pmFichas || {};
+          const fecha = isoToma(p.fechaToma);
+          const estado = fecha ? p.tomaEstado === "aMedias" ? "aMedias" : "enMarcha" : "sinToma";
+          const fechaTexto = texto(fecha);
+          if (estado === "enMarcha") return { estado, fecha, fechaTexto, etiqueta: `En marcha desde ${fechaTexto}`, tono: "bien", deToma: true };
+          if (estado === "aMedias") return { estado, fecha, fechaTexto, etiqueta: `${fechaTexto} \xB7 toma a medias`, tono: "info", deToma: true };
+          return { estado, fecha: null, fechaTexto: null, etiqueta: "Sin toma de datos", tono: "gris", deToma: false };
+        }
+        const fechaDe = (u) => puestaEnMarcha(u).fecha;
+        return { tomaDeFichas, diaDeToma, puestaEnMarcha, fechaDe, texto, FECHAS_SOLO_GARANTIA, soloGarantia };
+      });
+    }
+  });
+
+  // shared/commissioning/vidaEquipo.js
+  var require_vidaEquipo = __commonJS({
+    "shared/commissioning/vidaEquipo.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var G = typeof __require !== "undefined" ? require_garantia() : window.GARANTIA_CX;
+      var ROLES = typeof __require !== "undefined" ? require_roles() : window.ROLES;
+      var FPM = () => typeof __require === "function" ? require_fechaPM() : window.FECHA_PM;
+      var DIA = 864e5;
+      var diasEntre = (desde, hasta) => Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / DIA);
+      var hoyLocal = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
+      var fecha = (iso) => iso ? G.fechaVisible(iso) : null;
+      var aniosTexto = (n) => n ? `${String(n).replace(".", ",")} ${Number(n) === 1 ? "a\xF1o" : "a\xF1os"}` : null;
+      function puestaEnMarcha(u) {
+        return FPM().puestaEnMarcha(u);
+      }
+      function garantia(u, linea, hoy = hoyLocal()) {
+        const enConjunto = linea && Array.isArray(linea.miembros) && linea.miembros.length > 1;
+        const base = enConjunto ? {
+          fechaEnvioDF: linea.fechaEnvioDF || null,
+          garantiaAnios: linea.miembros.map((m) => Number(m.garantiaAnios) || 0).reduce((x, y) => Math.max(x, y), 0) || null,
+          diasUso: linea.diasUso ?? null,
+          diasUsoFecha: linea.diasUsoFecha || null
+        } : { fechaEnvioDF: u && u.fechaEnvioDF || null, garantiaAnios: u && u.garantiaAnios, diasUso: u ? u.diasUso ?? null : null, diasUsoFecha: u && u.diasUsoFecha || null };
+        const g = G.garantiaDe(base, hoy);
+        const duracion = aniosTexto(g.anios);
+        const sal = {
+          desde: g.inicio,
+          hasta: g.fin,
+          desdeTexto: fecha(g.inicio),
+          hastaTexto: fecha(g.fin),
+          anios: g.anios,
+          duracion,
+          quedanDias: null,
+          conjunto: enConjunto ? linea.tag || null : null,
+          /* Los días de uso antes de la entrega a DF (30-oct): aparte, no mueven la garantía. */
+          usoAntesEntrega: g.usoAntesEntrega ?? null,
+          textoUso: g.textoUso || null
+        };
+        if (g.estado === "sinEmpezar") return { ...sal, estado: "sinEntregaDF", tono: "gris", resumen: "Pendiente de entrega a DF" };
+        if (g.estado === "sinAnios") return { ...sal, estado: "sinDuracion", tono: "gris", resumen: "Duraci\xF3n sin dato" };
+        const quedan = diasEntre(hoy, g.fin);
+        if (g.estado === "vencida") return { ...sal, estado: "caducada", tono: "gris", quedanDias: quedan, resumen: `Caducada hace ${-quedan} ${-quedan === 1 ? "d\xEDa" : "d\xEDas"}` };
+        return { ...sal, estado: "vigente", tono: "bien", quedanDias: quedan, resumen: `Vigente \xB7 quedan ${quedan} ${quedan === 1 ? "d\xEDa" : "d\xEDas"}` };
+      }
+      var veCertificacion = (rol, { entregable = false } = {}) => !entregable && Boolean(ROLES && ROLES.puede(rol, "certificaciones", "ver"));
+      var norm = (t) => ` ${String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim()} `;
+      var casable = (t) => {
+        const n = norm(t).trim();
+        return n.length >= 4 && /\d/.test(n) ? n : null;
+      };
+      var textosDeLista = /* @__PURE__ */ new WeakMap();
+      var textosDe = (lista) => {
+        const ya = textosDeLista.get(lista);
+        if (ya && ya.length === lista.length) return ya;
+        const t = lista.map((p) => norm(p ? `${p.codigo || ""} ${p.resumen || ""} ${p.descripcion || ""}` : ""));
+        t.porPalabra = /* @__PURE__ */ new Map();
+        t.forEach((x, i) => {
+          for (const w of new Set(x.trim().split(" "))) {
+            if (!t.porPalabra.has(w)) t.porPalabra.set(w, []);
+            t.porPalabra.get(w).push(i);
+          }
+        });
+        textosDeLista.set(lista, t);
+        return t;
+      };
+      function partidaDe(u, partidas) {
+        const lista = partidas || [];
+        let textos = null;
+        for (const [por, valor] of [["tag", u && u.tag], ["modelo", u && u.modelo]]) {
+          const c = casable(valor);
+          if (!c) continue;
+          textos ||= textosDe(lista);
+          const aguja = ` ${c} `;
+          let candidatas = null;
+          for (const w of new Set(c.split(" "))) {
+            const l = textos.porPalabra.get(w) || [];
+            if (!candidatas || l.length < candidatas.length) candidatas = l;
+            if (!l.length) break;
+          }
+          const hit = (candidatas || []).filter((i) => textos[i].includes(aguja)).map((i) => lista[i]);
+          if (hit.length === 1) return { partida: hit[0], por, varias: [] };
+          if (hit.length > 1) return { partida: null, por, varias: hit };
+        }
+        return { partida: null, por: null, varias: [] };
+      }
+      var redondo = (n) => Math.round(Number(n) * 1e3) / 1e3;
+      var cifra = (n) => String(redondo(n)).replace(".", ",");
+      function certificadoPorPartida(lineas) {
+        const out = {};
+        for (const l of lineas || []) {
+          if (!l || l.certificacionEstado === "borrador") continue;
+          const a = out[l.lineaId] || (out[l.lineaId] = { cantidad: 0, ultima: null });
+          a.cantidad = redondo(a.cantidad + (Number(l.cantidad) || 0));
+          if (!a.ultima || Number(l.certificacionNumero) > a.ultima.numero) a.ultima = { numero: Number(l.certificacionNumero), estado: l.certificacionEstado, periodo: l.periodo || null };
+        }
+        return out;
+      }
+      var STOCK = /\b(STOCK|ESTOCAJE|NOT INSTALLED|NO INSTALAD[OA]S?)\b/;
+      var numPlanta = (p) => {
+        const m = /^N\s*(\d{1,2})\b/i.exec(String(p || "").trim());
+        return m ? Number(m[1]) : null;
+      };
+      function tramoDe(texto) {
+        const t = String(texto || "");
+        let m = /\bN(\d{2})\s*[–—-]\s*N?(\d{2})\b/.exec(t);
+        if (m) return [Number(m[1]), Number(m[2])];
+        m = /\bN(\d{2})\s+y\s+superiores\b/i.exec(t);
+        return m ? [Number(m[1]), 99] : null;
+      }
+      var capitulosDe = /* @__PURE__ */ new WeakMap();
+      function antecesores(codigo, capitulos) {
+        if (!capitulos) return [];
+        let idx = capitulosDe.get(capitulos);
+        if (!idx) {
+          idx = new Map(capitulos.map((c) => [String(c.codigo), c]));
+          capitulosDe.set(capitulos, idx);
+        }
+        const partes = String(codigo || "").split(".");
+        const out = [];
+        for (let i = 1; i < partes.length; i += 1) {
+          const c = idx.get(partes.slice(0, i).join("."));
+          if (c) out.push(c);
+        }
+        return out;
+      }
+      function resolverVarias(u, varias, { porPartida = {}, capitulos = null } = {}) {
+        const hecho = (p) => (porPartida[p.lineaId] || {}).cantidad || 0;
+        let cand = varias.filter((p) => (Number(p.cantidad) || 0) > 0 || hecho(p) > 0).filter((p) => !antecesores(p.codigo, capitulos).some((c) => STOCK.test(norm(c.resumen))));
+        const n = numPlanta(u && u.planta);
+        if (n !== null && capitulos) {
+          const conTramo = cand.map((p) => ({ p, tramos: antecesores(p.codigo, capitulos).map((c) => tramoDe(c.resumen)).filter(Boolean) }));
+          if (conTramo.some((x) => x.tramos.length)) cand = conTramo.filter((x) => x.tramos.some(([a, b]) => n >= a && n <= b)).map((x) => x.p);
+        }
+        const textos = new Set(cand.map((p) => norm(p.resumen).trim()));
+        return cand.length && textos.size === 1 ? cand : null;
+      }
+      function certificacion(u, datos) {
+        const { partidas = [], porPartida = {}, capitulos = null } = datos || {};
+        const { partida, por, varias } = partidaDe(u, partidas);
+        const grupo = !partida && varias.length ? resolverVarias(u, varias, { porPartida, capitulos }) : null;
+        if (grupo) {
+          const total2 = grupo.reduce((s, p3) => s + (Number(p3.cantidad) || 0), 0);
+          let cant = 0;
+          let ultima = null;
+          for (const p3 of grupo) {
+            const h = porPartida[p3.lineaId];
+            if (!h) continue;
+            cant += h.cantidad;
+            if (h.ultima && (!ultima || h.ultima.numero > ultima.numero)) ultima = h.ultima;
+          }
+          cant = redondo(cant);
+          const unidad = grupo[0].unidad || null;
+          const codigos = grupo.map((p3) => p3.codigo || "");
+          const pct2 = total2 > 0 ? Math.round(cant / total2 * 1e3) / 10 : null;
+          const p2 = { codigo: codigos.length > 1 ? `${codigos[0]} +${codigos.length - 1}` : codigos[0], codigos, resumen: grupo[0].resumen || "", por };
+          const base2 = { partida: p2, cantidad: cant, total: redondo(total2), unidad, pct: pct2, ultima };
+          return conEstado(base2, unidad ? ` ${unidad}` : "", codigos.length > 1 ? ` \xB7 ${codigos.length} partidas` : "");
+        }
+        if (!partida) {
+          if (varias.length) return { estado: "variasPartidas", tono: "gris", resumen: `Su ${por === "tag" ? "TAG" : "modelo"} sale en ${varias.length} partidas: ${varias.slice(0, 3).map((p2) => p2.codigo).join(", ")}${varias.length > 3 ? "\u2026" : ""}`, partida: null };
+          return { estado: "sinPartida", tono: "gris", resumen: "Sin partida del Costs Plan con su TAG o su modelo", partida: null };
+        }
+        const total = Number(partida.cantidad) || 0;
+        const hecho = porPartida[partida.lineaId] || { cantidad: 0, ultima: null };
+        const pct = total > 0 ? Math.round(hecho.cantidad / total * 1e3) / 10 : null;
+        const p = { codigo: partida.codigo || "", resumen: partida.resumen || "", por };
+        const ud = partida.unidad ? ` ${partida.unidad}` : "";
+        const base = { partida: p, cantidad: hecho.cantidad, total, unidad: partida.unidad || null, pct, ultima: hecho.ultima };
+        return conEstado(base, ud, "");
+      }
+      function conEstado(base, ud, de) {
+        const { cantidad: cant, total, pct } = base;
+        if (!cant) return { ...base, estado: "sinCertificar", tono: "gris", resumen: `Sin certificar${de}` };
+        if (!(total > 0)) return { ...base, estado: "certificada", tono: "bien", resumen: `Certificada: ${cifra(cant)}${ud} (partida sin cantidad de contrato)${de}` };
+        if (cant >= total - 1e-9) return { ...base, estado: "certificada", tono: "bien", resumen: `Certificada (${cifra(cant)} de ${cifra(total)}${ud})${de}` };
+        return { ...base, estado: "parcial", tono: "info", resumen: `Certificada en parte: ${cifra(cant)} de ${cifra(total)}${ud}${pct !== null ? ` (${String(pct).replace(".", ",")} %)` : ""}${de}` };
+      }
+      function fichaVida(u, linea, { rol, hoy, datosCertificacion = null, entregable = false } = {}) {
+        const out = { puestaMarcha: puestaEnMarcha(u), garantia: garantia(u, linea, hoy || hoyLocal()) };
+        if (veCertificacion(rol, { entregable }) && datosCertificacion) out.certificacion = certificacion(u, datosCertificacion);
+        return out;
+      }
+      var ESTADO_CERT_TXT = { borrador: "borrador", emitida: "emitida", aprobada: "aprobada" };
+      function bloquesFicha(vida) {
+        if (!vida) return [];
+        const v = (texto, tono = null) => ({ texto: texto || null, tono: texto ? tono : null });
+        const pm = vida.puestaMarcha;
+        const g = vida.garantia;
+        const out = [];
+        if (pm) {
+          out.push({ id: "puestaMarcha", titulo: "Puesta en marcha", filas: [
+            ["Fecha", pm.fechaTexto ? v(pm.fechaTexto) : v("Sin toma de datos", "gris")],
+            ["Estado", v(pm.etiqueta, pm.tono)]
+          ] });
+        }
+        if (g) {
+          out.push({ id: "garantia", titulo: "Garant\xEDa", filas: [
+            ["Desde", g.desdeTexto ? v(`${g.desdeTexto} (entrega a DF${g.conjunto ? " del conjunto" : ""})`) : v("Pendiente de entrega a DF", "gris")],
+            ["Hasta", g.hastaTexto ? v(g.hastaTexto) : v(null)],
+            ["Duraci\xF3n", g.duracion ? v(g.duracion) : v("Duraci\xF3n sin dato", "gris")],
+            ["D\xEDas de uso", g.textoUso ? v(g.textoUso, "info") : v("Sin dato", "gris")],
+            ...g.estado === "vigente" || g.estado === "caducada" ? [["Estado", v(g.resumen, g.tono)]] : []
+          ] });
+        }
+        const c = vida.certificacion;
+        if (c) {
+          const filas = [];
+          if (c.partida) filas.push(["Partida", v(`${c.partida.codigo}${c.partida.resumen ? ` \xB7 ${c.partida.resumen.slice(0, 70)}` : ""}`)]);
+          filas.push(["Estado", v(c.resumen, c.tono)]);
+          if (c.ultima) filas.push(["\xDAltima", v(`Certificaci\xF3n n\xBA ${c.ultima.numero} (${ESTADO_CERT_TXT[c.ultima.estado] || c.ultima.estado})${c.ultima.periodo ? ` \xB7 ${c.ultima.periodo}` : ""}`)]);
+          out.push({ id: "certificacion", titulo: "Certificaci\xF3n", filas });
+        }
+        return out;
+      }
+      var NOMBRE_CIRCUITO = { impulsion: "Impulsi\xF3n", retorno: "Retorno" };
+      var cifraBal = (n, dec = 0) => Number(n).toLocaleString("es-ES", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+      var pctBal = (d) => `${d > 0 ? "+" : ""}${cifraBal(d * 100, 1)} %`;
+      function bloqueBalanceo(resumen) {
+        const circuitos = resumen && resumen.circuitos;
+        if (!circuitos) return null;
+        const v = (texto, tono = null) => ({ texto: texto || null, tono: texto ? tono : null });
+        const tol = resumen.tolerancias || {};
+        const filas = [];
+        for (const id of ["impulsion", "retorno"]) {
+          const c = circuitos[id];
+          if (!c || !c.puntos) continue;
+          const nombre = NOMBRE_CIRCUITO[id];
+          filas.push([`${nombre} \xB7 bocas`, v(`${c.medidos} de ${c.puntos} medidas${c.faltan ? ` \xB7 faltan ${c.faltan}` : ""}`, c.faltan ? "gris" : "bien")]);
+          const ref = c.disenoReferencia;
+          if (c.suma !== null && c.suma !== void 0) {
+            filas.push([`${nombre} \xB7 caudal`, v(`${cifraBal(c.suma)} m\xB3/h medidos${ref !== null && ref !== void 0 ? ` frente a ${cifraBal(ref)} de proyecto` : ""}`)]);
+          } else if (c.sinAk) {
+            filas.push([`${nombre} \xB7 caudal`, v(`${c.sinAk} ${c.sinAk === 1 ? "boca" : "bocas"} sin factor Ak: sin caudal`, "gris")]);
+          }
+          let juicio;
+          if (c.estado === "dentro") juicio = v(`Dentro de tolerancia${c.desviacion !== null && c.desviacion !== void 0 ? ` (${pctBal(c.desviacion)})` : ""}`, "bien");
+          else if (c.estado === "alto" || c.estado === "bajo") juicio = v(`Fuera de tolerancia: ${c.estado === "alto" ? "alto" : "bajo"}${c.desviacion !== null && c.desviacion !== void 0 ? ` (${pctBal(c.desviacion)})` : ""}`, "mal");
+          else if (c.estado === "sinDiseno") juicio = v("Sin caudal de proyecto con el que comparar", "gris");
+          else juicio = v("Total sin juzgar hasta medir todas las bocas", "gris");
+          filas.push([`${nombre} \xB7 total`, juicio]);
+          if (c.dentro || c.fuera) {
+            filas.push([`${nombre} \xB7 por boca`, v(`${c.dentro} dentro \xB7 ${c.fuera} fuera${tol.boca ? ` de \xB1${cifraBal(tol.boca * 100)} %` : ""}`)]);
+          }
+        }
+        return filas.length ? { id: "balanceo", titulo: "Balanceo de caudales", filas } : null;
+      }
+      function codigosCasables(equipos) {
+        const out = /* @__PURE__ */ new Set();
+        for (const u of equipos || []) for (const v of [u && u.tag, u && u.modelo]) {
+          const c = casable(v);
+          if (c) out.add(c);
+        }
+        return [...out];
+      }
+      var API = { codigosCasables, puestaEnMarcha, garantia, veCertificacion, partidaDe, certificadoPorPartida, certificacion, fichaVida, bloquesFicha, bloqueBalanceo };
+      if (typeof module !== "undefined" && module.exports) module.exports = API;
+      if (typeof window !== "undefined") window.VIDA_EQUIPO = API;
+    }
+  });
+
+  // shared/commissioning/certificacionAlMovil.js
+  var require_certificacionAlMovil = __commonJS({
+    "shared/commissioning/certificacionAlMovil.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var TABLA = "certPlanoEquipos";
+      var SIN_DATO = /* @__PURE__ */ new Set(["sinPartida", "variasPartidas"]);
+      var existe = (db, t) => Boolean(db.prepare("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = ?").get(t));
+      function datosDeObra(db, obraId) {
+        const VE = require_vidaEquipo();
+        try {
+          const obra = db.prepare("SELECT presupuestoId FROM obras WHERE id = ?").get(obraId);
+          if (!obra || !obra.presupuestoId || !existe(db, "lineas") || !existe(db, "certificaciones")) return null;
+          const partidas = db.prepare("SELECT id AS lineaId, codigo, resumen, descripcion, cantidad, unidad FROM lineas WHERE presupuestoId = ? AND tipo = 'partida'").all(obra.presupuestoId);
+          if (!partidas.length) return null;
+          const lineas = db.prepare(
+            `SELECT l.lineaId, l.cantidad, x.numero AS certificacionNumero, x.estado AS certificacionEstado, x.periodo
+         FROM lineasCertificacion l JOIN certificaciones x ON x.id = l.certificacionId WHERE x.obraId = ?`
+          ).all(obraId);
+          const capitulos = db.prepare("SELECT codigo, resumen FROM lineas WHERE presupuestoId = ? AND tipo = 'capitulo'").all(obra.presupuestoId);
+          return { partidas, capitulos, porPartida: VE.certificadoPorPartida(lineas) };
+        } catch {
+          return null;
+        }
+      }
+      function estadosDeObra(db, obraId, datos = datosDeObra(db, obraId)) {
+        if (!datos) return null;
+        const VE = require_vidaEquipo();
+        const out = {};
+        for (const f of db.prepare("SELECT * FROM equiposObra WHERE obraId = ? ORDER BY id").all(obraId)) {
+          let c = null;
+          try {
+            c = VE.certificacion(f, datos);
+          } catch {
+            c = null;
+          }
+          if (c && c.estado && !SIN_DATO.has(c.estado)) out[f.id] = c.estado;
+        }
+        return out;
+      }
+      var huellas = /* @__PURE__ */ new WeakMap();
+      function huellaDe(db, obraId) {
+        const una = (sql, ...p) => {
+          try {
+            return JSON.stringify(db.prepare(sql).get(...p));
+          } catch {
+            return "-";
+          }
+        };
+        return [
+          una("SELECT COUNT(*) AS n, MAX(modificadoEn) AS m FROM equiposObra WHERE obraId = ?", obraId),
+          una("SELECT COUNT(*) AS n, MAX(l.modificadoEn) AS m FROM lineas l JOIN obras o ON o.presupuestoId = l.presupuestoId WHERE o.id = ?", obraId),
+          una("SELECT COUNT(*) AS n, MAX(modificadoEn) AS m FROM certificaciones WHERE obraId = ?", obraId),
+          una("SELECT COUNT(*) AS n, MAX(modificadoEn) AS m, SUM(cantidad) AS c FROM lineasCertificacion WHERE obraId = ?", obraId)
+        ].join("|");
+      }
+      function refrescar(db, obraId, ahora = (/* @__PURE__ */ new Date()).toISOString()) {
+        if (!existe(db, TABLA)) return false;
+        const h = huellaDe(db, obraId);
+        const vistas = huellas.get(db) || /* @__PURE__ */ new Map();
+        huellas.set(db, vistas);
+        if (vistas.get(obraId) === h) return false;
+        const estados = estadosDeObra(db, obraId);
+        if (!estados) return false;
+        const json = JSON.stringify(estados);
+        const actual = db.prepare(`SELECT estados FROM "${TABLA}" WHERE id = ?`).get(obraId);
+        vistas.set(obraId, h);
+        if (actual && actual.estados === json) return false;
+        if (actual) db.prepare(`UPDATE "${TABLA}" SET estados = ?, modificadoEn = ? WHERE id = ?`).run(json, ahora, obraId);
+        else db.prepare(`INSERT INTO "${TABLA}" (id, obraId, estados, creadoEn, modificadoEn) VALUES (?, ?, ?, ?, ?)`).run(obraId, obraId, json, ahora, ahora);
+        return true;
+      }
+      function leer(db, obraId) {
+        try {
+          if (!existe(db, TABLA)) return null;
+          const f = db.prepare(`SELECT estados FROM "${TABLA}" WHERE id = ?`).get(obraId);
+          return f ? new Map(Object.entries(JSON.parse(f.estados || "{}"))) : null;
+        } catch {
+          return null;
+        }
+      }
+      module.exports = { TABLA, datosDeObra, estadosDeObra, refrescar, leer };
+    }
+  });
+
   // shared/sync/frontera.js
   var require_frontera = __commonJS({
     "shared/sync/frontera.js"(exports, module) {
@@ -12602,6 +13085,12 @@ globalThis.CX_VARIANTE="cxobra";
           }
           const usadas = existe(db, "planosDifusores") ? new Set(db.prepare(`SELECT imagenId FROM planosDifusores WHERE obraId IN (${enLista(ids.length)})`).all(...ids).map((p) => p.imagenId).filter(Boolean)) : /* @__PURE__ */ new Set();
           const recuentosCx = existe(db, "inventarioRecuentos") ? new Set(db.prepare(`SELECT id FROM inventarioRecuentos WHERE origen = 'cx' AND obraId IN (${enLista(ids.length)})`).all(...ids).map((r) => r.id)) : /* @__PURE__ */ new Set();
+          for (const id of ids) {
+            try {
+              require_certificacionAlMovil().refrescar(db, id);
+            } catch {
+            }
+          }
           for (const t of POR_OBRA) {
             if (!existe(db, t)) continue;
             const cols = columnas(db, t);
@@ -14192,6 +14681,8 @@ globalThis.CX_VARIANTE="cxobra";
         equiposNoDuplicados: { porObra: "obraId" },
         crucesIfc: { porObra: "obraId" },
         plantasIfc: { porObra: "obraId" },
+        /* 26-nov: lo certificado por equipo para el plano del móvil (shared/commissioning/certificacionAlMovil.js). */
+        certPlanoEquipos: { porObra: "obraId" },
         fotosEquipo: { porObra: "obraId" },
         documentos: { porObra: "obraId" },
         buzonDocumentos: { porObra: "obraId" },
@@ -14423,6 +14914,8 @@ globalThis.CX_VARIANTE="cxobra";
         tareasRepetitivas: { privadoDe: "personaId" },
         tareasRepetitivasHechas: { privadoDe: "personaId" },
         obrasSeguidas: { privadoDe: "personaId" },
+        /* 26-nov: la firma de cada persona (Ajustes › Mi firma): solo la suya. */
+        firmasPersona: { privadoDe: "personaId" },
         /* La biblioteca es de la casa: la ve cualquiera que pueda presupuestar. */
         descripcionesConcepto: { publico: true },
         /*
@@ -15073,6 +15566,7 @@ globalThis.CX_VARIANTE="cxobra";
       var TANDA = 150;
       var TABLAS_DESPUES = /* @__PURE__ */ new Set([
         "firmasEquipo",
+        "firmasPersona",
         "imagenesPlanoDif",
         "planosEquipos",
         "materialesInstalados",
@@ -16429,6 +16923,174 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
+  // shared/nubeEmpresa.js
+  var require_nubeEmpresa = __commonJS({
+    "shared/nubeEmpresa.js"(exports, module) {
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var RPC_EMPRESA = "nube_empresa";
+      var VARS_DE_VIDAIRE = ["VIDAIRE_NUBE_URL", "VIDAIRE_NUBE_ANON", "VIDAIRE_CX_URL", "VIDAIRE_CX_ANON", "VIDAIRE_CX_SECRETA"];
+      var PERFILES_GENERICOS = ["vidaire", "cliente-final", "contrata-instalaciones", "ingenieria-df", "subcontrata"];
+      var RE_EMPRESA = /^[a-z0-9][a-z0-9-]{1,40}$/;
+      function normalizarEmpresa(id) {
+        const s = String(id == null ? "" : id).trim().toLowerCase();
+        return RE_EMPRESA.test(s) ? s : null;
+      }
+      function esPerfilDeEmpresa(perfil) {
+        return Boolean(perfil && perfil.id && !PERFILES_GENERICOS.includes(perfil.id));
+      }
+      function empresaDelPerfil(perfil) {
+        if (!perfil) return null;
+        return normalizarEmpresa(perfil.nube && perfil.nube.empresaId || perfil.id);
+      }
+      function sufijo(empresaId) {
+        return String(empresaId).toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+      }
+      function variablesDeEmpresa(empresaId) {
+        const e = normalizarEmpresa(empresaId);
+        if (!e) throw new Error(`empresa \xAB${empresaId}\xBB no v\xE1lida: min\xFAsculas, cifras y guiones`);
+        const s = sufijo(e);
+        return {
+          urlVar: `NUBE_${s}_URL`,
+          claveAnonVar: `NUBE_${s}_ANON`,
+          cxUrlVar: `NUBE_${s}_CX_URL`,
+          cxClaveAnonVar: `NUBE_${s}_CX_ANON`,
+          claveSecretaVar: `NUBE_${s}_CX_SECRETA`
+        };
+      }
+      function servicioLlavero(empresaId) {
+        const e = normalizarEmpresa(empresaId);
+        if (!e) throw new Error(`empresa \xAB${empresaId}\xBB no v\xE1lida`);
+        return `vidaire-nube:${e}`;
+      }
+      var MOTIVOS = {
+        "sin-empresa": "Este perfil no dice de qu\xE9 empresa es: no se sincroniza.",
+        "nube-sin-sellar": "La nube no est\xE1 sellada con su empresa: no se sincroniza hasta sellarla (docs/alta-empresa-nube.md).",
+        "otra-empresa": "Esta nube es de OTRA empresa: no se sincroniza nada con ella.",
+        "sin-red": "Sin conexi\xF3n con la nube: se vuelve a intentar."
+      };
+      async function comprobarEmpresa({ leerEmpresa, empresaId }) {
+        const mia = normalizarEmpresa(empresaId);
+        if (!mia) return { ok: false, empresaNube: null, motivo: "sin-empresa", mensaje: MOTIVOS["sin-empresa"] };
+        let crudo;
+        try {
+          crudo = await leerEmpresa();
+        } catch (e) {
+          if (e && e.sinRed) return { ok: false, empresaNube: null, motivo: "sin-red", mensaje: MOTIVOS["sin-red"] };
+          const cuerpo = e && e.cuerpo || {};
+          const m = [e && e.codigo, e && e.code, cuerpo.code, e && e.message].filter(Boolean).join(" ");
+          if (/PGRST202|42883|\b404\b/i.test(m)) return { ok: false, empresaNube: null, motivo: "nube-sin-sellar", mensaje: MOTIVOS["nube-sin-sellar"] };
+          return { ok: false, empresaNube: null, motivo: "sin-red", mensaje: MOTIVOS["sin-red"] };
+        }
+        const valor = Array.isArray(crudo) ? crudo[0] && (crudo[0].empresa_id || crudo[0].nube_empresa) : crudo && typeof crudo === "object" ? crudo.empresa_id : crudo;
+        const suya = normalizarEmpresa(valor);
+        if (!suya) return { ok: false, empresaNube: null, motivo: "nube-sin-sellar", mensaje: MOTIVOS["nube-sin-sellar"] };
+        if (suya !== mia) return { ok: false, empresaNube: suya, motivo: "otra-empresa", mensaje: MOTIVOS["otra-empresa"] };
+        return { ok: true, empresaNube: suya, motivo: null, mensaje: null };
+      }
+      function lectorPorRest({ url, clave, fetch: pedir = globalThis.fetch }) {
+        return async () => {
+          const base = String(url || "").replace(/\/+$/, "");
+          const r = await pedir(`${base}/rest/v1/rpc/${RPC_EMPRESA}`, {
+            method: "POST",
+            headers: { apikey: clave, Authorization: `Bearer ${clave}`, "Content-Type": "application/json" },
+            body: "{}"
+          });
+          if (!r.ok) {
+            const e = new Error(`nube_empresa: ${r.status}`);
+            e.codigo = String(r.status);
+            throw e;
+          }
+          const t = await r.text();
+          try {
+            return JSON.parse(t);
+          } catch {
+            return t;
+          }
+        };
+      }
+      function crearBarrera({ leerEmpresa, empresaId, registro = () => {
+      }, reintento = 5 * 60 * 1e3, ahora = () => Date.now() }) {
+        let ultimo = null;
+        let en = 0;
+        let enCurso = null;
+        let avisado = null;
+        async function comprobar() {
+          if (ultimo && ultimo.ok) return ultimo;
+          if (ultimo && ultimo.motivo !== "sin-red" && ahora() - en < reintento) return ultimo;
+          if (!enCurso) {
+            enCurso = comprobarEmpresa({ leerEmpresa, empresaId }).then((r) => {
+              ultimo = r;
+              en = ahora();
+              if (!r.ok && r.motivo !== "sin-red" && avisado !== r.motivo) {
+                avisado = r.motivo;
+                registro(`Nube: ${r.mensaje}${r.empresaNube ? ` (la nube es de \xAB${r.empresaNube}\xBB, este perfil de \xAB${empresaId}\xBB)` : ""}`);
+              }
+              return r;
+            }).finally(() => {
+              enCurso = null;
+            });
+          }
+          return enCurso;
+        }
+        return { comprobar, ultimo: () => ultimo };
+      }
+      var LOCALES = /* @__PURE__ */ new Set(["sesion", "yo", "salir"]);
+      function protegerNube(nube, barrera, { empresaId = null } = {}) {
+        return new Proxy(nube, {
+          get(obj, prop) {
+            const v = obj[prop];
+            if (typeof v !== "function" || LOCALES.has(prop)) return v;
+            return async (...args) => {
+              if (!(prop === "rpc" && args[0] === RPC_EMPRESA)) {
+                const r = await barrera.comprobar();
+                if (!r.ok) throw Object.assign(new Error(r.mensaje), { sinRed: true, otraEmpresa: r.motivo === "otra-empresa", barrera: r.motivo });
+              }
+              if (prop === "llamarFuncion" && empresaId) args[2] = conEmpresa(args[2], empresaId);
+              return v.apply(obj, args);
+            };
+          }
+        });
+      }
+      function conEmpresa(cuerpo, empresaId) {
+        const e = normalizarEmpresa(empresaId);
+        if (!e) return cuerpo;
+        if (typeof cuerpo === "string") {
+          try {
+            const j = JSON.parse(cuerpo || "{}");
+            return j && typeof j === "object" && !Array.isArray(j) ? JSON.stringify({ ...j, empresa: e }) : cuerpo;
+          } catch {
+            return cuerpo;
+          }
+        }
+        if (cuerpo && typeof cuerpo === "object" && !Array.isArray(cuerpo)) return { ...cuerpo, empresa: e };
+        if (cuerpo == null) return JSON.stringify({ empresa: e });
+        return cuerpo;
+      }
+      function prefijoSiembra(perfil) {
+        if (!esPerfilDeEmpresa(perfil)) return "";
+        const e = empresaDelPerfil(perfil);
+        return e ? `${e}-` : "";
+      }
+      module.exports = {
+        RPC_EMPRESA,
+        VARS_DE_VIDAIRE,
+        PERFILES_GENERICOS,
+        MOTIVOS,
+        normalizarEmpresa,
+        esPerfilDeEmpresa,
+        empresaDelPerfil,
+        variablesDeEmpresa,
+        servicioLlavero,
+        comprobarEmpresa,
+        lectorPorRest,
+        crearBarrera,
+        protegerNube,
+        conEmpresa,
+        prefijoSiembra
+      };
+    }
+  });
+
   // shared/sync/telefono.js
   var require_telefono = __commonJS({
     "shared/sync/telefono.js"(exports, module) {
@@ -16438,6 +17100,7 @@ globalThis.CX_VARIANTE="cxobra";
       var { crearMotor } = require_motor2();
       var { crearArchivos } = require_archivos();
       var { crearTimbre } = require_tiempoReal();
+      var NE = require_nubeEmpresa();
       async function entrarConHuella(nube, email, hashClave) {
         const clave = claveNube(hashClave);
         if (!clave || !email) throw new Error("Sin huella para entrar en la nube.");
@@ -16483,7 +17146,9 @@ globalThis.CX_VARIANTE="cxobra";
         io = null
         /* las fotos: { existe, leer, escribir, carpeta } (archivos.js) */
       }) {
-        const nube = crearNube({ url: config.url, clave: config.publishableKey, fetch: f, sesion, alCambiarSesion });
+        const nubeCruda = crearNube({ url: config.url, clave: config.publishableKey, fetch: f, sesion, alCambiarSesion });
+        const barrera = config.empresaId ? NE.crearBarrera({ empresaId: config.empresaId, registro, leerEmpresa: () => nubeCruda.rpc(NE.RPC_EMPRESA) }) : null;
+        const nube = barrera ? NE.protegerNube(nubeCruda, barrera, { empresaId: config.empresaId }) : nubeCruda;
         let motor = null;
         let timbre = null;
         let reloj = null;
@@ -16520,7 +17185,8 @@ globalThis.CX_VARIANTE="cxobra";
           }
           return motor;
         }
-        return {
+        let reintento = null;
+        const api = {
           nube,
           yo: () => nube.yo(),
           entrarConHuella: async (email, hashClave) => {
@@ -16535,8 +17201,20 @@ globalThis.CX_VARIANTE="cxobra";
           },
           montar,
           motor: () => motor,
-          arrancar() {
-            if (!montar()) return Promise.resolve(null);
+          /** ¿La nube es de esta empresa? { ok, motivo, empresaNube } (sin barrera, siempre sí). */
+          comprobarEmpresa: () => barrera ? barrera.comprobar() : Promise.resolve({ ok: true }),
+          async arrancar() {
+            if (!montar()) return null;
+            if (barrera) {
+              const b = await barrera.comprobar();
+              if (!b.ok) {
+                clearTimeout(reintento);
+                reintento = setTimeout(() => {
+                  api.arrancar();
+                }, 5 * 60 * 1e3);
+                return { barrera: b.motivo, empresaNube: b.empresaNube };
+              }
+            }
             if (timbre) timbre.arrancar();
             clearInterval(reloj);
             let ultima = Date.now();
@@ -16561,6 +17239,7 @@ globalThis.CX_VARIANTE="cxobra";
           },
           parar() {
             clearInterval(reloj);
+            clearTimeout(reintento);
             if (motor) motor.parar();
             if (timbre) timbre.parar();
           },
@@ -16570,8 +17249,13 @@ globalThis.CX_VARIANTE="cxobra";
             motor = null;
             timbre = null;
           },
-          estado: () => motor ? { ...motor.estado(), tiempoReal: Boolean(timbre && timbre.conectado()), conectado: true } : { estado: nube.yo() ? "parado" : "sin-sesion", conectado: false }
+          estado: () => {
+            const b = barrera && barrera.ultimo();
+            if (b && !b.ok && b.motivo !== "sin-red") return { estado: "otra-nube", barrera: b.motivo, mensaje: b.mensaje, conectado: false };
+            return motor ? { ...motor.estado(), tiempoReal: Boolean(timbre && timbre.conectado()), conectado: true } : { estado: nube.yo() ? "parado" : "sin-sesion", conectado: false };
+          }
         };
+        return api;
       }
       module.exports = { crearSyncTelefono, entrarConHuella, entrarConClave, ponerMiFicha: ponerMiFicha2 };
     }
@@ -16582,7 +17266,8 @@ globalThis.CX_VARIANTE="cxobra";
     "cxobra/sync-publico.json"(exports, module) {
       module.exports = {
         url: "https://dgwqczsbzwblbhbhqkjd.supabase.co",
-        publishableKey: "sb_publishable_yi72T-CIiextCBGIEynNlQ_ChIlMNXB"
+        publishableKey: "sb_publishable_yi72T-CIiextCBGIEynNlQ_ChIlMNXB",
+        empresaId: "cbre"
       };
     }
   });
@@ -17927,6 +18612,448 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
+  // electron/db/datosProyectoSpNcn2511.json
+  var require_datosProyectoSpNcn2511 = __commonJS({
+    "electron/db/datosProyectoSpNcn2511.json"(exports, module) {
+      module.exports = {
+        equipos: [
+          {
+            id: "mw39pbnqnm085tpl",
+            tag: "EX-N00-BAT T04",
+            campo: "caudalDisenoRet",
+            valor: 2217,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 8"
+          },
+          {
+            id: "mvzf77plusvilsuk",
+            tag: "EX-N10 PCI S14",
+            campo: "caudalDisenoRet",
+            valor: 6527,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 23"
+          },
+          {
+            id: "mvzf77pzzxiu5cbf",
+            tag: "VI-N10 PCI S14",
+            campo: "caudalDisenoImp",
+            valor: 8312,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 24"
+          },
+          {
+            id: "mvz4wyfilqnlnulz",
+            tag: "EX N10 S14",
+            campo: "caudalDisenoRet",
+            valor: 2860,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 29"
+          },
+          {
+            id: "mvz4wyfewz5a8b0x",
+            tag: "VI N10 S14",
+            campo: "caudalDisenoImp",
+            valor: 2444,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 30"
+          },
+          {
+            id: "mvz4s0dqlw1pixco",
+            tag: "EX N10 S07",
+            campo: "caudalDisenoRet",
+            valor: 2340,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 33"
+          },
+          {
+            id: "mvz4s0dss7dq1lvj",
+            tag: "VI N10 S07",
+            campo: "caudalDisenoImp",
+            valor: 2340,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 34"
+          },
+          {
+            id: "mvz4s0dtlsode3tm",
+            tag: "VI N10 S10",
+            campo: "caudalDisenoImp",
+            valor: 108,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 35"
+          },
+          {
+            id: "mvz4s0dqlmtxy5ao",
+            tag: "EX N10 S10",
+            campo: "caudalDisenoRet",
+            valor: 108,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 36"
+          },
+          {
+            id: "mvz4s0dr7bpci6ic",
+            tag: "VE N10 ALM COCINAS",
+            campo: "caudalDisenoRet",
+            valor: 880,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 38"
+          },
+          {
+            id: "mvzf77pd5nxz3d3l",
+            tag: "EX-N10 ALM HOSPIT SUD",
+            campo: "caudalDisenoRet",
+            valor: 610,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 43"
+          },
+          {
+            id: "mvzf77pje9ld33l1",
+            tag: "EX-N10 LOG.013",
+            campo: "caudalDisenoRet",
+            valor: 100,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 44"
+          },
+          {
+            id: "mvz4s0dmtr0l9i1z",
+            tag: "EX N10 ASE TR016",
+            campo: "caudalDisenoRet",
+            valor: 1170,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 45"
+          },
+          {
+            id: "mvzf77pgr4dabk7f",
+            tag: "EX-N10 BAS 01",
+            campo: "caudalDisenoRet",
+            valor: 100,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 46"
+          },
+          {
+            id: "mvzf77pfof0536dy",
+            tag: "EX-N10 ALM.COC",
+            campo: "caudalDisenoRet",
+            valor: 300,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 47"
+          },
+          {
+            id: "mvzf77pi99p0dv97",
+            tag: "EX-N10 BASURA",
+            campo: "caudalDisenoRet",
+            valor: 1440,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 48"
+          },
+          {
+            id: "mvzf77q0305s3ahr",
+            tag: "VI-N10 STE.116",
+            campo: "caudalDisenoImp",
+            valor: 343,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 49"
+          },
+          {
+            id: "mvzf77ppjeiuqesb",
+            tag: "EX-N10 STE.116",
+            campo: "caudalDisenoRet",
+            valor: 343,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 50"
+          },
+          {
+            id: "mv92zoay8g8wiom6",
+            tag: "VE-S2.16",
+            campo: "caudalDisenoRet",
+            valor: 26460,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 54"
+          },
+          {
+            id: "mvzf77ptr911u4a1",
+            tag: "EX-N10 WCS.0018",
+            campo: "caudalDisenoRet",
+            valor: 1008,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 57"
+          },
+          {
+            id: "mvzf77prv95gfidh",
+            tag: "EX-N10 WCS.0014",
+            campo: "caudalDisenoRet",
+            valor: 1008,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 58"
+          },
+          {
+            id: "mvz5l4wirnappsyp",
+            tag: "EX N10 LOG 042",
+            campo: "caudalDisenoRet",
+            valor: 190,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 59"
+          },
+          {
+            id: "mvz5l4wgd4a7fbx1",
+            tag: "EX N10 LOG 039",
+            campo: "caudalDisenoRet",
+            valor: 190,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 60"
+          },
+          {
+            id: "mvzf77ksyuviryaw",
+            tag: "VI-S2.01-1",
+            campo: "caudalDisenoImp",
+            valor: 11696,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 68"
+          },
+          {
+            id: "mv92zo9uyhbq3a7b",
+            tag: "VE-S1.01",
+            campo: "caudalDisenoRet",
+            valor: 14670,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 70"
+          },
+          {
+            id: "mw39pn31ljvmx08r",
+            tag: "EX-N20-WCS.062",
+            campo: "caudalDisenoRet",
+            valor: 2970,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 78"
+          },
+          {
+            id: "mw39pn32v1h0gijx",
+            tag: "EX-N20-ALM SALAS TR-GN.1",
+            campo: "caudalDisenoRet",
+            valor: 1200,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 96"
+          },
+          {
+            id: "mvzf77mksxitw6wq",
+            tag: "EX-S1.WCS.0025",
+            campo: "caudalDisenoRet",
+            valor: 3250,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 97"
+          },
+          {
+            id: "mw39pn2x1tgn8vac",
+            tag: "EX-N20-WCS.008.01",
+            campo: "caudalDisenoRet",
+            valor: 2440,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 111"
+          },
+          {
+            id: "mw39pn2ylcoosf2z",
+            tag: "EX-N20-WCS.008",
+            campo: "caudalDisenoRet",
+            valor: 3146,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 112"
+          },
+          {
+            id: "mw39pn30ci3n39ae",
+            tag: "EX-N20-WCS.062.01",
+            campo: "caudalDisenoRet",
+            valor: 2610,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 117"
+          },
+          {
+            id: "mv92zo9wsa0dyso8",
+            tag: "VE-S1.02",
+            campo: "caudalDisenoRet",
+            valor: 32954,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 120"
+          },
+          {
+            id: "mv92zoawlr5gdvst",
+            tag: "VE-S2.15",
+            campo: "caudalDisenoRet",
+            valor: 42120,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 131"
+          },
+          {
+            id: "mw39pr3v6k3nqcyx",
+            tag: "EX-N30-LOG 04",
+            campo: "caudalDisenoRet",
+            valor: 720,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 138"
+          },
+          {
+            id: "mv92zogpwlmyterg",
+            tag: "EX N40 BASURAS 009",
+            campo: "caudalDisenoRet",
+            valor: 610,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 154"
+          },
+          {
+            id: "mvzf78cvesblss8w",
+            tag: "EX-N45-ASE-LT16",
+            campo: "caudalDisenoRet",
+            valor: 1080,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 159"
+          },
+          {
+            id: "mvzf78cw5sptkdze",
+            tag: "EX-N45-ASEO-S03",
+            campo: "caudalDisenoRet",
+            valor: 480,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 161"
+          },
+          {
+            id: "mvzf78cqh5noa3tl",
+            tag: "EX-N45 ASE N22",
+            campo: "caudalDisenoRet",
+            valor: 450,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 163"
+          },
+          {
+            id: "mvzf78cpyw2e1bm1",
+            tag: "EX-N45 ASE N21",
+            campo: "caudalDisenoRet",
+            valor: 360,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 164"
+          },
+          {
+            id: "mvzf78ct8xcujrk0",
+            tag: "EX-N45 ASE6.2",
+            campo: "caudalDisenoRet",
+            valor: 720,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 165"
+          },
+          {
+            id: "mvzf78csmpq4h8l8",
+            tag: "EX-N45 ASE6.1",
+            campo: "caudalDisenoRet",
+            valor: 630,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 166"
+          },
+          {
+            id: "mvzf78d5am7qafbi",
+            tag: "EXN45-STE.122 SALA TEC",
+            campo: "caudalDisenoRet",
+            valor: 130,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 172"
+          },
+          {
+            id: "mvzf78cuwaejzh3i",
+            tag: "EX-N45-ALM-STE.070 ALM",
+            campo: "caudalDisenoRet",
+            valor: 100,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 174"
+          },
+          {
+            id: "mvzf78d8unzb1wf1",
+            tag: "VI-N45-DAS",
+            campo: "caudalDisenoImp",
+            valor: 200,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 175"
+          },
+          {
+            id: "mvzf78crh942ixwr",
+            tag: "EX-N45 ASE-LT19",
+            campo: "caudalDisenoRet",
+            valor: 180,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 180"
+          },
+          {
+            id: "mvzf78ckyrw88jr6",
+            tag: "EX_N45_Sala IT_STE 110",
+            campo: "caudalDisenoRet",
+            valor: 420,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 181"
+          },
+          {
+            id: "mvzf78cj315d3uxt",
+            tag: "EX_N45_Sala IT_STE 109",
+            campo: "caudalDisenoRet",
+            valor: 420,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 182"
+          },
+          {
+            id: "mvzf78cljdthromv",
+            tag: "EX_N45_Sala IT_STE 111",
+            campo: "caudalDisenoRet",
+            valor: 420,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 184"
+          },
+          {
+            id: "mvzf78cn87h5l26u",
+            tag: "EX_N45_Sala IT_STE 114",
+            campo: "caudalDisenoRet",
+            valor: 420,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 186"
+          },
+          {
+            id: "mvzf78cnne4926yu",
+            tag: "EX_N45_Sala IT_STE 115",
+            campo: "caudalDisenoRet",
+            valor: 420,
+            fuente: "General/00 WIP DESIGN/08 DOCUMENTACION BOQS/20251014 Ventiladores N00-N45/I76_I87_N00-N45_SELECCION VENTILADORES.xlsx \xB7 l\xEDnea 187"
+          }
+        ],
+        fichas: [
+          {
+            equipoId: "mv92zo7wbmir7t6y",
+            tag: "UI-N40-SALA DAS 075",
+            plantilla: "SPLIT_UD_INTERIOR",
+            campo: "potencia_frio",
+            valor: 3.6,
+            fuente: "General/06 PEDIDOS e INVENTARIO/01 LoA LIMAK/07 VRF/20240712_VRF PANASONIC/20241008_CBRE+PANASONIC_LISTADO VRF SPLIT_N00 - N40.xlsx \xB7 hoja \xABRESUMEN SPLITS SALAS_REVISADA\xBB \xB7 fila 107"
+          },
+          {
+            equipoId: "mv92znwzlrj4d9t1",
+            tag: "UE-N40-SALA DAS 075",
+            plantilla: "SPLIT_UD_EXTERIOR",
+            campo: "potencia_frio",
+            valor: 3.6,
+            fuente: "General/06 PEDIDOS e INVENTARIO/01 LoA LIMAK/07 VRF/20240712_VRF PANASONIC/20241008_CBRE+PANASONIC_LISTADO VRF SPLIT_N00 - N40.xlsx \xB7 hoja \xABRESUMEN SPLITS SALAS_REVISADA\xBB \xB7 fila 107"
+          },
+          {
+            equipoId: "mv92zo7msdfn9d2e",
+            tag: "UI-N35-FCB 16",
+            plantilla: "SPLIT_UD_INTERIOR",
+            campo: "potencia_frio",
+            valor: 2.7,
+            fuente: "General/06 PEDIDOS e INVENTARIO/01 LoA LIMAK/07 VRF/20240712_VRF PANASONIC/20241008_CBRE+PANASONIC_LISTADO VRF SPLIT_N00 - N40.xlsx \xB7 hoja \xABRESUMEN SPLITS SALAS_REVISADA\xBB \xB7 fila 118"
+          },
+          {
+            equipoId: "mv92znwwhfd1p7ub",
+            tag: "UE-N35-FCB 16",
+            plantilla: "SPLIT_UD_EXTERIOR",
+            campo: "potencia_frio",
+            valor: 2.7,
+            fuente: "General/06 PEDIDOS e INVENTARIO/01 LoA LIMAK/07 VRF/20240712_VRF PANASONIC/20241008_CBRE+PANASONIC_LISTADO VRF SPLIT_N00 - N40.xlsx \xB7 hoja \xABRESUMEN SPLITS SALAS_REVISADA\xBB \xB7 fila 118"
+          },
+          {
+            equipoId: "mv92zo7fiju6vguk",
+            tag: "UI-N35-FCB 17",
+            plantilla: "SPLIT_UD_INTERIOR",
+            campo: "potencia_frio",
+            valor: 3.3,
+            fuente: "General/06 PEDIDOS e INVENTARIO/01 LoA LIMAK/07 VRF/20240712_VRF PANASONIC/20241008_CBRE+PANASONIC_LISTADO VRF SPLIT_N00 - N40.xlsx \xB7 hoja \xABRESUMEN SPLITS SALAS_REVISADA\xBB \xB7 fila 119"
+          },
+          {
+            equipoId: "mv92znwto4i1j936",
+            tag: "UE-N35-FCB 17",
+            plantilla: "SPLIT_UD_EXTERIOR",
+            campo: "potencia_frio",
+            valor: 3.3,
+            fuente: "General/06 PEDIDOS e INVENTARIO/01 LoA LIMAK/07 VRF/20240712_VRF PANASONIC/20241008_CBRE+PANASONIC_LISTADO VRF SPLIT_N00 - N40.xlsx \xB7 hoja \xABRESUMEN SPLITS SALAS_REVISADA\xBB \xB7 fila 119"
+          },
+          {
+            equipoId: "mv92zo7iv6vcjsir",
+            tag: "UI-N35-FCB 15",
+            plantilla: "SPLIT_UD_INTERIOR",
+            campo: "potencia_frio",
+            valor: 3.3,
+            fuente: "General/06 PEDIDOS e INVENTARIO/01 LoA LIMAK/07 VRF/20240712_VRF PANASONIC/20241008_CBRE+PANASONIC_LISTADO VRF SPLIT_N00 - N40.xlsx \xB7 hoja \xABRESUMEN SPLITS SALAS_REVISADA\xBB \xB7 fila 120"
+          },
+          {
+            equipoId: "mv92znwu4e7gld8i",
+            tag: "UE-N35-FCB 15",
+            plantilla: "SPLIT_UD_EXTERIOR",
+            campo: "potencia_frio",
+            valor: 3.3,
+            fuente: "General/06 PEDIDOS e INVENTARIO/01 LoA LIMAK/07 VRF/20240712_VRF PANASONIC/20241008_CBRE+PANASONIC_LISTADO VRF SPLIT_N00 - N40.xlsx \xB7 hoja \xABRESUMEN SPLITS SALAS_REVISADA\xBB \xB7 fila 120"
+          },
+          {
+            equipoId: "mv92zo7rsukxfe7h",
+            tag: "UI-N40-FCB 14",
+            plantilla: "SPLIT_UD_INTERIOR",
+            campo: "potencia_frio",
+            valor: 2.7,
+            fuente: "General/06 PEDIDOS e INVENTARIO/01 LoA LIMAK/07 VRF/20240712_VRF PANASONIC/20241008_CBRE+PANASONIC_LISTADO VRF SPLIT_N00 - N40.xlsx \xB7 hoja \xABRESUMEN SPLITS SALAS_REVISADA\xBB \xB7 fila 121"
+          },
+          {
+            equipoId: "mv92znwyic8gi2f5",
+            tag: "UE-N40-FCB 14",
+            plantilla: "SPLIT_UD_EXTERIOR",
+            campo: "potencia_frio",
+            valor: 2.7,
+            fuente: "General/06 PEDIDOS e INVENTARIO/01 LoA LIMAK/07 VRF/20240712_VRF PANASONIC/20241008_CBRE+PANASONIC_LISTADO VRF SPLIT_N00 - N40.xlsx \xB7 hoja \xABRESUMEN SPLITS SALAS_REVISADA\xBB \xB7 fila 121"
+          }
+        ]
+      };
+    }
+  });
+
   // shared/commissioning/caudalesRejasProyecto.js
   var require_caudalesRejasProyecto = __commonJS({
     "shared/commissioning/caudalesRejasProyecto.js"(exports, module) {
@@ -18216,6 +19343,8 @@ globalThis.CX_VARIANTE="cxobra";
         ncrComentarios: "ncr",
         parteIncidenciaComentarios: "partesIncidencia",
         certificaciones: "certificaciones",
+        /* 26-nov: lo certificado por equipo (solo el estado) para el plano del móvil: se ve con certificaciones. */
+        certPlanoEquipos: "certificaciones",
         lineasCertificacion: "certificaciones",
         correccionesCertificacion: "certificaciones",
         /* Lo que se le certifica a cada industrial, por pedido y mes. */
@@ -18341,6 +19470,7 @@ globalThis.CX_VARIANTE="cxobra";
         tareasRepetitivas: "notas",
         tareasRepetitivasHechas: "notas",
         obrasSeguidas: "notas",
+        firmasPersona: "notas",
         descripcionesConcepto: "biblioteca",
         ausencias: "vacaciones",
         festivos: "vacaciones",
@@ -18501,6 +19631,2105 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
+  // shared/commissioning/reglasCx.js
+  var require_reglasCx = __commonJS({
+    "shared/commissioning/reglasCx.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function iniciarReglasCx() {
+        const NORMA_BALANCEO = "UNE-EN 12599 / RITE IT 2.3.3";
+        const CRITERIO_JC = Object.freeze({ total: 0.1, boca: 0.15 });
+        const numR = (v) => {
+          if (v === null || v === void 0 || v === "") return null;
+          const n = typeof v === "number" ? v : Number(String(v).replace(",", "."));
+          return Number.isFinite(n) ? n : null;
+        };
+        const iguales = (a, b) => a !== null && b !== null && Math.abs(a - b) < 1e-9;
+        const UNIDADES_CAUDAL = /^\s*(m³|m3)\s*\/\s*h\s*$|^\s*l(itros)?\s*\/\s*(s|h|min)\s*$/i;
+        function juzgaDesviacion(punto) {
+          if (!punto) return false;
+          if (punto.caudal === true) return true;
+          if (/^caudal/i.test(String(punto.codigo || punto.id || ""))) return true;
+          return UNIDADES_CAUDAL.test(String(punto.unidad || ""));
+        }
+        function desviacion(medido, referencia) {
+          const m = numR(medido);
+          const r = numR(referencia);
+          if (m === null || r === null || r === 0) return null;
+          return (m - r) / r;
+        }
+        function dentro(desv, limite) {
+          if (desv === null || desv === void 0 || limite === null || limite === void 0) return null;
+          return Math.abs(desv) <= limite + 1e-9;
+        }
+        const esDescope = (texto) => /SIN\s+BALANCEO|DESCOPE/i.test(String(texto || ""));
+        function veredicto({ medido, referencia, limite, revisado = false, descope = false } = {}) {
+          if (descope) return "aRevisar";
+          const m = numR(medido);
+          const r = numR(referencia);
+          if (m === null || r === null) return null;
+          if (iguales(m, r) && !revisado) return "aRevisar";
+          const ok = dentro(desviacion(m, r), limite);
+          return ok === null ? null : ok ? "apto" : "noApto";
+        }
+        function toleranciasAplicadas(t = {}) {
+          const una = (v) => {
+            const n = numR(v);
+            return n !== null && n > 0 && n < 1 ? n : null;
+          };
+          const r = { ...t || {} };
+          for (const k of Object.keys(CRITERIO_JC)) {
+            const n = una(t && t[k]);
+            if (n === null) {
+              r[k] = CRITERIO_JC[k];
+              r[`${k}PorDefecto`] = true;
+            } else r[k] = n;
+          }
+          return r;
+        }
+        const pctTol = (v) => v === null || v === void 0 ? "SIN FIJAR" : `\xB1${String(Math.round(v * 1e3) / 10).replace(".", ",")} %`;
+        function textoNormaTolerancia(t = {}) {
+          const deDefecto = t.totalPorDefecto || t.bocaPorDefecto;
+          return `Norma aplicada: ${NORMA_BALANCEO}. Tolerancia adoptada: caudal total ${pctTol(t.total)}, por boca ${pctTol(t.boca)}${deDefecto ? " (criterio por defecto: la obra no tiene las suyas)" : " (las de la obra)"}.`;
+        }
+        const LINEA_AUTOMATICA = [
+          /^\[(Confirmado por JC|WhatsApp t[ée]cnico|Fotos? del Drive|Drive|Lectura)/i,
+          /^\[[^\]]*ASIGNADA POR ORDEN[^\]]*\]/i,
+          /^\[[^\]]+\]\s*(REVISAR|Prueba CORRECTA|DISCREPANCIA)\b/,
+          /^Respuestas prerrellenadas por criterio en el Excel/i,
+          /^Lecturas de las fotos de JC/i,
+          /^Foto del Drive «/i,
+          /^Foto asignada por orden/i,
+          /^Medido el \d{1,2}-\d{1,2}-\d{4} \(WhatsApp/i,
+          /^Norma aplicada: /,
+          /^PENDIENTE: faltan /,
+          /^Lectura real de la foto/i
+        ];
+        const esLineaAutomatica = (linea) => LINEA_AUTOMATICA.some((r) => r.test(String(linea || "").trim()));
+        function observacionesManuales(texto) {
+          if (texto === null || texto === void 0) return "";
+          const out = [];
+          let enAuto = false;
+          for (const linea of String(texto).split(/\r?\n/)) {
+            const sigue = /^(\s+|·)/.test(linea) && linea.trim() !== "";
+            if (esLineaAutomatica(linea)) {
+              enAuto = true;
+              continue;
+            }
+            if (sigue && enAuto) continue;
+            enAuto = false;
+            out.push(linea);
+          }
+          return out.join("\n").trim();
+        }
+        function pieFoto(nombre) {
+          return String(nombre || "").split(" \xB7 ").map((t) => t.replace(/\s*\(asignada por orden\)/ig, "").trim()).filter((t) => t && !/^ASIGNADA POR ORDEN$/i.test(t) && !/^sin fecha$/i.test(t) && !/^«[^»]*»$/.test(t)).join(" \xB7 ").slice(0, 200);
+        }
+        function sumaBocas(bocas, campo = "caudalMedido") {
+          const v = (bocas || []).map((b) => numR(b && b[campo])).filter((n) => n !== null);
+          return v.length ? v.reduce((s, n) => s + n, 0) : null;
+        }
+        function textoPendiente(rellenos, total) {
+          return total > rellenos ? `PENDIENTE: faltan ${total - rellenos} de ${total} valores.` : null;
+        }
+        const FAMILIAS_CON_VELOCIDADES = Object.freeze(["AIRLAN_FANCOIL"]);
+        function llevaVelocidades(familia, hoja) {
+          if (familia) return FAMILIAS_CON_VELOCIDADES.includes(String(familia).toUpperCase());
+          return /FAN.?COIL|CASSETTE/i.test(String(hoja || ""));
+        }
+        const RED_DE_CAUDAL = Object.freeze({ caudal_aire_impulsion: "impulsion", caudal_aire_retorno: "retorno" });
+        const RED_RECUPERADOR = Object.freeze({ aportacion: "impulsion", extraccion: "retorno" });
+        function redDeBocas(plantilla, punto) {
+          if (RED_DE_CAUDAL[punto]) return RED_DE_CAUDAL[punto];
+          if (/^RECUPERADOR_/i.test(String(plantilla || ""))) return RED_RECUPERADOR[punto] || null;
+          return null;
+        }
+        function origenCaudal(om, nBocas) {
+          if (om === "totalBalanceo") return "medido total en balanceo";
+          if (om === "puntosBms") return "de la prueba punto a punto";
+          if (om === "deBalanceo") return "del balanceo";
+          return om === "balanceo" ? `suma de ${nBocas ? `${nBocas} ` : ""}bocas` : "medido en equipo";
+        }
+        function origenDeMedido(plantilla, punto, p) {
+          if (!p || p.m === null || p.m === void 0) return null;
+          if (p.origenMedido === "balanceo" || p.origenMedido === "totalBalanceo" || p.origenMedido === "deBalanceo") return origenCaudal(p.origenMedido, p.nBocas);
+          return redDeBocas(plantilla, punto) ? origenCaudal(p.origenMedido, p.nBocas) : null;
+        }
+        function tonoRespuesta(punto, valor, tipoSeccion) {
+          if (valor === null || valor === void 0 || valor === "") return null;
+          const p = punto || {};
+          if (valor === "noOk") return "mal";
+          if (valor === "ok") return "bien";
+          if (valor === "na") return "neutra";
+          if (p.tipo === "siNo" && /fuga/i.test(String(p.codigo || ""))) return valor === "si" ? "mal" : "bien";
+          const deChequeo = tipoSeccion ? tipoSeccion === "checklist" : p.tipo !== "siNo";
+          if (!deChequeo) return "neutra";
+          return valor === "no" ? "mal" : valor === "si" ? "bien" : "neutra";
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.REGLAS_CX = API;
+        })({
+          NORMA_BALANCEO,
+          CRITERIO_JC,
+          juzgaDesviacion,
+          desviacion,
+          dentro,
+          esDescope,
+          veredicto,
+          toleranciasAplicadas,
+          textoNormaTolerancia,
+          pctTol,
+          sumaBocas,
+          textoPendiente,
+          observacionesManuales,
+          esLineaAutomatica,
+          pieFoto,
+          FAMILIAS_CON_VELOCIDADES,
+          llevaVelocidades,
+          redDeBocas,
+          origenCaudal,
+          origenDeMedido,
+          tonoRespuesta
+        });
+      })();
+    }
+  });
+
+  // shared/commissioning/catalogoAk.js
+  var require_catalogoAk = __commonJS({
+    "shared/commissioning/catalogoAk.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const T2 = "TROX";
+        const NO_INDICA = "No indicado en la ficha del fabricante (Aeff = \xE1rea efectiva de descarga/entrada).";
+        const lista = (o) => ({ forma: "lista", magnitud: "Aeff", origen: "fabricante", metodo: NO_INDICA, correccion: null, ...o });
+        const matriz = (o) => ({ forma: "matriz", magnitud: "Aeff", origen: "fabricante", metodo: NO_INDICA, correccion: null, ...o });
+        function matrizDeModelo(modelo, largos, filas, extra) {
+          const altos = [];
+          const f = [];
+          for (const [h, modelos2, vals] of filas) {
+            if (!modelos2.includes(modelo)) continue;
+            altos.push(h);
+            f.push(vals);
+          }
+          return matriz({ ...extra, largos, altos, filas: f });
+        }
+        const tablas = {};
+        const tipos = {};
+        const ponTipo = (id, x) => {
+          tipos[id] = { modo: "ak", ak: null, k: null, ...x };
+        };
+        const URL_REJ = "https://cdn.trox.de/0ae9188da51728e7/3ff576a2ffa6/t_1_1_1_grilles_lin.pdf";
+        const FICHA_REJ = "TROX T 1.1.1 EN \xABGrilles / Linear grilles\xBB (rejillas lineales, datos aerodin\xE1micos)";
+        const L8 = [225, 325, 425, 525, 625, 825, 1025, 1225];
+        const N = null;
+        const A_GRUPO = ["AT", "VAT", "ASL", "SL", "TR", "TRS", "TRS-R", "TRS-K", "KS"];
+        const FILAS_IMP = [
+          [75, ["AH", "AF"], [6e-3, 9e-3, 0.011, 0.014, 0.017, 0.022, 0.028, 0.034]],
+          [75, ["VAT", "TRS", "TRS-R", "TRS-K"], [7e-3, 0.011, 0.014, 0.018, 0.021, 0.029, 0.036, 0.043]],
+          [125, A_GRUPO, [0.014, 0.021, 0.029, 0.036, 0.043, 0.057, 0.072, 0.086]],
+          [125, ["AH", "AF"], [0.011, 0.017, 0.022, 0.028, 0.034, 0.044, 0.055, 0.066]],
+          [125, ["AWT"], [0.01, 0.015, 0.02, 0.025, 0.031, 0.04, 0.05, 0.06]],
+          [225, A_GRUPO, [0.029, 0.043, 0.057, 0.072, 0.086, 0.114, 0.142, 0.172]],
+          [225, ["AH", "AF"], [N, 0.034, 0.044, 0.055, 0.066, 0.087, 0.108, 0.129]],
+          [225, ["AWT"], [N, 0.031, 0.04, 0.05, 0.06, 0.078, 0.097, 0.116]],
+          [325, ["AT", "VAT", "ASL", "SL", "TR", "TRS", "TRS-K"], [N, 0.064, 0.086, 0.108, 0.129, 0.172, 0.214, 0.256]],
+          [325, ["AH", "AF"], [N, N, 0.066, 0.081, 0.096, 0.129, 0.169, 0.193]],
+          [325, ["AWT"], [N, N, 0.06, 0.073, 0.086, 0.116, 0.152, 0.174]],
+          [425, ["AT", "VAT", "ASL", "SL", "TR"], [N, N, N, N, 0.172, 0.228, 0.285, 0.342]],
+          [425, ["AH", "AF"], [N, N, N, N, 0.129, 0.169, 0.214, 0.256]],
+          [525, ["AT", "VAT", "ASL", "SL", "TR"], [N, N, N, N, N, N, 0.355, 0.427]]
+        ];
+        const FILAS_RET = [
+          [75, ["AH", "AF"], [4e-3, 6e-3, 9e-3, 0.011, 0.013, 0.017, 0.021, 0.026]],
+          [75, ["AWT"], [3e-3, 5e-3, 8e-3, 0.01, 0.011, 0.015, 0.018, 0.023]],
+          [75, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [6e-3, 9e-3, 0.011, 0.014, 0.016, 0.022, 0.028, 0.033]],
+          [125, ["AH", "AF"], [9e-3, 0.013, 0.017, 0.021, 0.026, 0.033, 0.041, 0.049]],
+          [125, ["AWT"], [8e-3, 0.011, 0.015, 0.018, 0.023, 0.029, 0.036, 0.043]],
+          [125, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [0.011, 0.016, 0.022, 0.028, 0.033, 0.044, 0.055, 0.066]],
+          [125, ["ASL", "SL"], [0.013, 0.019, 0.026, 0.033, 0.04, 0.053, 0.066, 0.08]],
+          [225, ["AH", "AF"], [N, 0.026, 0.033, 0.041, 0.049, 0.066, 0.082, 0.09]],
+          [225, ["AWT"], [N, 0.023, 0.029, 0.036, 0.043, 0.057, 0.071, 0.078]],
+          [225, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [N, 0.033, 0.044, 0.055, 0.066, 0.09, 0.11, 0.134]],
+          [225, ["ASL", "SL"], [N, 0.04, 0.053, 0.066, 0.08, 0.105, 0.133, 0.16]],
+          [325, ["AH", "AF"], [N, N, 0.049, 0.06, 0.072, 0.095, 0.12, 0.14]],
+          [325, ["AWT"], [N, N, 0.043, 0.052, 0.063, 0.083, 0.104, 0.122]],
+          [325, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [N, N, 0.066, 0.083, 0.1, 0.134, 0.17, 0.2]],
+          [325, ["ASL", "SL"], [N, N, 0.08, 0.1, 0.12, 0.16, 0.2, 0.24]],
+          [425, ["AH", "AF"], [N, N, N, N, 0.095, 0.122, 0.155, 0.185]],
+          [425, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [N, N, N, N, 0.134, 0.18, 0.22, 0.27]],
+          [425, ["ASL", "SL"], [N, N, N, N, 0.16, 0.22, 0.27, 0.32]],
+          [525, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [N, N, N, N, N, N, 0.28, 0.34]],
+          [525, ["ASL", "SL"], [N, N, N, N, N, N, 0.33, 0.4]]
+        ];
+        const MODELOS_IMP = ["AT", "VAT", "ASL", "SL", "TR", "TRS", "TRS-R", "TRS-K", "KS", "AH", "AF", "AWT"];
+        const MODELOS_RET = ["AT", "VAT", "ASL", "SL", "TR", "TRS", "TRS-R", "KS", "AH", "AF", "AWT"];
+        const F_RET = { ASL: 1.6, AT: 1.6, VAT: 1.6, SL: 1.6, TR: 1.6, TRS: 1.6, AH: 1.9, AF: 1.9, AWT: 1.9 };
+        const METODO_REJ_IMP = "Pitot entre lamas con las lamas sin divergencia: Q = v \xD7 Aeff \xD7 3600. Anem\xF3metro de h\xE9lice (sonda \xD8109) recorriendo uniformemente toda la cara de la reja: Q = v \xD7 Aeff \xD7 1,33 \xD7 3600 (cat\xE1logo, p. 16).";
+        const METODO_REJ_RET = "Anem\xF3metro de h\xE9lice (sonda \xD8109) recorriendo uniformemente toda la cara de la reja: Q = v \xD7 Aeff \xD7 f \xD7 3600; f = 1,6 (ASL \xB7 AT \xB7 VAT \xB7 SL \xB7 TR \xB7 TRS) o 1,9 (AH \xB7 AF \xB7 AWT) (cat\xE1logo, p. 18).";
+        for (const m of MODELOS_IMP) {
+          const id = `REJ_${m.replace("-", "_")}_IMP`;
+          tablas[id] = matrizDeModelo(m, L8, FILAS_IMP, {
+            marca: T2,
+            modelo: m,
+            tipoBoca: "rejilla de impulsi\xF3n",
+            circuito: "impulsion",
+            fuente: FICHA_REJ,
+            pagina: 15,
+            url: URL_REJ,
+            metodo: METODO_REJ_IMP,
+            correccion: { valor: 1.33, texto: "Con anem\xF3metro de h\xE9lice sobre la cara: Q = v \xD7 Aeff \xD7 1,33 \xD7 3600 (p. 16)." }
+          });
+          ponTipo(`trox-rej-${m.toLowerCase()}-imp`, { marca: T2, modelo: `${m} (rejilla)`, variante: "Impulsi\xF3n", nombre: `TROX ${m} \xB7 impulsi\xF3n`, circuito: "impulsion", tabla: id, tipoBoca: "rejilla de impulsi\xF3n" });
+        }
+        for (const m of MODELOS_RET) {
+          const id = `REJ_${m.replace("-", "_")}_RET`;
+          const f = F_RET[m];
+          tablas[id] = matrizDeModelo(m, L8, FILAS_RET, {
+            marca: T2,
+            modelo: m,
+            tipoBoca: "rejilla de retorno / extracci\xF3n",
+            circuito: "retorno",
+            fuente: FICHA_REJ,
+            pagina: 18,
+            url: URL_REJ,
+            metodo: METODO_REJ_RET,
+            correccion: f ? { valor: f, texto: `Anem\xF3metro de h\xE9lice sobre la cara: Q = v \xD7 Aeff \xD7 ${String(f).replace(".", ",")} \xD7 3600 (p. 18).` } : null
+          });
+          ponTipo(`trox-rej-${m.toLowerCase()}-ret`, { marca: T2, modelo: `${m} (rejilla)`, variante: "Retorno / extracci\xF3n", nombre: `TROX ${m} \xB7 retorno`, circuito: "retorno", tabla: id, tipoBoca: "rejilla de retorno / extracci\xF3n" });
+        }
+        const URL_TR2X = "https://cdn.trox.de/eb494ea59de47d76/36646accebdf/TR2X_PD_2025_07_15_DE_en.pdf";
+        const FICHA_TR2X = "TROX TR2X, PD-07/2025 \u2013 CH/en";
+        const L6 = [225, 325, 425, 525, 625, 825];
+        const H4 = [75, 125, 225, 325];
+        const tr2x = (id, variante, circuito, pagina, filas) => {
+          tablas[id] = matriz({ marca: T2, modelo: "TR2X", tipoBoca: circuito === "impulsion" ? "rejilla de impulsi\xF3n" : "rejilla de retorno / extracci\xF3n", circuito, fuente: FICHA_TR2X, pagina, url: URL_TR2X, largos: L6, altos: H4, filas });
+          ponTipo(`trox-tr2x-${id.slice(5).toLowerCase()}`, { marca: T2, modelo: "TR2X (rejilla)", variante, nombre: `TROX TR2X \xB7 ${variante}`, circuito, tabla: id, tipoBoca: tablas[id].tipoBoca });
+        };
+        tr2x("TR2X_IMP_VH", "Impulsi\xF3n, lamas VH / HV", "impulsion", 8, [[7e-3, 0.011, 0.015, 0.019, 0.022, 0.03], [0.015, 0.022, 0.03, 0.037, 0.045, 0.06], [0.03, 0.045, 0.06, 0.075, 0.09, 0.12], [N, 0.067, 0.09, 0.112, 0.135, 0.18]]);
+        tr2x("TR2X_IMP_V", "Impulsi\xF3n, lamas V", "impulsion", 8, [[8e-3, 0.012, 0.015, 0.019, 0.023, 0.031], [0.015, 0.023, 0.031, 0.039, 0.046, 0.062], [0.031, 0.046, 0.062, 0.077, 0.093, 0.124], [N, 0.07, 0.093, 0.116, 0.139, 0.185]]);
+        tr2x("TR2X_IMP_H", "Impulsi\xF3n, lamas H", "impulsion", 8, [[8e-3, 0.012, 0.016, 0.02, 0.024, 0.032], [0.016, 0.024, 0.032, 0.04, 0.048, 0.064], [0.032, 0.048, 0.064, 0.08, 0.096, 0.128], [N, 0.072, 0.096, 0.12, 0.144, 0.192]]);
+        tr2x("TR2X_RET_V", "Retorno, lamas V", "retorno", 9, [[6e-3, 9e-3, 0.011, 0.014, 0.017, 0.023], [0.011, 0.017, 0.023, 0.028, 0.034, 0.045], [0.023, 0.034, 0.045, 0.057, 0.068, 0.091], [N, 0.051, 0.068, 0.085, 0.102, 0.136]]);
+        tr2x("TR2X_EXT_H", "Extracci\xF3n, lamas H", "retorno", 9, [[6e-3, 9e-3, 0.012, 0.015, 0.018, 0.023], [0.012, 0.018, 0.023, 0.029, 0.035, 0.047], [0.023, 0.035, 0.047, 0.059, 0.07, 0.094], [N, 0.053, 0.07, 0.088, 0.106, 0.141]]);
+        const L8_AE = [150, 200, 300, 400, 500, 600, 700, 800, 900, 1e3, 1100, 1200];
+        const H_AE = [100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600];
+        const AE_FILAS = [
+          [6e-3, 9e-3, 0.014, 0.019, 0.024, 0.029, 0.034, 0.039, 0.044, 0.049, 0.054, 0.059],
+          [0.01, 0.015, 0.023, 0.032, 0.04, 0.049, 0.057, 0.066, 0.074, 0.083, 0.092, 0.1],
+          [N, 0.021, 0.033, 0.045, 0.057, 0.069, 0.081, 0.093, 0.105, 0.117, 0.129, 0.141],
+          [N, N, 0.042, 0.057, 0.073, 0.088, 0.104, 0.12, 0.135, 0.15, 0.166, 0.181],
+          [N, N, 0.052, 0.071, 0.089, 0.108, 0.128, 0.142, 0.165, 0.184, 0.203, 0.222],
+          [N, N, N, 0.084, 0.106, 0.128, 0.151, 0.173, 0.195, 0.217, 0.24, 0.262],
+          [N, N, N, 0.096, 0.122, 0.148, 0.174, 0.2, 0.225, 0.251, 0.277, 0.303],
+          [N, N, N, N, 0.142, 0.168, 0.197, 0.226, 0.256, 0.285, 0.314, 0.343],
+          [N, N, N, N, 0.155, 0.188, 0.229, 0.253, 0.286, 0.319, 0.351, 0.385],
+          [N, N, N, N, N, 0.208, 0.248, 0.28, 0.316, 0.353, 0.388, 0.425],
+          [N, N, N, N, N, 0.227, 0.267, 0.306, 0.346, 0.386, 0.425, 0.464]
+        ];
+        const AP_FILAS = [
+          [4e-3, 5e-3, 7e-3, 0.01, 0.013, 0.019, 0.022, 0.024, 0.024, 0.028, 0.031, 0.034],
+          [6e-3, 8e-3, 0.013, 0.018, 0.023, 0.028, 0.033, 0.038, 0.043, 0.047, 0.052, 0.057],
+          [N, 0.011, 0.019, 0.026, 0.033, 0.04, 0.046, 0.053, 0.059, 0.066, 0.073, 0.082],
+          [N, N, 0.024, 0.032, 0.041, 0.05, 0.058, 0.066, 0.074, 0.083, 0.091, 0.102],
+          [N, N, 0.031, 0.041, 0.053, 0.063, 0.074, 0.084, 0.097, 0.108, 0.119, 0.13],
+          [N, N, N, 0.05, 0.063, 0.076, 0.088, 0.101, 0.113, 0.126, 0.139, 0.155],
+          [N, N, N, 0.058, 0.072, 0.086, 0.101, 0.115, 0.13, 0.148, 0.163, 0.178],
+          [N, N, N, N, 0.086, 0.103, 0.12, 0.137, 0.154, 0.176, 0.193, 0.211],
+          [N, N, N, N, 0.093, 0.113, 0.131, 0.15, 0.169, 0.188, 0.206, 0.225],
+          [N, N, N, N, N, 0.125, 0.146, 0.167, 0.188, 0.209, 0.23, 0.257],
+          [N, N, N, N, N, 0.13, 0.155, 0.178, 0.2, 0.222, 0.244, 0.274]
+        ];
+        tablas.AE = matriz({
+          marca: T2,
+          modelo: "AE",
+          tipoBoca: "rejilla de retorno / extracci\xF3n",
+          circuito: "retorno",
+          fuente: "TROX AE, PD-AE-3 (10/2020), \xABEffective inlet area AE/AEL\xBB",
+          pagina: 3,
+          url: "https://cdn.trox.de/e85109af6cacf67b/3d90d6bd01ba/PD-AE--10-2020-.pdf",
+          largos: L8_AE,
+          altos: H_AE,
+          filas: AE_FILAS,
+          nota: "Para la AE con regulaci\xF3n RC-AE, la ficha manda multiplicar todas las \xE1reas por 0,96."
+        });
+        tablas.AP = matriz({
+          marca: T2,
+          modelo: "AP",
+          tipoBoca: "rejilla de retorno / extracci\xF3n",
+          circuito: "retorno",
+          fuente: "TROX AP, PD-AP-3 (10/2020), \xABEffective inlet area AP/APL\xBB",
+          pagina: 3,
+          url: "https://cdn.trox.de/1f6a3f9e7b48b2cd/52a468d90665/PD-AP--10-2020-.pdf",
+          largos: L8_AE,
+          altos: H_AE,
+          filas: AP_FILAS,
+          nota: "Para la AP con regulaci\xF3n RC-AP, la ficha manda multiplicar todas las \xE1reas por 0,95."
+        });
+        ponTipo("trox-ae-ret", { marca: T2, modelo: "AE (rejilla de extracci\xF3n)", variante: "Extracci\xF3n \xB7 lamas fijas", nombre: "TROX AE \xB7 extracci\xF3n", circuito: "retorno", tabla: "AE", tipoBoca: "rejilla de retorno / extracci\xF3n" });
+        ponTipo("trox-ap-ret", { marca: T2, modelo: "AP (rejilla de retorno perforada)", variante: "Retorno \xB7 n\xFAcleo perforado", nombre: "TROX AP \xB7 retorno", circuito: "retorno", tabla: "AP", tipoBoca: "rejilla de retorno / extracci\xF3n" });
+        const difusor = (id, o, tamanos, valores, tipoId, tipo) => {
+          tablas[id] = lista({ marca: T2, tipoBoca: tipo.tipoBoca, circuito: "impulsion", tamanos, valores, ...o });
+          for (const [circuito, , nombreC, corto] of [["impulsion", "IMP", "impulsi\xF3n", "imp"], ["retorno", "EXT", "extracci\xF3n", "ext"]]) {
+            ponTipo(`${tipoId}-${corto}`, { marca: T2, modelo: tipo.modelo, variante: `${tipo.variante} \xB7 ${nombreC}`, nombre: `TROX ${tipo.nombre} \xB7 ${nombreC}`, circuito, tabla: id, tipoBoca: tipo.tipoBoca });
+          }
+        };
+        difusor("ADLQ", {
+          modelo: "ADLQ",
+          fuente: "TROX DLQ (02/2015, K1-1.4-39) y ADLQ, tabla de dimensiones (Aeff)",
+          pagina: 8,
+          url: "https://cdn.trox.de/18f187a9530f54a4/1819cee40332/DLQ--EN-.pdf",
+          nota: "Mismos valores en la ficha del ADLQ (https://cdn.trox.de/cf7d698fe4d477fd/ec5301891888/00261620_0.pdf)."
+        }, ["250", "300", "400", "500", "600", "625"], [95e-4, 0.0175, 0.037, 0.0675, 0.11, 0.123], "trox-adlq", { modelo: "ADLQ / DLQ (rotacional cuadrado)", variante: "Cuadrado", nombre: "ADLQ", tipoBoca: "difusor rotacional de techo" });
+        const ADLR = {
+          fuente: "TROX ADLR / ADLR-Q, \xABDimensions and weight\xBB, Aeff (2015)",
+          url: "https://cdn.trox.de/e3a4d348bdba225b/9c169ef4b577/2_16_adlr_adlr_q.pdf"
+        };
+        difusor("ADLR", { modelo: "ADLR", ...ADLR, pagina: 11 }, ["1", "2", "3", "4", "5", "6", "7", "8"], [66e-4, 0.0161, 0.0257, 0.0349, 0.0473, 0.0544, 0.0691, 0.0843], "trox-adlr", { modelo: "ADLR (rotacional circular)", variante: "Circular", nombre: "ADLR", tipoBoca: "difusor rotacional de techo" });
+        difusor("ADLR_Q", { modelo: "ADLR-Q", ...ADLR, pagina: 16, nota: "Mismo Aeff que el ADLR para el mismo tama\xF1o nominal (\u2026 \xD7 1 a \u2026 \xD7 8)." }, ["1", "2", "3", "4", "5", "6", "7", "8"], [66e-4, 0.0161, 0.0257, 0.0349, 0.0473, 0.0544, 0.0691, 0.0843], "trox-adlr-q", { modelo: "ADLR-Q (rotacional cuadrado)", variante: "Cuadrado", nombre: "ADLR-Q", tipoBoca: "difusor rotacional de techo" });
+        const TDV = { fuente: "TROX TDV-SilentAIR, \xABProduct details\xBB, Aeff", pagina: 17, url: "https://cdn.trox.de/a745226cd7f1d9a2/a72868883aef/TDV_2026_03_19_DE_en.pdf" };
+        difusor("TDV_Q", { modelo: "TDV-Q", ...TDV }, ["300", "400", "500", "600", "625"], [0.012, 0.021, 0.031, 0.044, 0.044], "trox-tdv-q", { modelo: "TDV-SilentAIR (cuadrado)", variante: "TDV-Q", nombre: "TDV-Q", tipoBoca: "difusor rotacional de techo" });
+        difusor("TDV_R", { modelo: "TDV-R", ...TDV }, ["300", "400", "500", "600", "625"], [0.012, 0.021, 0.031, 0.044, 0.044], "trox-tdv-r", { modelo: "TDV-SilentAIR (circular)", variante: "TDV-R", nombre: "TDV-R", tipoBoca: "difusor rotacional de techo" });
+        const TDF = { url: "https://cdn.trox.de/8ac3b4826391b810/b03445b03588/TDF-SilentAIR_PD_2026_06_09_DE_en.pdf" };
+        difusor("TDF_Q", { modelo: "TDF-Q", ...TDF, fuente: "TROX TDF-SilentAIR (PD-06/2026), TDF-Q, Aeff", pagina: 16, nota: "El mismo Aeff vale para las tres cotas \u25A1Q1 de cada tama\xF1o nominal." }, ["300", "400", "500", "600", "625"], [0.0108, 0.0193, 0.028, 0.04, 0.04], "trox-tdf-q", { modelo: "TDF-SilentAIR (cuadrado)", variante: "TDF-Q", nombre: "TDF-Q", tipoBoca: "difusor rotacional de techo" });
+        difusor("TDF_R", { modelo: "TDF-R", ...TDF, fuente: "TROX TDF-SilentAIR (PD-06/2026), TDF-R, Aeff", pagina: 17 }, ["300", "400", "500", "600", "625"], [88e-4, 0.018, 0.0251, 0.0295, 0.0295], "trox-tdf-r", { modelo: "TDF-SilentAIR (circular)", variante: "TDF-R", nombre: "TDF-R", tipoBoca: "difusor rotacional de techo" });
+        difusor("VD", { modelo: "VD", fuente: "TROX VD (02/2017), PD-VD-13: Aeff con descarga horizontal en torbellino", pagina: 13, url: "https://cdn.trox.de/d77ca5b7a0a7fd65/8d19263ac5ae/VD_PD_2026_03_19_DE_en.pdf", nota: "La ficha da adem\xE1s el Aeff con descarga vertical: 425 \u2192 0,0781; 600 \u2192 0,1819; 775 \u2192 0,3405; 1050 \u2192 0,6358." }, ["425", "600", "775", "1050"], [0.0307, 0.0685, 0.1242, 0.2247], "trox-vd", { modelo: "VD (rotacional de techo)", variante: "Descarga horizontal", nombre: "VD", tipoBoca: "difusor rotacional de techo" });
+        difusor("VDL", { modelo: "VDL", fuente: "TROX VDL (04/2019), PD-VDL-16, VDL-A / VDL-B", pagina: 16, url: "https://cdn.trox.de/a7196dc3aea3dd80/c11ef504831f/VDL_PD_2026_03_DE_en.pdf" }, ["315", "400", "630", "800"], [0.022, 0.031, 0.077, 0.106], "trox-vdl", { modelo: "VDL (rotacional de techo, grandes alturas)", variante: "VDL-A / VDL-B", nombre: "VDL", tipoBoca: "difusor rotacional de techo" });
+        const RFD_URL = "https://cdn.trox.de/3085ddeaf6f4fbdc/558f270067bb/Celing-swirl-diffusers-type-RFD.pdf";
+        const RFD_T = ["125", "160", "200", "250", "315", "400"];
+        difusor("RFD_K", { modelo: "RFD-K", fuente: "TROX RFD (02/2017), PD-RFD-22, RFD-Q-K / RFD-R-K", pagina: 22, url: RFD_URL }, RFD_T, [26e-4, 37e-4, 66e-4, 0.011, 0.0205, 0.028], "trox-rfd-k", { modelo: "RFD (rotacional con ranuras)", variante: "RFD-K (Q y R)", nombre: "RFD-K", tipoBoca: "difusor rotacional de techo" });
+        difusor("RFD_D_K", { modelo: "RFD-D-K", fuente: "TROX RFD (02/2017), PD-RFD-22, RFD-Q-D-K / RFD-R-D-K", pagina: 22, url: RFD_URL }, RFD_T, [34e-4, 6e-3, 92e-4, 0.015, 0.0265, 0.0355], "trox-rfd-dk", { modelo: "RFD (rotacional con ranuras)", variante: "RFD-D-K (Q y R)", nombre: "RFD-D-K", tipoBoca: "difusor rotacional de techo" });
+        const vsd = (id, o, largos, valores, tipoId, tipo, circuitos) => {
+          tablas[id] = lista({ marca: T2, tipoBoca: "difusor lineal de ranuras", circuito: "impulsion", tamanos: largos.map(String), valores, ...o });
+          for (const [circuito, corto, nombreC] of circuitos || [["impulsion", "imp", "impulsi\xF3n"]]) {
+            ponTipo(`${tipoId}-${corto}`, { marca: T2, modelo: tipo.modelo, variante: `${tipo.variante} \xB7 ${nombreC}`, nombre: `TROX ${tipo.nombre} \xB7 ${nombreC}`, circuito, tabla: id, tipoBoca: "difusor lineal de ranuras" });
+          }
+        };
+        const LV = [900, 1050, 1200, 1350, 1500];
+        const VSD35 = {
+          1: [[53e-4, 61e-4, 7e-3, 79e-4, 88e-4], [58e-4, 68e-4, 78e-4, 88e-4, 97e-4]],
+          2: [[0.0105, 0.0123, 0.014, 0.0158, 0.0175], [0.0117, 0.0136, 0.0156, 0.0175, 0.0194]],
+          3: [[0.0158, 0.0184, 0.021, 0.0237, 0.0263], [0.0175, 0.0204, 0.0233, 0.0262, 0.0292]],
+          4: [[0.021, 0.0245, 0.028, 0.0315, 0.035], [0.0233, 0.0272, 0.0311, 0.035, 0.0389]]
+        };
+        for (const n of [1, 2, 3, 4]) {
+          const base = { url: "https://cdn.trox.de/352f65431db9b817/455c7754e42d/TL_K1_2_1_04_VSD35_Varyset_DE_en.pdf", pagina: 11 };
+          vsd(
+            `VSD35_${n}`,
+            { modelo: `VSD35-${n}`, ...base, fuente: "TROX VSD35 Varyset (08/2015, K1-2.1-76), Aeff: descarga horizontal en un sentido y alternada horizontal", nota: "Longitud nominal en mm." },
+            LV,
+            VSD35[n][0],
+            `trox-vsd35-${n}-h`,
+            { modelo: `VSD35 (lineal de techo, ${n} ranura${n > 1 ? "s" : ""})`, variante: "Descarga horizontal", nombre: `VSD35-${n} horizontal` }
+          );
+          vsd(
+            `VSD35_${n}_WS`,
+            { modelo: `VSD35-${n}`, ...base, fuente: "TROX VSD35 Varyset (08/2015, K1-2.1-76), Aeff WS: descarga alternada inclinada", nota: "Longitud nominal en mm." },
+            LV,
+            VSD35[n][1],
+            `trox-vsd35-${n}-ws`,
+            { modelo: `VSD35 (lineal de techo, ${n} ranura${n > 1 ? "s" : ""})`, variante: "Descarga alternada inclinada (WS)", nombre: `VSD35-${n} inclinada (WS)` }
+          );
+        }
+        vsd(
+          "VSD35_3_AZ",
+          { modelo: "VSD35-3-AZ", fuente: "TROX VSD35-3-AZ (03/2017), PD-VSDAZ-16, Aeff: impulsi\xF3n inclinada en un sentido", pagina: 16, url: "https://cdn.trox.de/56e801096c23b97d/6c900f4843b4/VSD-35-3-AZ_PD_03_2017_DE_en.pdf", nota: "Longitud nominal en mm." },
+          [600, 750, 900, 1050, 1200],
+          [39e-4, 49e-4, 58e-4, 68e-4, 78e-4],
+          "trox-vsd35-3-az",
+          { modelo: "VSD35-3-AZ (lineal de pared)", variante: "Inclinada en un sentido", nombre: "VSD35-3-AZ" }
+        );
+        vsd(
+          "VSD50_1_LT",
+          { modelo: "VSD50-1-LT", fuente: "TROX VSD50-1-LT (06/2019), PD p. 13, Aeff", pagina: 13, url: "https://cdn.trox.de/e343de0da770c86f/6db42746093a/PD_2019_06_VSD50-1-LT_DE_en.pdf", nota: "Longitud nominal en mm. Solo se leen los dos tama\xF1os que dan valor en la ficha." },
+          [550, 1175],
+          [55e-4, 0.0118],
+          "trox-vsd50-1-lt",
+          { modelo: "VSD50-1-LT (lineal)", variante: "1 ranura", nombre: "VSD50-1-LT" }
+        );
+        const LB = "Lindab";
+        const NOTA_LB = "Lindab publica \xABFree area\xBB (\xE1rea libre, geom\xE9trica): se guarda como Ageo y NO se usa sola para el caudal. El Ak lo da el factor K1/K2/K3 de la propia ficha para su f\xF3rmula de selecci\xF3n, no un \xE1rea efectiva.";
+        const libre = (id, modelo, tipoBoca, tamanos, valores, fuente, pagina, url, circuito, variante) => {
+          tablas[id] = lista({ marca: LB, modelo, tipoBoca, circuito, magnitud: "Ageo", fuente, pagina, url, tamanos, valores, nota: NOTA_LB, metodo: "\xC1rea libre geom\xE9trica (Free area A), sin medida de caudal asociada: no sirve sola para Q = v \xD7 Ak." });
+          ponTipo(`lindab-${id.toLowerCase().replace(/_/g, "-")}`, { marca: LB, modelo, variante, nombre: `Lindab ${modelo} \xB7 ${variante}`, circuito, tabla: id, tipoBoca });
+        };
+        libre("PKAL", "PKAL (difusor de conos de techo)", "difusor de conos", ["125", "160", "200", "250"], [0.018, 0.023, 0.03, 0.043], "Lindab PKAL, hoja t\xE9cnica (Free area A)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/nzdmyzdimzktnjnkmc00y2y3ltlkmtqtzgyynmm1nzjin2ew/5250385343615801170/pkal_global.pdf", "impulsion", "Impulsi\xF3n \xB7 \xD8d");
+        libre("PKA", "PKA (difusor de conos de techo)", "difusor de conos", ["125", "160", "200", "250", "315", "400"], [0.018, 0.023, 0.03, 0.043, 0.057, 0.075], "Lindab PKA, hoja t\xE9cnica (Free area A)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/zgnlngi5zwytowm2nc00nte1lthmotmtnjuzmmzkzdc2ngy0/5250388152490838115/pka_global.pdf", "impulsion", "Impulsi\xF3n \xB7 \xD8d");
+        libre("LAD", "LAD (tobera de largo alcance)", "tobera", ["125", "160", "200", "250", "315", "400"], [29e-4, 71e-4, 95e-4, 0.0165, 0.0254, 0.0398], "Lindab LAD, hoja t\xE9cnica (Free area A)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/nzm0odq3mtmtyjvlmc00y2vilwezodatnzvimdblmzzkywvk/5250167802524849262/lad_global.pdf", "impulsion", "Impulsi\xF3n \xB7 \xD8d");
+        libre("DAD", "DAD (tobera de largo alcance)", "tobera", ["160", "200", "250", "315"], [56e-4, 95e-4, 0.0154, 0.024], "Lindab LAD/DAD, tabla \xABCalculation factors\xBB (Free area A)", 6, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/nzm0odq3mtmtyjvlmc00y2vilwezodatnzvimdblmzzkywvk/5250167802524849262/lad_global.pdf", "impulsion", "Impulsi\xF3n \xB7 \xD8d");
+        libre("FKD_V", "FKD (difusor de techo, descarga vertical)", "difusor rotacional de techo", ["160", "200", "250", "315", "355", "400", "450"], [0.0298, 0.0431, 0.0622, 0.091, 0.1108, 0.1349, 0.1637], "Lindab FKD, hoja t\xE9cnica (Free area A, vertical)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/mjlimdvjmgutzdhjnc00ymq4lthingqtmdk1ogmxzwyyndzk/5250352475662073871/fkd_global.pdf", "impulsion", "Descarga vertical \xB7 \xD8d");
+        libre("FKD_H", "FKD (difusor de techo, descarga horizontal)", "difusor rotacional de techo", ["160", "200", "250", "315", "355", "400", "450"], [0.0304, 0.0456, 0.0684, 0.1041, 0.1293, 0.1606, 0.199], "Lindab FKD, hoja t\xE9cnica (Free area A, horizontal)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/mjlimdvjmgutzdhjnc00ymq4lthingqtmdk1ogmxzwyyndzk/5250352475662073871/fkd_global.pdf", "impulsion", "Descarga horizontal \xB7 \xD8d");
+        const API = { TABLAS: tablas, TIPOS: tipos, MARCAS_CATALOGO: [T2, LB] };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.CATALOGO_AK = API;
+      })();
+    }
+  });
+
+  // shared/commissioning/factoresKTrox.js
+  var require_factoresKTrox = __commonJS({
+    "shared/commissioning/factoresKTrox.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const FABRICANTE = "TROX";
+        const DOCUMENTO = "Folleto TROX AK-Uni 07/2017 (PD_2017_07_AK-Uni_DE_es.pdf), adjunto al correo de Emilia Hernandez Trimi\xF1o (TROX Espa\xF1a) del 2-nov-2026";
+        const FORMULA = "q = K \xB7 \u221A\u0394p";
+        const TOLERANCIA_M3H = 0.25;
+        const crudas = [];
+        const fila = (plenum, familia, placa, tamanos, circuito, kLs, kM3h, pagina, difusor, extra = {}) => crudas.push({ plenum, familia, placa, tamanos, circuito, kLs, kM3h, pagina, difusor, ...extra });
+        const P4 = "AKUNI-4";
+        [
+          ["AK-Uni-001", ["300 \xD7 8"], 10.3, 36.9, ["300"], [[13.2, 47.7], [10.1, 36.5], [13.2, 47.7]]],
+          ["AK-Uni-002", ["400 \xD7 16"], 19.6, 70.7, ["400"], [[22.8, 82.1], [19.6, 70.7], [22.8, 82.1]]],
+          ["AK-Uni-003", ["500 \xD7 24"], 24.2, 87.1, ["500"], [[27.9, 100.5], [25.8, 92.7], [27.9, 100.5]]],
+          /* FD-Q 600/625 de la 004: el extracto solo trae 125,8 m³/h, sin l/s → no se carga. */
+          ["AK-Uni-004", ["600 \xD7 24", "625 \xD7 24"], 34.9, 125.8, ["600", "625"], [[40.4, 145.5], null, [40.4, 145.5]]]
+        ].forEach(([plenum, tVdw, ls, m3, tRed, [tdv, fd, tdf]]) => {
+          fila(plenum, "VDW", "Q", tVdw, "impulsion", ls, m3, P4, `VDW-Q ${tVdw.join(" / ")}`);
+          if (tdv) fila(plenum, "TDV-SA", "Q", tRed, "impulsion", tdv[0], tdv[1], P4, `TDV-SA-Q ${tRed.join("/")}`);
+          if (fd) fila(plenum, "FD", "Q", tRed, "impulsion", fd[0], fd[1], P4, `FD-Q ${tRed.join("/")}`);
+          if (tdf) fila(plenum, "TDF-SA", "Q", tRed, "impulsion", tdf[0], tdf[1], P4, `TDF-SA-Q ${tRed.join("/")}`);
+        });
+        fila("AK-Uni-005", "VDW", "Q", ["600 \xD7 48"], "impulsion", 43, 154.8, P4, "VDW-Q 600x48");
+        fila("AK-Uni-006", "VDW", "Q", ["625 \xD7 54"], "impulsion", 44.2, 158.9, P4, "VDW-Q 625x54");
+        fila("AK-Uni-007", "VDW", "Q", ["825 \xD7 72"], "impulsion", 72.8, 262.2, P4, "VDW-Q 825x72");
+        const P5 = "AKUNI-5";
+        [
+          ["AK-Uni-013", ["300 \xD7 8"], [9.4, 33.8], ["300"], [[13.2, 47.7], [10.2, 36.5], [13.2, 47.7]]],
+          ["AK-Uni-014", ["400 \xD7 16"], [19.6, 70.7], ["400"], [[22.8, 82.1], [19.6, 70.7], [22.8, 82.1]]],
+          ["AK-Uni-015", ["500 \xD7 24"], [23.1, 83], ["500"], [[27.9, 100.5], [26.2, 94.4], [27.9, 100.5]]],
+          ["AK-Uni-016", ["600 \xD7 24", "625 \xD7 24"], [34.5, 124.3], ["600", "625"], [[40.4, 145.5], [34.5, 124.3], [40.4, 145.5]]]
+        ].forEach(([plenum, tVdw, vdw, tRed, [tdv, fd, tdf]]) => {
+          fila(plenum, "VDW", "R", tVdw, "impulsion", vdw[0], vdw[1], P5, `VDW-R ${tVdw.join(" / ")}`);
+          fila(plenum, "TDV-SA", "R", tRed, "impulsion", tdv[0], tdv[1], P5, `TDV-SA-R ${tRed.join("/")}`);
+          fila(plenum, "FD", "R", tRed, "impulsion", fd[0], fd[1], P5, `FD-R ${tRed.join("/")}`);
+          fila(plenum, "TDF-SA", "R", tRed, "impulsion", tdf[0], tdf[1], P5, `TDF-SA-R ${tRed.join("/")}`);
+        });
+        fila("AK-Uni-017", "VDW", "R", ["600 \xD7 48"], "impulsion", 44, 158.3, P5, "VDW-R 600x48");
+        [
+          ["AK-Uni-028", "125", [3.5, 12.4], [4.7, 17.9]],
+          ["AK-Uni-029", "160", [5.2, 18.7], [7.3, 26.3]],
+          ["AK-Uni-030", "200", [7.1, 25.5], [12.2, 43.9]],
+          ["AK-Uni-031", "250", [12.9, 46.4], [19, 68.4]],
+          ["AK-Uni-032", "315", [22.8, 82], [28.6, 103]],
+          ["AK-Uni-033", "400", [34.5, 124.3], [37.3, 134.4]]
+        ].forEach(([plenum, tam, sin, con]) => {
+          fila(plenum, "RFD", null, [tam], "impulsion", sin[0], sin[1], P5, `RFD ${tam} sin tobera`, { tobera: false });
+          fila(plenum, "RFD", null, [tam], "impulsion", con[0], con[1], P5, `RFD ${tam} con tobera`, { tobera: true });
+        });
+        const P7 = "AKUNI-7";
+        [
+          ["AK-Uni-013", ["300 \xD7 8"], [9.3, 33.6], ["300"], [16.4, 59], [13, 46.7]],
+          ["AK-Uni-014", ["400 \xD7 16"], [17.9, 64.3], ["400"], [28.9, 104.2], [25.2, 90.6]],
+          ["AK-Uni-015", ["500 \xD7 24"], [25.3, 90.9], ["500"], [38.5, 138.7], [38.4, 138.1]],
+          ["AK-Uni-016", ["600 \xD7 24", "625 \xD7 24"], [42.2, 151.9], ["600", "625"], [52.3, 188.2], [57.7, 207.7]]
+        ].forEach(([plenum, tVdw, vdw, tRed, tdv, fd]) => {
+          fila(plenum, "VDW", "R", tVdw, "retorno", vdw[0], vdw[1], P7, `VDW-R ${tVdw.join(" / ")}`);
+          fila(plenum, "TDV", "R", tRed, "retorno", tdv[0], tdv[1], P7, `TDV-R ${tRed.join("/")}`);
+          fila(plenum, "FD", "R", tRed, "retorno", fd[0], fd[1], P7, `FD-R ${tRed.join("/")}`);
+        });
+        fila("AK-Uni-017", "VDW", "R", ["600 \xD7 48"], "retorno", 58.1, 209.1, P7, "VDW-R 600x48");
+        const NO_CARGADOS = [
+          { donde: "AKUNI-6 (entera)", motivo: "El extracto la da a la vez como \xABsegundo juego de impulsi\xF3n\xBB y como retorno de placa cuadrada; sus valores TDV 300 (16,4 / 59,0) coinciden con el retorno de AKUNI-7. Sin el pie de la tabla del PDF no se sabe con certeza si es impulsi\xF3n o retorno: no se carga (falta verificar en el PDF)." },
+          { donde: "AKUNI-4 \xB7 AK-Uni-004 FD-Q 600/625", motivo: "El extracto solo trae 125,8 m\xB3/h, sin el valor en l/s: no se puede comprobar." },
+          { donde: "AKUNI-4/5/6 \xB7 ADD-Q, ADD-R, ADLQ, DLQ, ADLR (AK-Uni-002, 008\u2013011, 019\u2013026)", motivo: "La cabecera agrupa cuatro modelos y las filas traen una o dos columnas: no se sabe a qu\xE9 modelo va cada valor." },
+          { donde: "AKUNI-4/5/7/8 \xB7 \xABotras combinaciones\xBB (conexi\xF3n < y >)", motivo: "Tabla aplanada: no se puede casar con certeza cada valor con su difusor y su conexi\xF3n." },
+          { donde: "Todas las columnas \xAB/0\xBB (placa sin deflectores)", motivo: "En el extracto no queda claro a qu\xE9 difusor corresponde cada \xAB/0\xBB: no se cargan." },
+          { donde: "Rejas de impulsi\xF3n y retorno", motivo: "Pendiente de TROX: no han llegado." }
+        ];
+        const registros = [];
+        for (const c of crudas) {
+          const dif = Math.abs(c.kLs * 3.6 - c.kM3h);
+          if (!(c.kLs > 0 && c.kM3h > 0) || dif > TOLERANCIA_M3H) {
+            NO_CARGADOS.push({ donde: `${c.pagina} \xB7 ${c.plenum} ${c.difusor}`, motivo: `No cuadra consigo misma: ${c.kLs} l/s \xD7 3,6 = ${(c.kLs * 3.6).toFixed(2)} m\xB3/h frente a ${c.kM3h} m\xB3/h del extracto.` });
+            continue;
+          }
+          registros.push(Object.freeze({
+            id: `${c.plenum}|${c.familia}|${c.placa || "-"}|${c.circuito}|${c.tamanos.join("/")}${c.tobera === void 0 ? "" : c.tobera ? "|tobera" : "|sinTobera"}`,
+            plenum: c.plenum,
+            familia: c.familia,
+            placa: c.placa,
+            difusor: c.difusor,
+            tamanos: c.tamanos,
+            circuito: c.circuito,
+            sinDeflectores: false,
+            conexion: null,
+            tobera: c.tobera === void 0 ? null : c.tobera,
+            kLs: c.kLs,
+            kM3h: c.kM3h,
+            magnitud: "K",
+            unidad: "l/s y m\xB3/h por \u221APa",
+            formula: FORMULA,
+            fabricante: FABRICANTE,
+            documento: DOCUMENTO,
+            pagina: c.pagina
+          }));
+        }
+        const POR_TABLA = {
+          VDW_Q: { familia: "VDW", placa: "Q" },
+          VDW_R: { familia: "VDW", placa: "R" },
+          TDV_Q: { familias: ["TDV-SA", "TDV"], placa: "Q" },
+          TDV_R: { familias: ["TDV-SA", "TDV"], placa: "R" },
+          TDF_Q: { familia: "TDF-SA", placa: "Q" },
+          TDF_R: { familia: "TDF-SA", placa: "R" }
+        };
+        const clave = (v) => v === null || v === void 0 ? "" : String(v).toLowerCase().replace(/\s+/g, "").replace(/x/g, "\xD7");
+        function buscar({ tabla = null, tamano = null, largo = null, alto = null, circuito = null } = {}) {
+          const m = POR_TABLA[tabla];
+          if (!m) return [];
+          const familias = m.familias || [m.familia];
+          const k = clave(tamano || (largo && alto ? `${largo}\xD7${alto}` : ""));
+          if (!k) return [];
+          return registros.filter((r) => familias.includes(r.familia) && r.placa === m.placa && (!circuito || r.circuito === circuito) && r.tamanos.some((t) => clave(t) === k));
+        }
+        function caudal(K, dp) {
+          const k = Number(K);
+          const d = Number(dp);
+          if (!(k > 0) || !(d >= 0) || !Number.isFinite(d)) return null;
+          return Math.round(k * Math.sqrt(d) * 10) / 10;
+        }
+        function texto(r) {
+          const n = (v) => String(v.toFixed(1)).replace(".", ",");
+          return `K ${r.plenum}: ${n(r.kM3h)} m\xB3/h (${n(r.kLs)} l/s) \xB7 ${FORMULA}`;
+        }
+        const API = { FABRICANTE, DOCUMENTO, FORMULA, REGISTROS: registros, NO_CARGADOS, POR_TABLA, buscar, caudal, texto };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.FACTORES_K_TROX = API;
+      })();
+    }
+  });
+
+  // shared/commissioning/difusores.js
+  var require_difusores = __commonJS({
+    "shared/commissioning/difusores.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var MODOS_DIF = {
+        ak: { id: "ak", nombre: "\xC1rea efectiva Ak", unidad: "m\xB2" },
+        k: { id: "k", nombre: "Factor k", unidad: "m\xB3/h por m/s" }
+      };
+      var NOTA_EJEMPLO_DIF = "Valores de ejemplo: comprobar con la ficha del fabricante.";
+      var REGLAS_DIF = typeof __require !== "undefined" ? require_reglasCx() : window.REGLAS_CX;
+      var TOLERANCIA_DEFECTO_DIF = REGLAS_DIF.CRITERIO_JC.total;
+      var TOLERANCIA_BOCA_DEFECTO_DIF = REGLAS_DIF.CRITERIO_JC.boca;
+      var MARCA_EJEMPLO_DIF = "Gen\xE9rico (ejemplo, comprobar)";
+      var TIPOS_DIF = {
+        rotacional600: { marca: MARCA_EJEMPLO_DIF, modelo: "Rotacional", variante: "600\xD7600 (24 ranuras)", nombre: "Difusor rotacional 600\xD7600 (24 ranuras)", circuito: "impulsion", modo: "ak", ak: 0.03, k: null, ejemplo: true },
+        rotacional400: { marca: MARCA_EJEMPLO_DIF, modelo: "Rotacional", variante: "400\xD7400 (16 ranuras)", nombre: "Difusor rotacional 400\xD7400 (16 ranuras)", circuito: "impulsion", modo: "ak", ak: 0.012, k: null, ejemplo: true },
+        cuadrado600: { marca: MARCA_EJEMPLO_DIF, modelo: "Cuadrado multidireccional", variante: "600\xD7600", nombre: "Difusor cuadrado multidireccional 600\xD7600", circuito: "impulsion", modo: "ak", ak: 0.04, k: null, ejemplo: true },
+        circularConos: { marca: MARCA_EJEMPLO_DIF, modelo: "Circular de conos", variante: "\xD8250", nombre: "Difusor circular de conos \xD8250", circuito: "impulsion", modo: "ak", ak: 0.025, k: null, ejemplo: true },
+        lineal2: { marca: MARCA_EJEMPLO_DIF, modelo: "Lineal", variante: "2 ranuras (por metro)", nombre: "Difusor lineal 2 ranuras (por metro)", circuito: "impulsion", modo: "ak", ak: 0.016, k: null, ejemplo: true },
+        rejillaImp: { marca: MARCA_EJEMPLO_DIF, modelo: "Rejilla de impulsi\xF3n", variante: "400\xD7200 doble deflexi\xF3n", nombre: "Rejilla de impulsi\xF3n 400\xD7200 doble deflexi\xF3n", circuito: "impulsion", modo: "ak", ak: 0.056, k: null, ejemplo: true },
+        tobera: { marca: MARCA_EJEMPLO_DIF, modelo: "Tobera de largo alcance", variante: "\xD8160", nombre: "Tobera de largo alcance \xD8160", circuito: "impulsion", modo: "k", ak: null, k: 36, ejemplo: true },
+        rejillaRet: { marca: MARCA_EJEMPLO_DIF, modelo: "Rejilla de retorno", variante: "600\xD7300 lamas fijas", nombre: "Rejilla de retorno 600\xD7300 lamas fijas", circuito: "retorno", modo: "ak", ak: 0.126, k: null, ejemplo: true },
+        bocaExt: { marca: MARCA_EJEMPLO_DIF, modelo: "Boca de extracci\xF3n", variante: "\xD8125 (v\xE1lvula)", nombre: "Boca de extracci\xF3n \xD8125 (v\xE1lvula)", circuito: "retorno", modo: "k", ak: null, k: 25, ejemplo: true },
+        /* Los dos de la hoja «CONVERSION CAUDAL REJAS.xlsx» que decía «con / sin
+           regulador»: sus números son los de la XGM-H-MO de la tabla de selección
+           rápida, pero de IMPULSIÓN (el «con regulador») y de EXTRACCIÓN (el «sin
+           regulador»). Se quedan para los puntos ya puestos; no se ofrecen. */
+        troxXgmReg: { marca: "TROX", modelo: "XGM (hoja antigua)", variante: "H-MO impulsi\xF3n (antes \xABcon regulador\xBB)", nombre: "TROX XGM-H-MO impulsi\xF3n, tabla r\xE1pida (antes \xABcon regulador\xBB)", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "XGM_REG", oculto: true },
+        troxXgm: { marca: "TROX", modelo: "XGM (hoja antigua)", variante: "H-MO extracci\xF3n (antes \xABsin regulador\xBB)", nombre: "TROX XGM-H-MO extracci\xF3n, tabla r\xE1pida (antes \xABsin regulador\xBB)", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "XGM", oculto: true },
+        troxWg: { marca: "TROX", modelo: "WG", variante: "Rejilla", nombre: "TROX WG", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "WG" },
+        troxTr2: { marca: "TROX", modelo: "TR2", variante: "Sin regulador", nombre: "TROX TR2 sin regulador", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "TR2" },
+        propioImp: { marca: "Otro", modelo: "Factor a mano", variante: "Impulsi\xF3n", nombre: "Otro de impulsi\xF3n (factor a mano)", circuito: "impulsion", modo: "ak", ak: null, k: null, propio: true },
+        propioRet: { marca: "Otro", modelo: "Factor a mano", variante: "Retorno", nombre: "Otro de retorno (factor a mano)", circuito: "retorno", modo: "ak", ak: null, k: null, propio: true },
+        /* La reja rectangular de un punto único de medida (Pitch 01 y 02: «se mide
+           en un único punto, con una reja rectangular»). Sin tamaño conocido, el Ak
+           se pone a mano o se mide con balómetro: nada de un Ak de ejemplo. */
+        rejillaRectImp: { marca: "Otro", modelo: "Reja rectangular", variante: "Impulsi\xF3n \xB7 Ak a mano", nombre: "Reja rectangular de impulsi\xF3n (Ak a mano)", circuito: "impulsion", modo: "ak", ak: null, k: null, propio: true },
+        rejillaRectRet: { marca: "Otro", modelo: "Reja rectangular", variante: "Retorno \xB7 Ak a mano", nombre: "Reja rectangular de retorno (Ak a mano)", circuito: "retorno", modo: "ak", ak: null, k: null, propio: true },
+        /* Rejas ficticias a fin de conducto (JC, 16-nov; las crea el Gestor en la misma base): sin este tipo caerían en un difusor de impulsión. */
+        rejaFinConductoImp: { marca: "Otro", modelo: "Reja fin de conducto", variante: "Impulsi\xF3n \xB7 ficticia, \xE1rea \xFAtil 1", nombre: "Reja fin de conducto de impulsi\xF3n (ficticia)", circuito: "impulsion", modo: "ak", ak: null, k: null, propio: true, oculto: true },
+        rejaFinConductoRet: { marca: "Otro", modelo: "Reja fin de conducto", variante: "Retorno \xB7 ficticia, \xE1rea \xFAtil 1", nombre: "Reja fin de conducto de retorno (ficticia)", circuito: "retorno", modo: "ak", ak: null, k: null, propio: true, oculto: true }
+      };
+      var TIPO_DEFECTO_DIF = "rotacional600";
+      var CIRCUITOS_DIF = [["impulsion", "IMP", "impulsi\xF3n", "imp"], ["retorno", "EXT", "extracci\xF3n", "ext"]];
+      var VARIANTES_XGM_DIF = [
+        ["H-MO", "Lamas horizontales m\xF3viles (H-MO)"],
+        ["V-MO", "Lamas verticales m\xF3viles (V-MO)"],
+        ["H-F0", "Lamas horizontales fijas 0\xB0 (H-F0)"],
+        ["H-F15", "Lamas horizontales fijas 15\xB0 (H-F15)"],
+        ["H-P0", "Lamas horizontales fijas 0\xB0, paso 16,7 (H-P0)"],
+        ["H-P15", "Lamas horizontales fijas 15\xB0, paso 16,7 (H-P15)"],
+        ["V-F0", "Lamas verticales fijas 0\xB0 (V-F0)"],
+        ["V-F15", "Lamas verticales fijas 15\xB0 (V-F15)"],
+        ["V-P0", "Lamas verticales fijas 0\xB0, paso 16,7 (V-P0)"],
+        ["V-P15", "Lamas verticales fijas 15\xB0, paso 16,7 (V-P15)"],
+        ["H-F45", "Lamas horizontales fijas 45\xB0 (H-F45)"],
+        ["V-F45", "Lamas verticales fijas 45\xB0 (V-F45)"]
+      ];
+      var ADJUNTOS_DIF = "correo del 13-oct-2026";
+      var FICHA_XGM_DIF = "XGM_PD_2026_09_02_DE_es.pdf (TROX X-GRILLE modular, PD-07/2026)";
+      var RAPIDA_XGM_DIF = "TABLA SELECCION RAPIDA XGM.pdf (TROX)";
+      var FICHA_VDW_DIF = "PD_2019_01_VDW_DE_es.pdf (TROX VDW, PD 01/2019)";
+      var FICHA_PL35_DIF = "PURELINE35_PD_2026_06_29_DE_es.pdf (TROX PL35, PD-06/2026)";
+      var FICHA_PL50_DIF = "PURELINE50_PD_2026_06_29_DE_es.pdf (TROX PL50, PD-06/2026)";
+      var HOJA_OBRA_DIF = "CONVERSION CAUDAL REJAS.xlsx (Drive de la obra, feb. 2026)";
+      var FUENTE_TABLAS_DIF = `TROX: fichas de producto y tablas de selecci\xF3n r\xE1pida (${ADJUNTOS_DIF}); WG y TR2 de \xABCONVERSION CAUDAL REJAS.xlsx\xBB`;
+      var FUENTE_PL_AK_DIF = "TROX \u2014 correo de Emilia Hernandez Trimi\xF1o (TROX Espa\xF1a), 2-nov-2026, imagen \xAB\xC1REAS EFECTIVAS DIFUSORES LINEALES METRO LINEAL\xBB";
+      var AK_METRO_PL_DIF = {
+        PL35: [6636e-6, 0.0132, 0.0198, 0.0265],
+        PL50: [98e-4, 0.01945, 0.0292, 0.0389]
+      };
+      var NOTA_PL_DIF = "Sin Ak: medir con bal\xF3metro. Las fichas de TROX de la PureLine (PD de 33 p\xE1gs. y selecci\xF3n r\xE1pida) no dan \xE1rea efectiva ni geom\xE9trica; si TROX lo da, se pone a mano.";
+      var AVISO_SIN_AK_DIF = "sin Ak: medir con bal\xF3metro";
+      var LN_PL_DIF = [600, 750, 900, 1050, 1200, 1350, 1500, 1650, 1800, 1950];
+      var TAMANOS_VDW_DIF = ["300 \xD7 8", "400 \xD7 16", "500 \xD7 24", "600 \xD7 24", "600 \xD7 48", "625 \xD7 24", "625 \xD7 54", "825 \xD7 72"];
+      var TABLAS_DIF = {
+        WG: {
+          fuente: HOJA_OBRA_DIF,
+          pagina: null,
+          magnitud: "Aeff",
+          nota: "Sin ficha de TROX en los adjuntos: comprobar con la ficha del fabricante.",
+          largos: [200, 400, 600, 800, 1e3, 1200, 1400, 1600, 1800, 2e3, 2200],
+          altos: [165, 330, 495, 660, 825, 990, 1155, 1320, 1485, 1650, 1815, 1980, 2145],
+          filas: [
+            [84e-4, 0.0169, 0.0253, 0.0338, 0.0422, 0.0506, 0.0591, 0.0675, 0.076, 0.0844, 0.0929],
+            [0.0253, 0.0506, 0.076, 0.1013, 0.1266, 0.1519, 0.1773, 0.2026, 0.2279, 0.2532, 0.2786],
+            [0.0422, 0.0844, 0.1266, 0.1688, 0.211, 0.2532, 0.2955, 0.3377, 0.3799, 0.4221, 0.4643],
+            [0.0591, 0.1182, 0.1773, 0.2364, 0.2955, 0.3545, 0.4136, 0.4727, 0.5318, 0.5909, 0.65],
+            [0.076, 0.1519, 0.2279, 0.3039, 0.3799, 0.4558, 0.5318, 0.6078, 0.6838, 0.7597, 0.8357],
+            [0.0929, 0.1857, 0.2786, 0.3714, 0.4643, 0.5571, 0.65, 0.7429, 0.8357, 0.9286, 1.0214],
+            [0.1097, 0.2195, 0.3292, 0.439, 0.5487, 0.6584, 0.7682, 0.8779, 0.9877, 1.0974, 1.2072],
+            [0.1266, 0.2532, 0.3799, 0.5065, 0.6331, 0.7597, 0.8864, 1.013, 1.1396, 1.2662, 1.3929],
+            [0.1435, 0.287, 0.4305, 0.574, 0.7175, 0.861, 1.0046, 1.1481, 1.2916, 1.4351, 1.5786],
+            [0.1604, 0.3208, 0.4812, 0.6416, 0.802, 0.9623, 1.1227, 1.2831, 1.4435, 1.6039, 1.7643],
+            [0.1773, 0.3545, 0.5318, 0.7091, 0.8864, 1.0636, 1.2409, 1.4182, 1.5955, 1.7727, 1.95],
+            [0.1942, 0.3883, 0.5825, 0.7766, 0.9708, 1.1649, 1.3591, 1.5533, 1.7474, 1.9416, 2.0387],
+            [0.211, 0.4221, 0.6331, 0.8442, 1.0552, 1.2662, 1.4773, 1.6883, 1.8994, 2.0049, 2.2159]
+          ]
+        },
+        XGM_REG: {
+          fuente: RAPIDA_XGM_DIF,
+          pagina: 1,
+          magnitud: "Aeff",
+          nota: "XGM-H-MO, \xE1rea efectiva para IMPULSI\xD3N (la hoja de la obra la llamaba \xABcon regulador\xBB).",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.015, 0.022, 0.029, 0.036, 0.043, 0.057, 0.07, 0.084],
+            [0.019, 0.028, 0.037, 0.046, 0.055, 0.073, 0.092, 0.11],
+            [0.027, 0.04, 0.053, 0.066, 0.079, 0.105, 0.131, 0.157],
+            [null, 0.059, 0.078, 0.097, 0.116, 0.154, 0.192, 0.23],
+            [null, null, 0.103, 0.127, 0.152, 0.202, 0.252, 0.302],
+            [null, null, null, 0.158, 0.189, 0.25, 0.313, 0.375]
+          ]
+        },
+        XGM: {
+          fuente: RAPIDA_XGM_DIF,
+          pagina: 1,
+          magnitud: "Aeff",
+          nota: "XGM-H-MO, \xE1rea efectiva para EXTRACCI\xD3N (la hoja de la obra la llamaba \xABsin regulador\xBB).",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.019, 0.028, 0.037, 0.045, 0.054, 0.072, 0.089, 0.107],
+            [0.027, 0.04, 0.053, 0.065, 0.077, 0.103, 0.127, 0.153],
+            [0.035, 0.051, 0.068, 0.084, 0.1, 0.133, 0.165, 0.198],
+            [null, 0.075, 0.098, 0.122, 0.146, 0.194, 0.241, 0.289],
+            [null, null, 0.13, 0.16, 0.192, 0.254, 0.317, 0.38],
+            [null, null, null, 0.198, 0.237, 0.314, 0.393, 0.471]
+          ]
+        },
+        TR2: {
+          fuente: HOJA_OBRA_DIF,
+          pagina: null,
+          magnitud: "Aeff",
+          nota: "Sin ficha de TROX en los adjuntos: comprobar con la ficha del fabricante.",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 225, 325, 425, 525],
+          filas: [
+            [8e-3, 0.012, 0.016, 0.02, 0.024, 0.032, 0.04, 0.048, 0.056, 0.064, 0.072, 0.08],
+            [0.016, 0.024, 0.032, 0.04, 0.048, 0.064, 0.08, 0.096, 0.112, 0.128, 0.144, 0.16],
+            [0.032, 0.048, 0.064, 0.08, 0.096, 0.128, 0.16, 0.192, 0.224, 0.256, 0.288, 0.319],
+            [null, 0.072, 0.096, 0.12, 0.144, 0.192, 0.24, 0.288, 0.335, 0.383, 0.431, 0.479],
+            [null, null, null, null, null, 0.256, 0.319, 0.383, 0.447, 0.511, 0.575, 0.639],
+            [null, null, null, null, null, null, 0.399, 0.479, 0.559, 0.639, 0.719, 0.799]
+          ]
+        },
+        XGM_H_F0_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 10,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [8e-3, 0.011, 0.015, 0.019, 0.022, 0.029, 0.036, 0.043, 0.05, 0.058, 0.065, 0.072],
+            [0.014, 0.021, 0.027, 0.034, 0.04, 0.053, 0.066, 0.079, 0.093, 0.106, 0.119, 0.132],
+            [0.019, 0.028, 0.037, 0.046, 0.055, 0.072, 0.09, 0.108, 0.126, 0.144, 0.162, 0.18],
+            [0.026, 0.039, 0.051, 0.064, 0.076, 0.101, 0.126, 0.152, 0.177, 0.202, 0.227, 0.252],
+            [null, 0.057, 0.076, 0.094, 0.113, 0.15, 0.187, 0.224, 0.261, 0.298, 0.334, 0.371],
+            [null, null, 0.1, 0.124, 0.149, 0.198, 0.247, 0.296, 0.345, 0.393, 0.442, 0.491],
+            [null, null, null, 0.155, 0.185, 0.246, 0.307, 0.368, 0.429, 0.489, 0.55, 0.611]
+          ]
+        },
+        XGM_H_F15_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 10,
+          magnitud: "Aeff",
+          erratas: [{ alto: 165, largo: 625, impreso: 5e-3, porque: "menor que sus vecinos (0,042 y 0,067): errata del PDF; sin valor" }],
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [7e-3, 0.011, 0.014, 0.017, 0.021, 0.027, 0.034, 0.041, 0.047, 0.054, 0.06, 0.067],
+            [0.013, 0.019, 0.025, 0.031, 0.037, 0.049, 0.061, 0.073, 0.086, 0.098, 0.11, 0.122],
+            [0.017, 0.026, 0.034, 0.042, null, 0.067, 0.083, 0.1, 0.116, 0.133, 0.149, 0.166],
+            [0.024, 0.036, 0.047, 0.059, 0.07, 0.093, 0.116, 0.139, 0.162, 0.185, 0.208, 0.231],
+            [null, 0.052, 0.069, 0.086, 0.103, 0.137, 0.171, 0.205, 0.239, 0.273, 0.307, 0.341],
+            [null, null, 0.091, 0.114, 0.136, 0.181, 0.226, 0.271, 0.316, 0.361, 0.406, 0.45],
+            [null, null, null, 0.141, 0.169, 0.225, 0.281, 0.337, 0.393, 0.448, 0.504, 0.56]
+          ]
+        },
+        XGM_H_F0_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 10,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.011, 0.015, 0.02, 0.025, 0.03, 0.039, 0.049, 0.059, 0.068, 0.078, 0.087, 0.097],
+            [0.019, 0.027, 0.036, 0.045, 0.053, 0.07, 0.088, 0.105, 0.122, 0.139, 0.156, 0.174],
+            [0.027, 0.039, 0.052, 0.065, 0.077, 0.101, 0.127, 0.151, 0.176, 0.201, 0.226, 0.251],
+            [0.035, 0.051, 0.067, 0.084, 0.1, 0.132, 0.165, 0.197, 0.23, 0.262, 0.295, 0.327],
+            [null, 0.075, 0.099, 0.122, 0.146, 0.194, 0.242, 0.29, 0.337, 0.385, 0.433, 0.481],
+            [null, null, 0.13, 0.16, 0.193, 0.256, 0.319, 0.382, 0.445, 0.508, 0.571, 0.634],
+            [null, null, null, 0.198, 0.239, 0.317, 0.396, 0.474, 0.553, 0.631, 0.709, 0.788]
+          ]
+        },
+        XGM_H_F15_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 10,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.011, 0.016, 0.02, 0.025, 0.03, 0.04, 0.05, 0.059, 0.069, 0.079, 0.088, 0.098],
+            [0.019, 0.027, 0.036, 0.044, 0.053, 0.07, 0.087, 0.105, 0.122, 0.139, 0.156, 0.173],
+            [0.027, 0.039, 0.052, 0.064, 0.076, 0.101, 0.125, 0.15, 0.175, 0.2, 0.224, 0.249],
+            [0.034, 0.051, 0.067, 0.083, 0.099, 0.131, 0.163, 0.195, 0.228, 0.26, 0.292, 0.324],
+            [null, 0.074, 0.097, 0.121, 0.145, 0.192, 0.239, 0.286, 0.333, 0.38, 0.428, 0.475],
+            [null, null, 0.128, 0.158, 0.19, 0.252, 0.315, 0.377, 0.439, 0.501, 0.563, 0.625],
+            [null, null, null, 0.195, 0.235, 0.312, 0.39, 0.468, 0.545, 0.622, 0.699, 0.776]
+          ]
+        },
+        XGM_H_P0_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 11,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.01, 0.014, 0.018, 0.023, 0.027, 0.036, 0.044, 0.053, 0.062, 0.07, 0.079, 0.088],
+            [0.016, 0.023, 0.031, 0.038, 0.045, 0.06, 0.074, 0.089, 0.104, 0.118, 0.133, 0.148],
+            [0.021, 0.031, 0.04, 0.05, 0.06, 0.079, 0.099, 0.118, 0.138, 0.156, 0.176, 0.196],
+            [0.028, 0.042, 0.055, 0.068, 0.081, 0.108, 0.135, 0.161, 0.188, 0.214, 0.241, 0.267],
+            [null, 0.06, 0.079, 0.098, 0.118, 0.156, 0.195, 0.233, 0.272, 0.31, 0.349, 0.387],
+            [null, null, 0.103, 0.129, 0.154, 0.204, 0.255, 0.305, 0.356, 0.406, 0.456, 0.507],
+            [null, null, null, 0.159, 0.19, 0.253, 0.315, 0.377, 0.44, 0.502, 0.564, 0.627]
+          ]
+        },
+        XGM_H_P15_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 11,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.01, 0.014, 0.018, 0.022, 0.027, 0.035, 0.044, 0.052, 0.061, 0.07, 0.078, 0.087],
+            [0.015, 0.023, 0.03, 0.037, 0.044, 0.058, 0.072, 0.086, 0.101, 0.115, 0.129, 0.143],
+            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.095, 0.113, 0.132, 0.151, 0.169, 0.188],
+            [0.027, 0.04, 0.053, 0.065, 0.078, 0.103, 0.129, 0.154, 0.18, 0.205, 0.231, 0.256],
+            [null, 0.057, 0.075, 0.094, 0.112, 0.149, 0.186, 0.222, 0.259, 0.296, 0.333, 0.369],
+            [null, null, 0.098, 0.122, 0.146, 0.194, 0.242, 0.29, 0.338, 0.386, 0.434, 0.482],
+            [null, null, null, 0.151, 0.18, 0.239, 0.299, 0.358, 0.418, 0.477, 0.536, 0.595]
+          ]
+        },
+        XGM_H_P0_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 11,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.012, 0.017, 0.023, 0.028, 0.033, 0.044, 0.054, 0.065, 0.076, 0.086, 0.097, 0.108],
+            [0.02, 0.029, 0.037, 0.046, 0.055, 0.073, 0.091, 0.109, 0.127, 0.145, 0.163, 0.181],
+            [0.028, 0.04, 0.052, 0.065, 0.078, 0.103, 0.128, 0.153, 0.178, 0.204, 0.229, 0.254],
+            [0.035, 0.051, 0.067, 0.084, 0.1, 0.132, 0.165, 0.197, 0.229, 0.262, 0.294, 0.327],
+            [null, 0.074, 0.097, 0.121, 0.144, 0.191, 0.238, 0.285, 0.332, 0.379, 0.426, 0.473],
+            [null, null, 0.126, 0.159, 0.189, 0.25, 0.312, 0.373, 0.434, 0.496, 0.557, 0.619],
+            [null, null, null, 0.196, 0.233, 0.31, 0.385, 0.461, 0.537, 0.613, 0.689, 0.765]
+          ]
+        },
+        XGM_H_P15_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 11,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.012, 0.018, 0.023, 0.028, 0.034, 0.045, 0.056, 0.066, 0.077, 0.088, 0.099, 0.11],
+            [0.02, 0.029, 0.038, 0.047, 0.056, 0.074, 0.092, 0.11, 0.128, 0.146, 0.164, 0.182],
+            [0.028, 0.04, 0.053, 0.065, 0.078, 0.103, 0.128, 0.154, 0.179, 0.204, 0.229, 0.254],
+            [0.035, 0.051, 0.067, 0.083, 0.1, 0.132, 0.164, 0.197, 0.229, 0.261, 0.294, 0.326],
+            [null, 0.073, 0.097, 0.12, 0.143, 0.19, 0.237, 0.283, 0.33, 0.377, 0.424, 0.47],
+            [null, null, 0.127, 0.156, 0.187, 0.248, 0.309, 0.37, 0.431, 0.492, 0.553, 0.614],
+            [null, null, null, 0.193, 0.231, 0.306, 0.382, 0.457, 0.532, 0.608, 0.683, 0.759]
+          ]
+        },
+        XGM_V_F0_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 12,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.014, 0.02, 0.027, 0.034, 0.04, 0.053, 0.066, 0.079],
+            [0.019, 0.028, 0.037, 0.046, 0.055, 0.072, 0.09, 0.108],
+            [null, 0.039, 0.051, 0.064, 0.076, 0.101, 0.126, 0.151],
+            [null, null, 0.076, 0.094, 0.113, 0.15, 0.187, 0.223],
+            [null, null, null, 0.124, 0.149, 0.198, 0.246, 0.295],
+            [null, null, null, null, 0.185, 0.246, 0.306, 0.368]
+          ]
+        },
+        XGM_V_F15_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 12,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.013, 0.019, 0.025, 0.031, 0.037, 0.049, 0.061, 0.073],
+            [0.017, 0.026, 0.034, 0.042, 0.05, 0.067, 0.083, 0.1],
+            [null, 0.036, 0.047, 0.059, 0.07, 0.093, 0.116, 0.139],
+            [null, null, 0.069, 0.086, 0.103, 0.137, 0.171, 0.205],
+            [null, null, null, 0.114, 0.136, 0.181, 0.226, 0.271],
+            [null, null, null, null, 0.169, 0.225, 0.28, 0.337]
+          ]
+        },
+        XGM_V_F0_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 12,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.019, 0.026, 0.036, 0.044, 0.053, 0.07, 0.088, 0.105],
+            [0.025, 0.036, 0.048, 0.06, 0.072, 0.095, 0.119, 0.141],
+            [null, 0.051, 0.067, 0.084, 0.1, 0.132, 0.166, 0.196],
+            [null, null, 0.098, 0.122, 0.145, 0.193, 0.241, 0.289],
+            [null, null, null, 0.16, 0.193, 0.255, 0.318, 0.381],
+            [null, null, null, null, 0.239, 0.317, 0.395, 0.474]
+          ]
+        },
+        XGM_V_F15_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 12,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.019, 0.027, 0.036, 0.044, 0.053, 0.07, 0.087, 0.106],
+            [0.026, 0.038, 0.051, 0.063, 0.075, 0.1, 0.125, 0.149],
+            [null, 0.05, 0.067, 0.082, 0.099, 0.131, 0.163, 0.195],
+            [null, null, 0.097, 0.121, 0.145, 0.192, 0.239, 0.286],
+            [null, null, null, 0.158, 0.19, 0.252, 0.315, 0.377],
+            [null, null, null, null, 0.235, 0.312, 0.389, 0.467]
+          ]
+        },
+        XGM_V_P0_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 13,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.016, 0.023, 0.03, 0.038, 0.045, 0.06, 0.074, 0.089],
+            [0.021, 0.03, 0.04, 0.05, 0.06, 0.079, 0.098, 0.118],
+            [null, 0.041, 0.055, 0.068, 0.081, 0.108, 0.134, 0.161],
+            [null, null, 0.079, 0.098, 0.118, 0.156, 0.194, 0.233],
+            [null, null, null, 0.129, 0.154, 0.204, 0.255, 0.305],
+            [null, null, null, null, 0.19, 0.252, 0.315, 0.377]
+          ]
+        },
+        XGM_V_P15_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 13,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.015, 0.022, 0.03, 0.037, 0.044, 0.058, 0.072, 0.086],
+            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.095, 0.114],
+            [null, 0.04, 0.052, 0.065, 0.078, 0.103, 0.129, 0.154],
+            [null, null, 0.075, 0.094, 0.112, 0.149, 0.185, 0.222],
+            [null, null, null, 0.122, 0.146, 0.194, 0.242, 0.29],
+            [null, null, null, null, 0.18, 0.239, 0.299, 0.358]
+          ]
+        },
+        XGM_V_P0_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 13,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.02, 0.029, 0.036, 0.046, 0.055, 0.073, 0.091, 0.109],
+            [0.027, 0.04, 0.052, 0.065, 0.078, 0.103, 0.128, 0.153],
+            [null, 0.05, 0.067, 0.084, 0.1, 0.132, 0.164, 0.197],
+            [null, null, 0.097, 0.121, 0.144, 0.191, 0.237, 0.285],
+            [null, null, null, 0.159, 0.189, 0.25, 0.312, 0.373],
+            [null, null, null, null, 0.233, 0.31, 0.385, 0.461]
+          ]
+        },
+        XGM_V_P15_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 13,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.022, 0.032, 0.043, 0.052, 0.063, 0.083, 0.103, 0.124],
+            [0.03, 0.045, 0.059, 0.072, 0.087, 0.114, 0.142, 0.17],
+            [null, 0.056, 0.075, 0.092, 0.11, 0.145, 0.181, 0.216],
+            [null, null, 0.106, 0.132, 0.158, 0.208, 0.259, 0.31],
+            [null, null, null, 0.17, 0.204, 0.27, 0.337, 0.403],
+            [null, null, null, null, 0.25, 0.332, 0.414, 0.497]
+          ]
+        },
+        XGM_H_MO_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 14,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.015, 0.022, 0.029, 0.036, 0.043, 0.057, 0.07, 0.084],
+            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.094, 0.113],
+            [0.027, 0.04, 0.053, 0.066, 0.079, 0.105, 0.131, 0.157],
+            [null, 0.059, 0.078, 0.097, 0.116, 0.154, 0.192, 0.23],
+            [null, null, 0.102, 0.127, 0.152, 0.202, 0.252, 0.302],
+            [null, null, null, 0.158, 0.189, 0.251, 0.313, 0.375]
+          ]
+        },
+        XGM_H_MO_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 14,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.019, 0.028, 0.037, 0.045, 0.054, 0.072, 0.089, 0.107],
+            [0.027, 0.04, 0.053, 0.065, 0.077, 0.103, 0.127, 0.153],
+            [0.035, 0.051, 0.068, 0.084, 0.1, 0.133, 0.165, 0.198],
+            [null, 0.075, 0.098, 0.122, 0.146, 0.194, 0.241, 0.289],
+            [null, null, 0.128, 0.16, 0.192, 0.254, 0.317, 0.38],
+            [null, null, null, 0.197, 0.237, 0.314, 0.393, 0.471]
+          ]
+        },
+        XGM_V_MO_IMP: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 15,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.01, 0.014, 0.019, 0.023, 0.027, 0.036, 0.045, 0.053, 0.062, 0.071, 0.08, 0.088],
+            [0.016, 0.024, 0.031, 0.038, 0.046, 0.061, 0.075, 0.09, 0.105, 0.12, 0.135, 0.149],
+            [0.023, 0.033, 0.044, 0.054, 0.065, 0.086, 0.106, 0.127, 0.148, 0.169, 0.19, 0.211],
+            [0.029, 0.042, 0.056, 0.069, 0.083, 0.11, 0.137, 0.164, 0.191, 0.218, 0.245, 0.272],
+            [null, null, 0.081, 0.1, 0.12, 0.159, 0.198, 0.237, 0.276, 0.315, 0.354, 0.394],
+            [null, null, null, 0.131, 0.157, 0.208, 0.259, 0.311, 0.362, 0.413, 0.464, 0.516],
+            [null, null, null, null, 0.194, 0.257, 0.321, 0.384, 0.447, 0.511, 0.574, 0.638]
+          ]
+        },
+        XGM_V_MO_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 15,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.012, 0.017, 0.022, 0.027, 0.032, 0.042, 0.053, 0.063, 0.073, 0.084, 0.094, 0.104],
+            [0.019, 0.028, 0.037, 0.045, 0.054, 0.071, 0.089, 0.106, 0.124, 0.141, 0.159, 0.176],
+            [0.027, 0.039, 0.052, 0.064, 0.076, 0.1, 0.125, 0.15, 0.174, 0.199, 0.224, 0.248],
+            [0.034, 0.05, 0.066, 0.082, 0.098, 0.129, 0.161, 0.193, 0.224, 0.256, 0.288, 0.32],
+            [null, null, 0.095, 0.118, 0.141, 0.187, 0.233, 0.279, 0.325, 0.371, 0.417, 0.463],
+            [null, null, null, 0.155, 0.185, 0.245, 0.305, 0.365, 0.426, 0.486, 0.546, 0.606],
+            [null, null, null, null, 0.228, 0.301, 0.377, 0.452, 0.526, 0.601, 0.675, 0.75]
+          ]
+        },
+        XGM_H_F45_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 16,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.014, 0.023, 0.031, 0.04, 0.048, 0.065, 0.081, 0.098],
+            [0.02, 0.031, 0.043, 0.055, 0.066, 0.089, 0.113, 0.136],
+            [0.028, 0.045, 0.061, 0.077, 0.094, 0.126, 0.159, 0.192],
+            [null, 0.066, 0.091, 0.115, 0.139, 0.188, 0.237, 0.286],
+            [null, null, 0.12, 0.152, 0.185, 0.25, 0.315, 0.379],
+            [null, null, null, 0.188, 0.229, 0.31, 0.392, 0.473]
+          ]
+        },
+        XGM_V_F45_EXT: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 16,
+          magnitud: "Aeff",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [75, 125, 165, 225, 325, 425, 525],
+          filas: [
+            [9e-3, 0.015, 0.02, 0.025, 0.03, 0.041, 0.051, 0.06],
+            [0.014, 0.023, 0.031, 0.04, 0.048, 0.065, 0.081, 0.098],
+            [0.02, 0.031, 0.043, 0.055, 0.066, 0.089, 0.113, 0.136],
+            [0.028, 0.045, 0.061, 0.077, 0.094, 0.126, 0.159, 0.192],
+            [null, 0.066, 0.091, 0.115, 0.139, 0.188, 0.237, 0.286],
+            [null, null, 0.12, 0.152, 0.185, 0.25, 0.315, 0.379],
+            [null, null, null, 0.188, 0.229, 0.31, 0.392, 0.473]
+          ]
+        },
+        XGM_P_R_AGEO: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 17,
+          magnitud: "Ageo",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [9e-3, 0.014, 0.018, 0.023, 0.027, 0.036, 0.046, 0.055],
+            [0.013, 0.019, 0.025, 0.032, 0.038, 0.051, 0.064, 0.077],
+            [0.018, 0.027, 0.036, 0.046, 0.055, 0.073, 0.091, 0.11],
+            [null, 0.041, 0.055, 0.068, 0.082, 0.11, 0.137, 0.165],
+            [null, null, 0.073, 0.091, 0.11, 0.146, 0.183, 0.22],
+            [null, null, null, 0.114, 0.137, 0.183, 0.229, 0.275]
+          ]
+        },
+        XGM_P_EG_AGEO: {
+          fuente: FICHA_XGM_DIF,
+          pagina: 17,
+          magnitud: "Ageo",
+          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
+          altos: [125, 165, 225, 325, 425, 525],
+          filas: [
+            [0.018, 0.027, 0.035, 0.044, 0.053, 0.071, 0.089, 0.107],
+            [0.025, 0.037, 0.05, 0.062, 0.075, 0.1, 0.125, 0.15],
+            [0.035, 0.053, 0.071, 0.089, 0.107, 0.143, 0.179, 0.215],
+            [null, 0.08, 0.107, 0.134, 0.161, 0.215, 0.268, 0.322],
+            [null, null, 0.142, 0.178, 0.214, 0.286, 0.358, 0.43],
+            [null, null, null, 0.223, 0.268, 0.358, 0.448, 0.538]
+          ]
+        },
+        /* VDW: «Detalles de producto», Aeff por tamaño (diámetro × nº de ranuras). */
+        VDW_Q: {
+          forma: "lista",
+          fuente: FICHA_VDW_DIF,
+          pagina: 19,
+          magnitud: "Aeff",
+          nota: "La ficha da un \xFAnico Aeff por tama\xF1o, sin distinguir impulsi\xF3n y retorno.",
+          tamanos: TAMANOS_VDW_DIF,
+          valores: [7e-3, 0.014, 0.021, 0.0295, 0.039, 0.0295, 0.047, 0.073]
+        },
+        VDW_R: {
+          forma: "lista",
+          fuente: FICHA_VDW_DIF,
+          pagina: 19,
+          magnitud: "Aeff",
+          nota: "La ficha da un \xFAnico Aeff por tama\xF1o, sin distinguir impulsi\xF3n y retorno. En circular no hay 625 \xD7 54 ni 825 \xD7 72.",
+          tamanos: TAMANOS_VDW_DIF.slice(0, 6),
+          valores: [7e-3, 0.014, 0.021, 0.0295, 0.039, 0.0295]
+        },
+        PL35: {
+          forma: "lista",
+          fuente: FICHA_PL35_DIF,
+          pagina: 8,
+          magnitud: "Aeff",
+          sinAk: true,
+          nota: NOTA_PL_DIF,
+          tamanos: LN_PL_DIF.map(String),
+          valores: LN_PL_DIF.map(() => null)
+        },
+        PL50: {
+          forma: "lista",
+          fuente: FICHA_PL50_DIF,
+          pagina: 7,
+          magnitud: "Aeff",
+          sinAk: true,
+          nota: NOTA_PL_DIF,
+          tamanos: LN_PL_DIF.map(String),
+          valores: LN_PL_DIF.map(() => null)
+        }
+      };
+      for (const [modelo, porMetro] of Object.entries(AK_METRO_PL_DIF)) {
+        porMetro.forEach((akm, i) => {
+          TABLAS_DIF[`${modelo}_${i + 1}`] = {
+            forma: "porMetro",
+            fuente: FUENTE_PL_AK_DIF,
+            pagina: null,
+            magnitud: "Aeff",
+            origen: "fabricante",
+            fabricante: "TROX",
+            unidad: "m\xB2 por metro lineal",
+            akPorMetro: akm,
+            nota: `${modelo}-${i + 1} (${i + 1} v\xEDa${i ? "s" : ""}): ${akm} m\xB2 por metro lineal; Ak = ${akm} \xD7 longitud (m).`,
+            tamanos: LN_PL_DIF.map(String),
+            valores: LN_PL_DIF.map((l) => akPorMetroDif(akm, l))
+          };
+        });
+      }
+      (function tiposTroxDif() {
+        const poner = (id, x) => {
+          if (!TIPOS_DIF[id]) TIPOS_DIF[id] = { marca: "TROX", modo: "ak", ak: null, k: null, ...x };
+        };
+        for (const [codigo, texto] of VARIANTES_XGM_DIF) {
+          for (const [circuito, suf, nombreC, corto] of CIRCUITOS_DIF) {
+            const tabla = `XGM_${codigo.replace("-", "_")}_${suf}`;
+            if (!TABLAS_DIF[tabla]) continue;
+            poner(`trox-xgm-${codigo.toLowerCase()}-${corto}`, { modelo: "XGM (X-GRILLE)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX XGM ${codigo} \xB7 ${nombreC}`, circuito, tabla });
+          }
+        }
+        for (const [codigo, texto] of [["P-R", "Frontal perforado circular (P-R)"], ["P-EG", "Frontal perforado celos\xEDa (P-EG)"]]) {
+          for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
+            poner(`trox-xgm-${codigo.toLowerCase()}-${corto}`, { modelo: "XGM (X-GRILLE)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX XGM ${codigo} \xB7 ${nombreC}`, circuito, tabla: `XGM_${codigo.replace("-", "_")}_AGEO` });
+          }
+        }
+        for (const [forma, texto] of [["Q", "Cuadrado (VDW-Q)"], ["R", "Circular (VDW-R)"]]) {
+          for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
+            poner(`trox-vdw-${forma.toLowerCase()}-${corto}`, { modelo: "VDW (rotacional)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX VDW-${forma} \xB7 ${nombreC}`, circuito, tabla: `VDW_${forma}` });
+          }
+        }
+        for (const modelo of ["PL35", "PL50"]) {
+          for (let n = 1; n <= 4; n++) {
+            for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
+              poner(`trox-${modelo.toLowerCase()}-${n}-${corto}`, { modelo: `${modelo} (PureLine, lineal)`, variante: `${n} ranura${n > 1 ? "s" : ""} \xB7 ${nombreC}`, nombre: `TROX ${modelo}-${n} \xB7 ${nombreC}`, circuito, tabla: `${modelo}_${n}` });
+            }
+          }
+        }
+      })();
+      var CAT_AK_DIF = typeof __require !== "undefined" ? require_catalogoAk() : window.CATALOGO_AK;
+      var FACTORES_K_DIF = typeof __require !== "undefined" ? require_factoresKTrox() : typeof window !== "undefined" ? window.FACTORES_K_TROX : null;
+      function factoresKPuntoDif(p) {
+        const t = tipoDif(p && p.tipo);
+        if (!FACTORES_K_DIF || !t.tabla) return [];
+        return FACTORES_K_DIF.buscar({ tabla: t.tabla, tamano: p.tamano, largo: p.largo, alto: p.alto, circuito: t.circuito });
+      }
+      for (const [id, t] of Object.entries(CAT_AK_DIF.TABLAS)) if (!TABLAS_DIF[id]) TABLAS_DIF[id] = t;
+      for (const [id, t] of Object.entries(CAT_AK_DIF.TIPOS)) if (!TIPOS_DIF[id]) TIPOS_DIF[id] = t;
+      function numDif(v) {
+        if (v === null || v === void 0 || v === "") return null;
+        if (typeof v === "number") return Number.isFinite(v) ? v : null;
+        let t = String(v).trim().replace(/\s/g, "");
+        if (t.includes(",") && t.includes(".")) t = t.replace(/\./g, "");
+        t = t.replace(",", ".");
+        if (!t) return null;
+        const n = Number(t);
+        return Number.isFinite(n) ? n : null;
+      }
+      var redDif = (v, d = 1) => v === null ? null : Math.round(v * 10 ** d) / 10 ** d;
+      var entre01Dif = (v) => {
+        const n = numDif(v);
+        return n === null ? 0.5 : Math.min(1, Math.max(0, n));
+      };
+      function leerVelocidadesDif(texto) {
+        if (texto === null || texto === void 0) return { lecturas: [], media: null };
+        if (typeof texto === "number") return Number.isFinite(texto) && texto >= 0 ? { lecturas: [texto], media: texto } : { lecturas: [], media: null };
+        const trozos = String(texto).split(/[;\s/]+|,(?=\s)|\s*\|\s*/).map((t) => t.trim()).filter(Boolean);
+        const lecturas = trozos.map(numDif).filter((n) => n !== null && n >= 0);
+        if (!lecturas.length) return { lecturas: [], media: null };
+        const media = lecturas.reduce((a, b) => a + b, 0) / lecturas.length;
+        return { lecturas, media: redDif(media, 3) };
+      }
+      function tipoDif(id) {
+        return TIPOS_DIF[id] ? { id, ...TIPOS_DIF[id] } : { id: TIPO_DEFECTO_DIF, ...TIPOS_DIF[TIPO_DEFECTO_DIF] };
+      }
+      var EQUIPOS_MEDIDA_DIF = { anemometro: "Anem\xF3metro", balometro: "Bal\xF3metro" };
+      function equipoMedidaDif(p = {}) {
+        if (EQUIPOS_MEDIDA_DIF[p.equipoMedida]) return p.equipoMedida;
+        if (numDif(p.caudalMedido) !== null) return "balometro";
+        return numDif(p.velocidad) !== null ? "anemometro" : null;
+      }
+      function sinAkDif(p = {}) {
+        const f = factorDif(p);
+        return f.modo === "ak" && f.valor === null;
+      }
+      function caudalSinAkDif(p = {}) {
+        return equipoMedidaDif(p) === "balometro" || lecturaDif(p) === "caudal";
+      }
+      function equipoPropuestoDif(p = {}) {
+        return equipoMedidaDif(p) || (sinAkDif(p) ? "balometro" : null);
+      }
+      var LECTURAS_DIF = { velocidad: "Velocidad (m/s)", caudal: "Caudal (m\xB3/h)" };
+      function lecturaDif(p = {}) {
+        if (LECTURAS_DIF[p.lectura]) return p.lectura;
+        return numDif(p.caudalMedido) !== null ? "caudal" : "velocidad";
+      }
+      function normalizarPuntoDif(p = {}, indice = 0) {
+        if (!p || typeof p !== "object") p = {};
+        const t = tipoDif(p.tipo);
+        const modo = MODOS_DIF[p.modo] ? p.modo : t.modo;
+        const ak = numDif(p.ak);
+        const k = numDif(p.k);
+        const v = numDif(p.velocidad);
+        const qd = numDif(p.caudalDiseno);
+        const qm = numDif(p.caudalMedido);
+        const tm = numDif(p.temperatura);
+        const tf = numDif(p.tFrio);
+        const tc = numDif(p.tCalor);
+        const grados = (x) => x !== null && x >= -50 && x <= 150 ? Math.round(x * 10) / 10 : null;
+        return {
+          id: String(p.id || `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`),
+          nombre: String(p.nombre || "").trim().slice(0, 40) || `D${indice + 1}`,
+          /* SIN POSICIÓN (30-oct-2026): la boca sale del texto del plano y no hay
+             dibujo; no se pinta sobre ninguna lámina hasta que llega el PDF y se
+             casa por código y caudal. Nunca se le inventa un sitio: x/y = null. */
+          x: p.sinPosicion ? null : entre01Dif(p.x),
+          y: p.sinPosicion ? null : entre01Dif(p.y),
+          sinPosicion: Boolean(p.sinPosicion),
+          /* La sala del plano, si la trae el texto (null = no se sabe). */
+          sala: p.sala ? String(p.sala).trim().slice(0, 40) || null : null,
+          /* A REVISAR: no se puede atribuir con seguridad al equipo (el plano trae
+             otros sistemas). Se enseña con su motivo y no entra en las sumas. */
+          sinAtribuir: p.sinAtribuir ? String(p.sinAtribuir).trim().slice(0, 200) || "a revisar" : null,
+          tipo: t.id,
+          modo,
+          ak: ak !== null && ak > 0 ? ak : null,
+          k: k !== null && k > 0 ? k : null,
+          largo: medidaDif(p.largo),
+          alto: medidaDif(p.alto),
+          tamano: p.tamano === null || p.tamano === void 0 ? null : String(p.tamano).trim().slice(0, 20) || null,
+          lecturas: p.lecturas === null || p.lecturas === void 0 ? "" : String(p.lecturas).slice(0, 120),
+          velocidad: v !== null && v >= 0 ? v : null,
+          /* Con balómetro se lee el caudal directamente (m³/h): manda sobre v × Ak. */
+          caudalMedido: qm !== null && qm >= 0 ? qm : null,
+          /* Con qué se ha medido: 'anemometro' (M1–M4 × Ak) o 'balometro' (caudal
+             leído, sin Ak). null = sin decir: se deduce (con caudal leído, balómetro). */
+          equipoMedida: EQUIPOS_MEDIDA_DIF[p.equipoMedida] ? p.equipoMedida : null,
+          /* Con el anemómetro: qué se apunta ('velocidad' o 'caudal'); null = sin elegir. */
+          lectura: LECTURAS_DIF[p.lectura] ? p.lectura : null,
+          /* Las lecturas de caudal del anemómetro (M1–M4, m³/h); su media es caudalMedido. */
+          lecturasCaudal: p.lecturasCaudal === null || p.lecturasCaudal === void 0 ? "" : String(p.lecturasCaudal).slice(0, 120),
+          caudalDiseno: qd !== null && qd >= 0 ? qd : null,
+          /* DE DÓNDE SALE EL CAUDAL DE PROYECTO (24-nov-2026, JC en obra: «Necesito los valores de proyecto de cada reja»): el
+             plano y su rótulo cuando lo pone la app (shared/commissioning/caudalesRejasProyecto.js); sin caudal, nada. */
+          ...qd !== null && qd >= 0 && p.caudalFuente && String(p.caudalFuente).trim() ? { caudalFuente: String(p.caudalFuente).trim().slice(0, 200) } : {},
+          /* La Tª del aire en esa boca, en °C, con una cifra decimal (23-oct-2026,
+             JC: «un campo para apuntar la temperatura en cada difusor»). Solo se
+             apunta y se enseña: no entra en ningún cálculo ni se juzga. */
+          temperatura: grados(tm),
+          /* Tª FRÍO Y Tª CALOR (30-oct-2026, JC): las dos en todas las bocas, sea
+             difusor o reja, de impulsión o de retorno. La `temperatura` de antes se
+             conserva tal cual, como «modo sin indicar»: ni se borra ni se mueve. */
+          tFrio: grados(tf),
+          tCalor: grados(tc),
+          nota: String(p.nota || "").slice(0, 300),
+          /* El modelo de proyecto de la obra del que sale (tipo, tamaño y caudal de proyecto). */
+          modeloId: p.modeloId ? String(p.modeloId).slice(0, 40) : null,
+          /* AÑADIDA EN OBRA (30-oct-2026): la boca que pone JC a mano desde el móvil.
+             Las pasadas automáticas no la borran ni la mueven (bocaManual.js › proteger). */
+          origen: p.origen === "manual" ? "manual" : null,
+          manual: p.origen === "manual" ? manualDif(p.manual) : null,
+          /* MEDIDA EN OBRA (30-oct-2026): si en obra se mide otro tamaño, aquí queda
+             el del rótulo del plano (bocaManual.js › cambiarMedidas); null = el del plano. */
+          medidaPlano: p.medidaPlano && typeof p.medidaPlano === "object" ? { largo: medidaDif(p.medidaPlano.largo), alto: medidaDif(p.medidaPlano.alto), tamano: p.medidaPlano.tamano ? String(p.medidaPlano.tamano).slice(0, 20) : null, tipo: p.medidaPlano.tipo ? String(p.medidaPlano.tipo).slice(0, 60) : null } : null,
+          /* De dónde sale un Ak puesto a mano (ficha, página): sin fuente no se acepta (bocaManual.js › ponerAk). */
+          akFuente: ak !== null && ak > 0 && p.akFuente ? String(p.akFuente).trim().slice(0, 160) || null : null,
+          /* FICTICIA (16-nov-2026): la reja a fin de conducto que no existe en obra (rejasFinDeConducto.js), con su red del modelo. */
+          ...p.ficticia === true ? { ficticia: true, red: p.red ? String(p.red).slice(0, 70) : null } : {},
+          /* Ficticia que se queda porque ya tenía una medida (25-nov-2026, «Quitad todas las ficticias»): { en, motivo }. */
+          ...p.ficticia === true && p.medidaConservada && typeof p.medidaConservada === "object" ? { medidaConservada: { en: String(p.medidaConservada.en || "").slice(0, 40), motivo: String(p.medidaConservada.motivo || "").slice(0, 200) } } : {},
+          /* QUITADA A MANO (24-nov-2026, JC en obra con VE-S2.07 A: «quiero poder quitar yo a mano rejas y difusores y tal»):
+             la boca no está en obra. Se queda en la lista con quién y cuándo (para deshacerlo y para que ninguna pasada la
+             vuelva a poner), pero no sale en el plano, ni en la hoja, ni en el PDF, ni cuenta en el caudal. */
+          ...quitadaDif(p.quitada) ? { quitada: quitadaDif(p.quitada) } : {}
+        };
+      }
+      function quitadaDif(q) {
+        if (!q || typeof q !== "object") return null;
+        const en = String(q.en || "").trim().slice(0, 40);
+        if (!en) return null;
+        return { por: String(q.por || "").trim().slice(0, 80) || null, en };
+      }
+      var estaQuitadaDif = (p) => Boolean(p && quitadaDif(p.quitada));
+      var esFicticiaDif = (p) => Boolean(p && (p.ficticia === true || /^rejaFinConducto/.test(String(p.tipo || ""))));
+      var tieneMedidaDif = (p) => Boolean(p) && (numDif(p.velocidad) !== null || numDif(p.caudalMedido) !== null || numDif(p.tFrio) !== null || numDif(p.tCalor) !== null || numDif(p.temperatura) !== null || Boolean(String(p.lecturas || "").trim()) || Boolean(String(p.lecturasCaudal || "").trim()));
+      var fueraDelBalanceoDif = (p) => !p || estaQuitadaDif(p) || esFicticiaDif(p) && !tieneMedidaDif(p);
+      var activasDif = (lista) => Array.isArray(lista) ? lista.filter((p) => !fueraDelBalanceoDif(p)) : [];
+      function manualDif(m) {
+        if (!m || typeof m !== "object") m = {};
+        const t = (v, n) => String(v === null || v === void 0 ? "" : v).trim().slice(0, n);
+        return {
+          sistema: ["impulsion", "retorno", "extraccion"].includes(m.sistema) ? m.sistema : "impulsion",
+          clase: m.clase === "reja" ? "reja" : "difusor",
+          modelo: t(m.modelo, 40) || null,
+          nota: t(m.nota, 200),
+          fecha: t(m.fecha, 30) || null,
+          autor: t(m.autor, 80) || null,
+          posibleDuplicado: t(m.posibleDuplicado, 200) || null
+        };
+      }
+      function medidaDif(v) {
+        const n = numDif(v);
+        return n !== null && n > 0 ? Math.round(n) : null;
+      }
+      function akPorMetroDif(akm, longitudMm) {
+        const l = Number(longitudMm);
+        return akm > 0 && l > 0 ? Math.round(akm * l / 1e3 * 1e6) / 1e6 : null;
+      }
+      var TOLERANCIA_DISCREPANCIA_AK_DIF = 0.01;
+      var claveTamanoDif = (v) => v === null || v === void 0 ? "" : String(v).toLowerCase().replace(/\s+/g, "").replace(/x/g, "\xD7");
+      function valorTablaDif(tabla, { largo = null, alto = null, tamano = null } = {}) {
+        const t = TABLAS_DIF[tabla];
+        if (!t) return null;
+        let v;
+        if (t.forma === "porMetro") {
+          const l = numDif(tamano) || numDif(largo);
+          v = l ? akPorMetroDif(t.akPorMetro, l) : null;
+        } else if (t.forma === "lista") {
+          const i = t.tamanos.findIndex((x) => claveTamanoDif(x) === claveTamanoDif(tamano));
+          if (i < 0) return null;
+          v = t.valores[i];
+        } else {
+          const c = t.largos.indexOf(medidaDif(largo));
+          const f = t.altos.indexOf(medidaDif(alto));
+          if (c < 0 || f < 0) return null;
+          v = t.filas[f][c];
+        }
+        return typeof v === "number" && v > 0 ? v : null;
+      }
+      function akTablaDif(tabla, largo, alto, tamano = null) {
+        const t = TABLAS_DIF[tabla];
+        if (!t || t.magnitud !== "Aeff") return null;
+        return valorTablaDif(tabla, { largo, alto, tamano });
+      }
+      function ageoTablaDif(tabla, largo, alto, tamano = null) {
+        const t = TABLAS_DIF[tabla];
+        if (!t || t.magnitud !== "Ageo") return null;
+        return valorTablaDif(tabla, { largo, alto, tamano });
+      }
+      function fuenteTablaDif(tabla) {
+        const t = TABLAS_DIF[tabla];
+        if (!t) return null;
+        return `${t.fuente}${t.pagina ? `, p. ${t.pagina}` : ""}`;
+      }
+      function factorDif(p) {
+        const t = tipoDif(p.tipo);
+        const modo = MODOS_DIF[p.modo] ? p.modo : t.modo;
+        if (modo === "k") {
+          const propio2 = numDif(p.k);
+          if (propio2 !== null && propio2 > 0) return { modo, valor: propio2, origen: "punto" };
+          return { modo, valor: t.modo === "k" ? t.k : null, origen: t.modo === "k" && t.k ? "catalogo" : null };
+        }
+        const propio = numDif(p.ak);
+        if (propio !== null && propio > 0) {
+          const deTabla = t.tabla ? akTablaDif(t.tabla, p.largo, p.alto, p.tamano) : null;
+          const discrepa = deTabla !== null && Math.abs(propio - deTabla) / deTabla > TOLERANCIA_DISCREPANCIA_AK_DIF;
+          return { modo, valor: propio, origen: "punto", akTabla: deTabla, discrepanciaAk: discrepa };
+        }
+        if (t.tabla) {
+          const v = akTablaDif(t.tabla, p.largo, p.alto, p.tamano);
+          return { modo, valor: v, origen: v ? "tabla" : null };
+        }
+        if (p.medidaPlano && typeof p.medidaPlano === "object") return { modo, valor: null, origen: null };
+        return { modo, valor: t.modo === "ak" ? t.ak : null, origen: t.modo === "ak" && t.ak ? "catalogo" : null };
+      }
+      var visiblesDif = () => Object.entries(TIPOS_DIF).filter(([, x]) => !x.oculto);
+      var unicosDif = (lista) => [...new Set(lista)];
+      function marcasDif() {
+        const m = unicosDif(visiblesDif().map(([, x]) => x.marca));
+        return m.sort((a, b) => a === "TROX" ? -1 : b === "TROX" ? 1 : 0);
+      }
+      function modelosDif(marca) {
+        return unicosDif(visiblesDif().filter(([, x]) => x.marca === marca).map(([, x]) => x.modelo));
+      }
+      function variantesDif(marca, modelo) {
+        return visiblesDif().filter(([, x]) => x.marca === marca && x.modelo === modelo).map(([id, x]) => ({ id, variante: x.variante, circuito: x.circuito }));
+      }
+      function tamanosDif(tipoId) {
+        const t = TIPOS_DIF[tipoId];
+        const tabla = t && t.tabla ? TABLAS_DIF[t.tabla] : null;
+        if (!tabla) return [];
+        if (tabla.forma === "lista" || tabla.forma === "porMetro") {
+          return tabla.tamanos.map((tam, i) => ({ clave: tam, texto: tabla.sinAk || tabla.forma === "porMetro" ? `LN ${tam}` : tam, tamano: tam, largo: null, alto: null, area: tabla.valores[i] })).filter((x) => tabla.sinAk || typeof x.area === "number" && x.area > 0);
+        }
+        const salida = [];
+        tabla.altos.forEach((h, f) => tabla.largos.forEach((l, c) => {
+          const v = tabla.filas[f][c];
+          if (typeof v === "number" && v > 0) salida.push({ clave: `${l}\xD7${h}`, texto: `${l} \xD7 ${h}`, tamano: null, largo: l, alto: h, area: v });
+        }));
+        return salida.sort((a, b) => a.largo - b.largo || a.alto - b.alto);
+      }
+      function claveTamanoPuntoDif(p) {
+        if (p && p.largo && p.alto) return `${p.largo}\xD7${p.alto}`;
+        return p && p.tamano ? p.tamano : "";
+      }
+      function mismoGrupoAkDif(p, tipo, clave) {
+        return p && p.tipo === tipo && claveTamanoPuntoDif(p) === (clave || "");
+      }
+      function aplicarAkPorGrupoDif(puntos, grupo = {}, ak = null) {
+        const v = numDif(ak);
+        const valor = v !== null && v > 0 ? v : null;
+        return (puntos || []).map((p) => mismoGrupoAkDif(p, grupo.tipo, grupo.clave) && (p.modo || tipoDif(p.tipo).modo) !== "k" ? { ...p, modo: "ak", ak: valor } : p);
+      }
+      function gruposAkDif(puntos) {
+        const m = /* @__PURE__ */ new Map();
+        for (const p of puntos || []) {
+          const clave = claveTamanoPuntoDif(p);
+          const id = `${p.tipo}|${clave}`;
+          const g = m.get(id) || { tipo: p.tipo, clave, tipoNombre: tipoDif(p.tipo).nombre, circuito: tipoDif(p.tipo).circuito, bocas: 0, sinAk: 0, aks: /* @__PURE__ */ new Set() };
+          g.bocas += 1;
+          const f = factorDif(p);
+          if (f.modo === "ak" && f.valor === null) g.sinAk += 1;
+          else if (f.modo === "ak") g.aks.add(f.valor);
+          m.set(id, g);
+        }
+        return [...m.values()].map((g) => ({ ...g, ak: g.aks.size === 1 ? [...g.aks][0] : null, aks: void 0 }));
+      }
+      function caudalDif({ velocidad, modo = "ak", ak = null, k = null } = {}) {
+        const v = numDif(velocidad);
+        if (v === null || v < 0) return null;
+        if (modo === "k") {
+          const f = numDif(k);
+          return f === null || f <= 0 ? null : redDif(f * v, 1);
+        }
+        const a = numDif(ak);
+        return a === null || a <= 0 ? null : redDif(v * a * 3600, 1);
+      }
+      function desviacionDif(medido, diseno) {
+        const d = REGLAS_DIF.desviacion(numDif(medido), numDif(diseno));
+        return d === null ? null : redDif(d, 4);
+      }
+      function juicioDif(desv, tol) {
+        const ok = REGLAS_DIF.dentro(desv, tol);
+        if (ok === null) return null;
+        return ok ? "dentro" : desv > 0 ? "alto" : "bajo";
+      }
+      function toleranciasDif(t = {}) {
+        const r = REGLAS_DIF.toleranciasAplicadas(t || {});
+        return { total: r.total, boca: r.boca, totalPorDefecto: Boolean(r.totalPorDefecto), bocaPorDefecto: Boolean(r.bocaPorDefecto) };
+      }
+      function evaluarPuntoDif(p, tolBoca = TOLERANCIA_BOCA_DEFECTO_DIF) {
+        const t = tipoDif(p.tipo);
+        const f = factorDif(p);
+        const equipo = equipoMedidaDif(p);
+        const lectura = equipo === "anemometro" ? lecturaDif(p) : null;
+        const qLeido = numDif(p.caudalMedido) !== null;
+        const directo = equipo === "balometro" || lectura === "caudal" || equipo !== "anemometro" && qLeido;
+        const caudal = directo ? qLeido ? redDif(numDif(p.caudalMedido), 1) : null : f.valor === null ? null : caudalDif({ velocidad: p.velocidad, modo: f.modo, ak: f.modo === "ak" ? f.valor : null, k: f.modo === "k" ? f.valor : null });
+        const desv = desviacionDif(caudal, p.caudalDiseno);
+        let estado;
+        if (directo ? !qLeido : numDif(p.velocidad) === null) estado = "sinMedir";
+        else if (!directo && f.valor === null) estado = "sinFactor";
+        else if (numDif(p.caudalDiseno) === null) estado = "medido";
+        else if (directo && REGLAS_DIF.veredicto({ medido: caudal, referencia: p.caudalDiseno, limite: tolBoca, revisado: Boolean(p.revisado) }) === "aRevisar") estado = "aRevisar";
+        else estado = juicioDif(desv, tolBoca);
+        return {
+          ...p,
+          circuito: t.circuito,
+          tipoNombre: t.nombre,
+          factor: f.valor,
+          modoFactor: f.modo,
+          origenFactor: f.origen,
+          /* Ak a mano frente al de la tabla: los dos se guardan; nada se sobrescribe. */
+          akTabla: f.akTabla === void 0 ? null : f.akTabla,
+          discrepanciaAk: Boolean(f.discrepanciaAk),
+          /* Los K del plenum AK-Uni (q = K·√Δp), si el fabricante los da: solo informan. */
+          factoresK: factoresKPuntoDif(p),
+          caudal,
+          /* El equipo con que se mide (el elegido o el deducido). */
+          equipoMedida: equipo,
+          /* Cómo sale el caudal: 'balometro' / 'directo' (caudal leído), 'anemometro' (v × factor) o null. */
+          metodo: estado === "sinMedir" ? null : equipo === "balometro" ? "balometro" : directo ? "directo" : "anemometro",
+          /* Con el anemómetro: 'velocidad' o 'caudal' (lo que se apunta en M1–M4). */
+          lectura,
+          lecturasLista: leerVelocidadesDif(p.lecturas).lecturas,
+          lecturasCaudalLista: leerVelocidadesDif(p.lecturasCaudal).lecturas,
+          desviacion: desv,
+          estado,
+          /* Sin Ak: el aviso y el aparato que se propone (no cambia lo medido). */
+          sinAk: !caudalSinAkDif(p) && f.modo === "ak" && f.valor === null,
+          avisoSinAk: !caudalSinAkDif(p) && f.modo === "ak" && f.valor === null ? AVISO_SIN_AK_DIF : null,
+          /* Balómetro o anemómetro en m³/h: el Ak no hace falta (24-nov). */
+          caudalSinAk: caudalSinAkDif(p),
+          equipoPropuesto: equipo || (f.modo === "ak" && f.valor === null ? "balometro" : null)
+        };
+      }
+      function rotuloSentidoDif(tipoNombre, sentido) {
+        const circuitoNombre = sentido === "retorno" ? "Extracci\xF3n" : "Impulsi\xF3n";
+        const palabra = sentido === "retorno" ? "extracci\xF3n" : "impulsi\xF3n";
+        const nombre = String(tipoNombre || "").replace(/\bde (retorno|extracci[oó]n|impulsi[oó]n)\b/gi, `de ${palabra}`);
+        return { circuitoNombre, tipoNombre: nombre || tipoNombre };
+      }
+      function resumenDif({ puntos = [], diseno = {}, tolerancias = {}, sinTemperaturas = false, circuito = null } = {}) {
+        const sinT = Boolean(sinTemperaturas);
+        const tol = toleranciasDif(tolerancias);
+        const forzado = circuito === "impulsion" || circuito === "retorno" ? circuito : null;
+        const filas = activasDif(puntos).map((p, i) => evaluarPuntoDif(normalizarPuntoDif(p, i), tol.boca)).map((f) => {
+          if (!forzado) return f;
+          const r = rotuloSentidoDif(f.tipoNombre, forzado);
+          const aviso = f.avisoSinAk && f.tipoNombre ? String(f.avisoSinAk).split(f.tipoNombre).join(r.tipoNombre) : f.avisoSinAk;
+          return { ...f, circuito: forzado, circuitoTipo: f.circuito, tipoNombreGuardado: f.tipoNombre, ...r, avisoSinAk: aviso };
+        });
+        const circuitos = {};
+        for (const id of ["impulsion", "retorno"]) {
+          const suyos = filas.filter((f) => f.circuito === id && !f.sinAtribuir);
+          const conCaudal = suyos.filter((f) => f.caudal !== null);
+          const suma = conCaudal.length ? redDif(conCaudal.reduce((a, f) => a + f.caudal, 0), 1) : null;
+          const disenoPuntos = suyos.every((f) => numDif(f.caudalDiseno) !== null) && suyos.length ? redDif(suyos.reduce((a, f) => a + numDif(f.caudalDiseno), 0), 1) : null;
+          const disenoEquipo = numDif(diseno && diseno[id]);
+          const medidasN = suyos.filter((f) => f.estado !== "sinMedir").length;
+          const faltan = suyos.length - medidasN;
+          const sinCaudal = suyos.length - conCaudal.length;
+          const completo = suyos.length > 0 && sinCaudal === 0;
+          const disenoReferencia = disenoPuntos !== null ? disenoPuntos : disenoEquipo;
+          const desv = completo ? desviacionDif(suma, disenoReferencia) : null;
+          let estado;
+          if (!suyos.length) estado = "sinPuntos";
+          else if (!completo) estado = "incompleto";
+          else if (disenoReferencia === null) estado = "sinDiseno";
+          else estado = juicioDif(desv, tol.total);
+          circuitos[id] = {
+            id,
+            puntos: suyos.length,
+            medidos: medidasN,
+            faltan,
+            sinAk: suyos.filter((f) => f.estado === "sinFactor").length,
+            suma,
+            disenoEquipo,
+            disenoPuntos,
+            /* Contra qué se juzga el total: 'bocas' (lo normal) o 'equipo'. */
+            disenoReferencia,
+            referencia: disenoReferencia === null ? null : disenoPuntos !== null ? "bocas" : "equipo",
+            desviacion: desv,
+            /* El caudal del equipo, solo de referencia. */
+            desviacionEquipo: completo ? desviacionDif(suma, disenoEquipo) : null,
+            estado,
+            dentro: suyos.filter((f) => f.estado === "dentro").length,
+            fuera: suyos.filter((f) => f.estado === "alto" || f.estado === "bajo").length,
+            aRevisar: filas.filter((f) => f.circuito === id && f.sinAtribuir).length,
+            /* Lo de proyecto de las «a revisar» (fuera de la suma): para decir cuánto queda fuera. */
+            disenoRevisar: (() => {
+              const r = filas.filter((f) => f.circuito === id && f.sinAtribuir && numDif(f.caudalDiseno) !== null);
+              return r.length ? redDif(r.reduce((a, f) => a + numDif(f.caudalDiseno), 0), 1) : null;
+            })(),
+            /* «Tª frío 0/11 · Tª calor 0/11»: una boca está completa con caudal y las dos Tª. */
+            tFrio: suyos.filter((f) => f.tFrio !== null).length,
+            tCalor: suyos.filter((f) => f.tCalor !== null).length,
+            completas: suyos.filter((f) => bocaCompletaDif(f, { sinTemperaturas: sinT })).length,
+            sinTemperaturas: sinT
+          };
+        }
+        return { sinTemperaturas: sinT, filas, circuitos, tolerancias: tol, sinPosicion: filas.filter((f) => f.sinPosicion).length, aRevisar: filas.filter((f) => f.sinAtribuir).length };
+      }
+      function bocaCompletaDif(f = {}, { sinTemperaturas = false } = {}) {
+        const medida = f.caudal !== null && f.caudal !== void 0 ? true : f.estado === "sinFactor";
+        if (sinTemperaturas) return Boolean(medida);
+        return Boolean(medida) && numDif(f.tFrio) !== null && numDif(f.tCalor) !== null;
+      }
+      function textoTemperaturasDif(c = {}) {
+        if (c.sinTemperaturas) return "";
+        const n = c.puntos || 0;
+        return `T\xAA fr\xEDo ${c.tFrio || 0}/${n} \xB7 T\xAA calor ${c.tCalor || 0}/${n}`;
+      }
+      function siguienteNombreDif(puntos = [], circuito = "impulsion") {
+        const letra = circuito === "retorno" ? "R" : "D";
+        const re = new RegExp(`^${letra}(\\d+)$`);
+        const max = puntos.reduce((m, p) => {
+          const r = re.exec(String(p.nombre || ""));
+          return r ? Math.max(m, Number(r[1])) : m;
+        }, 0);
+        return `${letra}${max + 1}`;
+      }
+      function normalizarModeloProyectoDif(m = {}, indice = 0) {
+        if (!m || typeof m !== "object") m = {};
+        const t = tipoDif(m.tipo);
+        const qp = numDif(m.caudalProyecto);
+        return {
+          id: String(m.id || `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`).slice(0, 40),
+          ref: String(m.ref || "").trim().slice(0, 30) || `${t.circuito === "retorno" ? "R" : "D"}-${String(indice + 1).padStart(2, "0")}`,
+          tipo: t.id,
+          largo: medidaDif(m.largo),
+          alto: medidaDif(m.alto),
+          tamano: m.tamano === null || m.tamano === void 0 ? null : String(m.tamano).trim().slice(0, 20) || null,
+          /* Ak a mano: para las tablas que no lo dan (PureLine) o un modelo sin tabla. */
+          ak: numDif(m.ak) !== null && numDif(m.ak) > 0 ? numDif(m.ak) : null,
+          caudalProyecto: qp !== null && qp >= 0 ? qp : null,
+          nota: String(m.nota || "").slice(0, 200),
+          /* De dónde sale: 'presupuesto', 'cambio aprobado' o 'manual' (y la partida que lo dio). */
+          origen: ["presupuesto", "cambio aprobado", "manual"].includes(m.origen) ? m.origen : "manual",
+          partida: m.partida && typeof m.partida === "object" ? { codigo: String(m.partida.codigo || "").slice(0, 40), resumen: String(m.partida.resumen || "").slice(0, 200) } : null
+        };
+      }
+      function normalizarModelosProyectoDif(lista) {
+        const vistos = /* @__PURE__ */ new Set();
+        const salida = [];
+        for (const m of Array.isArray(lista) ? lista.slice(0, 200) : []) {
+          if (!m || typeof m !== "object") continue;
+          const n = normalizarModeloProyectoDif(m, salida.length);
+          if (vistos.has(n.id)) continue;
+          vistos.add(n.id);
+          salida.push(n);
+        }
+        return salida;
+      }
+      function camposModeloDif(m) {
+        const t = tipoDif(m.tipo);
+        return {
+          tipo: m.tipo,
+          modo: t.modo === "k" ? "k" : "ak",
+          ak: m.ak,
+          k: null,
+          largo: m.largo,
+          alto: m.alto,
+          tamano: m.tamano,
+          caudalDiseno: m.caudalProyecto
+        };
+      }
+      function evaluarModeloDif(m) {
+        const t = tipoDif(m.tipo);
+        const f = factorDif({ ...normalizarPuntoDif(camposModeloDif(m)) });
+        return {
+          ...m,
+          circuito: t.circuito,
+          tipoNombre: t.nombre,
+          marca: t.marca,
+          modelo: t.modelo,
+          variante: t.variante,
+          factor: f.valor,
+          modoFactor: f.modo,
+          origenFactor: f.origen,
+          akTabla: f.akTabla === void 0 ? null : f.akTabla,
+          discrepanciaAk: Boolean(f.discrepanciaAk),
+          fuente: t.tabla ? fuenteTablaDif(t.tabla) : null,
+          ejemplo: Boolean(t.ejemplo)
+        };
+      }
+      function normalizarAsignacionDif(lista, modelos2 = null) {
+        const ids = modelos2 ? new Set(modelos2.map((m) => m.id)) : null;
+        const vistos = /* @__PURE__ */ new Set();
+        const salida = [];
+        for (const a of Array.isArray(lista) ? lista : []) {
+          if (!a || typeof a !== "object" || !a.modeloId) continue;
+          const id = String(a.modeloId);
+          if (vistos.has(id) || ids && !ids.has(id)) continue;
+          const n = Math.round(numDif(a.cantidad) || 0);
+          if (n <= 0) continue;
+          vistos.add(id);
+          salida.push({ modeloId: id, cantidad: Math.min(200, n) });
+        }
+        return salida;
+      }
+      function aplicarModelosDif(puntos, modelos2) {
+        const porId = new Map((modelos2 || []).map((m) => [m.id, m]));
+        return (puntos || []).map((p, i) => {
+          const m = p.modeloId ? porId.get(p.modeloId) : null;
+          return m ? normalizarPuntoDif({ ...p, ...camposModeloDif(m) }, i) : p;
+        });
+      }
+      function generarBocasDif(asignacion, modelos2, existentes = []) {
+        const porId = new Map((modelos2 || []).map((m) => [m.id, m]));
+        const todas = [...existentes];
+        const nuevas = [];
+        const sobran = [];
+        for (const a of normalizarAsignacionDif(asignacion, modelos2)) {
+          const m = porId.get(a.modeloId);
+          const tiene = existentes.filter((p) => p.modeloId === m.id).length;
+          if (tiene > a.cantidad) sobran.push({ modeloId: m.id, ref: m.ref, sobran: tiene - a.cantidad });
+          for (let i = tiene; i < a.cantidad; i++) {
+            const circuito = tipoDif(m.tipo).circuito;
+            const p = normalizarPuntoDif({ ...camposModeloDif(m), modeloId: m.id, nombre: siguienteNombreDif(todas, circuito) }, todas.length);
+            todas.push(p);
+            nuevas.push(p);
+          }
+        }
+        const asignados = new Set(normalizarAsignacionDif(asignacion, modelos2).map((a) => a.modeloId));
+        for (const m of modelos2 || []) {
+          const tiene = existentes.filter((p) => p.modeloId === m.id).length;
+          if (tiene && !asignados.has(m.id)) sobran.push({ modeloId: m.id, ref: m.ref, sobran: tiene });
+        }
+        return { nuevas, sobran };
+      }
+      function colocarEnListaDif(puntos) {
+        return puntos.map((p, i) => ({ ...p, x: 0.05 + 0.1 * (i % 10), y: Math.min(0.95, 0.08 + 0.12 * Math.floor(i / 10)) }));
+      }
+      function normalizarPuntosDif(lista) {
+        const vistos = /* @__PURE__ */ new Set();
+        const salida = [];
+        for (const p of Array.isArray(lista) ? lista.slice(0, 400) : []) {
+          if (!p || typeof p !== "object") continue;
+          const n = normalizarPuntoDif(p, salida.length);
+          if (vistos.has(n.id)) continue;
+          vistos.add(n.id);
+          salida.push(n);
+        }
+        return salida;
+      }
+      var ETIQUETA_DIF = /^(DIF|DF|DL|DR|D|RJ|RE|RR|RT|RA|RI|RET|EXT|IMP|R)[-_. ]?(\d{1,3}[A-Z]?)$/i;
+      var RETORNO_DIF = /^(RJ|RE|RR|RT|RA|RI|RET|EXT|R)$/i;
+      var CAUDAL_DIF = /(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:[.,]\d+)?)\s*m\s*(?:3|³)\s*\/\s*h/i;
+      var CAUDAL_Q_DIF = /\bQ\s*[=:]\s*(\d+(?:[.,]\d+)?)/i;
+      var RADIO_DIF = 0.06;
+      var CODIGO_CAD_DIF = /^(DR|DL|DF|DIF|RR|RJ|RT|RA|RI|RET|EXT|IMP|RE)_(\d{1,2})_([0-9A-Z]{3,5})$/i;
+      var RETORNO_CAD_DIF = /^(RR|RJ|RT|RA|RI|RET|EXT)$/i;
+      var OTRO_SISTEMA_DIF = /\bVI-N\d+|\bELECT-/i;
+      var RADIO_OTRO_DIF = 0.09;
+      var RADIO_EXTERIOR_DIF = 0.12;
+      var CORTE_DIF = /(^|[_\s])(section|secci[oó]n|corte)([_\s]|\d|$)/i;
+      var CORTE_IZQ_DIF = 0.065;
+      var CORTE_DER_DIF = 0.1;
+      var CORTE_ALTO_DIF = 0.22;
+      function recuentoTablaDif(textos) {
+        const lista = (Array.isArray(textos) ? textos : []).map((t) => ({ x: Number(t && t.x), y: Number(t && t.y), t: String(t && t.texto || "").trim() })).filter((t) => Number.isFinite(t.x) && Number.isFinite(t.y) && t.t);
+        const enteros = lista.filter((t) => /^\d{1,3}$/.test(t.t));
+        const filas = [];
+        for (const c of lista) {
+          if (!CODIGO_CAD_DIF.test(c.t)) continue;
+          const n = enteros.filter((e) => e.x > c.x && e.x - c.x < 0.5 && Math.abs(e.y - c.y) < 4e-3).sort((p, q) => p.x - q.x)[0];
+          if (n) filas.push({ codigo: c.t.toUpperCase(), x: c.x, xn: n.x, n: Number(n.t) });
+        }
+        const salida = {};
+        for (const f of filas) {
+          const columna = filas.filter((g) => Math.abs(g.x - f.x) < 4e-3 && Math.abs(g.xn - f.xn) < 4e-3);
+          if (new Set(columna.map((g) => g.codigo)).size >= 2 && salida[f.codigo] === void 0) salida[f.codigo] = f.n;
+        }
+        return salida;
+      }
+      function numeroCaudalDif(t) {
+        const m = CAUDAL_DIF.exec(t) || CAUDAL_Q_DIF.exec(t);
+        if (!m) return null;
+        const crudo = m[1].replace(/\s/g, "");
+        const n = /^\d{1,3}(\.\d{3})+$/.test(crudo) ? Number(crudo.replace(/\./g, "")) : Number(crudo.replace(",", "."));
+        return Number.isFinite(n) && n > 0 && n < 1e5 ? n : null;
+      }
+      function reconocerBocasDif(textos, { modelos: modelos2 = [], existentes = [], recuento = null, excluir = [], sinTabla = false } = {}) {
+        const avisos = [];
+        const descartadas = [];
+        const exteriores = [];
+        const otros = [];
+        const cortes = [];
+        const fuera = new Set((excluir || []).map((r) => String(r).toUpperCase()));
+        const tabla = sinTabla ? {} : { ...recuentoTablaDif(textos), ...recuento || {} };
+        const porRef = new Map((modelos2 || []).map((m) => [String(m.ref || "").replace(/[\s_.-]/g, "").toUpperCase(), m]));
+        const etiquetas = [];
+        const caudales = [];
+        for (const t of Array.isArray(textos) ? textos : []) {
+          const x = Number(t && t.x);
+          const y = Number(t && t.y);
+          if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 1 || y < 0 || y > 1) continue;
+          const texto = String(t.texto || "").trim();
+          if (!texto) continue;
+          const q = numeroCaudalDif(texto);
+          if (q !== null) caudales.push({ x, y, q, usado: false });
+          if (OTRO_SISTEMA_DIF.test(texto)) otros.push({ x, y });
+          if (CORTE_DIF.test(texto)) cortes.push({ x, y });
+          const trozos = texto.split(/[\s;,()[\]]+/).filter(Boolean);
+          for (let i = 0; i < trozos.length; i++) {
+            const cad = CODIGO_CAD_DIF.exec(trozos[i]);
+            if (cad) {
+              const pref = cad[1].toUpperCase();
+              const codigo = trozos[i].toUpperCase();
+              if (pref === "RE") {
+                exteriores.push({ x, y });
+                break;
+              }
+              const modelo = porRef.get(codigo.replace(/[\s_.-]/g, "")) || null;
+              etiquetas.push({ x, y, ref: codigo, modelo, retorno: modelo ? tipoDif(modelo.tipo).circuito === "retorno" : RETORNO_CAD_DIF.test(pref), q, lineal: pref === "DL", cad: true });
+              break;
+            }
+            const hit = [trozos[i], trozos[i + 1] ? `${trozos[i]} ${trozos[i + 1]}` : null].filter(Boolean).map((limpio) => {
+              const modelo = porRef.get(limpio.replace(/[\s_.-]/g, "").toUpperCase()) || null;
+              const m = ETIQUETA_DIF.exec(limpio);
+              return modelo || m ? { limpio, modelo, m } : null;
+            }).find(Boolean);
+            if (!hit) continue;
+            const retorno = hit.modelo ? tipoDif(hit.modelo.tipo).circuito === "retorno" : RETORNO_DIF.test(hit.m[1]);
+            etiquetas.push({ x, y, ref: hit.limpio, modelo: hit.modelo, retorno, q });
+            break;
+          }
+        }
+        const enCorte = (e) => e.cad && cortes.some((c) => e.x >= c.x - CORTE_IZQ_DIF && e.x <= c.x + CORTE_DER_DIF && e.y < c.y && c.y - e.y <= CORTE_ALTO_DIF);
+        for (const e of etiquetas.filter(enCorte)) descartadas.push({ ref: e.ref, x: e.x, y: e.y, motivo: "r\xF3tulo de un corte (secci\xF3n), no del plano" });
+        etiquetas.splice(0, etiquetas.length, ...etiquetas.filter((e) => !enCorte(e)));
+        const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+        const pares = [];
+        etiquetas.forEach((e, i) => {
+          if (e.q === null) caudales.forEach((c, j) => {
+            const d = dist(e, c);
+            if (d <= RADIO_DIF) pares.push({ i, j, d });
+          });
+        });
+        pares.sort((a, b) => a.d - b.d);
+        const conCaudal = /* @__PURE__ */ new Set();
+        for (const p of pares) {
+          if (conCaudal.has(p.i) || caudales[p.j].usado) continue;
+          etiquetas[p.i].q = caudales[p.j].q;
+          caudales[p.j].usado = true;
+          conCaudal.add(p.i);
+          const e = etiquetas[p.i];
+          const c = caudales[p.j];
+          e.px = Math.min(1, Math.max(0, e.x + (e.x - c.x) * 0.8));
+          e.py = Math.min(1, Math.max(0, e.y + (e.y - c.y) * 0.8));
+        }
+        const aparte = (e) => e.cad && e.retorno && (fuera.has(e.ref) || otros.some((o) => dist(e, o) <= RADIO_OTRO_DIF) || exteriores.some((o) => dist(e, o) <= RADIO_EXTERIOR_DIF));
+        for (const e of etiquetas.filter(aparte)) descartadas.push({ ref: e.ref, x: e.x, y: e.y, motivo: "parece de otro sistema (cuarto o reja exterior al lado)" });
+        etiquetas.splice(0, etiquetas.length, ...etiquetas.filter((e) => !aparte(e)));
+        const lineales = {};
+        for (const e of etiquetas.filter((x) => x.lineal)) (lineales[e.ref] = lineales[e.ref] || []).push(e);
+        for (const [codigo, rotulos2] of Object.entries(lineales)) {
+          const total = tabla[codigo];
+          if (!Number.isInteger(total) || total <= rotulos2.length) {
+            avisos.push(`${codigo}: ${rotulos2.length} r\xF3tulos de difusor lineal y no se ha le\xEDdo la tabla de selecci\xF3n; cada r\xF3tulo suele se\xF1alar varias unidades, cu\xE9ntalas en el plano.`);
+            continue;
+          }
+          const extra = total - rotulos2.length;
+          for (let k = 0; k < extra; k++) {
+            const base = rotulos2[k % rotulos2.length];
+            const p = juntoADif(base.x, base.y, 1 + Math.floor(k / rotulos2.length));
+            etiquetas.push({ ...base, px: p.x, py: p.y, q: base.q, qDe: base, aprox: true });
+          }
+          avisos.push(`${codigo}: la tabla cuenta ${total} unidades lineales y el plano solo rotula ${rotulos2.length}; se han creado ${total} (las ${extra} a\xF1adidas, junto a su r\xF3tulo): col\xF3calas en su sitio.`);
+        }
+        const rotulados = {};
+        for (const e of etiquetas) if (!e.lineal && e.cad) rotulados[e.ref] = (rotulados[e.ref] || 0) + 1;
+        for (const [codigo, n] of Object.entries(rotulados)) {
+          if (Number.isInteger(tabla[codigo]) && tabla[codigo] !== n) avisos.push(`${codigo}: la tabla cuenta ${tabla[codigo]} y el plano rotula ${n}; revisa que est\xE9n todas.`);
+        }
+        etiquetas.sort((a, b) => Math.abs(a.y - b.y) > 0.02 ? a.y - b.y : a.x - b.x);
+        const todas = [...existentes || []];
+        const bocas = [];
+        const rotulos = etiquetas.map((e) => ({ ref: e.ref, x: e.x, y: e.y, cad: Boolean(e.cad), lineal: Boolean(e.lineal), aprox: Boolean(e.aprox) }));
+        for (const e of etiquetas) {
+          const circuito = e.retorno ? "retorno" : "impulsion";
+          const base = e.modelo ? { ...camposModeloDif(e.modelo), modeloId: e.modelo.id } : { tipo: circuito === "retorno" ? "rejillaRet" : TIPO_DEFECTO_DIF };
+          const p = normalizarPuntoDif({
+            ...base,
+            nombre: siguienteNombreDif(todas, circuito),
+            x: e.px ?? e.x,
+            y: e.py ?? e.y,
+            caudalDiseno: e.q !== null ? e.q : e.modelo ? e.modelo.caudalProyecto : null,
+            nota: `Del plano: ${e.ref}${e.lineal ? " (difusor lineal)" : ""}${e.aprox ? " \xB7 posici\xF3n aproximada: unidad de la tabla sin r\xF3tulo propio" : ""}`
+          }, todas.length);
+          todas.push(p);
+          bocas.push(p);
+        }
+        return { bocas, rotulos, sinCaudal: bocas.filter((b) => b.caudalDiseno === null).length, leidos: (textos || []).length, avisos, descartadas, recuento: tabla };
+      }
+      var PASO_JUNTO_DIF = 0.012;
+      function juntoADif(x, y, k = 1) {
+        const sx = x > 0.9 ? -1 : 1;
+        const sy = y > 0.9 ? -1 : 1;
+        const lim = (v) => Math.max(0, Math.min(1, v));
+        return { x: lim(x + sx * PASO_JUNTO_DIF * k), y: lim(y + sy * PASO_JUNTO_DIF * k) };
+      }
+      function zonasCorteDif(textos) {
+        const salida = [];
+        for (const t of Array.isArray(textos) ? textos : []) {
+          const x = Number(t && t.x);
+          const y = Number(t && t.y);
+          if (!Number.isFinite(x) || !Number.isFinite(y) || !CORTE_DIF.test(String(t && t.texto || ""))) continue;
+          salida.push({ x0: x - CORTE_IZQ_DIF, x1: x + CORTE_DER_DIF, y0: y - CORTE_ALTO_DIF, y1: y });
+        }
+        return salida;
+      }
+      function tipoBocaDif(id) {
+        const t = TIPOS_DIF[id];
+        if (!t) return null;
+        if (t.tipoBoca) return t.tipoBoca;
+        const tabla = t.tabla ? TABLAS_DIF[t.tabla] : null;
+        if (tabla && tabla.tipoBoca) return tabla.tipoBoca;
+        const m = String(t.modelo || "");
+        if (/^XGM|^WG|^TR2/.test(m)) return t.circuito === "retorno" ? "rejilla de retorno / extracci\xF3n" : "rejilla de impulsi\xF3n";
+        if (/^VDW/.test(m)) return "difusor rotacional de techo";
+        if (/^PL/.test(m)) return "difusor lineal de ranuras";
+        return t.propio || t.ejemplo ? "gen\xE9rico / a mano" : "otro";
+      }
+      function origenTablaDif(tablaId) {
+        const t = TABLAS_DIF[tablaId];
+        return t ? t.origen || "fabricante" : null;
+      }
+      function fichaAkDif(tipoId) {
+        const t = TIPOS_DIF[tipoId];
+        const tabla = t && t.tabla ? TABLAS_DIF[t.tabla] : null;
+        if (!tabla) return null;
+        return {
+          marca: t.marca,
+          modelo: t.modelo,
+          variante: t.variante,
+          tipoBoca: tipoBocaDif(tipoId),
+          magnitud: tabla.magnitud,
+          origen: tabla.origen || "fabricante",
+          metodo: tabla.metodo || "No indicado en la ficha del fabricante.",
+          correccion: tabla.correccion || null,
+          fuente: fuenteTablaDif(t.tabla),
+          url: tabla.url || null,
+          nota: tabla.nota || null
+        };
+      }
+      function recuentoCatalogoDif() {
+        const porMarca = {};
+        const porTipoBoca = {};
+        const porMarcaTipo = {};
+        for (const [id, t] of visiblesDif()) {
+          if (t.ejemplo || t.propio) continue;
+          const tabla = t.tabla ? TABLAS_DIF[t.tabla] : null;
+          const n = tamanosDif(id).filter((x) => typeof x.area === "number" && x.area > 0).length;
+          const m = porMarca[t.marca] = porMarca[t.marca] || { tipos: 0, tamanosConValor: 0 };
+          m.tipos += 1;
+          m.tamanosConValor += n;
+          const tb = tipoBocaDif(id);
+          const b = porTipoBoca[tb] = porTipoBoca[tb] || { tipos: 0, tamanosConValor: 0 };
+          b.tipos += 1;
+          b.tamanosConValor += n;
+          const k = `${t.marca} \xB7 ${tb}`;
+          const mt = porMarcaTipo[k] = porMarcaTipo[k] || { tipos: 0, tamanosConValor: 0, tablas: /* @__PURE__ */ new Set() };
+          mt.tipos += 1;
+          mt.tamanosConValor += n;
+          if (tabla) mt.tablas.add(t.tabla);
+        }
+        for (const k of Object.keys(porMarcaTipo)) porMarcaTipo[k] = { tipos: porMarcaTipo[k].tipos, tamanosConValor: porMarcaTipo[k].tamanosConValor, tablas: porMarcaTipo[k].tablas.size };
+        return { porMarca, porTipoBoca, porMarcaTipo };
+      }
+      var sinAcentosDif = (v) => String(v === null || v === void 0 ? "" : v).normalize("NFD").replace(/[̀-ͯ]/g, "");
+      var claveMarcaDif = (v) => sinAcentosDif(v).toLowerCase().replace(/[^a-z0-9]/g, "");
+      function codigosModeloDif(modelo) {
+        const base = String(modelo || "").replace(/\(.*$/, "");
+        return base.split(/[\/,]/).map((x) => x.trim().toUpperCase().replace(/\s+/g, "")).filter(Boolean);
+      }
+      function buscarAkDif({ texto = "", marca = "", modelo = "", circuito = null } = {}) {
+        const todo = sinAcentosDif(`${marca} ${modelo} ${texto}`).toUpperCase();
+        if (!todo.trim()) return null;
+        const compacto = claveMarcaDif(todo);
+        const palabras = new Set(todo.split(/[^A-Z0-9\-]+/).filter(Boolean));
+        for (const w of [...palabras]) if (w.includes("-")) {
+          for (const parte of w.split("-")) if (parte) palabras.add(parte);
+        }
+        if (!circuito) circuito = /IMPULS|SUMINISTRO|SUPPLY/.test(todo) ? "impulsion" : /RETORNO|EXTRAC|RETURN|EXTRACT/.test(todo) ? "retorno" : null;
+        const medidas = [...todo.matchAll(/(\d{2,4})\s*[X×]\s*(\d{1,4})/g)].map((m) => [Number(m[1]), Number(m[2])]);
+        const numeros = [...todo.matchAll(/(?:Ø|DIAM(?:ETRO)?\.?|NS|DN|LN|L=)?\s*(\d{2,4})(?!\d)/g)].map((m) => Number(m[1]));
+        const candidatos = [];
+        for (const [id, t] of visiblesDif()) {
+          if (t.ejemplo || t.propio || !t.tabla) continue;
+          if (!compacto.includes(claveMarcaDif(t.marca))) continue;
+          const cods = codigosModeloDif(t.modelo);
+          if (!cods.some((c) => palabras.has(c) || c.length > 3 && todo.replace(/\s+/g, "").includes(c))) continue;
+          candidatos.push(id);
+        }
+        const largo = (id) => Math.max(...codigosModeloDif(TIPOS_DIF[id].modelo).filter((c) => palabras.has(c) || todo.replace(/\s+/g, "").includes(c)).map((c) => c.length), 0);
+        const maxLargo = Math.max(0, ...candidatos.map(largo));
+        let finalistas = candidatos.filter((id) => largo(id) === maxLargo);
+        if (circuito) {
+          const f = finalistas.filter((id) => TIPOS_DIF[id].circuito === circuito);
+          if (f.length) finalistas = f;
+        }
+        const conSufijo = finalistas.filter((id) => {
+          const v = sinAcentosDif(TIPOS_DIF[id].variante).toUpperCase();
+          const m = v.match(/\b[A-Z0-9]+-([QR])\b/);
+          return m && (palabras.has(`${codigosModeloDif(TIPOS_DIF[id].modelo)[0]}-${m[1]}`) || palabras.has(m[1]));
+        });
+        if (conSufijo.length) finalistas = conSufijo;
+        const resueltos = [];
+        for (const id of finalistas) {
+          const tam = tamanosDif(id).filter((x) => typeof x.area === "number" && x.area > 0);
+          const aciertos = tam.filter((x) => {
+            if (x.largo && x.alto) return medidas.some(([a, b]) => a === x.largo && b === x.alto);
+            const k = claveTamanoDif(x.tamano);
+            if (medidas.some(([a, b]) => claveTamanoDif(`${a} \xD7 ${b}`) === k)) return true;
+            return !k.includes("\xD7") && numeros.includes(Number(k));
+          });
+          if (aciertos.length === 1) resueltos.push({ id, tam: aciertos[0] });
+        }
+        const unicos = [];
+        for (const r of resueltos) if (!unicos.some((u) => TIPOS_DIF[u.id].tabla === TIPOS_DIF[r.id].tabla && u.tam.clave === r.tam.clave)) unicos.push(r);
+        if (unicos.length === 1) {
+          const { id, tam } = unicos[0];
+          return { tipo: id, tamano: { clave: tam.clave, largo: tam.largo, alto: tam.alto, tamano: tam.tamano }, ak: tam.area, ficha: fichaAkDif(id) };
+        }
+        if (unicos.length > 1) return { ambiguo: unicos.map((x) => x.id) };
+        return null;
+      }
+      function avisoCaudalDudosoDif(nota) {
+        const m = /caudal de proyecto[^·]*dudoso[^·]*/i.exec(String(nota || ""));
+        return m ? m[0].trim() : null;
+      }
+      (function exportar(API) {
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.DIFUSORES = API;
+      })({
+        MODOS: MODOS_DIF,
+        TIPOS: TIPOS_DIF,
+        TIPO_DEFECTO: TIPO_DEFECTO_DIF,
+        FACTORES_K: FACTORES_K_DIF,
+        factoresKPunto: factoresKPuntoDif,
+        akPorMetro: akPorMetroDif,
+        TOLERANCIA_DISCREPANCIA_AK: TOLERANCIA_DISCREPANCIA_AK_DIF,
+        NOTA_EJEMPLO: NOTA_EJEMPLO_DIF,
+        TOLERANCIA_DEFECTO: TOLERANCIA_DEFECTO_DIF,
+        TOLERANCIA_BOCA_DEFECTO: TOLERANCIA_BOCA_DEFECTO_DIF,
+        num: numDif,
+        leerVelocidades: leerVelocidadesDif,
+        tipo: tipoDif,
+        normalizarPunto: normalizarPuntoDif,
+        normalizarPuntos: normalizarPuntosDif,
+        estaQuitada: estaQuitadaDif,
+        activas: activasDif,
+        esFicticia: esFicticiaDif,
+        tieneMedida: tieneMedidaDif,
+        fueraDelBalanceo: fueraDelBalanceoDif,
+        TABLAS: TABLAS_DIF,
+        FUENTE_TABLAS: FUENTE_TABLAS_DIF,
+        akTabla: akTablaDif,
+        ageoTabla: ageoTablaDif,
+        fuenteTabla: fuenteTablaDif,
+        valorTabla: valorTablaDif,
+        marcas: marcasDif,
+        modelos: modelosDif,
+        variantes: variantesDif,
+        tamanos: tamanosDif,
+        claveTamanoPunto: claveTamanoPuntoDif,
+        aplicarAkPorGrupo: aplicarAkPorGrupoDif,
+        gruposAk: gruposAkDif,
+        MARCA_EJEMPLO: MARCA_EJEMPLO_DIF,
+        factor: factorDif,
+        caudal: caudalDif,
+        desviacion: desviacionDif,
+        tolerancias: toleranciasDif,
+        EQUIPOS_MEDIDA: EQUIPOS_MEDIDA_DIF,
+        equipoMedida: equipoMedidaDif,
+        sinAk: sinAkDif,
+        equipoPropuesto: equipoPropuestoDif,
+        caudalSinAk: caudalSinAkDif,
+        AVISO_SIN_AK: AVISO_SIN_AK_DIF,
+        LECTURAS: LECTURAS_DIF,
+        lectura: lecturaDif,
+        evaluarPunto: evaluarPuntoDif,
+        rotuloSentido: rotuloSentidoDif,
+        resumen: resumenDif,
+        siguienteNombre: siguienteNombreDif,
+        normalizarModeloProyecto: normalizarModeloProyectoDif,
+        normalizarModelosProyecto: normalizarModelosProyectoDif,
+        evaluarModelo: evaluarModeloDif,
+        normalizarAsignacion: normalizarAsignacionDif,
+        aplicarModelos: aplicarModelosDif,
+        generarBocas: generarBocasDif,
+        colocarEnLista: colocarEnListaDif,
+        reconocerBocas: reconocerBocasDif,
+        recuentoTabla: recuentoTablaDif,
+        caudalDeTexto: numeroCaudalDif,
+        zonasCorte: zonasCorteDif,
+        juntoA: juntoADif,
+        CODIGO_CAD: CODIGO_CAD_DIF,
+        tipoBoca: tipoBocaDif,
+        origenTabla: origenTablaDif,
+        fichaAk: fichaAkDif,
+        recuentoCatalogo: recuentoCatalogoDif,
+        buscarAk: buscarAkDif,
+        avisoCaudalDudoso: avisoCaudalDudosoDif,
+        bocaCompleta: bocaCompletaDif,
+        textoTemperaturas: textoTemperaturasDif
+      });
+    }
+  });
+
   // shared/commissioning/sistemas.js
   var require_sistemas = __commonJS({
     "shared/commissioning/sistemas.js"(exports, module) {
@@ -18645,77 +21874,6 @@ globalThis.CX_VARIANTE="cxobra";
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.SISTEMAS_CX = API;
       })();
-    }
-  });
-
-  // shared/commissioning/garantia.js
-  var require_garantia = __commonJS({
-    "shared/commissioning/garantia.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var fechaISO = (v) => {
-        const s = String(v || "").trim();
-        return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null;
-      };
-      function sumarAnios(iso, anios) {
-        const [a, m, d] = iso.split("-").map(Number);
-        const meses = Math.round(Number(anios) * 12);
-        const f = new Date(Date.UTC(a, m - 1 + meses, d));
-        if (f.getUTCDate() !== d) f.setUTCDate(0);
-        return f.toISOString().slice(0, 10);
-      }
-      var hoyLocal = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
-      var fechaVisible = (iso) => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "";
-      function garantiaDe(e, hoy = hoyLocal()) {
-        const g = garantiaSola(e, hoy);
-        const u = e && e.diasUso !== void 0 && e.diasUso !== null && e.diasUso !== "" ? usoDe(e, hoy) : null;
-        return u && u.textoGarantia ? { ...g, usoAntesEntrega: u.antesEntrega, textoUso: u.textoGarantia } : g;
-      }
-      function garantiaSola(e, hoy) {
-        const inicio = fechaISO(e && e.fechaEnvioDF);
-        const n = Number(e && e.garantiaAnios);
-        const anios = Number.isFinite(n) && n > 0 ? n : null;
-        if (!inicio) return { estado: "sinEmpezar", inicio: null, fin: null, anios, texto: "Garant\xEDa: sin empezar (pendiente de entrega a DF)" };
-        if (!anios) return { estado: "sinAnios", inicio, fin: null, anios: null, texto: `Garant\xEDa: desde ${fechaVisible(inicio)} (faltan los a\xF1os de garant\xEDa)` };
-        const fin = sumarAnios(inicio, anios);
-        const estado = fin < hoy ? "vencida" : "vigente";
-        return { estado, inicio, fin, anios, texto: `Garant\xEDa: ${fechaVisible(inicio)} \u2192 ${fechaVisible(fin)}${estado === "vencida" ? " (vencida)" : ""}` };
-      }
-      var GARANTIA_DIA_MS = 864e5;
-      var MAX_DIAS_USO = 36500;
-      var diasEntreGarantia = (desde, hasta) => Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / GARANTIA_DIA_MS);
-      var restarDiasGarantia = (iso, n) => new Date(Date.parse(`${iso}T00:00:00Z`) - n * GARANTIA_DIA_MS).toISOString().slice(0, 10);
-      function leerDiasUso(v) {
-        const s = v === null || v === void 0 ? "" : String(v).trim().replace(",", ".");
-        if (s === "") return null;
-        const n = Number(s);
-        if (!Number.isFinite(n) || n < 0 || n > MAX_DIAS_USO || Math.round(n) !== n) return { error: `\xAB${v}\xBB no son unos d\xEDas de uso (un n\xFAmero entero entre 0 y ${MAX_DIAS_USO}).` };
-        return n;
-      }
-      function sugerenciaDiasUso(fechaPuestaMarcha, hoy = hoyLocal()) {
-        const f = fechaISO(fechaPuestaMarcha);
-        if (!f) return null;
-        const n = diasEntreGarantia(f, hoy);
-        return n >= 0 ? n : null;
-      }
-      function usoDe(e, hoy = hoyLocal()) {
-        const x = e || {};
-        const n = Number(x.diasUso);
-        const dias = x.diasUso !== null && x.diasUso !== void 0 && x.diasUso !== "" && Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
-        const fecha = dias === null ? null : fechaISO(x.diasUsoFecha) || hoy;
-        const inicio = dias === null ? null : restarDiasGarantia(fecha, dias);
-        const entrega = fechaISO(x.fechaEnvioDF);
-        const antesEntrega = dias === null ? null : !entrega || entrega >= fecha ? dias : Math.max(0, dias - diasEntreGarantia(entrega, fecha));
-        const sugerencia = dias === null ? sugerenciaDiasUso(x.fechaPuestaMarcha, hoy) : null;
-        const d = (k) => `${k} ${k === 1 ? "d\xEDa" : "d\xEDas"}`;
-        const texto = dias === null ? null : `${d(dias)} de uso (a ${fechaVisible(fecha)})`;
-        const textoGarantia = dias === null ? null : entrega ? `${d(antesEntrega)} de uso antes de la entrega` : `${d(antesEntrega)} de uso, a\xFAn sin entregar a DF`;
-        return { dias, fecha, inicio, antesEntrega, entregado: Boolean(entrega), sugerencia, texto, textoGarantia };
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.GARANTIA_CX = API;
-      })({ garantiaDe, sumarAnios, fechaVisible, fechaISO, leerDiasUso, sugerenciaDiasUso, usoDe, MAX_DIAS_USO });
     }
   });
 
@@ -22918,171 +26076,6 @@ globalThis.CX_VARIANTE="cxobra";
     }
   });
 
-  // shared/commissioning/reglasCx.js
-  var require_reglasCx = __commonJS({
-    "shared/commissioning/reglasCx.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function iniciarReglasCx() {
-        const NORMA_BALANCEO = "UNE-EN 12599 / RITE IT 2.3.3";
-        const CRITERIO_JC = Object.freeze({ total: 0.1, boca: 0.15 });
-        const numR = (v) => {
-          if (v === null || v === void 0 || v === "") return null;
-          const n = typeof v === "number" ? v : Number(String(v).replace(",", "."));
-          return Number.isFinite(n) ? n : null;
-        };
-        const iguales = (a, b) => a !== null && b !== null && Math.abs(a - b) < 1e-9;
-        const UNIDADES_CAUDAL = /^\s*(m³|m3)\s*\/\s*h\s*$|^\s*l(itros)?\s*\/\s*(s|h|min)\s*$/i;
-        function juzgaDesviacion(punto) {
-          if (!punto) return false;
-          if (punto.caudal === true) return true;
-          if (/^caudal/i.test(String(punto.codigo || punto.id || ""))) return true;
-          return UNIDADES_CAUDAL.test(String(punto.unidad || ""));
-        }
-        function desviacion(medido, referencia) {
-          const m = numR(medido);
-          const r = numR(referencia);
-          if (m === null || r === null || r === 0) return null;
-          return (m - r) / r;
-        }
-        function dentro(desv, limite) {
-          if (desv === null || desv === void 0 || limite === null || limite === void 0) return null;
-          return Math.abs(desv) <= limite + 1e-9;
-        }
-        const esDescope = (texto) => /SIN\s+BALANCEO|DESCOPE/i.test(String(texto || ""));
-        function veredicto({ medido, referencia, limite, revisado = false, descope = false } = {}) {
-          if (descope) return "aRevisar";
-          const m = numR(medido);
-          const r = numR(referencia);
-          if (m === null || r === null) return null;
-          if (iguales(m, r) && !revisado) return "aRevisar";
-          const ok = dentro(desviacion(m, r), limite);
-          return ok === null ? null : ok ? "apto" : "noApto";
-        }
-        function toleranciasAplicadas(t = {}) {
-          const una = (v) => {
-            const n = numR(v);
-            return n !== null && n > 0 && n < 1 ? n : null;
-          };
-          const r = { ...t || {} };
-          for (const k of Object.keys(CRITERIO_JC)) {
-            const n = una(t && t[k]);
-            if (n === null) {
-              r[k] = CRITERIO_JC[k];
-              r[`${k}PorDefecto`] = true;
-            } else r[k] = n;
-          }
-          return r;
-        }
-        const pctTol = (v) => v === null || v === void 0 ? "SIN FIJAR" : `\xB1${String(Math.round(v * 1e3) / 10).replace(".", ",")} %`;
-        function textoNormaTolerancia(t = {}) {
-          const deDefecto = t.totalPorDefecto || t.bocaPorDefecto;
-          return `Norma aplicada: ${NORMA_BALANCEO}. Tolerancia adoptada: caudal total ${pctTol(t.total)}, por boca ${pctTol(t.boca)}${deDefecto ? " (criterio por defecto: la obra no tiene las suyas)" : " (las de la obra)"}.`;
-        }
-        const LINEA_AUTOMATICA = [
-          /^\[(Confirmado por JC|WhatsApp t[ée]cnico|Fotos? del Drive|Drive|Lectura)/i,
-          /^\[[^\]]*ASIGNADA POR ORDEN[^\]]*\]/i,
-          /^\[[^\]]+\]\s*(REVISAR|Prueba CORRECTA|DISCREPANCIA)\b/,
-          /^Respuestas prerrellenadas por criterio en el Excel/i,
-          /^Lecturas de las fotos de JC/i,
-          /^Foto del Drive «/i,
-          /^Foto asignada por orden/i,
-          /^Medido el \d{1,2}-\d{1,2}-\d{4} \(WhatsApp/i,
-          /^Norma aplicada: /,
-          /^PENDIENTE: faltan /,
-          /^Lectura real de la foto/i
-        ];
-        const esLineaAutomatica = (linea) => LINEA_AUTOMATICA.some((r) => r.test(String(linea || "").trim()));
-        function observacionesManuales(texto) {
-          if (texto === null || texto === void 0) return "";
-          const out = [];
-          let enAuto = false;
-          for (const linea of String(texto).split(/\r?\n/)) {
-            const sigue = /^(\s+|·)/.test(linea) && linea.trim() !== "";
-            if (esLineaAutomatica(linea)) {
-              enAuto = true;
-              continue;
-            }
-            if (sigue && enAuto) continue;
-            enAuto = false;
-            out.push(linea);
-          }
-          return out.join("\n").trim();
-        }
-        function pieFoto(nombre) {
-          return String(nombre || "").split(" \xB7 ").map((t) => t.replace(/\s*\(asignada por orden\)/ig, "").trim()).filter((t) => t && !/^ASIGNADA POR ORDEN$/i.test(t) && !/^sin fecha$/i.test(t) && !/^«[^»]*»$/.test(t)).join(" \xB7 ").slice(0, 200);
-        }
-        function sumaBocas(bocas, campo = "caudalMedido") {
-          const v = (bocas || []).map((b) => numR(b && b[campo])).filter((n) => n !== null);
-          return v.length ? v.reduce((s, n) => s + n, 0) : null;
-        }
-        function textoPendiente(rellenos, total) {
-          return total > rellenos ? `PENDIENTE: faltan ${total - rellenos} de ${total} valores.` : null;
-        }
-        const FAMILIAS_CON_VELOCIDADES = Object.freeze(["AIRLAN_FANCOIL"]);
-        function llevaVelocidades(familia, hoja) {
-          if (familia) return FAMILIAS_CON_VELOCIDADES.includes(String(familia).toUpperCase());
-          return /FAN.?COIL|CASSETTE/i.test(String(hoja || ""));
-        }
-        const RED_DE_CAUDAL = Object.freeze({ caudal_aire_impulsion: "impulsion", caudal_aire_retorno: "retorno" });
-        const RED_RECUPERADOR = Object.freeze({ aportacion: "impulsion", extraccion: "retorno" });
-        function redDeBocas(plantilla, punto) {
-          if (RED_DE_CAUDAL[punto]) return RED_DE_CAUDAL[punto];
-          if (/^RECUPERADOR_/i.test(String(plantilla || ""))) return RED_RECUPERADOR[punto] || null;
-          return null;
-        }
-        function origenCaudal(om, nBocas) {
-          if (om === "totalBalanceo") return "medido total en balanceo";
-          if (om === "puntosBms") return "de la prueba punto a punto";
-          if (om === "deBalanceo") return "del balanceo";
-          return om === "balanceo" ? `suma de ${nBocas ? `${nBocas} ` : ""}bocas` : "medido en equipo";
-        }
-        function origenDeMedido(plantilla, punto, p) {
-          if (!p || p.m === null || p.m === void 0) return null;
-          if (p.origenMedido === "balanceo" || p.origenMedido === "totalBalanceo" || p.origenMedido === "deBalanceo") return origenCaudal(p.origenMedido, p.nBocas);
-          return redDeBocas(plantilla, punto) ? origenCaudal(p.origenMedido, p.nBocas) : null;
-        }
-        function tonoRespuesta(punto, valor, tipoSeccion) {
-          if (valor === null || valor === void 0 || valor === "") return null;
-          const p = punto || {};
-          if (valor === "noOk") return "mal";
-          if (valor === "ok") return "bien";
-          if (valor === "na") return "neutra";
-          if (p.tipo === "siNo" && /fuga/i.test(String(p.codigo || ""))) return valor === "si" ? "mal" : "bien";
-          const deChequeo = tipoSeccion ? tipoSeccion === "checklist" : p.tipo !== "siNo";
-          if (!deChequeo) return "neutra";
-          return valor === "no" ? "mal" : valor === "si" ? "bien" : "neutra";
-        }
-        (function exportar(API) {
-          if (typeof module !== "undefined" && module.exports) module.exports = API;
-          if (typeof window !== "undefined") window.REGLAS_CX = API;
-        })({
-          NORMA_BALANCEO,
-          CRITERIO_JC,
-          juzgaDesviacion,
-          desviacion,
-          dentro,
-          esDescope,
-          veredicto,
-          toleranciasAplicadas,
-          textoNormaTolerancia,
-          pctTol,
-          sumaBocas,
-          textoPendiente,
-          observacionesManuales,
-          esLineaAutomatica,
-          pieFoto,
-          FAMILIAS_CON_VELOCIDADES,
-          llevaVelocidades,
-          redDeBocas,
-          origenCaudal,
-          origenDeMedido,
-          tonoRespuesta
-        });
-      })();
-    }
-  });
-
   // shared/commissioning/fichas.js
   var require_fichas = __commonJS({
     "shared/commissioning/fichas.js"(exports, module) {
@@ -23615,6 +26608,8 @@ globalThis.CX_VARIANTE="cxobra";
               if (dePresion && punto.calculado) v = presiones.derivado[punto.codigo] || null;
               const pDerivado = s.formato === "etapas" && etapas && etapas.proyecto[punto.codigo] !== void 0 && !(v && v.p !== void 0 && v.p !== null) ? etapas.proyecto[punto.codigo] : null;
               if (pDerivado !== null) v = { ...v || {}, p: pDerivado, o: v && v.o || "equipo" };
+              const pObra = s.tipo === "parametros" && opciones.proyecto && opciones.proyecto[punto.codigo];
+              if (pObra && !(v && numFx(v.p) !== null)) v = { ...v || {}, p: pObra.valor, o: v && v.o || "equipo", fp: pObra.fuente };
               if (v && v.o !== "equipo" && v.o !== "plantilla") algoEscrito = true;
               if (v && v.o !== "equipo" && v.o !== "plantilla" && !(s.tipo === "datos" && v.o === "importacion")) masQuePlaca = true;
               if (v && v.o === "prueba") datosPrueba = true;
@@ -24576,67 +27571,6 @@ ${obsO}` : obsO).slice(0, 4e3);
     }
   });
 
-  // shared/commissioning/fechaPM.js
-  var require_fechaPM = __commonJS({
-    "shared/commissioning/fechaPM.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function(raiz, fabrica) {
-        const api = fabrica();
-        if (typeof module === "object" && module.exports) module.exports = api;
-        if (raiz) raiz.FECHA_PM = api;
-      })(typeof window !== "undefined" ? window : null, function() {
-        const iso = (v) => {
-          const s = String(v || "").trim().slice(0, 10);
-          return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
-        };
-        const texto = (f) => f ? f.split("-").reverse().join("/") : null;
-        const FECHAS_SOLO_GARANTIA = Object.freeze(["2025-04-01", "2025-05-01", "2025-07-01", "2025-08-01", "2025-09-01"]);
-        const soloGarantia = (f) => FECHAS_SOLO_GARANTIA.includes(f);
-        const isoToma = (v) => {
-          const f = iso(v);
-          return f && !soloGarantia(f) ? f : null;
-        };
-        const HECHA = (x) => x && (x.estado === "completa" || x.estado === "firmada") && !x.sinFechaNiFirma;
-        function tomaDeFichas(fichas, fechaDe2 = () => null) {
-          const tomas = (fichas || []).filter((x) => x && x.clase === "fichaPM");
-          const dia = (x) => x.fichaId ? isoToma(fechaDe2(x.fichaId)) : null;
-          const hechas = tomas.filter(HECHA).map(dia).filter(Boolean).sort();
-          if (hechas.length) return { tomaEstado: "completa", fechaToma: hechas[0] };
-          const medias = tomas.map(dia).filter(Boolean).sort();
-          if (medias.length) return { tomaEstado: "aMedias", fechaToma: medias[0] };
-          return { tomaEstado: "sinToma", fechaToma: null };
-        }
-        function diaDeToma(fila, { aMano = false } = {}) {
-          let d = fila && fila.datos;
-          if (typeof d === "string") {
-            try {
-              d = JSON.parse(d);
-            } catch {
-              d = null;
-            }
-          }
-          const fe = isoToma(d && d.cabecera && d.cabecera.fechaEnsayo);
-          if (!fe) return null;
-          const nacio = iso(fila && fila.creadoEn);
-          if (nacio && fe < nacio && !aMano) return null;
-          return fe;
-        }
-        function puestaEnMarcha(u) {
-          const p = u && u.pmFichas || {};
-          const fecha = isoToma(p.fechaToma);
-          const estado = fecha ? p.tomaEstado === "aMedias" ? "aMedias" : "enMarcha" : "sinToma";
-          const fechaTexto = texto(fecha);
-          if (estado === "enMarcha") return { estado, fecha, fechaTexto, etiqueta: `En marcha desde ${fechaTexto}`, tono: "bien", deToma: true };
-          if (estado === "aMedias") return { estado, fecha, fechaTexto, etiqueta: `${fechaTexto} \xB7 toma a medias`, tono: "info", deToma: true };
-          return { estado, fecha: null, fechaTexto: null, etiqueta: "Sin toma de datos", tono: "gris", deToma: false };
-        }
-        const fechaDe = (u) => puestaEnMarcha(u).fecha;
-        return { tomaDeFichas, diaDeToma, puestaEnMarcha, fechaDe, texto, FECHAS_SOLO_GARANTIA, soloGarantia };
-      });
-    }
-  });
-
   // shared/commissioning/control.js
   var require_control = __commonJS({
     "shared/commissioning/control.js"(exports, module) {
@@ -25339,12 +28273,14 @@ ${obsO}` : obsO).slice(0, 4e3);
         if (clave === "faltaDocumentacion") return faltaDocPropia(l);
         if (clave === "entregados") return l.envio === "enviada";
         if (clave === "conIncidencias") return (l.incidencias || []).length > 0;
-        if (clave === "listos") {
-          if (l.envio === "enviada") return false;
-          const v = veredictoDe ? veredictoDe.get(l.id) : null;
-          return v ? v.estado === "completo" : puedeEnviarse(l);
-        }
+        if (clave === "listos") return estadoListoDF(l, veredictoDe) === "listo";
         return false;
+      }
+      function estadoListoDF(l, veredictoDe = null) {
+        if (!l) return "pendiente";
+        if (l.envio === "enviada") return "entregado";
+        const v = veredictoDe ? veredictoDe.get(l.id) : null;
+        return (v ? v.estado === "completo" : puedeEnviarse(l)) ? "listo" : "pendiente";
       }
       function kpiEquipos(lineas = [], veredicto = null, censo = null) {
         const porId = veredicto ? new Map(veredicto.map((v) => [v.id, v])) : null;
@@ -25378,8 +28314,9 @@ ${obsO}` : obsO).slice(0, 4e3);
           const tipo = tipoParaEntrega(l);
           if (!grupos.has(tipo)) grupos.set(tipo, { tipo, listos: [], entregados: [], pendientes: [] });
           const g = grupos.get(tipo);
-          if (l.envio === "enviada") g.entregados.push(l);
-          else if (v ? v.estado === "completo" : puedeEnviarse(l)) g.listos.push(l);
+          const e = estadoListoDF(l0, porId);
+          if (e === "entregado") g.entregados.push(l);
+          else if (e === "listo") g.listos.push(l);
           else g.pendientes.push(l);
         }
         const porTag = (a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true });
@@ -25477,10 +28414,22 @@ ${obsO}` : obsO).slice(0, 4e3);
         if (q && !`${l.tag || ""} ${l.planta || ""} ${l.tipoEntrega} ${l.marca || ""} ${l.modelo || ""} ${l.numSerie || ""} ${x.texto || ""}`.toLowerCase().includes(q)) return false;
         return true;
       }
-      function entregasPlantaTipo(grupos = [], filtro = {}, info = null) {
+      var CASI_DF = 2;
+      function casiListosDe(grupos = [], max = CASI_DF) {
+        const r = [];
+        for (const g of grupos || []) {
+          for (const l of g.pendientes || []) {
+            const falta = faltaParaEntrega(l);
+            if (falta.length && falta.length <= max) r.push({ ...l, tipoEntrega: g.tipo, entrega: "casi", falta });
+          }
+        }
+        return r;
+      }
+      function entregasPlantaTipo(grupos = [], filtro = {}, info = null, { casi = 0 } = {}) {
         const porTag = (a, b) => String(a.tag || "").localeCompare(String(b.tag || ""), "es", { numeric: true });
         const plantas = /* @__PURE__ */ new Map();
-        for (const l of completosDe(grupos)) {
+        const ordenEntrega = { listo: 0, casi: 1, entregado: 2 };
+        for (const l of [...completosDe(grupos), ...casi ? casiListosDe(grupos, casi) : []]) {
           if (!pasaFiltroEntrega(l, filtro, info)) continue;
           const pl = String(l.planta || "").trim() || "Sin planta";
           if (!plantas.has(pl)) plantas.set(pl, /* @__PURE__ */ new Map());
@@ -25490,10 +28439,11 @@ ${obsO}` : obsO).slice(0, 4e3);
         }
         const ordenP = (a, b) => (a === "Sin planta") - (b === "Sin planta") || a.localeCompare(b, "es", { numeric: true });
         const lista = [...plantas.entries()].sort((a, b) => ordenP(a[0], b[0])).map(([planta, tipos]) => {
-          const ts = [...tipos.entries()].sort((a, b) => (a[0] === "Sin tipolog\xEDa") - (b[0] === "Sin tipolog\xEDa") || a[0].localeCompare(b[0], "es")).map(([tipo, filas]) => ({ tipo, filas: filas.sort(porTag) }));
+          const ts = [...tipos.entries()].sort((a, b) => (a[0] === "Sin tipolog\xEDa") - (b[0] === "Sin tipolog\xEDa") || a[0].localeCompare(b[0], "es")).map(([tipo, filas]) => ({ tipo, filas: filas.sort((a, b) => (casi ? ordenEntrega[a.entrega] - ordenEntrega[b.entrega] : 0) || porTag(a, b)) }));
           return { planta, tipos: ts, total: ts.reduce((n, t) => n + t.filas.length, 0) };
         });
-        return { plantas: lista, total: lista.reduce((n, p) => n + p.total, 0), retenidos: (grupos || []).reduce((n, g) => n + g.pendientes.length, 0) };
+        const nCasi = lista.reduce((n, p) => n + p.tipos.reduce((m, t) => m + t.filas.filter((f) => f.entrega === "casi").length, 0), 0);
+        return { plantas: lista, total: lista.reduce((n, p) => n + p.total, 0) - nCasi, casi: nCasi, retenidos: (grupos || []).reduce((n, g) => n + g.pendientes.length, 0) - (casi ? casiListosDe(grupos, casi).length : 0) };
       }
       function opcionesEntregasCompletas(grupos = [], info = null) {
         const cuenta = (campo) => {
@@ -25589,6 +28539,9 @@ ${obsO}` : obsO).slice(0, 4e3);
         contarConjuntos,
         tipoDeEquipo: tipologiaDeEquipo,
         entregasPorTipo,
+        estadoListoDF,
+        casiListosDe,
+        CASI_DF,
         filtrarEntregas,
         opcionesFiltroEntregas,
         entregasPlantaTipo,
@@ -26487,6 +29440,16 @@ ${obsO}` : obsO).slice(0, 4e3);
      creadoEn           TEXT NOT NULL,
      modificadoEn       TEXT NOT NULL
    )`,
+        /* LO CERTIFICADO DE CADA EQUIPO, PARA EL PLANO DEL MÓVIL CX (26-nov-2026, JC: «salen en azul equipos que no me salen en
+           azul en el móvil»). Una fila por obra (id = obraId) con { equipoId: estado de su certificación }, sin importes: la rehace
+           el escritorio (shared/commissioning/certificacionAlMovil.js) y solo viaja de ida, para que el móvil pinte el azul. */
+        `CREATE TABLE IF NOT EXISTS certPlanoEquipos (
+     id                 TEXT PRIMARY KEY,
+     obraId             TEXT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+     estados            TEXT NOT NULL DEFAULT '{}',
+     creadoEn           TEXT NOT NULL,
+     modificadoEn       TEXT NOT NULL
+   )`,
         /* LOS MATERIALES INSTALADOS (29-oct, JC): compuertas, VAV, difusores,
            rejillas, válvulas, detectores, actuadores, sondas… No son equipos de
            commissioning: cada uno es una pieza en el plano de su planta (x, y en
@@ -27380,6 +30343,22 @@ ${obsO}` : obsO).slice(0, 4e3);
      anclaResumen  TEXT,
      fijada        INTEGER NOT NULL DEFAULT 0,
      adjuntos      TEXT,
+     creadoEn      TEXT NOT NULL,
+     modificadoEn  TEXT NOT NULL
+   )`,
+        /*
+         * MI FIRMA (JC, 26-nov-2026): la firma de cada persona, la que se pone sola
+         * (con un toque suyo) en los papeles que firma su rol (shared/firma/). Una por
+         * persona: el dibujo (dedo, ratón o imagen subida con el fondo transparente)
+         * en PNG data URL y el nombre con el que firma. Privada como las notas: solo
+         * la ve y la cambia su dueño; viaja a su teléfono y a la nube con persona_id.
+         */
+        `CREATE TABLE IF NOT EXISTS firmasPersona (
+     id            TEXT PRIMARY KEY,
+     personaId     TEXT NOT NULL REFERENCES personas(id) ON DELETE CASCADE,
+     nombre        TEXT NOT NULL DEFAULT '',
+     imagen        TEXT NOT NULL,
+     origen        TEXT NOT NULL DEFAULT 'trazo',
      creadoEn      TEXT NOT NULL,
      modificadoEn  TEXT NOT NULL
    )`,
@@ -30995,6 +33974,7 @@ ${obsO}` : obsO).slice(0, 4e3);
         `CREATE INDEX IF NOT EXISTS idx_cambiosEstado_fecha ON cambiosEstadoEquipo (creadoEn)`,
         /* El bloc se abre por persona y se ordena por lo último tocado. */
         `CREATE INDEX IF NOT EXISTS idx_notas_persona     ON notas (personaId, modificadoEn)`,
+        `CREATE INDEX IF NOT EXISTS idx_firmasPersona_persona ON firmasPersona (personaId, modificadoEn)`,
         `CREATE INDEX IF NOT EXISTS idx_descconcepto      ON descripcionesConcepto (firma)`,
         `CREATE INDEX IF NOT EXISTS idx_notas_ancla       ON notas (anclaTipo, anclaId)`,
         `CREATE INDEX IF NOT EXISTS idx_notas_fecha       ON notas (personaId, fecha)`,
@@ -31625,6 +34605,9 @@ ${obsO}` : obsO).slice(0, 4e3);
         ["ofertasProveedor", "cobertura", "TEXT NOT NULL DEFAULT 'sumMO'"],
         ["ofertasProveedor", "totalEscrito", "REAL"],
         ["ofertasProveedor", "motivoDescarte", "TEXT"],
+        /* Lo leído de las condiciones de la oferta y a quién se avisó (26-nov,
+           electron/data/condicionesOfertas.js), JSON con su empresaId. */
+        ["ofertasProveedor", "condicionesLeidas", "TEXT"],
         ["pedidosCompra", "adjudicacionId", "TEXT"],
         /* Las subcontratas que trabajan A HORAS (21-oct, shared/compras/aHoras.js):
            la modalidad del paquete ('partidas' o 'horas') y su cuadrilla tipo
@@ -32194,13 +35177,17 @@ ${obsO}` : obsO).slice(0, 4e3);
         ampliarChecks(db);
         pasarJefesDeApoyo(db);
         jcJefeDeObraEnNCN(db);
+        fotosVeS213AlVeS2131(db);
         equipoDeLaHojaEnListas(db);
         mapasEspecificosEnNCN(db);
         alcanceEntregaDFEnNCN(db);
         caudalesRejasEnNCN(db);
+        datosProyectoSpEnNCN(db);
         caudalesRejasEnPlanos(db);
         rejasPorMedidaEnNCN(db);
         ventiladoresNcn2411(db);
+        ventiladoresNcnObsMaximaPotencia(db);
+        quitarRejasFicticias(db);
         ensayoFijoPorFamilia(db);
         for (const sql of INDICES) db.prepare(sql).run();
         disparadoresDeEstado(db);
@@ -32389,6 +35376,61 @@ ${obsO}` : obsO).slice(0, 4e3);
           apuntar.run(a.clave, ahora);
         }
       }
+      var DATOS_PROYECTO_SP_UNA_VEZ = { clave: "2026-11-25-datos-proyecto-sp-ncn", obraId: "NCN-mv8pro4u" };
+      function datosProyectoSpEnNCN(db) {
+        db.exec("CREATE TABLE IF NOT EXISTS _ajustesHechos (clave TEXT PRIMARY KEY, hechoEn TEXT NOT NULL)");
+        const a = DATOS_PROYECTO_SP_UNA_VEZ;
+        if (db.prepare("SELECT 1 FROM _ajustesHechos WHERE clave = ?").get(a.clave)) return;
+        let datos;
+        try {
+          datos = require_datosProyectoSpNcn2511();
+        } catch {
+          return;
+        }
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        const norm = (t) => String(t || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+        try {
+          if (!db.prepare("SELECT 1 FROM obras WHERE id = ?").get(a.obraId)) return;
+          const eq = db.prepare("SELECT id, tag, caudalDisenoImp, caudalDisenoRet FROM equiposObra WHERE id = ? AND obraId = ?");
+          const ponEq = {
+            caudalDisenoImp: db.prepare("UPDATE equiposObra SET caudalDisenoImp = ?, modificadoEn = ? WHERE id = ?"),
+            caudalDisenoRet: db.prepare("UPDATE equiposObra SET caudalDisenoRet = ?, modificadoEn = ? WHERE id = ?")
+          };
+          for (const x of datos.equipos || []) {
+            const e = eq.get(x.id, a.obraId);
+            if (!e || norm(e.tag) !== norm(x.tag) || !ponEq[x.campo]) continue;
+            if (Number(e.caudalDisenoImp) > 0 || Number(e.caudalDisenoRet) > 0) continue;
+            ponEq[x.campo].run(x.valor, ahora, e.id);
+          }
+          const fichas = db.prepare("SELECT id, datos, firmas FROM fichasPM WHERE equipoId = ? AND plantilla = ? AND obraId = ?");
+          const ponFicha = db.prepare("UPDATE fichasPM SET datos = ?, modificadoEn = ? WHERE id = ?");
+          for (const x of datos.fichas || []) {
+            for (const f of fichas.all(x.equipoId, x.plantilla, a.obraId)) {
+              let firmas = [];
+              try {
+                firmas = JSON.parse(f.firmas || "[]") || [];
+              } catch {
+                firmas = ["?"];
+              }
+              if (Array.isArray(firmas) && firmas.length) continue;
+              let d;
+              try {
+                d = JSON.parse(f.datos || "{}") || {};
+              } catch {
+                continue;
+              }
+              d.valores = d.valores || {};
+              const v = d.valores[x.campo];
+              if (v && v.v !== void 0 && v.v !== null && v.v !== "") continue;
+              d.valores[x.campo] = { v: x.valor, o: "importacion" };
+              ponFicha.run(JSON.stringify(d), ahora, f.id);
+            }
+          }
+        } catch {
+          return;
+        }
+        db.prepare("INSERT OR IGNORE INTO _ajustesHechos (clave, hechoEn) VALUES (?, ?)").run(a.clave, ahora);
+      }
       var REJAS_POR_MEDIDA_UNA_VEZ = [
         {
           clave: "2026-11-25-ve-s2-14-pkr-03-0604",
@@ -32543,6 +35585,91 @@ ${a.observacion.texto}` : a.observacion.texto;
           }
         }
       }
+      var VENTILADORES_NCN_OBS_2511 = {
+        clave: "2026-11-25-ventiladores-ncn-obs-maxima-potencia-3",
+        obraId: "NCN-mv8pro4u",
+        texto: "Caudales medidos con el ventilador a m\xE1xima potencia",
+        /* VE-S2.14, VI-S2.07 y VE-S2.07 A (el equipo de la firma de Pedro, mwuiiqfda5ufhdna). */
+        equipos: ["mv92zoau17ru59vr", "mv92zobxbsc4gg0o", "mv92zoak6la9a2sa"]
+      };
+      function ventiladoresNcnObsMaximaPotencia(db) {
+        const a = VENTILADORES_NCN_OBS_2511;
+        db.exec("CREATE TABLE IF NOT EXISTS _ajustesHechos (clave TEXT PRIMARY KEY, hechoEn TEXT NOT NULL)");
+        if (db.prepare("SELECT 1 FROM _ajustesHechos WHERE clave = ?").get(a.clave)) return;
+        let obra;
+        let fichas;
+        try {
+          obra = db.prepare("SELECT 1 FROM obras WHERE id = ?").get(a.obraId);
+          fichas = db.prepare(`SELECT id, equipoId, datos FROM fichasPM WHERE obraId = ? AND clase = 'fichaPM' AND equipoId IN (${a.equipos.map(() => "?").join(",")})`).all(a.obraId, ...a.equipos);
+        } catch {
+          return;
+        }
+        if (!obra || !fichas.length) return;
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        const guardar = db.prepare("UPDATE fichasPM SET datos = ?, modificadoEn = ? WHERE id = ?");
+        let completo = a.equipos.every((eq) => fichas.some((f) => f.equipoId === eq));
+        db.exec("BEGIN");
+        try {
+          for (const f of fichas) {
+            let d;
+            try {
+              d = JSON.parse(f.datos) || {};
+            } catch {
+              completo = false;
+              continue;
+            }
+            const antes = String(d.observaciones || "");
+            if (antes.includes(a.texto)) continue;
+            d.observaciones = antes.trim() ? `${antes.replace(/\s+$/, "")}
+${a.texto}` : a.texto;
+            guardar.run(JSON.stringify(d), ahora, f.id);
+          }
+          if (completo) db.prepare("INSERT OR IGNORE INTO _ajustesHechos (clave, hechoEn) VALUES (?, ?)").run(a.clave, ahora);
+          db.exec("COMMIT");
+        } catch (e) {
+          try {
+            db.exec("ROLLBACK");
+          } catch {
+          }
+        }
+      }
+      var SIN_FICTICIAS_UNA_VEZ = "2026-11-25-sin-rejas-ficticias";
+      function quitarRejasFicticias(db) {
+        db.exec("CREATE TABLE IF NOT EXISTS _ajustesHechos (clave TEXT PRIMARY KEY, hechoEn TEXT NOT NULL)");
+        if (db.prepare("SELECT 1 FROM _ajustesHechos WHERE clave = ?").get(SIN_FICTICIAS_UNA_VEZ)) return;
+        const D = require_difusores();
+        let filas;
+        try {
+          filas = db.prepare("SELECT id, puntos FROM planosDifusores WHERE puntos LIKE '%ficticia%' OR puntos LIKE '%rejaFinConducto%'").all();
+        } catch {
+          return;
+        }
+        if (!filas.length && !db.prepare("SELECT 1 FROM planosDifusores LIMIT 1").get()) return;
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        const poner = db.prepare("UPDATE planosDifusores SET puntos = ?, modificadoEn = ? WHERE id = ?");
+        for (const f of filas) {
+          let puntos;
+          try {
+            puntos = JSON.parse(f.puntos || "[]");
+          } catch {
+            continue;
+          }
+          if (!Array.isArray(puntos)) continue;
+          let cambia = false;
+          const quedan = [];
+          for (const p of puntos) {
+            if (!D.esFicticia(p)) {
+              quedan.push(p);
+              continue;
+            }
+            cambia = true;
+            if (!D.tieneMedida(p)) continue;
+            quedan.push(p.medidaConservada ? p : { ...p, ficticia: true, medidaConservada: { en: ahora, motivo: "Reja ficticia con medida: no se borra al quitar las ficticias (JC 25-nov)" } });
+          }
+          if (cambia) poner.run(JSON.stringify(quedan), ahora, f.id);
+        }
+        db.prepare("INSERT OR IGNORE INTO _ajustesHechos (clave, hechoEn) VALUES (?, ?)").run(SIN_FICTICIAS_UNA_VEZ, ahora);
+      }
       function ensayoFijoPorFamilia(db) {
         const { ensayoCorregido } = require_control();
         let filas;
@@ -32557,6 +35684,77 @@ ${a.observacion.texto}` : a.observacion.texto;
           if (bien !== f.ensayoRequerido) poner.run(bien, f.id);
         }
       }
+      var FOTOS_VE_S2_13_2511 = {
+        clave: "2026-11-25-fotos-ve-s2-13-al-13-1",
+        obraId: "NCN-mv8pro4u",
+        origen: "mv92zoatq8xiw5nc",
+        destino: "mvzf77krt4uj0i9y",
+        dia: "2026-11-25",
+        cuantas: 2
+      };
+      function fotosVeS213AlVeS2131(db, { registro = () => {
+      } } = {}) {
+        const a = FOTOS_VE_S2_13_2511;
+        try {
+          db.exec("CREATE TABLE IF NOT EXISTS _ajustesHechos (clave TEXT PRIMARY KEY, hechoEn TEXT NOT NULL)");
+        } catch {
+          return { creadas: 0 };
+        }
+        if (db.prepare("SELECT 1 FROM _ajustesHechos WHERE clave = ?").get(a.clave)) return { creadas: 0, hecho: true };
+        let fotos;
+        try {
+          if (!db.prepare("SELECT 1 FROM equiposObra WHERE id = ? AND obraId = ?").get(a.destino, a.obraId)) return { creadas: 0 };
+          const [y, m, d] = a.dia.split("-");
+          fotos = db.prepare(`SELECT * FROM fotosEquipo WHERE equipoId = ? AND obraId = ?
+      AND (hora LIKE ? OR substr(COALESCE(tomadaEn, ''), 1, 10) = ? OR substr(creadoEn, 1, 10) = ?) ORDER BY creadoEn`).all(a.origen, a.obraId, `${d}/${m}/${y}%`, a.dia, a.dia);
+        } catch {
+          return { creadas: 0 };
+        }
+        fotos = fotos.filter((f) => String(f.rutaNube || "").trim());
+        if (fotos.length > a.cuantas) {
+          registro(`VE-S2.13 tiene ${fotos.length} fotos del ${a.dia} (se esperaban ${a.cuantas}): no se copia ninguna al VE-S2.13.1, hay que preguntar a JC.`);
+          return { creadas: 0, demasiadas: fotos.length };
+        }
+        const ahora = (/* @__PURE__ */ new Date()).toISOString();
+        const yaTiene = db.prepare("SELECT 1 FROM fotosEquipo WHERE id = ? OR (equipoId = ? AND rutaNube = ?)");
+        const poner = db.prepare(`INSERT INTO fotosEquipo (id, obraId, equipoId, ruta, pie, hora, creadoEn, modificadoEn, rutaNube, rutaOrigen, lat, lon, precision, tomadaEn)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+        let creadas = 0;
+        db.exec("BEGIN");
+        try {
+          for (const f of fotos) {
+            const id = `${f.id}-ve1331`;
+            if (yaTiene.get(id, a.destino, f.rutaNube)) continue;
+            poner.run(
+              id,
+              a.obraId,
+              a.destino,
+              f.ruta,
+              f.pie ?? null,
+              f.hora ?? null,
+              f.creadoEn,
+              ahora,
+              f.rutaNube,
+              f.rutaOrigen ?? null,
+              f.lat ?? null,
+              f.lon ?? null,
+              f.precision ?? null,
+              f.tomadaEn ?? null
+            );
+            creadas++;
+          }
+          if (fotos.length === a.cuantas) db.prepare("INSERT OR IGNORE INTO _ajustesHechos (clave, hechoEn) VALUES (?, ?)").run(a.clave, ahora);
+          db.exec("COMMIT");
+        } catch (e) {
+          try {
+            db.exec("ROLLBACK");
+          } catch {
+          }
+          return { creadas: 0, error: e.message };
+        }
+        if (creadas) registro(`VE-S2.13.1: ${creadas} foto(s) del VE-S2.13 copiadas (25-nov, JC).`);
+        return { creadas };
+      }
       function disparadoresDeEstado(db) {
         for (const campo of ["estado", "estadoPM", "balanceoEstado", "estanqueidadEstado"]) {
           db.exec(`DROP TRIGGER IF EXISTS cambio_${campo}`);
@@ -32569,7 +35767,7 @@ ${a.observacion.texto}` : a.observacion.texto;
       END`);
         }
       }
-      module.exports = { prepararEsquema, a\u00F1adirColumnasQueFalten, jcJefeDeObraEnNCN, TABLAS, INDICES, COLUMNAS_A\u00D1ADIDAS };
+      module.exports = { prepararEsquema, a\u00F1adirColumnasQueFalten, jcJefeDeObraEnNCN, fotosVeS213AlVeS2131, TABLAS, INDICES, COLUMNAS_A\u00D1ADIDAS };
     }
   });
 
@@ -44375,7 +47573,10 @@ ${a.observacion.texto}` : a.observacion.texto;
           referencia: llano(x.referencia) || null,
           cantidad: Number.isFinite(Number(x.cantidad)) && llano(x.cantidad) !== "" ? Number(x.cantidad) : null,
           archivo: llano(x.archivo) || null,
-          cargadoEn: llano(x.cargadoEn) || null
+          cargadoEn: llano(x.cargadoEn) || null,
+          /* De dónde sale cuando viene de una hoja (control de pedidos): la hoja y la fila dentro de «archivo». */
+          ...llano(x.hoja) ? { hoja: llano(x.hoja) } : {},
+          ...Number.isInteger(Number(x.fila)) && llano(x.fila) !== "" ? { fila: Number(x.fila) } : {}
         })).filter((x) => x.pedido || x.albaran);
       }
       var clave = (x) => `${llano(x.albaran).toUpperCase()}|${llano(x.pedido).toUpperCase()}`;
@@ -49274,1932 +52475,6 @@ ${a.observacion.texto}` : a.observacion.texto;
     }
   });
 
-  // shared/commissioning/catalogoAk.js
-  var require_catalogoAk = __commonJS({
-    "shared/commissioning/catalogoAk.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const T2 = "TROX";
-        const NO_INDICA = "No indicado en la ficha del fabricante (Aeff = \xE1rea efectiva de descarga/entrada).";
-        const lista = (o) => ({ forma: "lista", magnitud: "Aeff", origen: "fabricante", metodo: NO_INDICA, correccion: null, ...o });
-        const matriz = (o) => ({ forma: "matriz", magnitud: "Aeff", origen: "fabricante", metodo: NO_INDICA, correccion: null, ...o });
-        function matrizDeModelo(modelo, largos, filas, extra) {
-          const altos = [];
-          const f = [];
-          for (const [h, modelos2, vals] of filas) {
-            if (!modelos2.includes(modelo)) continue;
-            altos.push(h);
-            f.push(vals);
-          }
-          return matriz({ ...extra, largos, altos, filas: f });
-        }
-        const tablas = {};
-        const tipos = {};
-        const ponTipo = (id, x) => {
-          tipos[id] = { modo: "ak", ak: null, k: null, ...x };
-        };
-        const URL_REJ = "https://cdn.trox.de/0ae9188da51728e7/3ff576a2ffa6/t_1_1_1_grilles_lin.pdf";
-        const FICHA_REJ = "TROX T 1.1.1 EN \xABGrilles / Linear grilles\xBB (rejillas lineales, datos aerodin\xE1micos)";
-        const L8 = [225, 325, 425, 525, 625, 825, 1025, 1225];
-        const N = null;
-        const A_GRUPO = ["AT", "VAT", "ASL", "SL", "TR", "TRS", "TRS-R", "TRS-K", "KS"];
-        const FILAS_IMP = [
-          [75, ["AH", "AF"], [6e-3, 9e-3, 0.011, 0.014, 0.017, 0.022, 0.028, 0.034]],
-          [75, ["VAT", "TRS", "TRS-R", "TRS-K"], [7e-3, 0.011, 0.014, 0.018, 0.021, 0.029, 0.036, 0.043]],
-          [125, A_GRUPO, [0.014, 0.021, 0.029, 0.036, 0.043, 0.057, 0.072, 0.086]],
-          [125, ["AH", "AF"], [0.011, 0.017, 0.022, 0.028, 0.034, 0.044, 0.055, 0.066]],
-          [125, ["AWT"], [0.01, 0.015, 0.02, 0.025, 0.031, 0.04, 0.05, 0.06]],
-          [225, A_GRUPO, [0.029, 0.043, 0.057, 0.072, 0.086, 0.114, 0.142, 0.172]],
-          [225, ["AH", "AF"], [N, 0.034, 0.044, 0.055, 0.066, 0.087, 0.108, 0.129]],
-          [225, ["AWT"], [N, 0.031, 0.04, 0.05, 0.06, 0.078, 0.097, 0.116]],
-          [325, ["AT", "VAT", "ASL", "SL", "TR", "TRS", "TRS-K"], [N, 0.064, 0.086, 0.108, 0.129, 0.172, 0.214, 0.256]],
-          [325, ["AH", "AF"], [N, N, 0.066, 0.081, 0.096, 0.129, 0.169, 0.193]],
-          [325, ["AWT"], [N, N, 0.06, 0.073, 0.086, 0.116, 0.152, 0.174]],
-          [425, ["AT", "VAT", "ASL", "SL", "TR"], [N, N, N, N, 0.172, 0.228, 0.285, 0.342]],
-          [425, ["AH", "AF"], [N, N, N, N, 0.129, 0.169, 0.214, 0.256]],
-          [525, ["AT", "VAT", "ASL", "SL", "TR"], [N, N, N, N, N, N, 0.355, 0.427]]
-        ];
-        const FILAS_RET = [
-          [75, ["AH", "AF"], [4e-3, 6e-3, 9e-3, 0.011, 0.013, 0.017, 0.021, 0.026]],
-          [75, ["AWT"], [3e-3, 5e-3, 8e-3, 0.01, 0.011, 0.015, 0.018, 0.023]],
-          [75, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [6e-3, 9e-3, 0.011, 0.014, 0.016, 0.022, 0.028, 0.033]],
-          [125, ["AH", "AF"], [9e-3, 0.013, 0.017, 0.021, 0.026, 0.033, 0.041, 0.049]],
-          [125, ["AWT"], [8e-3, 0.011, 0.015, 0.018, 0.023, 0.029, 0.036, 0.043]],
-          [125, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [0.011, 0.016, 0.022, 0.028, 0.033, 0.044, 0.055, 0.066]],
-          [125, ["ASL", "SL"], [0.013, 0.019, 0.026, 0.033, 0.04, 0.053, 0.066, 0.08]],
-          [225, ["AH", "AF"], [N, 0.026, 0.033, 0.041, 0.049, 0.066, 0.082, 0.09]],
-          [225, ["AWT"], [N, 0.023, 0.029, 0.036, 0.043, 0.057, 0.071, 0.078]],
-          [225, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [N, 0.033, 0.044, 0.055, 0.066, 0.09, 0.11, 0.134]],
-          [225, ["ASL", "SL"], [N, 0.04, 0.053, 0.066, 0.08, 0.105, 0.133, 0.16]],
-          [325, ["AH", "AF"], [N, N, 0.049, 0.06, 0.072, 0.095, 0.12, 0.14]],
-          [325, ["AWT"], [N, N, 0.043, 0.052, 0.063, 0.083, 0.104, 0.122]],
-          [325, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [N, N, 0.066, 0.083, 0.1, 0.134, 0.17, 0.2]],
-          [325, ["ASL", "SL"], [N, N, 0.08, 0.1, 0.12, 0.16, 0.2, 0.24]],
-          [425, ["AH", "AF"], [N, N, N, N, 0.095, 0.122, 0.155, 0.185]],
-          [425, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [N, N, N, N, 0.134, 0.18, 0.22, 0.27]],
-          [425, ["ASL", "SL"], [N, N, N, N, 0.16, 0.22, 0.27, 0.32]],
-          [525, ["AT", "VAT", "TR", "TRS", "TRS-R", "KS"], [N, N, N, N, N, N, 0.28, 0.34]],
-          [525, ["ASL", "SL"], [N, N, N, N, N, N, 0.33, 0.4]]
-        ];
-        const MODELOS_IMP = ["AT", "VAT", "ASL", "SL", "TR", "TRS", "TRS-R", "TRS-K", "KS", "AH", "AF", "AWT"];
-        const MODELOS_RET = ["AT", "VAT", "ASL", "SL", "TR", "TRS", "TRS-R", "KS", "AH", "AF", "AWT"];
-        const F_RET = { ASL: 1.6, AT: 1.6, VAT: 1.6, SL: 1.6, TR: 1.6, TRS: 1.6, AH: 1.9, AF: 1.9, AWT: 1.9 };
-        const METODO_REJ_IMP = "Pitot entre lamas con las lamas sin divergencia: Q = v \xD7 Aeff \xD7 3600. Anem\xF3metro de h\xE9lice (sonda \xD8109) recorriendo uniformemente toda la cara de la reja: Q = v \xD7 Aeff \xD7 1,33 \xD7 3600 (cat\xE1logo, p. 16).";
-        const METODO_REJ_RET = "Anem\xF3metro de h\xE9lice (sonda \xD8109) recorriendo uniformemente toda la cara de la reja: Q = v \xD7 Aeff \xD7 f \xD7 3600; f = 1,6 (ASL \xB7 AT \xB7 VAT \xB7 SL \xB7 TR \xB7 TRS) o 1,9 (AH \xB7 AF \xB7 AWT) (cat\xE1logo, p. 18).";
-        for (const m of MODELOS_IMP) {
-          const id = `REJ_${m.replace("-", "_")}_IMP`;
-          tablas[id] = matrizDeModelo(m, L8, FILAS_IMP, {
-            marca: T2,
-            modelo: m,
-            tipoBoca: "rejilla de impulsi\xF3n",
-            circuito: "impulsion",
-            fuente: FICHA_REJ,
-            pagina: 15,
-            url: URL_REJ,
-            metodo: METODO_REJ_IMP,
-            correccion: { valor: 1.33, texto: "Con anem\xF3metro de h\xE9lice sobre la cara: Q = v \xD7 Aeff \xD7 1,33 \xD7 3600 (p. 16)." }
-          });
-          ponTipo(`trox-rej-${m.toLowerCase()}-imp`, { marca: T2, modelo: `${m} (rejilla)`, variante: "Impulsi\xF3n", nombre: `TROX ${m} \xB7 impulsi\xF3n`, circuito: "impulsion", tabla: id, tipoBoca: "rejilla de impulsi\xF3n" });
-        }
-        for (const m of MODELOS_RET) {
-          const id = `REJ_${m.replace("-", "_")}_RET`;
-          const f = F_RET[m];
-          tablas[id] = matrizDeModelo(m, L8, FILAS_RET, {
-            marca: T2,
-            modelo: m,
-            tipoBoca: "rejilla de retorno / extracci\xF3n",
-            circuito: "retorno",
-            fuente: FICHA_REJ,
-            pagina: 18,
-            url: URL_REJ,
-            metodo: METODO_REJ_RET,
-            correccion: f ? { valor: f, texto: `Anem\xF3metro de h\xE9lice sobre la cara: Q = v \xD7 Aeff \xD7 ${String(f).replace(".", ",")} \xD7 3600 (p. 18).` } : null
-          });
-          ponTipo(`trox-rej-${m.toLowerCase()}-ret`, { marca: T2, modelo: `${m} (rejilla)`, variante: "Retorno / extracci\xF3n", nombre: `TROX ${m} \xB7 retorno`, circuito: "retorno", tabla: id, tipoBoca: "rejilla de retorno / extracci\xF3n" });
-        }
-        const URL_TR2X = "https://cdn.trox.de/eb494ea59de47d76/36646accebdf/TR2X_PD_2025_07_15_DE_en.pdf";
-        const FICHA_TR2X = "TROX TR2X, PD-07/2025 \u2013 CH/en";
-        const L6 = [225, 325, 425, 525, 625, 825];
-        const H4 = [75, 125, 225, 325];
-        const tr2x = (id, variante, circuito, pagina, filas) => {
-          tablas[id] = matriz({ marca: T2, modelo: "TR2X", tipoBoca: circuito === "impulsion" ? "rejilla de impulsi\xF3n" : "rejilla de retorno / extracci\xF3n", circuito, fuente: FICHA_TR2X, pagina, url: URL_TR2X, largos: L6, altos: H4, filas });
-          ponTipo(`trox-tr2x-${id.slice(5).toLowerCase()}`, { marca: T2, modelo: "TR2X (rejilla)", variante, nombre: `TROX TR2X \xB7 ${variante}`, circuito, tabla: id, tipoBoca: tablas[id].tipoBoca });
-        };
-        tr2x("TR2X_IMP_VH", "Impulsi\xF3n, lamas VH / HV", "impulsion", 8, [[7e-3, 0.011, 0.015, 0.019, 0.022, 0.03], [0.015, 0.022, 0.03, 0.037, 0.045, 0.06], [0.03, 0.045, 0.06, 0.075, 0.09, 0.12], [N, 0.067, 0.09, 0.112, 0.135, 0.18]]);
-        tr2x("TR2X_IMP_V", "Impulsi\xF3n, lamas V", "impulsion", 8, [[8e-3, 0.012, 0.015, 0.019, 0.023, 0.031], [0.015, 0.023, 0.031, 0.039, 0.046, 0.062], [0.031, 0.046, 0.062, 0.077, 0.093, 0.124], [N, 0.07, 0.093, 0.116, 0.139, 0.185]]);
-        tr2x("TR2X_IMP_H", "Impulsi\xF3n, lamas H", "impulsion", 8, [[8e-3, 0.012, 0.016, 0.02, 0.024, 0.032], [0.016, 0.024, 0.032, 0.04, 0.048, 0.064], [0.032, 0.048, 0.064, 0.08, 0.096, 0.128], [N, 0.072, 0.096, 0.12, 0.144, 0.192]]);
-        tr2x("TR2X_RET_V", "Retorno, lamas V", "retorno", 9, [[6e-3, 9e-3, 0.011, 0.014, 0.017, 0.023], [0.011, 0.017, 0.023, 0.028, 0.034, 0.045], [0.023, 0.034, 0.045, 0.057, 0.068, 0.091], [N, 0.051, 0.068, 0.085, 0.102, 0.136]]);
-        tr2x("TR2X_EXT_H", "Extracci\xF3n, lamas H", "retorno", 9, [[6e-3, 9e-3, 0.012, 0.015, 0.018, 0.023], [0.012, 0.018, 0.023, 0.029, 0.035, 0.047], [0.023, 0.035, 0.047, 0.059, 0.07, 0.094], [N, 0.053, 0.07, 0.088, 0.106, 0.141]]);
-        const L8_AE = [150, 200, 300, 400, 500, 600, 700, 800, 900, 1e3, 1100, 1200];
-        const H_AE = [100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600];
-        const AE_FILAS = [
-          [6e-3, 9e-3, 0.014, 0.019, 0.024, 0.029, 0.034, 0.039, 0.044, 0.049, 0.054, 0.059],
-          [0.01, 0.015, 0.023, 0.032, 0.04, 0.049, 0.057, 0.066, 0.074, 0.083, 0.092, 0.1],
-          [N, 0.021, 0.033, 0.045, 0.057, 0.069, 0.081, 0.093, 0.105, 0.117, 0.129, 0.141],
-          [N, N, 0.042, 0.057, 0.073, 0.088, 0.104, 0.12, 0.135, 0.15, 0.166, 0.181],
-          [N, N, 0.052, 0.071, 0.089, 0.108, 0.128, 0.142, 0.165, 0.184, 0.203, 0.222],
-          [N, N, N, 0.084, 0.106, 0.128, 0.151, 0.173, 0.195, 0.217, 0.24, 0.262],
-          [N, N, N, 0.096, 0.122, 0.148, 0.174, 0.2, 0.225, 0.251, 0.277, 0.303],
-          [N, N, N, N, 0.142, 0.168, 0.197, 0.226, 0.256, 0.285, 0.314, 0.343],
-          [N, N, N, N, 0.155, 0.188, 0.229, 0.253, 0.286, 0.319, 0.351, 0.385],
-          [N, N, N, N, N, 0.208, 0.248, 0.28, 0.316, 0.353, 0.388, 0.425],
-          [N, N, N, N, N, 0.227, 0.267, 0.306, 0.346, 0.386, 0.425, 0.464]
-        ];
-        const AP_FILAS = [
-          [4e-3, 5e-3, 7e-3, 0.01, 0.013, 0.019, 0.022, 0.024, 0.024, 0.028, 0.031, 0.034],
-          [6e-3, 8e-3, 0.013, 0.018, 0.023, 0.028, 0.033, 0.038, 0.043, 0.047, 0.052, 0.057],
-          [N, 0.011, 0.019, 0.026, 0.033, 0.04, 0.046, 0.053, 0.059, 0.066, 0.073, 0.082],
-          [N, N, 0.024, 0.032, 0.041, 0.05, 0.058, 0.066, 0.074, 0.083, 0.091, 0.102],
-          [N, N, 0.031, 0.041, 0.053, 0.063, 0.074, 0.084, 0.097, 0.108, 0.119, 0.13],
-          [N, N, N, 0.05, 0.063, 0.076, 0.088, 0.101, 0.113, 0.126, 0.139, 0.155],
-          [N, N, N, 0.058, 0.072, 0.086, 0.101, 0.115, 0.13, 0.148, 0.163, 0.178],
-          [N, N, N, N, 0.086, 0.103, 0.12, 0.137, 0.154, 0.176, 0.193, 0.211],
-          [N, N, N, N, 0.093, 0.113, 0.131, 0.15, 0.169, 0.188, 0.206, 0.225],
-          [N, N, N, N, N, 0.125, 0.146, 0.167, 0.188, 0.209, 0.23, 0.257],
-          [N, N, N, N, N, 0.13, 0.155, 0.178, 0.2, 0.222, 0.244, 0.274]
-        ];
-        tablas.AE = matriz({
-          marca: T2,
-          modelo: "AE",
-          tipoBoca: "rejilla de retorno / extracci\xF3n",
-          circuito: "retorno",
-          fuente: "TROX AE, PD-AE-3 (10/2020), \xABEffective inlet area AE/AEL\xBB",
-          pagina: 3,
-          url: "https://cdn.trox.de/e85109af6cacf67b/3d90d6bd01ba/PD-AE--10-2020-.pdf",
-          largos: L8_AE,
-          altos: H_AE,
-          filas: AE_FILAS,
-          nota: "Para la AE con regulaci\xF3n RC-AE, la ficha manda multiplicar todas las \xE1reas por 0,96."
-        });
-        tablas.AP = matriz({
-          marca: T2,
-          modelo: "AP",
-          tipoBoca: "rejilla de retorno / extracci\xF3n",
-          circuito: "retorno",
-          fuente: "TROX AP, PD-AP-3 (10/2020), \xABEffective inlet area AP/APL\xBB",
-          pagina: 3,
-          url: "https://cdn.trox.de/1f6a3f9e7b48b2cd/52a468d90665/PD-AP--10-2020-.pdf",
-          largos: L8_AE,
-          altos: H_AE,
-          filas: AP_FILAS,
-          nota: "Para la AP con regulaci\xF3n RC-AP, la ficha manda multiplicar todas las \xE1reas por 0,95."
-        });
-        ponTipo("trox-ae-ret", { marca: T2, modelo: "AE (rejilla de extracci\xF3n)", variante: "Extracci\xF3n \xB7 lamas fijas", nombre: "TROX AE \xB7 extracci\xF3n", circuito: "retorno", tabla: "AE", tipoBoca: "rejilla de retorno / extracci\xF3n" });
-        ponTipo("trox-ap-ret", { marca: T2, modelo: "AP (rejilla de retorno perforada)", variante: "Retorno \xB7 n\xFAcleo perforado", nombre: "TROX AP \xB7 retorno", circuito: "retorno", tabla: "AP", tipoBoca: "rejilla de retorno / extracci\xF3n" });
-        const difusor = (id, o, tamanos, valores, tipoId, tipo) => {
-          tablas[id] = lista({ marca: T2, tipoBoca: tipo.tipoBoca, circuito: "impulsion", tamanos, valores, ...o });
-          for (const [circuito, , nombreC, corto] of [["impulsion", "IMP", "impulsi\xF3n", "imp"], ["retorno", "EXT", "extracci\xF3n", "ext"]]) {
-            ponTipo(`${tipoId}-${corto}`, { marca: T2, modelo: tipo.modelo, variante: `${tipo.variante} \xB7 ${nombreC}`, nombre: `TROX ${tipo.nombre} \xB7 ${nombreC}`, circuito, tabla: id, tipoBoca: tipo.tipoBoca });
-          }
-        };
-        difusor("ADLQ", {
-          modelo: "ADLQ",
-          fuente: "TROX DLQ (02/2015, K1-1.4-39) y ADLQ, tabla de dimensiones (Aeff)",
-          pagina: 8,
-          url: "https://cdn.trox.de/18f187a9530f54a4/1819cee40332/DLQ--EN-.pdf",
-          nota: "Mismos valores en la ficha del ADLQ (https://cdn.trox.de/cf7d698fe4d477fd/ec5301891888/00261620_0.pdf)."
-        }, ["250", "300", "400", "500", "600", "625"], [95e-4, 0.0175, 0.037, 0.0675, 0.11, 0.123], "trox-adlq", { modelo: "ADLQ / DLQ (rotacional cuadrado)", variante: "Cuadrado", nombre: "ADLQ", tipoBoca: "difusor rotacional de techo" });
-        const ADLR = {
-          fuente: "TROX ADLR / ADLR-Q, \xABDimensions and weight\xBB, Aeff (2015)",
-          url: "https://cdn.trox.de/e3a4d348bdba225b/9c169ef4b577/2_16_adlr_adlr_q.pdf"
-        };
-        difusor("ADLR", { modelo: "ADLR", ...ADLR, pagina: 11 }, ["1", "2", "3", "4", "5", "6", "7", "8"], [66e-4, 0.0161, 0.0257, 0.0349, 0.0473, 0.0544, 0.0691, 0.0843], "trox-adlr", { modelo: "ADLR (rotacional circular)", variante: "Circular", nombre: "ADLR", tipoBoca: "difusor rotacional de techo" });
-        difusor("ADLR_Q", { modelo: "ADLR-Q", ...ADLR, pagina: 16, nota: "Mismo Aeff que el ADLR para el mismo tama\xF1o nominal (\u2026 \xD7 1 a \u2026 \xD7 8)." }, ["1", "2", "3", "4", "5", "6", "7", "8"], [66e-4, 0.0161, 0.0257, 0.0349, 0.0473, 0.0544, 0.0691, 0.0843], "trox-adlr-q", { modelo: "ADLR-Q (rotacional cuadrado)", variante: "Cuadrado", nombre: "ADLR-Q", tipoBoca: "difusor rotacional de techo" });
-        const TDV = { fuente: "TROX TDV-SilentAIR, \xABProduct details\xBB, Aeff", pagina: 17, url: "https://cdn.trox.de/a745226cd7f1d9a2/a72868883aef/TDV_2026_03_19_DE_en.pdf" };
-        difusor("TDV_Q", { modelo: "TDV-Q", ...TDV }, ["300", "400", "500", "600", "625"], [0.012, 0.021, 0.031, 0.044, 0.044], "trox-tdv-q", { modelo: "TDV-SilentAIR (cuadrado)", variante: "TDV-Q", nombre: "TDV-Q", tipoBoca: "difusor rotacional de techo" });
-        difusor("TDV_R", { modelo: "TDV-R", ...TDV }, ["300", "400", "500", "600", "625"], [0.012, 0.021, 0.031, 0.044, 0.044], "trox-tdv-r", { modelo: "TDV-SilentAIR (circular)", variante: "TDV-R", nombre: "TDV-R", tipoBoca: "difusor rotacional de techo" });
-        const TDF = { url: "https://cdn.trox.de/8ac3b4826391b810/b03445b03588/TDF-SilentAIR_PD_2026_06_09_DE_en.pdf" };
-        difusor("TDF_Q", { modelo: "TDF-Q", ...TDF, fuente: "TROX TDF-SilentAIR (PD-06/2026), TDF-Q, Aeff", pagina: 16, nota: "El mismo Aeff vale para las tres cotas \u25A1Q1 de cada tama\xF1o nominal." }, ["300", "400", "500", "600", "625"], [0.0108, 0.0193, 0.028, 0.04, 0.04], "trox-tdf-q", { modelo: "TDF-SilentAIR (cuadrado)", variante: "TDF-Q", nombre: "TDF-Q", tipoBoca: "difusor rotacional de techo" });
-        difusor("TDF_R", { modelo: "TDF-R", ...TDF, fuente: "TROX TDF-SilentAIR (PD-06/2026), TDF-R, Aeff", pagina: 17 }, ["300", "400", "500", "600", "625"], [88e-4, 0.018, 0.0251, 0.0295, 0.0295], "trox-tdf-r", { modelo: "TDF-SilentAIR (circular)", variante: "TDF-R", nombre: "TDF-R", tipoBoca: "difusor rotacional de techo" });
-        difusor("VD", { modelo: "VD", fuente: "TROX VD (02/2017), PD-VD-13: Aeff con descarga horizontal en torbellino", pagina: 13, url: "https://cdn.trox.de/d77ca5b7a0a7fd65/8d19263ac5ae/VD_PD_2026_03_19_DE_en.pdf", nota: "La ficha da adem\xE1s el Aeff con descarga vertical: 425 \u2192 0,0781; 600 \u2192 0,1819; 775 \u2192 0,3405; 1050 \u2192 0,6358." }, ["425", "600", "775", "1050"], [0.0307, 0.0685, 0.1242, 0.2247], "trox-vd", { modelo: "VD (rotacional de techo)", variante: "Descarga horizontal", nombre: "VD", tipoBoca: "difusor rotacional de techo" });
-        difusor("VDL", { modelo: "VDL", fuente: "TROX VDL (04/2019), PD-VDL-16, VDL-A / VDL-B", pagina: 16, url: "https://cdn.trox.de/a7196dc3aea3dd80/c11ef504831f/VDL_PD_2026_03_DE_en.pdf" }, ["315", "400", "630", "800"], [0.022, 0.031, 0.077, 0.106], "trox-vdl", { modelo: "VDL (rotacional de techo, grandes alturas)", variante: "VDL-A / VDL-B", nombre: "VDL", tipoBoca: "difusor rotacional de techo" });
-        const RFD_URL = "https://cdn.trox.de/3085ddeaf6f4fbdc/558f270067bb/Celing-swirl-diffusers-type-RFD.pdf";
-        const RFD_T = ["125", "160", "200", "250", "315", "400"];
-        difusor("RFD_K", { modelo: "RFD-K", fuente: "TROX RFD (02/2017), PD-RFD-22, RFD-Q-K / RFD-R-K", pagina: 22, url: RFD_URL }, RFD_T, [26e-4, 37e-4, 66e-4, 0.011, 0.0205, 0.028], "trox-rfd-k", { modelo: "RFD (rotacional con ranuras)", variante: "RFD-K (Q y R)", nombre: "RFD-K", tipoBoca: "difusor rotacional de techo" });
-        difusor("RFD_D_K", { modelo: "RFD-D-K", fuente: "TROX RFD (02/2017), PD-RFD-22, RFD-Q-D-K / RFD-R-D-K", pagina: 22, url: RFD_URL }, RFD_T, [34e-4, 6e-3, 92e-4, 0.015, 0.0265, 0.0355], "trox-rfd-dk", { modelo: "RFD (rotacional con ranuras)", variante: "RFD-D-K (Q y R)", nombre: "RFD-D-K", tipoBoca: "difusor rotacional de techo" });
-        const vsd = (id, o, largos, valores, tipoId, tipo, circuitos) => {
-          tablas[id] = lista({ marca: T2, tipoBoca: "difusor lineal de ranuras", circuito: "impulsion", tamanos: largos.map(String), valores, ...o });
-          for (const [circuito, corto, nombreC] of circuitos || [["impulsion", "imp", "impulsi\xF3n"]]) {
-            ponTipo(`${tipoId}-${corto}`, { marca: T2, modelo: tipo.modelo, variante: `${tipo.variante} \xB7 ${nombreC}`, nombre: `TROX ${tipo.nombre} \xB7 ${nombreC}`, circuito, tabla: id, tipoBoca: "difusor lineal de ranuras" });
-          }
-        };
-        const LV = [900, 1050, 1200, 1350, 1500];
-        const VSD35 = {
-          1: [[53e-4, 61e-4, 7e-3, 79e-4, 88e-4], [58e-4, 68e-4, 78e-4, 88e-4, 97e-4]],
-          2: [[0.0105, 0.0123, 0.014, 0.0158, 0.0175], [0.0117, 0.0136, 0.0156, 0.0175, 0.0194]],
-          3: [[0.0158, 0.0184, 0.021, 0.0237, 0.0263], [0.0175, 0.0204, 0.0233, 0.0262, 0.0292]],
-          4: [[0.021, 0.0245, 0.028, 0.0315, 0.035], [0.0233, 0.0272, 0.0311, 0.035, 0.0389]]
-        };
-        for (const n of [1, 2, 3, 4]) {
-          const base = { url: "https://cdn.trox.de/352f65431db9b817/455c7754e42d/TL_K1_2_1_04_VSD35_Varyset_DE_en.pdf", pagina: 11 };
-          vsd(
-            `VSD35_${n}`,
-            { modelo: `VSD35-${n}`, ...base, fuente: "TROX VSD35 Varyset (08/2015, K1-2.1-76), Aeff: descarga horizontal en un sentido y alternada horizontal", nota: "Longitud nominal en mm." },
-            LV,
-            VSD35[n][0],
-            `trox-vsd35-${n}-h`,
-            { modelo: `VSD35 (lineal de techo, ${n} ranura${n > 1 ? "s" : ""})`, variante: "Descarga horizontal", nombre: `VSD35-${n} horizontal` }
-          );
-          vsd(
-            `VSD35_${n}_WS`,
-            { modelo: `VSD35-${n}`, ...base, fuente: "TROX VSD35 Varyset (08/2015, K1-2.1-76), Aeff WS: descarga alternada inclinada", nota: "Longitud nominal en mm." },
-            LV,
-            VSD35[n][1],
-            `trox-vsd35-${n}-ws`,
-            { modelo: `VSD35 (lineal de techo, ${n} ranura${n > 1 ? "s" : ""})`, variante: "Descarga alternada inclinada (WS)", nombre: `VSD35-${n} inclinada (WS)` }
-          );
-        }
-        vsd(
-          "VSD35_3_AZ",
-          { modelo: "VSD35-3-AZ", fuente: "TROX VSD35-3-AZ (03/2017), PD-VSDAZ-16, Aeff: impulsi\xF3n inclinada en un sentido", pagina: 16, url: "https://cdn.trox.de/56e801096c23b97d/6c900f4843b4/VSD-35-3-AZ_PD_03_2017_DE_en.pdf", nota: "Longitud nominal en mm." },
-          [600, 750, 900, 1050, 1200],
-          [39e-4, 49e-4, 58e-4, 68e-4, 78e-4],
-          "trox-vsd35-3-az",
-          { modelo: "VSD35-3-AZ (lineal de pared)", variante: "Inclinada en un sentido", nombre: "VSD35-3-AZ" }
-        );
-        vsd(
-          "VSD50_1_LT",
-          { modelo: "VSD50-1-LT", fuente: "TROX VSD50-1-LT (06/2019), PD p. 13, Aeff", pagina: 13, url: "https://cdn.trox.de/e343de0da770c86f/6db42746093a/PD_2019_06_VSD50-1-LT_DE_en.pdf", nota: "Longitud nominal en mm. Solo se leen los dos tama\xF1os que dan valor en la ficha." },
-          [550, 1175],
-          [55e-4, 0.0118],
-          "trox-vsd50-1-lt",
-          { modelo: "VSD50-1-LT (lineal)", variante: "1 ranura", nombre: "VSD50-1-LT" }
-        );
-        const LB = "Lindab";
-        const NOTA_LB = "Lindab publica \xABFree area\xBB (\xE1rea libre, geom\xE9trica): se guarda como Ageo y NO se usa sola para el caudal. El Ak lo da el factor K1/K2/K3 de la propia ficha para su f\xF3rmula de selecci\xF3n, no un \xE1rea efectiva.";
-        const libre = (id, modelo, tipoBoca, tamanos, valores, fuente, pagina, url, circuito, variante) => {
-          tablas[id] = lista({ marca: LB, modelo, tipoBoca, circuito, magnitud: "Ageo", fuente, pagina, url, tamanos, valores, nota: NOTA_LB, metodo: "\xC1rea libre geom\xE9trica (Free area A), sin medida de caudal asociada: no sirve sola para Q = v \xD7 Ak." });
-          ponTipo(`lindab-${id.toLowerCase().replace(/_/g, "-")}`, { marca: LB, modelo, variante, nombre: `Lindab ${modelo} \xB7 ${variante}`, circuito, tabla: id, tipoBoca });
-        };
-        libre("PKAL", "PKAL (difusor de conos de techo)", "difusor de conos", ["125", "160", "200", "250"], [0.018, 0.023, 0.03, 0.043], "Lindab PKAL, hoja t\xE9cnica (Free area A)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/nzdmyzdimzktnjnkmc00y2y3ltlkmtqtzgyynmm1nzjin2ew/5250385343615801170/pkal_global.pdf", "impulsion", "Impulsi\xF3n \xB7 \xD8d");
-        libre("PKA", "PKA (difusor de conos de techo)", "difusor de conos", ["125", "160", "200", "250", "315", "400"], [0.018, 0.023, 0.03, 0.043, 0.057, 0.075], "Lindab PKA, hoja t\xE9cnica (Free area A)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/zgnlngi5zwytowm2nc00nte1lthmotmtnjuzmmzkzdc2ngy0/5250388152490838115/pka_global.pdf", "impulsion", "Impulsi\xF3n \xB7 \xD8d");
-        libre("LAD", "LAD (tobera de largo alcance)", "tobera", ["125", "160", "200", "250", "315", "400"], [29e-4, 71e-4, 95e-4, 0.0165, 0.0254, 0.0398], "Lindab LAD, hoja t\xE9cnica (Free area A)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/nzm0odq3mtmtyjvlmc00y2vilwezodatnzvimdblmzzkywvk/5250167802524849262/lad_global.pdf", "impulsion", "Impulsi\xF3n \xB7 \xD8d");
-        libre("DAD", "DAD (tobera de largo alcance)", "tobera", ["160", "200", "250", "315"], [56e-4, 95e-4, 0.0154, 0.024], "Lindab LAD/DAD, tabla \xABCalculation factors\xBB (Free area A)", 6, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/nzm0odq3mtmtyjvlmc00y2vilwezodatnzvimdblmzzkywvk/5250167802524849262/lad_global.pdf", "impulsion", "Impulsi\xF3n \xB7 \xD8d");
-        libre("FKD_V", "FKD (difusor de techo, descarga vertical)", "difusor rotacional de techo", ["160", "200", "250", "315", "355", "400", "450"], [0.0298, 0.0431, 0.0622, 0.091, 0.1108, 0.1349, 0.1637], "Lindab FKD, hoja t\xE9cnica (Free area A, vertical)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/mjlimdvjmgutzdhjnc00ymq4lthingqtmdk1ogmxzwyyndzk/5250352475662073871/fkd_global.pdf", "impulsion", "Descarga vertical \xB7 \xD8d");
-        libre("FKD_H", "FKD (difusor de techo, descarga horizontal)", "difusor rotacional de techo", ["160", "200", "250", "315", "355", "400", "450"], [0.0304, 0.0456, 0.0684, 0.1041, 0.1293, 0.1606, 0.199], "Lindab FKD, hoja t\xE9cnica (Free area A, horizontal)", 2, "https://www.lindab.com/globalassets/commerce/lindabwebproductsdoc/assets/production/mjlimdvjmgutzdhjnc00ymq4lthingqtmdk1ogmxzwyyndzk/5250352475662073871/fkd_global.pdf", "impulsion", "Descarga horizontal \xB7 \xD8d");
-        const API = { TABLAS: tablas, TIPOS: tipos, MARCAS_CATALOGO: [T2, LB] };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.CATALOGO_AK = API;
-      })();
-    }
-  });
-
-  // shared/commissioning/factoresKTrox.js
-  var require_factoresKTrox = __commonJS({
-    "shared/commissioning/factoresKTrox.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      (function() {
-        const FABRICANTE = "TROX";
-        const DOCUMENTO = "Folleto TROX AK-Uni 07/2017 (PD_2017_07_AK-Uni_DE_es.pdf), adjunto al correo de Emilia Hernandez Trimi\xF1o (TROX Espa\xF1a) del 2-nov-2026";
-        const FORMULA = "q = K \xB7 \u221A\u0394p";
-        const TOLERANCIA_M3H = 0.25;
-        const crudas = [];
-        const fila = (plenum, familia, placa, tamanos, circuito, kLs, kM3h, pagina, difusor, extra = {}) => crudas.push({ plenum, familia, placa, tamanos, circuito, kLs, kM3h, pagina, difusor, ...extra });
-        const P4 = "AKUNI-4";
-        [
-          ["AK-Uni-001", ["300 \xD7 8"], 10.3, 36.9, ["300"], [[13.2, 47.7], [10.1, 36.5], [13.2, 47.7]]],
-          ["AK-Uni-002", ["400 \xD7 16"], 19.6, 70.7, ["400"], [[22.8, 82.1], [19.6, 70.7], [22.8, 82.1]]],
-          ["AK-Uni-003", ["500 \xD7 24"], 24.2, 87.1, ["500"], [[27.9, 100.5], [25.8, 92.7], [27.9, 100.5]]],
-          /* FD-Q 600/625 de la 004: el extracto solo trae 125,8 m³/h, sin l/s → no se carga. */
-          ["AK-Uni-004", ["600 \xD7 24", "625 \xD7 24"], 34.9, 125.8, ["600", "625"], [[40.4, 145.5], null, [40.4, 145.5]]]
-        ].forEach(([plenum, tVdw, ls, m3, tRed, [tdv, fd, tdf]]) => {
-          fila(plenum, "VDW", "Q", tVdw, "impulsion", ls, m3, P4, `VDW-Q ${tVdw.join(" / ")}`);
-          if (tdv) fila(plenum, "TDV-SA", "Q", tRed, "impulsion", tdv[0], tdv[1], P4, `TDV-SA-Q ${tRed.join("/")}`);
-          if (fd) fila(plenum, "FD", "Q", tRed, "impulsion", fd[0], fd[1], P4, `FD-Q ${tRed.join("/")}`);
-          if (tdf) fila(plenum, "TDF-SA", "Q", tRed, "impulsion", tdf[0], tdf[1], P4, `TDF-SA-Q ${tRed.join("/")}`);
-        });
-        fila("AK-Uni-005", "VDW", "Q", ["600 \xD7 48"], "impulsion", 43, 154.8, P4, "VDW-Q 600x48");
-        fila("AK-Uni-006", "VDW", "Q", ["625 \xD7 54"], "impulsion", 44.2, 158.9, P4, "VDW-Q 625x54");
-        fila("AK-Uni-007", "VDW", "Q", ["825 \xD7 72"], "impulsion", 72.8, 262.2, P4, "VDW-Q 825x72");
-        const P5 = "AKUNI-5";
-        [
-          ["AK-Uni-013", ["300 \xD7 8"], [9.4, 33.8], ["300"], [[13.2, 47.7], [10.2, 36.5], [13.2, 47.7]]],
-          ["AK-Uni-014", ["400 \xD7 16"], [19.6, 70.7], ["400"], [[22.8, 82.1], [19.6, 70.7], [22.8, 82.1]]],
-          ["AK-Uni-015", ["500 \xD7 24"], [23.1, 83], ["500"], [[27.9, 100.5], [26.2, 94.4], [27.9, 100.5]]],
-          ["AK-Uni-016", ["600 \xD7 24", "625 \xD7 24"], [34.5, 124.3], ["600", "625"], [[40.4, 145.5], [34.5, 124.3], [40.4, 145.5]]]
-        ].forEach(([plenum, tVdw, vdw, tRed, [tdv, fd, tdf]]) => {
-          fila(plenum, "VDW", "R", tVdw, "impulsion", vdw[0], vdw[1], P5, `VDW-R ${tVdw.join(" / ")}`);
-          fila(plenum, "TDV-SA", "R", tRed, "impulsion", tdv[0], tdv[1], P5, `TDV-SA-R ${tRed.join("/")}`);
-          fila(plenum, "FD", "R", tRed, "impulsion", fd[0], fd[1], P5, `FD-R ${tRed.join("/")}`);
-          fila(plenum, "TDF-SA", "R", tRed, "impulsion", tdf[0], tdf[1], P5, `TDF-SA-R ${tRed.join("/")}`);
-        });
-        fila("AK-Uni-017", "VDW", "R", ["600 \xD7 48"], "impulsion", 44, 158.3, P5, "VDW-R 600x48");
-        [
-          ["AK-Uni-028", "125", [3.5, 12.4], [4.7, 17.9]],
-          ["AK-Uni-029", "160", [5.2, 18.7], [7.3, 26.3]],
-          ["AK-Uni-030", "200", [7.1, 25.5], [12.2, 43.9]],
-          ["AK-Uni-031", "250", [12.9, 46.4], [19, 68.4]],
-          ["AK-Uni-032", "315", [22.8, 82], [28.6, 103]],
-          ["AK-Uni-033", "400", [34.5, 124.3], [37.3, 134.4]]
-        ].forEach(([plenum, tam, sin, con]) => {
-          fila(plenum, "RFD", null, [tam], "impulsion", sin[0], sin[1], P5, `RFD ${tam} sin tobera`, { tobera: false });
-          fila(plenum, "RFD", null, [tam], "impulsion", con[0], con[1], P5, `RFD ${tam} con tobera`, { tobera: true });
-        });
-        const P7 = "AKUNI-7";
-        [
-          ["AK-Uni-013", ["300 \xD7 8"], [9.3, 33.6], ["300"], [16.4, 59], [13, 46.7]],
-          ["AK-Uni-014", ["400 \xD7 16"], [17.9, 64.3], ["400"], [28.9, 104.2], [25.2, 90.6]],
-          ["AK-Uni-015", ["500 \xD7 24"], [25.3, 90.9], ["500"], [38.5, 138.7], [38.4, 138.1]],
-          ["AK-Uni-016", ["600 \xD7 24", "625 \xD7 24"], [42.2, 151.9], ["600", "625"], [52.3, 188.2], [57.7, 207.7]]
-        ].forEach(([plenum, tVdw, vdw, tRed, tdv, fd]) => {
-          fila(plenum, "VDW", "R", tVdw, "retorno", vdw[0], vdw[1], P7, `VDW-R ${tVdw.join(" / ")}`);
-          fila(plenum, "TDV", "R", tRed, "retorno", tdv[0], tdv[1], P7, `TDV-R ${tRed.join("/")}`);
-          fila(plenum, "FD", "R", tRed, "retorno", fd[0], fd[1], P7, `FD-R ${tRed.join("/")}`);
-        });
-        fila("AK-Uni-017", "VDW", "R", ["600 \xD7 48"], "retorno", 58.1, 209.1, P7, "VDW-R 600x48");
-        const NO_CARGADOS = [
-          { donde: "AKUNI-6 (entera)", motivo: "El extracto la da a la vez como \xABsegundo juego de impulsi\xF3n\xBB y como retorno de placa cuadrada; sus valores TDV 300 (16,4 / 59,0) coinciden con el retorno de AKUNI-7. Sin el pie de la tabla del PDF no se sabe con certeza si es impulsi\xF3n o retorno: no se carga (falta verificar en el PDF)." },
-          { donde: "AKUNI-4 \xB7 AK-Uni-004 FD-Q 600/625", motivo: "El extracto solo trae 125,8 m\xB3/h, sin el valor en l/s: no se puede comprobar." },
-          { donde: "AKUNI-4/5/6 \xB7 ADD-Q, ADD-R, ADLQ, DLQ, ADLR (AK-Uni-002, 008\u2013011, 019\u2013026)", motivo: "La cabecera agrupa cuatro modelos y las filas traen una o dos columnas: no se sabe a qu\xE9 modelo va cada valor." },
-          { donde: "AKUNI-4/5/7/8 \xB7 \xABotras combinaciones\xBB (conexi\xF3n < y >)", motivo: "Tabla aplanada: no se puede casar con certeza cada valor con su difusor y su conexi\xF3n." },
-          { donde: "Todas las columnas \xAB/0\xBB (placa sin deflectores)", motivo: "En el extracto no queda claro a qu\xE9 difusor corresponde cada \xAB/0\xBB: no se cargan." },
-          { donde: "Rejas de impulsi\xF3n y retorno", motivo: "Pendiente de TROX: no han llegado." }
-        ];
-        const registros = [];
-        for (const c of crudas) {
-          const dif = Math.abs(c.kLs * 3.6 - c.kM3h);
-          if (!(c.kLs > 0 && c.kM3h > 0) || dif > TOLERANCIA_M3H) {
-            NO_CARGADOS.push({ donde: `${c.pagina} \xB7 ${c.plenum} ${c.difusor}`, motivo: `No cuadra consigo misma: ${c.kLs} l/s \xD7 3,6 = ${(c.kLs * 3.6).toFixed(2)} m\xB3/h frente a ${c.kM3h} m\xB3/h del extracto.` });
-            continue;
-          }
-          registros.push(Object.freeze({
-            id: `${c.plenum}|${c.familia}|${c.placa || "-"}|${c.circuito}|${c.tamanos.join("/")}${c.tobera === void 0 ? "" : c.tobera ? "|tobera" : "|sinTobera"}`,
-            plenum: c.plenum,
-            familia: c.familia,
-            placa: c.placa,
-            difusor: c.difusor,
-            tamanos: c.tamanos,
-            circuito: c.circuito,
-            sinDeflectores: false,
-            conexion: null,
-            tobera: c.tobera === void 0 ? null : c.tobera,
-            kLs: c.kLs,
-            kM3h: c.kM3h,
-            magnitud: "K",
-            unidad: "l/s y m\xB3/h por \u221APa",
-            formula: FORMULA,
-            fabricante: FABRICANTE,
-            documento: DOCUMENTO,
-            pagina: c.pagina
-          }));
-        }
-        const POR_TABLA = {
-          VDW_Q: { familia: "VDW", placa: "Q" },
-          VDW_R: { familia: "VDW", placa: "R" },
-          TDV_Q: { familias: ["TDV-SA", "TDV"], placa: "Q" },
-          TDV_R: { familias: ["TDV-SA", "TDV"], placa: "R" },
-          TDF_Q: { familia: "TDF-SA", placa: "Q" },
-          TDF_R: { familia: "TDF-SA", placa: "R" }
-        };
-        const clave = (v) => v === null || v === void 0 ? "" : String(v).toLowerCase().replace(/\s+/g, "").replace(/x/g, "\xD7");
-        function buscar({ tabla = null, tamano = null, largo = null, alto = null, circuito = null } = {}) {
-          const m = POR_TABLA[tabla];
-          if (!m) return [];
-          const familias = m.familias || [m.familia];
-          const k = clave(tamano || (largo && alto ? `${largo}\xD7${alto}` : ""));
-          if (!k) return [];
-          return registros.filter((r) => familias.includes(r.familia) && r.placa === m.placa && (!circuito || r.circuito === circuito) && r.tamanos.some((t) => clave(t) === k));
-        }
-        function caudal(K, dp) {
-          const k = Number(K);
-          const d = Number(dp);
-          if (!(k > 0) || !(d >= 0) || !Number.isFinite(d)) return null;
-          return Math.round(k * Math.sqrt(d) * 10) / 10;
-        }
-        function texto(r) {
-          const n = (v) => String(v.toFixed(1)).replace(".", ",");
-          return `K ${r.plenum}: ${n(r.kM3h)} m\xB3/h (${n(r.kLs)} l/s) \xB7 ${FORMULA}`;
-        }
-        const API = { FABRICANTE, DOCUMENTO, FORMULA, REGISTROS: registros, NO_CARGADOS, POR_TABLA, buscar, caudal, texto };
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.FACTORES_K_TROX = API;
-      })();
-    }
-  });
-
-  // shared/commissioning/difusores.js
-  var require_difusores = __commonJS({
-    "shared/commissioning/difusores.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var MODOS_DIF = {
-        ak: { id: "ak", nombre: "\xC1rea efectiva Ak", unidad: "m\xB2" },
-        k: { id: "k", nombre: "Factor k", unidad: "m\xB3/h por m/s" }
-      };
-      var NOTA_EJEMPLO_DIF = "Valores de ejemplo: comprobar con la ficha del fabricante.";
-      var REGLAS_DIF = typeof __require !== "undefined" ? require_reglasCx() : window.REGLAS_CX;
-      var TOLERANCIA_DEFECTO_DIF = REGLAS_DIF.CRITERIO_JC.total;
-      var TOLERANCIA_BOCA_DEFECTO_DIF = REGLAS_DIF.CRITERIO_JC.boca;
-      var MARCA_EJEMPLO_DIF = "Gen\xE9rico (ejemplo, comprobar)";
-      var TIPOS_DIF = {
-        rotacional600: { marca: MARCA_EJEMPLO_DIF, modelo: "Rotacional", variante: "600\xD7600 (24 ranuras)", nombre: "Difusor rotacional 600\xD7600 (24 ranuras)", circuito: "impulsion", modo: "ak", ak: 0.03, k: null, ejemplo: true },
-        rotacional400: { marca: MARCA_EJEMPLO_DIF, modelo: "Rotacional", variante: "400\xD7400 (16 ranuras)", nombre: "Difusor rotacional 400\xD7400 (16 ranuras)", circuito: "impulsion", modo: "ak", ak: 0.012, k: null, ejemplo: true },
-        cuadrado600: { marca: MARCA_EJEMPLO_DIF, modelo: "Cuadrado multidireccional", variante: "600\xD7600", nombre: "Difusor cuadrado multidireccional 600\xD7600", circuito: "impulsion", modo: "ak", ak: 0.04, k: null, ejemplo: true },
-        circularConos: { marca: MARCA_EJEMPLO_DIF, modelo: "Circular de conos", variante: "\xD8250", nombre: "Difusor circular de conos \xD8250", circuito: "impulsion", modo: "ak", ak: 0.025, k: null, ejemplo: true },
-        lineal2: { marca: MARCA_EJEMPLO_DIF, modelo: "Lineal", variante: "2 ranuras (por metro)", nombre: "Difusor lineal 2 ranuras (por metro)", circuito: "impulsion", modo: "ak", ak: 0.016, k: null, ejemplo: true },
-        rejillaImp: { marca: MARCA_EJEMPLO_DIF, modelo: "Rejilla de impulsi\xF3n", variante: "400\xD7200 doble deflexi\xF3n", nombre: "Rejilla de impulsi\xF3n 400\xD7200 doble deflexi\xF3n", circuito: "impulsion", modo: "ak", ak: 0.056, k: null, ejemplo: true },
-        tobera: { marca: MARCA_EJEMPLO_DIF, modelo: "Tobera de largo alcance", variante: "\xD8160", nombre: "Tobera de largo alcance \xD8160", circuito: "impulsion", modo: "k", ak: null, k: 36, ejemplo: true },
-        rejillaRet: { marca: MARCA_EJEMPLO_DIF, modelo: "Rejilla de retorno", variante: "600\xD7300 lamas fijas", nombre: "Rejilla de retorno 600\xD7300 lamas fijas", circuito: "retorno", modo: "ak", ak: 0.126, k: null, ejemplo: true },
-        bocaExt: { marca: MARCA_EJEMPLO_DIF, modelo: "Boca de extracci\xF3n", variante: "\xD8125 (v\xE1lvula)", nombre: "Boca de extracci\xF3n \xD8125 (v\xE1lvula)", circuito: "retorno", modo: "k", ak: null, k: 25, ejemplo: true },
-        /* Los dos de la hoja «CONVERSION CAUDAL REJAS.xlsx» que decía «con / sin
-           regulador»: sus números son los de la XGM-H-MO de la tabla de selección
-           rápida, pero de IMPULSIÓN (el «con regulador») y de EXTRACCIÓN (el «sin
-           regulador»). Se quedan para los puntos ya puestos; no se ofrecen. */
-        troxXgmReg: { marca: "TROX", modelo: "XGM (hoja antigua)", variante: "H-MO impulsi\xF3n (antes \xABcon regulador\xBB)", nombre: "TROX XGM-H-MO impulsi\xF3n, tabla r\xE1pida (antes \xABcon regulador\xBB)", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "XGM_REG", oculto: true },
-        troxXgm: { marca: "TROX", modelo: "XGM (hoja antigua)", variante: "H-MO extracci\xF3n (antes \xABsin regulador\xBB)", nombre: "TROX XGM-H-MO extracci\xF3n, tabla r\xE1pida (antes \xABsin regulador\xBB)", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "XGM", oculto: true },
-        troxWg: { marca: "TROX", modelo: "WG", variante: "Rejilla", nombre: "TROX WG", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "WG" },
-        troxTr2: { marca: "TROX", modelo: "TR2", variante: "Sin regulador", nombre: "TROX TR2 sin regulador", circuito: "impulsion", modo: "ak", ak: null, k: null, tabla: "TR2" },
-        propioImp: { marca: "Otro", modelo: "Factor a mano", variante: "Impulsi\xF3n", nombre: "Otro de impulsi\xF3n (factor a mano)", circuito: "impulsion", modo: "ak", ak: null, k: null, propio: true },
-        propioRet: { marca: "Otro", modelo: "Factor a mano", variante: "Retorno", nombre: "Otro de retorno (factor a mano)", circuito: "retorno", modo: "ak", ak: null, k: null, propio: true },
-        /* La reja rectangular de un punto único de medida (Pitch 01 y 02: «se mide
-           en un único punto, con una reja rectangular»). Sin tamaño conocido, el Ak
-           se pone a mano o se mide con balómetro: nada de un Ak de ejemplo. */
-        rejillaRectImp: { marca: "Otro", modelo: "Reja rectangular", variante: "Impulsi\xF3n \xB7 Ak a mano", nombre: "Reja rectangular de impulsi\xF3n (Ak a mano)", circuito: "impulsion", modo: "ak", ak: null, k: null, propio: true },
-        rejillaRectRet: { marca: "Otro", modelo: "Reja rectangular", variante: "Retorno \xB7 Ak a mano", nombre: "Reja rectangular de retorno (Ak a mano)", circuito: "retorno", modo: "ak", ak: null, k: null, propio: true },
-        /* Rejas ficticias a fin de conducto (JC, 16-nov; las crea el Gestor en la misma base): sin este tipo caerían en un difusor de impulsión. */
-        rejaFinConductoImp: { marca: "Otro", modelo: "Reja fin de conducto", variante: "Impulsi\xF3n \xB7 ficticia, \xE1rea \xFAtil 1", nombre: "Reja fin de conducto de impulsi\xF3n (ficticia)", circuito: "impulsion", modo: "ak", ak: null, k: null, propio: true, oculto: true },
-        rejaFinConductoRet: { marca: "Otro", modelo: "Reja fin de conducto", variante: "Retorno \xB7 ficticia, \xE1rea \xFAtil 1", nombre: "Reja fin de conducto de retorno (ficticia)", circuito: "retorno", modo: "ak", ak: null, k: null, propio: true, oculto: true }
-      };
-      var TIPO_DEFECTO_DIF = "rotacional600";
-      var CIRCUITOS_DIF = [["impulsion", "IMP", "impulsi\xF3n", "imp"], ["retorno", "EXT", "extracci\xF3n", "ext"]];
-      var VARIANTES_XGM_DIF = [
-        ["H-MO", "Lamas horizontales m\xF3viles (H-MO)"],
-        ["V-MO", "Lamas verticales m\xF3viles (V-MO)"],
-        ["H-F0", "Lamas horizontales fijas 0\xB0 (H-F0)"],
-        ["H-F15", "Lamas horizontales fijas 15\xB0 (H-F15)"],
-        ["H-P0", "Lamas horizontales fijas 0\xB0, paso 16,7 (H-P0)"],
-        ["H-P15", "Lamas horizontales fijas 15\xB0, paso 16,7 (H-P15)"],
-        ["V-F0", "Lamas verticales fijas 0\xB0 (V-F0)"],
-        ["V-F15", "Lamas verticales fijas 15\xB0 (V-F15)"],
-        ["V-P0", "Lamas verticales fijas 0\xB0, paso 16,7 (V-P0)"],
-        ["V-P15", "Lamas verticales fijas 15\xB0, paso 16,7 (V-P15)"],
-        ["H-F45", "Lamas horizontales fijas 45\xB0 (H-F45)"],
-        ["V-F45", "Lamas verticales fijas 45\xB0 (V-F45)"]
-      ];
-      var ADJUNTOS_DIF = "correo del 13-oct-2026";
-      var FICHA_XGM_DIF = "XGM_PD_2026_09_02_DE_es.pdf (TROX X-GRILLE modular, PD-07/2026)";
-      var RAPIDA_XGM_DIF = "TABLA SELECCION RAPIDA XGM.pdf (TROX)";
-      var FICHA_VDW_DIF = "PD_2019_01_VDW_DE_es.pdf (TROX VDW, PD 01/2019)";
-      var FICHA_PL35_DIF = "PURELINE35_PD_2026_06_29_DE_es.pdf (TROX PL35, PD-06/2026)";
-      var FICHA_PL50_DIF = "PURELINE50_PD_2026_06_29_DE_es.pdf (TROX PL50, PD-06/2026)";
-      var HOJA_OBRA_DIF = "CONVERSION CAUDAL REJAS.xlsx (Drive de la obra, feb. 2026)";
-      var FUENTE_TABLAS_DIF = `TROX: fichas de producto y tablas de selecci\xF3n r\xE1pida (${ADJUNTOS_DIF}); WG y TR2 de \xABCONVERSION CAUDAL REJAS.xlsx\xBB`;
-      var FUENTE_PL_AK_DIF = "TROX \u2014 correo de Emilia Hernandez Trimi\xF1o (TROX Espa\xF1a), 2-nov-2026, imagen \xAB\xC1REAS EFECTIVAS DIFUSORES LINEALES METRO LINEAL\xBB";
-      var AK_METRO_PL_DIF = {
-        PL35: [6636e-6, 0.0132, 0.0198, 0.0265],
-        PL50: [98e-4, 0.01945, 0.0292, 0.0389]
-      };
-      var NOTA_PL_DIF = "Sin Ak: medir con bal\xF3metro. Las fichas de TROX de la PureLine (PD de 33 p\xE1gs. y selecci\xF3n r\xE1pida) no dan \xE1rea efectiva ni geom\xE9trica; si TROX lo da, se pone a mano.";
-      var AVISO_SIN_AK_DIF = "sin Ak: medir con bal\xF3metro";
-      var LN_PL_DIF = [600, 750, 900, 1050, 1200, 1350, 1500, 1650, 1800, 1950];
-      var TAMANOS_VDW_DIF = ["300 \xD7 8", "400 \xD7 16", "500 \xD7 24", "600 \xD7 24", "600 \xD7 48", "625 \xD7 24", "625 \xD7 54", "825 \xD7 72"];
-      var TABLAS_DIF = {
-        WG: {
-          fuente: HOJA_OBRA_DIF,
-          pagina: null,
-          magnitud: "Aeff",
-          nota: "Sin ficha de TROX en los adjuntos: comprobar con la ficha del fabricante.",
-          largos: [200, 400, 600, 800, 1e3, 1200, 1400, 1600, 1800, 2e3, 2200],
-          altos: [165, 330, 495, 660, 825, 990, 1155, 1320, 1485, 1650, 1815, 1980, 2145],
-          filas: [
-            [84e-4, 0.0169, 0.0253, 0.0338, 0.0422, 0.0506, 0.0591, 0.0675, 0.076, 0.0844, 0.0929],
-            [0.0253, 0.0506, 0.076, 0.1013, 0.1266, 0.1519, 0.1773, 0.2026, 0.2279, 0.2532, 0.2786],
-            [0.0422, 0.0844, 0.1266, 0.1688, 0.211, 0.2532, 0.2955, 0.3377, 0.3799, 0.4221, 0.4643],
-            [0.0591, 0.1182, 0.1773, 0.2364, 0.2955, 0.3545, 0.4136, 0.4727, 0.5318, 0.5909, 0.65],
-            [0.076, 0.1519, 0.2279, 0.3039, 0.3799, 0.4558, 0.5318, 0.6078, 0.6838, 0.7597, 0.8357],
-            [0.0929, 0.1857, 0.2786, 0.3714, 0.4643, 0.5571, 0.65, 0.7429, 0.8357, 0.9286, 1.0214],
-            [0.1097, 0.2195, 0.3292, 0.439, 0.5487, 0.6584, 0.7682, 0.8779, 0.9877, 1.0974, 1.2072],
-            [0.1266, 0.2532, 0.3799, 0.5065, 0.6331, 0.7597, 0.8864, 1.013, 1.1396, 1.2662, 1.3929],
-            [0.1435, 0.287, 0.4305, 0.574, 0.7175, 0.861, 1.0046, 1.1481, 1.2916, 1.4351, 1.5786],
-            [0.1604, 0.3208, 0.4812, 0.6416, 0.802, 0.9623, 1.1227, 1.2831, 1.4435, 1.6039, 1.7643],
-            [0.1773, 0.3545, 0.5318, 0.7091, 0.8864, 1.0636, 1.2409, 1.4182, 1.5955, 1.7727, 1.95],
-            [0.1942, 0.3883, 0.5825, 0.7766, 0.9708, 1.1649, 1.3591, 1.5533, 1.7474, 1.9416, 2.0387],
-            [0.211, 0.4221, 0.6331, 0.8442, 1.0552, 1.2662, 1.4773, 1.6883, 1.8994, 2.0049, 2.2159]
-          ]
-        },
-        XGM_REG: {
-          fuente: RAPIDA_XGM_DIF,
-          pagina: 1,
-          magnitud: "Aeff",
-          nota: "XGM-H-MO, \xE1rea efectiva para IMPULSI\xD3N (la hoja de la obra la llamaba \xABcon regulador\xBB).",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.015, 0.022, 0.029, 0.036, 0.043, 0.057, 0.07, 0.084],
-            [0.019, 0.028, 0.037, 0.046, 0.055, 0.073, 0.092, 0.11],
-            [0.027, 0.04, 0.053, 0.066, 0.079, 0.105, 0.131, 0.157],
-            [null, 0.059, 0.078, 0.097, 0.116, 0.154, 0.192, 0.23],
-            [null, null, 0.103, 0.127, 0.152, 0.202, 0.252, 0.302],
-            [null, null, null, 0.158, 0.189, 0.25, 0.313, 0.375]
-          ]
-        },
-        XGM: {
-          fuente: RAPIDA_XGM_DIF,
-          pagina: 1,
-          magnitud: "Aeff",
-          nota: "XGM-H-MO, \xE1rea efectiva para EXTRACCI\xD3N (la hoja de la obra la llamaba \xABsin regulador\xBB).",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.019, 0.028, 0.037, 0.045, 0.054, 0.072, 0.089, 0.107],
-            [0.027, 0.04, 0.053, 0.065, 0.077, 0.103, 0.127, 0.153],
-            [0.035, 0.051, 0.068, 0.084, 0.1, 0.133, 0.165, 0.198],
-            [null, 0.075, 0.098, 0.122, 0.146, 0.194, 0.241, 0.289],
-            [null, null, 0.13, 0.16, 0.192, 0.254, 0.317, 0.38],
-            [null, null, null, 0.198, 0.237, 0.314, 0.393, 0.471]
-          ]
-        },
-        TR2: {
-          fuente: HOJA_OBRA_DIF,
-          pagina: null,
-          magnitud: "Aeff",
-          nota: "Sin ficha de TROX en los adjuntos: comprobar con la ficha del fabricante.",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 225, 325, 425, 525],
-          filas: [
-            [8e-3, 0.012, 0.016, 0.02, 0.024, 0.032, 0.04, 0.048, 0.056, 0.064, 0.072, 0.08],
-            [0.016, 0.024, 0.032, 0.04, 0.048, 0.064, 0.08, 0.096, 0.112, 0.128, 0.144, 0.16],
-            [0.032, 0.048, 0.064, 0.08, 0.096, 0.128, 0.16, 0.192, 0.224, 0.256, 0.288, 0.319],
-            [null, 0.072, 0.096, 0.12, 0.144, 0.192, 0.24, 0.288, 0.335, 0.383, 0.431, 0.479],
-            [null, null, null, null, null, 0.256, 0.319, 0.383, 0.447, 0.511, 0.575, 0.639],
-            [null, null, null, null, null, null, 0.399, 0.479, 0.559, 0.639, 0.719, 0.799]
-          ]
-        },
-        XGM_H_F0_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 10,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [8e-3, 0.011, 0.015, 0.019, 0.022, 0.029, 0.036, 0.043, 0.05, 0.058, 0.065, 0.072],
-            [0.014, 0.021, 0.027, 0.034, 0.04, 0.053, 0.066, 0.079, 0.093, 0.106, 0.119, 0.132],
-            [0.019, 0.028, 0.037, 0.046, 0.055, 0.072, 0.09, 0.108, 0.126, 0.144, 0.162, 0.18],
-            [0.026, 0.039, 0.051, 0.064, 0.076, 0.101, 0.126, 0.152, 0.177, 0.202, 0.227, 0.252],
-            [null, 0.057, 0.076, 0.094, 0.113, 0.15, 0.187, 0.224, 0.261, 0.298, 0.334, 0.371],
-            [null, null, 0.1, 0.124, 0.149, 0.198, 0.247, 0.296, 0.345, 0.393, 0.442, 0.491],
-            [null, null, null, 0.155, 0.185, 0.246, 0.307, 0.368, 0.429, 0.489, 0.55, 0.611]
-          ]
-        },
-        XGM_H_F15_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 10,
-          magnitud: "Aeff",
-          erratas: [{ alto: 165, largo: 625, impreso: 5e-3, porque: "menor que sus vecinos (0,042 y 0,067): errata del PDF; sin valor" }],
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [7e-3, 0.011, 0.014, 0.017, 0.021, 0.027, 0.034, 0.041, 0.047, 0.054, 0.06, 0.067],
-            [0.013, 0.019, 0.025, 0.031, 0.037, 0.049, 0.061, 0.073, 0.086, 0.098, 0.11, 0.122],
-            [0.017, 0.026, 0.034, 0.042, null, 0.067, 0.083, 0.1, 0.116, 0.133, 0.149, 0.166],
-            [0.024, 0.036, 0.047, 0.059, 0.07, 0.093, 0.116, 0.139, 0.162, 0.185, 0.208, 0.231],
-            [null, 0.052, 0.069, 0.086, 0.103, 0.137, 0.171, 0.205, 0.239, 0.273, 0.307, 0.341],
-            [null, null, 0.091, 0.114, 0.136, 0.181, 0.226, 0.271, 0.316, 0.361, 0.406, 0.45],
-            [null, null, null, 0.141, 0.169, 0.225, 0.281, 0.337, 0.393, 0.448, 0.504, 0.56]
-          ]
-        },
-        XGM_H_F0_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 10,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.011, 0.015, 0.02, 0.025, 0.03, 0.039, 0.049, 0.059, 0.068, 0.078, 0.087, 0.097],
-            [0.019, 0.027, 0.036, 0.045, 0.053, 0.07, 0.088, 0.105, 0.122, 0.139, 0.156, 0.174],
-            [0.027, 0.039, 0.052, 0.065, 0.077, 0.101, 0.127, 0.151, 0.176, 0.201, 0.226, 0.251],
-            [0.035, 0.051, 0.067, 0.084, 0.1, 0.132, 0.165, 0.197, 0.23, 0.262, 0.295, 0.327],
-            [null, 0.075, 0.099, 0.122, 0.146, 0.194, 0.242, 0.29, 0.337, 0.385, 0.433, 0.481],
-            [null, null, 0.13, 0.16, 0.193, 0.256, 0.319, 0.382, 0.445, 0.508, 0.571, 0.634],
-            [null, null, null, 0.198, 0.239, 0.317, 0.396, 0.474, 0.553, 0.631, 0.709, 0.788]
-          ]
-        },
-        XGM_H_F15_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 10,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.011, 0.016, 0.02, 0.025, 0.03, 0.04, 0.05, 0.059, 0.069, 0.079, 0.088, 0.098],
-            [0.019, 0.027, 0.036, 0.044, 0.053, 0.07, 0.087, 0.105, 0.122, 0.139, 0.156, 0.173],
-            [0.027, 0.039, 0.052, 0.064, 0.076, 0.101, 0.125, 0.15, 0.175, 0.2, 0.224, 0.249],
-            [0.034, 0.051, 0.067, 0.083, 0.099, 0.131, 0.163, 0.195, 0.228, 0.26, 0.292, 0.324],
-            [null, 0.074, 0.097, 0.121, 0.145, 0.192, 0.239, 0.286, 0.333, 0.38, 0.428, 0.475],
-            [null, null, 0.128, 0.158, 0.19, 0.252, 0.315, 0.377, 0.439, 0.501, 0.563, 0.625],
-            [null, null, null, 0.195, 0.235, 0.312, 0.39, 0.468, 0.545, 0.622, 0.699, 0.776]
-          ]
-        },
-        XGM_H_P0_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 11,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.01, 0.014, 0.018, 0.023, 0.027, 0.036, 0.044, 0.053, 0.062, 0.07, 0.079, 0.088],
-            [0.016, 0.023, 0.031, 0.038, 0.045, 0.06, 0.074, 0.089, 0.104, 0.118, 0.133, 0.148],
-            [0.021, 0.031, 0.04, 0.05, 0.06, 0.079, 0.099, 0.118, 0.138, 0.156, 0.176, 0.196],
-            [0.028, 0.042, 0.055, 0.068, 0.081, 0.108, 0.135, 0.161, 0.188, 0.214, 0.241, 0.267],
-            [null, 0.06, 0.079, 0.098, 0.118, 0.156, 0.195, 0.233, 0.272, 0.31, 0.349, 0.387],
-            [null, null, 0.103, 0.129, 0.154, 0.204, 0.255, 0.305, 0.356, 0.406, 0.456, 0.507],
-            [null, null, null, 0.159, 0.19, 0.253, 0.315, 0.377, 0.44, 0.502, 0.564, 0.627]
-          ]
-        },
-        XGM_H_P15_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 11,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.01, 0.014, 0.018, 0.022, 0.027, 0.035, 0.044, 0.052, 0.061, 0.07, 0.078, 0.087],
-            [0.015, 0.023, 0.03, 0.037, 0.044, 0.058, 0.072, 0.086, 0.101, 0.115, 0.129, 0.143],
-            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.095, 0.113, 0.132, 0.151, 0.169, 0.188],
-            [0.027, 0.04, 0.053, 0.065, 0.078, 0.103, 0.129, 0.154, 0.18, 0.205, 0.231, 0.256],
-            [null, 0.057, 0.075, 0.094, 0.112, 0.149, 0.186, 0.222, 0.259, 0.296, 0.333, 0.369],
-            [null, null, 0.098, 0.122, 0.146, 0.194, 0.242, 0.29, 0.338, 0.386, 0.434, 0.482],
-            [null, null, null, 0.151, 0.18, 0.239, 0.299, 0.358, 0.418, 0.477, 0.536, 0.595]
-          ]
-        },
-        XGM_H_P0_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 11,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.012, 0.017, 0.023, 0.028, 0.033, 0.044, 0.054, 0.065, 0.076, 0.086, 0.097, 0.108],
-            [0.02, 0.029, 0.037, 0.046, 0.055, 0.073, 0.091, 0.109, 0.127, 0.145, 0.163, 0.181],
-            [0.028, 0.04, 0.052, 0.065, 0.078, 0.103, 0.128, 0.153, 0.178, 0.204, 0.229, 0.254],
-            [0.035, 0.051, 0.067, 0.084, 0.1, 0.132, 0.165, 0.197, 0.229, 0.262, 0.294, 0.327],
-            [null, 0.074, 0.097, 0.121, 0.144, 0.191, 0.238, 0.285, 0.332, 0.379, 0.426, 0.473],
-            [null, null, 0.126, 0.159, 0.189, 0.25, 0.312, 0.373, 0.434, 0.496, 0.557, 0.619],
-            [null, null, null, 0.196, 0.233, 0.31, 0.385, 0.461, 0.537, 0.613, 0.689, 0.765]
-          ]
-        },
-        XGM_H_P15_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 11,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.012, 0.018, 0.023, 0.028, 0.034, 0.045, 0.056, 0.066, 0.077, 0.088, 0.099, 0.11],
-            [0.02, 0.029, 0.038, 0.047, 0.056, 0.074, 0.092, 0.11, 0.128, 0.146, 0.164, 0.182],
-            [0.028, 0.04, 0.053, 0.065, 0.078, 0.103, 0.128, 0.154, 0.179, 0.204, 0.229, 0.254],
-            [0.035, 0.051, 0.067, 0.083, 0.1, 0.132, 0.164, 0.197, 0.229, 0.261, 0.294, 0.326],
-            [null, 0.073, 0.097, 0.12, 0.143, 0.19, 0.237, 0.283, 0.33, 0.377, 0.424, 0.47],
-            [null, null, 0.127, 0.156, 0.187, 0.248, 0.309, 0.37, 0.431, 0.492, 0.553, 0.614],
-            [null, null, null, 0.193, 0.231, 0.306, 0.382, 0.457, 0.532, 0.608, 0.683, 0.759]
-          ]
-        },
-        XGM_V_F0_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 12,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.014, 0.02, 0.027, 0.034, 0.04, 0.053, 0.066, 0.079],
-            [0.019, 0.028, 0.037, 0.046, 0.055, 0.072, 0.09, 0.108],
-            [null, 0.039, 0.051, 0.064, 0.076, 0.101, 0.126, 0.151],
-            [null, null, 0.076, 0.094, 0.113, 0.15, 0.187, 0.223],
-            [null, null, null, 0.124, 0.149, 0.198, 0.246, 0.295],
-            [null, null, null, null, 0.185, 0.246, 0.306, 0.368]
-          ]
-        },
-        XGM_V_F15_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 12,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.013, 0.019, 0.025, 0.031, 0.037, 0.049, 0.061, 0.073],
-            [0.017, 0.026, 0.034, 0.042, 0.05, 0.067, 0.083, 0.1],
-            [null, 0.036, 0.047, 0.059, 0.07, 0.093, 0.116, 0.139],
-            [null, null, 0.069, 0.086, 0.103, 0.137, 0.171, 0.205],
-            [null, null, null, 0.114, 0.136, 0.181, 0.226, 0.271],
-            [null, null, null, null, 0.169, 0.225, 0.28, 0.337]
-          ]
-        },
-        XGM_V_F0_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 12,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.019, 0.026, 0.036, 0.044, 0.053, 0.07, 0.088, 0.105],
-            [0.025, 0.036, 0.048, 0.06, 0.072, 0.095, 0.119, 0.141],
-            [null, 0.051, 0.067, 0.084, 0.1, 0.132, 0.166, 0.196],
-            [null, null, 0.098, 0.122, 0.145, 0.193, 0.241, 0.289],
-            [null, null, null, 0.16, 0.193, 0.255, 0.318, 0.381],
-            [null, null, null, null, 0.239, 0.317, 0.395, 0.474]
-          ]
-        },
-        XGM_V_F15_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 12,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.019, 0.027, 0.036, 0.044, 0.053, 0.07, 0.087, 0.106],
-            [0.026, 0.038, 0.051, 0.063, 0.075, 0.1, 0.125, 0.149],
-            [null, 0.05, 0.067, 0.082, 0.099, 0.131, 0.163, 0.195],
-            [null, null, 0.097, 0.121, 0.145, 0.192, 0.239, 0.286],
-            [null, null, null, 0.158, 0.19, 0.252, 0.315, 0.377],
-            [null, null, null, null, 0.235, 0.312, 0.389, 0.467]
-          ]
-        },
-        XGM_V_P0_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 13,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.016, 0.023, 0.03, 0.038, 0.045, 0.06, 0.074, 0.089],
-            [0.021, 0.03, 0.04, 0.05, 0.06, 0.079, 0.098, 0.118],
-            [null, 0.041, 0.055, 0.068, 0.081, 0.108, 0.134, 0.161],
-            [null, null, 0.079, 0.098, 0.118, 0.156, 0.194, 0.233],
-            [null, null, null, 0.129, 0.154, 0.204, 0.255, 0.305],
-            [null, null, null, null, 0.19, 0.252, 0.315, 0.377]
-          ]
-        },
-        XGM_V_P15_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 13,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.015, 0.022, 0.03, 0.037, 0.044, 0.058, 0.072, 0.086],
-            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.095, 0.114],
-            [null, 0.04, 0.052, 0.065, 0.078, 0.103, 0.129, 0.154],
-            [null, null, 0.075, 0.094, 0.112, 0.149, 0.185, 0.222],
-            [null, null, null, 0.122, 0.146, 0.194, 0.242, 0.29],
-            [null, null, null, null, 0.18, 0.239, 0.299, 0.358]
-          ]
-        },
-        XGM_V_P0_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 13,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.02, 0.029, 0.036, 0.046, 0.055, 0.073, 0.091, 0.109],
-            [0.027, 0.04, 0.052, 0.065, 0.078, 0.103, 0.128, 0.153],
-            [null, 0.05, 0.067, 0.084, 0.1, 0.132, 0.164, 0.197],
-            [null, null, 0.097, 0.121, 0.144, 0.191, 0.237, 0.285],
-            [null, null, null, 0.159, 0.189, 0.25, 0.312, 0.373],
-            [null, null, null, null, 0.233, 0.31, 0.385, 0.461]
-          ]
-        },
-        XGM_V_P15_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 13,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.022, 0.032, 0.043, 0.052, 0.063, 0.083, 0.103, 0.124],
-            [0.03, 0.045, 0.059, 0.072, 0.087, 0.114, 0.142, 0.17],
-            [null, 0.056, 0.075, 0.092, 0.11, 0.145, 0.181, 0.216],
-            [null, null, 0.106, 0.132, 0.158, 0.208, 0.259, 0.31],
-            [null, null, null, 0.17, 0.204, 0.27, 0.337, 0.403],
-            [null, null, null, null, 0.25, 0.332, 0.414, 0.497]
-          ]
-        },
-        XGM_H_MO_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 14,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.015, 0.022, 0.029, 0.036, 0.043, 0.057, 0.07, 0.084],
-            [0.02, 0.029, 0.039, 0.048, 0.057, 0.076, 0.094, 0.113],
-            [0.027, 0.04, 0.053, 0.066, 0.079, 0.105, 0.131, 0.157],
-            [null, 0.059, 0.078, 0.097, 0.116, 0.154, 0.192, 0.23],
-            [null, null, 0.102, 0.127, 0.152, 0.202, 0.252, 0.302],
-            [null, null, null, 0.158, 0.189, 0.251, 0.313, 0.375]
-          ]
-        },
-        XGM_H_MO_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 14,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.019, 0.028, 0.037, 0.045, 0.054, 0.072, 0.089, 0.107],
-            [0.027, 0.04, 0.053, 0.065, 0.077, 0.103, 0.127, 0.153],
-            [0.035, 0.051, 0.068, 0.084, 0.1, 0.133, 0.165, 0.198],
-            [null, 0.075, 0.098, 0.122, 0.146, 0.194, 0.241, 0.289],
-            [null, null, 0.128, 0.16, 0.192, 0.254, 0.317, 0.38],
-            [null, null, null, 0.197, 0.237, 0.314, 0.393, 0.471]
-          ]
-        },
-        XGM_V_MO_IMP: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 15,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.01, 0.014, 0.019, 0.023, 0.027, 0.036, 0.045, 0.053, 0.062, 0.071, 0.08, 0.088],
-            [0.016, 0.024, 0.031, 0.038, 0.046, 0.061, 0.075, 0.09, 0.105, 0.12, 0.135, 0.149],
-            [0.023, 0.033, 0.044, 0.054, 0.065, 0.086, 0.106, 0.127, 0.148, 0.169, 0.19, 0.211],
-            [0.029, 0.042, 0.056, 0.069, 0.083, 0.11, 0.137, 0.164, 0.191, 0.218, 0.245, 0.272],
-            [null, null, 0.081, 0.1, 0.12, 0.159, 0.198, 0.237, 0.276, 0.315, 0.354, 0.394],
-            [null, null, null, 0.131, 0.157, 0.208, 0.259, 0.311, 0.362, 0.413, 0.464, 0.516],
-            [null, null, null, null, 0.194, 0.257, 0.321, 0.384, 0.447, 0.511, 0.574, 0.638]
-          ]
-        },
-        XGM_V_MO_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 15,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225, 1425, 1625, 1825, 2025],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.012, 0.017, 0.022, 0.027, 0.032, 0.042, 0.053, 0.063, 0.073, 0.084, 0.094, 0.104],
-            [0.019, 0.028, 0.037, 0.045, 0.054, 0.071, 0.089, 0.106, 0.124, 0.141, 0.159, 0.176],
-            [0.027, 0.039, 0.052, 0.064, 0.076, 0.1, 0.125, 0.15, 0.174, 0.199, 0.224, 0.248],
-            [0.034, 0.05, 0.066, 0.082, 0.098, 0.129, 0.161, 0.193, 0.224, 0.256, 0.288, 0.32],
-            [null, null, 0.095, 0.118, 0.141, 0.187, 0.233, 0.279, 0.325, 0.371, 0.417, 0.463],
-            [null, null, null, 0.155, 0.185, 0.245, 0.305, 0.365, 0.426, 0.486, 0.546, 0.606],
-            [null, null, null, null, 0.228, 0.301, 0.377, 0.452, 0.526, 0.601, 0.675, 0.75]
-          ]
-        },
-        XGM_H_F45_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 16,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.014, 0.023, 0.031, 0.04, 0.048, 0.065, 0.081, 0.098],
-            [0.02, 0.031, 0.043, 0.055, 0.066, 0.089, 0.113, 0.136],
-            [0.028, 0.045, 0.061, 0.077, 0.094, 0.126, 0.159, 0.192],
-            [null, 0.066, 0.091, 0.115, 0.139, 0.188, 0.237, 0.286],
-            [null, null, 0.12, 0.152, 0.185, 0.25, 0.315, 0.379],
-            [null, null, null, 0.188, 0.229, 0.31, 0.392, 0.473]
-          ]
-        },
-        XGM_V_F45_EXT: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 16,
-          magnitud: "Aeff",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [75, 125, 165, 225, 325, 425, 525],
-          filas: [
-            [9e-3, 0.015, 0.02, 0.025, 0.03, 0.041, 0.051, 0.06],
-            [0.014, 0.023, 0.031, 0.04, 0.048, 0.065, 0.081, 0.098],
-            [0.02, 0.031, 0.043, 0.055, 0.066, 0.089, 0.113, 0.136],
-            [0.028, 0.045, 0.061, 0.077, 0.094, 0.126, 0.159, 0.192],
-            [null, 0.066, 0.091, 0.115, 0.139, 0.188, 0.237, 0.286],
-            [null, null, 0.12, 0.152, 0.185, 0.25, 0.315, 0.379],
-            [null, null, null, 0.188, 0.229, 0.31, 0.392, 0.473]
-          ]
-        },
-        XGM_P_R_AGEO: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 17,
-          magnitud: "Ageo",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [9e-3, 0.014, 0.018, 0.023, 0.027, 0.036, 0.046, 0.055],
-            [0.013, 0.019, 0.025, 0.032, 0.038, 0.051, 0.064, 0.077],
-            [0.018, 0.027, 0.036, 0.046, 0.055, 0.073, 0.091, 0.11],
-            [null, 0.041, 0.055, 0.068, 0.082, 0.11, 0.137, 0.165],
-            [null, null, 0.073, 0.091, 0.11, 0.146, 0.183, 0.22],
-            [null, null, null, 0.114, 0.137, 0.183, 0.229, 0.275]
-          ]
-        },
-        XGM_P_EG_AGEO: {
-          fuente: FICHA_XGM_DIF,
-          pagina: 17,
-          magnitud: "Ageo",
-          largos: [225, 325, 425, 525, 625, 825, 1025, 1225],
-          altos: [125, 165, 225, 325, 425, 525],
-          filas: [
-            [0.018, 0.027, 0.035, 0.044, 0.053, 0.071, 0.089, 0.107],
-            [0.025, 0.037, 0.05, 0.062, 0.075, 0.1, 0.125, 0.15],
-            [0.035, 0.053, 0.071, 0.089, 0.107, 0.143, 0.179, 0.215],
-            [null, 0.08, 0.107, 0.134, 0.161, 0.215, 0.268, 0.322],
-            [null, null, 0.142, 0.178, 0.214, 0.286, 0.358, 0.43],
-            [null, null, null, 0.223, 0.268, 0.358, 0.448, 0.538]
-          ]
-        },
-        /* VDW: «Detalles de producto», Aeff por tamaño (diámetro × nº de ranuras). */
-        VDW_Q: {
-          forma: "lista",
-          fuente: FICHA_VDW_DIF,
-          pagina: 19,
-          magnitud: "Aeff",
-          nota: "La ficha da un \xFAnico Aeff por tama\xF1o, sin distinguir impulsi\xF3n y retorno.",
-          tamanos: TAMANOS_VDW_DIF,
-          valores: [7e-3, 0.014, 0.021, 0.0295, 0.039, 0.0295, 0.047, 0.073]
-        },
-        VDW_R: {
-          forma: "lista",
-          fuente: FICHA_VDW_DIF,
-          pagina: 19,
-          magnitud: "Aeff",
-          nota: "La ficha da un \xFAnico Aeff por tama\xF1o, sin distinguir impulsi\xF3n y retorno. En circular no hay 625 \xD7 54 ni 825 \xD7 72.",
-          tamanos: TAMANOS_VDW_DIF.slice(0, 6),
-          valores: [7e-3, 0.014, 0.021, 0.0295, 0.039, 0.0295]
-        },
-        PL35: {
-          forma: "lista",
-          fuente: FICHA_PL35_DIF,
-          pagina: 8,
-          magnitud: "Aeff",
-          sinAk: true,
-          nota: NOTA_PL_DIF,
-          tamanos: LN_PL_DIF.map(String),
-          valores: LN_PL_DIF.map(() => null)
-        },
-        PL50: {
-          forma: "lista",
-          fuente: FICHA_PL50_DIF,
-          pagina: 7,
-          magnitud: "Aeff",
-          sinAk: true,
-          nota: NOTA_PL_DIF,
-          tamanos: LN_PL_DIF.map(String),
-          valores: LN_PL_DIF.map(() => null)
-        }
-      };
-      for (const [modelo, porMetro] of Object.entries(AK_METRO_PL_DIF)) {
-        porMetro.forEach((akm, i) => {
-          TABLAS_DIF[`${modelo}_${i + 1}`] = {
-            forma: "porMetro",
-            fuente: FUENTE_PL_AK_DIF,
-            pagina: null,
-            magnitud: "Aeff",
-            origen: "fabricante",
-            fabricante: "TROX",
-            unidad: "m\xB2 por metro lineal",
-            akPorMetro: akm,
-            nota: `${modelo}-${i + 1} (${i + 1} v\xEDa${i ? "s" : ""}): ${akm} m\xB2 por metro lineal; Ak = ${akm} \xD7 longitud (m).`,
-            tamanos: LN_PL_DIF.map(String),
-            valores: LN_PL_DIF.map((l) => akPorMetroDif(akm, l))
-          };
-        });
-      }
-      (function tiposTroxDif() {
-        const poner = (id, x) => {
-          if (!TIPOS_DIF[id]) TIPOS_DIF[id] = { marca: "TROX", modo: "ak", ak: null, k: null, ...x };
-        };
-        for (const [codigo, texto] of VARIANTES_XGM_DIF) {
-          for (const [circuito, suf, nombreC, corto] of CIRCUITOS_DIF) {
-            const tabla = `XGM_${codigo.replace("-", "_")}_${suf}`;
-            if (!TABLAS_DIF[tabla]) continue;
-            poner(`trox-xgm-${codigo.toLowerCase()}-${corto}`, { modelo: "XGM (X-GRILLE)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX XGM ${codigo} \xB7 ${nombreC}`, circuito, tabla });
-          }
-        }
-        for (const [codigo, texto] of [["P-R", "Frontal perforado circular (P-R)"], ["P-EG", "Frontal perforado celos\xEDa (P-EG)"]]) {
-          for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
-            poner(`trox-xgm-${codigo.toLowerCase()}-${corto}`, { modelo: "XGM (X-GRILLE)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX XGM ${codigo} \xB7 ${nombreC}`, circuito, tabla: `XGM_${codigo.replace("-", "_")}_AGEO` });
-          }
-        }
-        for (const [forma, texto] of [["Q", "Cuadrado (VDW-Q)"], ["R", "Circular (VDW-R)"]]) {
-          for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
-            poner(`trox-vdw-${forma.toLowerCase()}-${corto}`, { modelo: "VDW (rotacional)", variante: `${texto} \xB7 ${nombreC}`, nombre: `TROX VDW-${forma} \xB7 ${nombreC}`, circuito, tabla: `VDW_${forma}` });
-          }
-        }
-        for (const modelo of ["PL35", "PL50"]) {
-          for (let n = 1; n <= 4; n++) {
-            for (const [circuito, , nombreC, corto] of CIRCUITOS_DIF) {
-              poner(`trox-${modelo.toLowerCase()}-${n}-${corto}`, { modelo: `${modelo} (PureLine, lineal)`, variante: `${n} ranura${n > 1 ? "s" : ""} \xB7 ${nombreC}`, nombre: `TROX ${modelo}-${n} \xB7 ${nombreC}`, circuito, tabla: `${modelo}_${n}` });
-            }
-          }
-        }
-      })();
-      var CAT_AK_DIF = typeof __require !== "undefined" ? require_catalogoAk() : window.CATALOGO_AK;
-      var FACTORES_K_DIF = typeof __require !== "undefined" ? require_factoresKTrox() : typeof window !== "undefined" ? window.FACTORES_K_TROX : null;
-      function factoresKPuntoDif(p) {
-        const t = tipoDif(p && p.tipo);
-        if (!FACTORES_K_DIF || !t.tabla) return [];
-        return FACTORES_K_DIF.buscar({ tabla: t.tabla, tamano: p.tamano, largo: p.largo, alto: p.alto, circuito: t.circuito });
-      }
-      for (const [id, t] of Object.entries(CAT_AK_DIF.TABLAS)) if (!TABLAS_DIF[id]) TABLAS_DIF[id] = t;
-      for (const [id, t] of Object.entries(CAT_AK_DIF.TIPOS)) if (!TIPOS_DIF[id]) TIPOS_DIF[id] = t;
-      function numDif(v) {
-        if (v === null || v === void 0 || v === "") return null;
-        if (typeof v === "number") return Number.isFinite(v) ? v : null;
-        let t = String(v).trim().replace(/\s/g, "");
-        if (t.includes(",") && t.includes(".")) t = t.replace(/\./g, "");
-        t = t.replace(",", ".");
-        if (!t) return null;
-        const n = Number(t);
-        return Number.isFinite(n) ? n : null;
-      }
-      var redDif = (v, d = 1) => v === null ? null : Math.round(v * 10 ** d) / 10 ** d;
-      var entre01Dif = (v) => {
-        const n = numDif(v);
-        return n === null ? 0.5 : Math.min(1, Math.max(0, n));
-      };
-      function leerVelocidadesDif(texto) {
-        if (texto === null || texto === void 0) return { lecturas: [], media: null };
-        if (typeof texto === "number") return Number.isFinite(texto) && texto >= 0 ? { lecturas: [texto], media: texto } : { lecturas: [], media: null };
-        const trozos = String(texto).split(/[;\s/]+|,(?=\s)|\s*\|\s*/).map((t) => t.trim()).filter(Boolean);
-        const lecturas = trozos.map(numDif).filter((n) => n !== null && n >= 0);
-        if (!lecturas.length) return { lecturas: [], media: null };
-        const media = lecturas.reduce((a, b) => a + b, 0) / lecturas.length;
-        return { lecturas, media: redDif(media, 3) };
-      }
-      function tipoDif(id) {
-        return TIPOS_DIF[id] ? { id, ...TIPOS_DIF[id] } : { id: TIPO_DEFECTO_DIF, ...TIPOS_DIF[TIPO_DEFECTO_DIF] };
-      }
-      var EQUIPOS_MEDIDA_DIF = { anemometro: "Anem\xF3metro", balometro: "Bal\xF3metro" };
-      function equipoMedidaDif(p = {}) {
-        if (EQUIPOS_MEDIDA_DIF[p.equipoMedida]) return p.equipoMedida;
-        if (numDif(p.caudalMedido) !== null) return "balometro";
-        return numDif(p.velocidad) !== null ? "anemometro" : null;
-      }
-      function sinAkDif(p = {}) {
-        const f = factorDif(p);
-        return f.modo === "ak" && f.valor === null;
-      }
-      function caudalSinAkDif(p = {}) {
-        return equipoMedidaDif(p) === "balometro" || lecturaDif(p) === "caudal";
-      }
-      function equipoPropuestoDif(p = {}) {
-        return equipoMedidaDif(p) || (sinAkDif(p) ? "balometro" : null);
-      }
-      var LECTURAS_DIF = { velocidad: "Velocidad (m/s)", caudal: "Caudal (m\xB3/h)" };
-      function lecturaDif(p = {}) {
-        if (LECTURAS_DIF[p.lectura]) return p.lectura;
-        return numDif(p.caudalMedido) !== null ? "caudal" : "velocidad";
-      }
-      function normalizarPuntoDif(p = {}, indice = 0) {
-        if (!p || typeof p !== "object") p = {};
-        const t = tipoDif(p.tipo);
-        const modo = MODOS_DIF[p.modo] ? p.modo : t.modo;
-        const ak = numDif(p.ak);
-        const k = numDif(p.k);
-        const v = numDif(p.velocidad);
-        const qd = numDif(p.caudalDiseno);
-        const qm = numDif(p.caudalMedido);
-        const tm = numDif(p.temperatura);
-        const tf = numDif(p.tFrio);
-        const tc = numDif(p.tCalor);
-        const grados = (x) => x !== null && x >= -50 && x <= 150 ? Math.round(x * 10) / 10 : null;
-        return {
-          id: String(p.id || `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`),
-          nombre: String(p.nombre || "").trim().slice(0, 40) || `D${indice + 1}`,
-          /* SIN POSICIÓN (30-oct-2026): la boca sale del texto del plano y no hay
-             dibujo; no se pinta sobre ninguna lámina hasta que llega el PDF y se
-             casa por código y caudal. Nunca se le inventa un sitio: x/y = null. */
-          x: p.sinPosicion ? null : entre01Dif(p.x),
-          y: p.sinPosicion ? null : entre01Dif(p.y),
-          sinPosicion: Boolean(p.sinPosicion),
-          /* La sala del plano, si la trae el texto (null = no se sabe). */
-          sala: p.sala ? String(p.sala).trim().slice(0, 40) || null : null,
-          /* A REVISAR: no se puede atribuir con seguridad al equipo (el plano trae
-             otros sistemas). Se enseña con su motivo y no entra en las sumas. */
-          sinAtribuir: p.sinAtribuir ? String(p.sinAtribuir).trim().slice(0, 200) || "a revisar" : null,
-          tipo: t.id,
-          modo,
-          ak: ak !== null && ak > 0 ? ak : null,
-          k: k !== null && k > 0 ? k : null,
-          largo: medidaDif(p.largo),
-          alto: medidaDif(p.alto),
-          tamano: p.tamano === null || p.tamano === void 0 ? null : String(p.tamano).trim().slice(0, 20) || null,
-          lecturas: p.lecturas === null || p.lecturas === void 0 ? "" : String(p.lecturas).slice(0, 120),
-          velocidad: v !== null && v >= 0 ? v : null,
-          /* Con balómetro se lee el caudal directamente (m³/h): manda sobre v × Ak. */
-          caudalMedido: qm !== null && qm >= 0 ? qm : null,
-          /* Con qué se ha medido: 'anemometro' (M1–M4 × Ak) o 'balometro' (caudal
-             leído, sin Ak). null = sin decir: se deduce (con caudal leído, balómetro). */
-          equipoMedida: EQUIPOS_MEDIDA_DIF[p.equipoMedida] ? p.equipoMedida : null,
-          /* Con el anemómetro: qué se apunta ('velocidad' o 'caudal'); null = sin elegir. */
-          lectura: LECTURAS_DIF[p.lectura] ? p.lectura : null,
-          /* Las lecturas de caudal del anemómetro (M1–M4, m³/h); su media es caudalMedido. */
-          lecturasCaudal: p.lecturasCaudal === null || p.lecturasCaudal === void 0 ? "" : String(p.lecturasCaudal).slice(0, 120),
-          caudalDiseno: qd !== null && qd >= 0 ? qd : null,
-          /* DE DÓNDE SALE EL CAUDAL DE PROYECTO (24-nov-2026, JC en obra: «Necesito los valores de proyecto de cada reja»): el
-             plano y su rótulo cuando lo pone la app (shared/commissioning/caudalesRejasProyecto.js); sin caudal, nada. */
-          ...qd !== null && qd >= 0 && p.caudalFuente && String(p.caudalFuente).trim() ? { caudalFuente: String(p.caudalFuente).trim().slice(0, 200) } : {},
-          /* La Tª del aire en esa boca, en °C, con una cifra decimal (23-oct-2026,
-             JC: «un campo para apuntar la temperatura en cada difusor»). Solo se
-             apunta y se enseña: no entra en ningún cálculo ni se juzga. */
-          temperatura: grados(tm),
-          /* Tª FRÍO Y Tª CALOR (30-oct-2026, JC): las dos en todas las bocas, sea
-             difusor o reja, de impulsión o de retorno. La `temperatura` de antes se
-             conserva tal cual, como «modo sin indicar»: ni se borra ni se mueve. */
-          tFrio: grados(tf),
-          tCalor: grados(tc),
-          nota: String(p.nota || "").slice(0, 300),
-          /* El modelo de proyecto de la obra del que sale (tipo, tamaño y caudal de proyecto). */
-          modeloId: p.modeloId ? String(p.modeloId).slice(0, 40) : null,
-          /* AÑADIDA EN OBRA (30-oct-2026): la boca que pone JC a mano desde el móvil.
-             Las pasadas automáticas no la borran ni la mueven (bocaManual.js › proteger). */
-          origen: p.origen === "manual" ? "manual" : null,
-          manual: p.origen === "manual" ? manualDif(p.manual) : null,
-          /* MEDIDA EN OBRA (30-oct-2026): si en obra se mide otro tamaño, aquí queda
-             el del rótulo del plano (bocaManual.js › cambiarMedidas); null = el del plano. */
-          medidaPlano: p.medidaPlano && typeof p.medidaPlano === "object" ? { largo: medidaDif(p.medidaPlano.largo), alto: medidaDif(p.medidaPlano.alto), tamano: p.medidaPlano.tamano ? String(p.medidaPlano.tamano).slice(0, 20) : null, tipo: p.medidaPlano.tipo ? String(p.medidaPlano.tipo).slice(0, 60) : null } : null,
-          /* De dónde sale un Ak puesto a mano (ficha, página): sin fuente no se acepta (bocaManual.js › ponerAk). */
-          akFuente: ak !== null && ak > 0 && p.akFuente ? String(p.akFuente).trim().slice(0, 160) || null : null,
-          /* FICTICIA (16-nov-2026): la reja a fin de conducto que no existe en obra (rejasFinDeConducto.js), con su red del modelo. */
-          ...p.ficticia === true ? { ficticia: true, red: p.red ? String(p.red).slice(0, 70) : null } : {},
-          /* QUITADA A MANO (24-nov-2026, JC en obra con VE-S2.07 A: «quiero poder quitar yo a mano rejas y difusores y tal»):
-             la boca no está en obra. Se queda en la lista con quién y cuándo (para deshacerlo y para que ninguna pasada la
-             vuelva a poner), pero no sale en el plano, ni en la hoja, ni en el PDF, ni cuenta en el caudal. */
-          ...quitadaDif(p.quitada) ? { quitada: quitadaDif(p.quitada) } : {}
-        };
-      }
-      function quitadaDif(q) {
-        if (!q || typeof q !== "object") return null;
-        const en = String(q.en || "").trim().slice(0, 40);
-        if (!en) return null;
-        return { por: String(q.por || "").trim().slice(0, 80) || null, en };
-      }
-      var estaQuitadaDif = (p) => Boolean(p && quitadaDif(p.quitada));
-      var activasDif = (lista) => Array.isArray(lista) ? lista.filter((p) => p && !estaQuitadaDif(p)) : [];
-      function manualDif(m) {
-        if (!m || typeof m !== "object") m = {};
-        const t = (v, n) => String(v === null || v === void 0 ? "" : v).trim().slice(0, n);
-        return {
-          sistema: ["impulsion", "retorno", "extraccion"].includes(m.sistema) ? m.sistema : "impulsion",
-          clase: m.clase === "reja" ? "reja" : "difusor",
-          modelo: t(m.modelo, 40) || null,
-          nota: t(m.nota, 200),
-          fecha: t(m.fecha, 30) || null,
-          autor: t(m.autor, 80) || null,
-          posibleDuplicado: t(m.posibleDuplicado, 200) || null
-        };
-      }
-      function medidaDif(v) {
-        const n = numDif(v);
-        return n !== null && n > 0 ? Math.round(n) : null;
-      }
-      function akPorMetroDif(akm, longitudMm) {
-        const l = Number(longitudMm);
-        return akm > 0 && l > 0 ? Math.round(akm * l / 1e3 * 1e6) / 1e6 : null;
-      }
-      var TOLERANCIA_DISCREPANCIA_AK_DIF = 0.01;
-      var claveTamanoDif = (v) => v === null || v === void 0 ? "" : String(v).toLowerCase().replace(/\s+/g, "").replace(/x/g, "\xD7");
-      function valorTablaDif(tabla, { largo = null, alto = null, tamano = null } = {}) {
-        const t = TABLAS_DIF[tabla];
-        if (!t) return null;
-        let v;
-        if (t.forma === "porMetro") {
-          const l = numDif(tamano) || numDif(largo);
-          v = l ? akPorMetroDif(t.akPorMetro, l) : null;
-        } else if (t.forma === "lista") {
-          const i = t.tamanos.findIndex((x) => claveTamanoDif(x) === claveTamanoDif(tamano));
-          if (i < 0) return null;
-          v = t.valores[i];
-        } else {
-          const c = t.largos.indexOf(medidaDif(largo));
-          const f = t.altos.indexOf(medidaDif(alto));
-          if (c < 0 || f < 0) return null;
-          v = t.filas[f][c];
-        }
-        return typeof v === "number" && v > 0 ? v : null;
-      }
-      function akTablaDif(tabla, largo, alto, tamano = null) {
-        const t = TABLAS_DIF[tabla];
-        if (!t || t.magnitud !== "Aeff") return null;
-        return valorTablaDif(tabla, { largo, alto, tamano });
-      }
-      function ageoTablaDif(tabla, largo, alto, tamano = null) {
-        const t = TABLAS_DIF[tabla];
-        if (!t || t.magnitud !== "Ageo") return null;
-        return valorTablaDif(tabla, { largo, alto, tamano });
-      }
-      function fuenteTablaDif(tabla) {
-        const t = TABLAS_DIF[tabla];
-        if (!t) return null;
-        return `${t.fuente}${t.pagina ? `, p. ${t.pagina}` : ""}`;
-      }
-      function factorDif(p) {
-        const t = tipoDif(p.tipo);
-        const modo = MODOS_DIF[p.modo] ? p.modo : t.modo;
-        if (modo === "k") {
-          const propio2 = numDif(p.k);
-          if (propio2 !== null && propio2 > 0) return { modo, valor: propio2, origen: "punto" };
-          return { modo, valor: t.modo === "k" ? t.k : null, origen: t.modo === "k" && t.k ? "catalogo" : null };
-        }
-        const propio = numDif(p.ak);
-        if (propio !== null && propio > 0) {
-          const deTabla = t.tabla ? akTablaDif(t.tabla, p.largo, p.alto, p.tamano) : null;
-          const discrepa = deTabla !== null && Math.abs(propio - deTabla) / deTabla > TOLERANCIA_DISCREPANCIA_AK_DIF;
-          return { modo, valor: propio, origen: "punto", akTabla: deTabla, discrepanciaAk: discrepa };
-        }
-        if (t.tabla) {
-          const v = akTablaDif(t.tabla, p.largo, p.alto, p.tamano);
-          return { modo, valor: v, origen: v ? "tabla" : null };
-        }
-        if (p.medidaPlano && typeof p.medidaPlano === "object") return { modo, valor: null, origen: null };
-        return { modo, valor: t.modo === "ak" ? t.ak : null, origen: t.modo === "ak" && t.ak ? "catalogo" : null };
-      }
-      var visiblesDif = () => Object.entries(TIPOS_DIF).filter(([, x]) => !x.oculto);
-      var unicosDif = (lista) => [...new Set(lista)];
-      function marcasDif() {
-        const m = unicosDif(visiblesDif().map(([, x]) => x.marca));
-        return m.sort((a, b) => a === "TROX" ? -1 : b === "TROX" ? 1 : 0);
-      }
-      function modelosDif(marca) {
-        return unicosDif(visiblesDif().filter(([, x]) => x.marca === marca).map(([, x]) => x.modelo));
-      }
-      function variantesDif(marca, modelo) {
-        return visiblesDif().filter(([, x]) => x.marca === marca && x.modelo === modelo).map(([id, x]) => ({ id, variante: x.variante, circuito: x.circuito }));
-      }
-      function tamanosDif(tipoId) {
-        const t = TIPOS_DIF[tipoId];
-        const tabla = t && t.tabla ? TABLAS_DIF[t.tabla] : null;
-        if (!tabla) return [];
-        if (tabla.forma === "lista" || tabla.forma === "porMetro") {
-          return tabla.tamanos.map((tam, i) => ({ clave: tam, texto: tabla.sinAk || tabla.forma === "porMetro" ? `LN ${tam}` : tam, tamano: tam, largo: null, alto: null, area: tabla.valores[i] })).filter((x) => tabla.sinAk || typeof x.area === "number" && x.area > 0);
-        }
-        const salida = [];
-        tabla.altos.forEach((h, f) => tabla.largos.forEach((l, c) => {
-          const v = tabla.filas[f][c];
-          if (typeof v === "number" && v > 0) salida.push({ clave: `${l}\xD7${h}`, texto: `${l} \xD7 ${h}`, tamano: null, largo: l, alto: h, area: v });
-        }));
-        return salida.sort((a, b) => a.largo - b.largo || a.alto - b.alto);
-      }
-      function claveTamanoPuntoDif(p) {
-        if (p && p.largo && p.alto) return `${p.largo}\xD7${p.alto}`;
-        return p && p.tamano ? p.tamano : "";
-      }
-      function mismoGrupoAkDif(p, tipo, clave) {
-        return p && p.tipo === tipo && claveTamanoPuntoDif(p) === (clave || "");
-      }
-      function aplicarAkPorGrupoDif(puntos, grupo = {}, ak = null) {
-        const v = numDif(ak);
-        const valor = v !== null && v > 0 ? v : null;
-        return (puntos || []).map((p) => mismoGrupoAkDif(p, grupo.tipo, grupo.clave) && (p.modo || tipoDif(p.tipo).modo) !== "k" ? { ...p, modo: "ak", ak: valor } : p);
-      }
-      function gruposAkDif(puntos) {
-        const m = /* @__PURE__ */ new Map();
-        for (const p of puntos || []) {
-          const clave = claveTamanoPuntoDif(p);
-          const id = `${p.tipo}|${clave}`;
-          const g = m.get(id) || { tipo: p.tipo, clave, tipoNombre: tipoDif(p.tipo).nombre, circuito: tipoDif(p.tipo).circuito, bocas: 0, sinAk: 0, aks: /* @__PURE__ */ new Set() };
-          g.bocas += 1;
-          const f = factorDif(p);
-          if (f.modo === "ak" && f.valor === null) g.sinAk += 1;
-          else if (f.modo === "ak") g.aks.add(f.valor);
-          m.set(id, g);
-        }
-        return [...m.values()].map((g) => ({ ...g, ak: g.aks.size === 1 ? [...g.aks][0] : null, aks: void 0 }));
-      }
-      function caudalDif({ velocidad, modo = "ak", ak = null, k = null } = {}) {
-        const v = numDif(velocidad);
-        if (v === null || v < 0) return null;
-        if (modo === "k") {
-          const f = numDif(k);
-          return f === null || f <= 0 ? null : redDif(f * v, 1);
-        }
-        const a = numDif(ak);
-        return a === null || a <= 0 ? null : redDif(v * a * 3600, 1);
-      }
-      function desviacionDif(medido, diseno) {
-        const d = REGLAS_DIF.desviacion(numDif(medido), numDif(diseno));
-        return d === null ? null : redDif(d, 4);
-      }
-      function juicioDif(desv, tol) {
-        const ok = REGLAS_DIF.dentro(desv, tol);
-        if (ok === null) return null;
-        return ok ? "dentro" : desv > 0 ? "alto" : "bajo";
-      }
-      function toleranciasDif(t = {}) {
-        const r = REGLAS_DIF.toleranciasAplicadas(t || {});
-        return { total: r.total, boca: r.boca, totalPorDefecto: Boolean(r.totalPorDefecto), bocaPorDefecto: Boolean(r.bocaPorDefecto) };
-      }
-      function evaluarPuntoDif(p, tolBoca = TOLERANCIA_BOCA_DEFECTO_DIF) {
-        const t = tipoDif(p.tipo);
-        const f = factorDif(p);
-        const equipo = equipoMedidaDif(p);
-        const lectura = equipo === "anemometro" ? lecturaDif(p) : null;
-        const qLeido = numDif(p.caudalMedido) !== null;
-        const directo = equipo === "balometro" || lectura === "caudal" || equipo !== "anemometro" && qLeido;
-        const caudal = directo ? qLeido ? redDif(numDif(p.caudalMedido), 1) : null : f.valor === null ? null : caudalDif({ velocidad: p.velocidad, modo: f.modo, ak: f.modo === "ak" ? f.valor : null, k: f.modo === "k" ? f.valor : null });
-        const desv = desviacionDif(caudal, p.caudalDiseno);
-        let estado;
-        if (directo ? !qLeido : numDif(p.velocidad) === null) estado = "sinMedir";
-        else if (!directo && f.valor === null) estado = "sinFactor";
-        else if (numDif(p.caudalDiseno) === null) estado = "medido";
-        else if (directo && REGLAS_DIF.veredicto({ medido: caudal, referencia: p.caudalDiseno, limite: tolBoca, revisado: Boolean(p.revisado) }) === "aRevisar") estado = "aRevisar";
-        else estado = juicioDif(desv, tolBoca);
-        return {
-          ...p,
-          circuito: t.circuito,
-          tipoNombre: t.nombre,
-          factor: f.valor,
-          modoFactor: f.modo,
-          origenFactor: f.origen,
-          /* Ak a mano frente al de la tabla: los dos se guardan; nada se sobrescribe. */
-          akTabla: f.akTabla === void 0 ? null : f.akTabla,
-          discrepanciaAk: Boolean(f.discrepanciaAk),
-          /* Los K del plenum AK-Uni (q = K·√Δp), si el fabricante los da: solo informan. */
-          factoresK: factoresKPuntoDif(p),
-          caudal,
-          /* El equipo con que se mide (el elegido o el deducido). */
-          equipoMedida: equipo,
-          /* Cómo sale el caudal: 'balometro' / 'directo' (caudal leído), 'anemometro' (v × factor) o null. */
-          metodo: estado === "sinMedir" ? null : equipo === "balometro" ? "balometro" : directo ? "directo" : "anemometro",
-          /* Con el anemómetro: 'velocidad' o 'caudal' (lo que se apunta en M1–M4). */
-          lectura,
-          lecturasLista: leerVelocidadesDif(p.lecturas).lecturas,
-          lecturasCaudalLista: leerVelocidadesDif(p.lecturasCaudal).lecturas,
-          desviacion: desv,
-          estado,
-          /* Sin Ak: el aviso y el aparato que se propone (no cambia lo medido). */
-          sinAk: !caudalSinAkDif(p) && f.modo === "ak" && f.valor === null,
-          avisoSinAk: !caudalSinAkDif(p) && f.modo === "ak" && f.valor === null ? AVISO_SIN_AK_DIF : null,
-          /* Balómetro o anemómetro en m³/h: el Ak no hace falta (24-nov). */
-          caudalSinAk: caudalSinAkDif(p),
-          equipoPropuesto: equipo || (f.modo === "ak" && f.valor === null ? "balometro" : null)
-        };
-      }
-      function rotuloSentidoDif(tipoNombre, sentido) {
-        const circuitoNombre = sentido === "retorno" ? "Extracci\xF3n" : "Impulsi\xF3n";
-        const palabra = sentido === "retorno" ? "extracci\xF3n" : "impulsi\xF3n";
-        const nombre = String(tipoNombre || "").replace(/\bde (retorno|extracci[oó]n|impulsi[oó]n)\b/gi, `de ${palabra}`);
-        return { circuitoNombre, tipoNombre: nombre || tipoNombre };
-      }
-      function resumenDif({ puntos = [], diseno = {}, tolerancias = {}, sinTemperaturas = false, circuito = null } = {}) {
-        const sinT = Boolean(sinTemperaturas);
-        const tol = toleranciasDif(tolerancias);
-        const forzado = circuito === "impulsion" || circuito === "retorno" ? circuito : null;
-        const filas = activasDif(puntos).map((p, i) => evaluarPuntoDif(normalizarPuntoDif(p, i), tol.boca)).map((f) => {
-          if (!forzado) return f;
-          const r = rotuloSentidoDif(f.tipoNombre, forzado);
-          const aviso = f.avisoSinAk && f.tipoNombre ? String(f.avisoSinAk).split(f.tipoNombre).join(r.tipoNombre) : f.avisoSinAk;
-          return { ...f, circuito: forzado, circuitoTipo: f.circuito, tipoNombreGuardado: f.tipoNombre, ...r, avisoSinAk: aviso };
-        });
-        const circuitos = {};
-        for (const id of ["impulsion", "retorno"]) {
-          const suyos = filas.filter((f) => f.circuito === id && !f.sinAtribuir);
-          const conCaudal = suyos.filter((f) => f.caudal !== null);
-          const suma = conCaudal.length ? redDif(conCaudal.reduce((a, f) => a + f.caudal, 0), 1) : null;
-          const disenoPuntos = suyos.every((f) => numDif(f.caudalDiseno) !== null) && suyos.length ? redDif(suyos.reduce((a, f) => a + numDif(f.caudalDiseno), 0), 1) : null;
-          const disenoEquipo = numDif(diseno && diseno[id]);
-          const medidasN = suyos.filter((f) => f.estado !== "sinMedir").length;
-          const faltan = suyos.length - medidasN;
-          const sinCaudal = suyos.length - conCaudal.length;
-          const completo = suyos.length > 0 && sinCaudal === 0;
-          const disenoReferencia = disenoPuntos !== null ? disenoPuntos : disenoEquipo;
-          const desv = completo ? desviacionDif(suma, disenoReferencia) : null;
-          let estado;
-          if (!suyos.length) estado = "sinPuntos";
-          else if (!completo) estado = "incompleto";
-          else if (disenoReferencia === null) estado = "sinDiseno";
-          else estado = juicioDif(desv, tol.total);
-          circuitos[id] = {
-            id,
-            puntos: suyos.length,
-            medidos: medidasN,
-            faltan,
-            sinAk: suyos.filter((f) => f.estado === "sinFactor").length,
-            suma,
-            disenoEquipo,
-            disenoPuntos,
-            /* Contra qué se juzga el total: 'bocas' (lo normal) o 'equipo'. */
-            disenoReferencia,
-            referencia: disenoReferencia === null ? null : disenoPuntos !== null ? "bocas" : "equipo",
-            desviacion: desv,
-            /* El caudal del equipo, solo de referencia. */
-            desviacionEquipo: completo ? desviacionDif(suma, disenoEquipo) : null,
-            estado,
-            dentro: suyos.filter((f) => f.estado === "dentro").length,
-            fuera: suyos.filter((f) => f.estado === "alto" || f.estado === "bajo").length,
-            aRevisar: filas.filter((f) => f.circuito === id && f.sinAtribuir).length,
-            /* Lo de proyecto de las «a revisar» (fuera de la suma): para decir cuánto queda fuera. */
-            disenoRevisar: (() => {
-              const r = filas.filter((f) => f.circuito === id && f.sinAtribuir && numDif(f.caudalDiseno) !== null);
-              return r.length ? redDif(r.reduce((a, f) => a + numDif(f.caudalDiseno), 0), 1) : null;
-            })(),
-            /* «Tª frío 0/11 · Tª calor 0/11»: una boca está completa con caudal y las dos Tª. */
-            tFrio: suyos.filter((f) => f.tFrio !== null).length,
-            tCalor: suyos.filter((f) => f.tCalor !== null).length,
-            completas: suyos.filter((f) => bocaCompletaDif(f, { sinTemperaturas: sinT })).length,
-            sinTemperaturas: sinT
-          };
-        }
-        return { sinTemperaturas: sinT, filas, circuitos, tolerancias: tol, sinPosicion: filas.filter((f) => f.sinPosicion).length, aRevisar: filas.filter((f) => f.sinAtribuir).length };
-      }
-      function bocaCompletaDif(f = {}, { sinTemperaturas = false } = {}) {
-        const medida = f.caudal !== null && f.caudal !== void 0 ? true : f.estado === "sinFactor";
-        if (sinTemperaturas) return Boolean(medida);
-        return Boolean(medida) && numDif(f.tFrio) !== null && numDif(f.tCalor) !== null;
-      }
-      function textoTemperaturasDif(c = {}) {
-        if (c.sinTemperaturas) return "";
-        const n = c.puntos || 0;
-        return `T\xAA fr\xEDo ${c.tFrio || 0}/${n} \xB7 T\xAA calor ${c.tCalor || 0}/${n}`;
-      }
-      function siguienteNombreDif(puntos = [], circuito = "impulsion") {
-        const letra = circuito === "retorno" ? "R" : "D";
-        const re = new RegExp(`^${letra}(\\d+)$`);
-        const max = puntos.reduce((m, p) => {
-          const r = re.exec(String(p.nombre || ""));
-          return r ? Math.max(m, Number(r[1])) : m;
-        }, 0);
-        return `${letra}${max + 1}`;
-      }
-      function normalizarModeloProyectoDif(m = {}, indice = 0) {
-        if (!m || typeof m !== "object") m = {};
-        const t = tipoDif(m.tipo);
-        const qp = numDif(m.caudalProyecto);
-        return {
-          id: String(m.id || `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`).slice(0, 40),
-          ref: String(m.ref || "").trim().slice(0, 30) || `${t.circuito === "retorno" ? "R" : "D"}-${String(indice + 1).padStart(2, "0")}`,
-          tipo: t.id,
-          largo: medidaDif(m.largo),
-          alto: medidaDif(m.alto),
-          tamano: m.tamano === null || m.tamano === void 0 ? null : String(m.tamano).trim().slice(0, 20) || null,
-          /* Ak a mano: para las tablas que no lo dan (PureLine) o un modelo sin tabla. */
-          ak: numDif(m.ak) !== null && numDif(m.ak) > 0 ? numDif(m.ak) : null,
-          caudalProyecto: qp !== null && qp >= 0 ? qp : null,
-          nota: String(m.nota || "").slice(0, 200),
-          /* De dónde sale: 'presupuesto', 'cambio aprobado' o 'manual' (y la partida que lo dio). */
-          origen: ["presupuesto", "cambio aprobado", "manual"].includes(m.origen) ? m.origen : "manual",
-          partida: m.partida && typeof m.partida === "object" ? { codigo: String(m.partida.codigo || "").slice(0, 40), resumen: String(m.partida.resumen || "").slice(0, 200) } : null
-        };
-      }
-      function normalizarModelosProyectoDif(lista) {
-        const vistos = /* @__PURE__ */ new Set();
-        const salida = [];
-        for (const m of Array.isArray(lista) ? lista.slice(0, 200) : []) {
-          if (!m || typeof m !== "object") continue;
-          const n = normalizarModeloProyectoDif(m, salida.length);
-          if (vistos.has(n.id)) continue;
-          vistos.add(n.id);
-          salida.push(n);
-        }
-        return salida;
-      }
-      function camposModeloDif(m) {
-        const t = tipoDif(m.tipo);
-        return {
-          tipo: m.tipo,
-          modo: t.modo === "k" ? "k" : "ak",
-          ak: m.ak,
-          k: null,
-          largo: m.largo,
-          alto: m.alto,
-          tamano: m.tamano,
-          caudalDiseno: m.caudalProyecto
-        };
-      }
-      function evaluarModeloDif(m) {
-        const t = tipoDif(m.tipo);
-        const f = factorDif({ ...normalizarPuntoDif(camposModeloDif(m)) });
-        return {
-          ...m,
-          circuito: t.circuito,
-          tipoNombre: t.nombre,
-          marca: t.marca,
-          modelo: t.modelo,
-          variante: t.variante,
-          factor: f.valor,
-          modoFactor: f.modo,
-          origenFactor: f.origen,
-          akTabla: f.akTabla === void 0 ? null : f.akTabla,
-          discrepanciaAk: Boolean(f.discrepanciaAk),
-          fuente: t.tabla ? fuenteTablaDif(t.tabla) : null,
-          ejemplo: Boolean(t.ejemplo)
-        };
-      }
-      function normalizarAsignacionDif(lista, modelos2 = null) {
-        const ids = modelos2 ? new Set(modelos2.map((m) => m.id)) : null;
-        const vistos = /* @__PURE__ */ new Set();
-        const salida = [];
-        for (const a of Array.isArray(lista) ? lista : []) {
-          if (!a || typeof a !== "object" || !a.modeloId) continue;
-          const id = String(a.modeloId);
-          if (vistos.has(id) || ids && !ids.has(id)) continue;
-          const n = Math.round(numDif(a.cantidad) || 0);
-          if (n <= 0) continue;
-          vistos.add(id);
-          salida.push({ modeloId: id, cantidad: Math.min(200, n) });
-        }
-        return salida;
-      }
-      function aplicarModelosDif(puntos, modelos2) {
-        const porId = new Map((modelos2 || []).map((m) => [m.id, m]));
-        return (puntos || []).map((p, i) => {
-          const m = p.modeloId ? porId.get(p.modeloId) : null;
-          return m ? normalizarPuntoDif({ ...p, ...camposModeloDif(m) }, i) : p;
-        });
-      }
-      function generarBocasDif(asignacion, modelos2, existentes = []) {
-        const porId = new Map((modelos2 || []).map((m) => [m.id, m]));
-        const todas = [...existentes];
-        const nuevas = [];
-        const sobran = [];
-        for (const a of normalizarAsignacionDif(asignacion, modelos2)) {
-          const m = porId.get(a.modeloId);
-          const tiene = existentes.filter((p) => p.modeloId === m.id).length;
-          if (tiene > a.cantidad) sobran.push({ modeloId: m.id, ref: m.ref, sobran: tiene - a.cantidad });
-          for (let i = tiene; i < a.cantidad; i++) {
-            const circuito = tipoDif(m.tipo).circuito;
-            const p = normalizarPuntoDif({ ...camposModeloDif(m), modeloId: m.id, nombre: siguienteNombreDif(todas, circuito) }, todas.length);
-            todas.push(p);
-            nuevas.push(p);
-          }
-        }
-        const asignados = new Set(normalizarAsignacionDif(asignacion, modelos2).map((a) => a.modeloId));
-        for (const m of modelos2 || []) {
-          const tiene = existentes.filter((p) => p.modeloId === m.id).length;
-          if (tiene && !asignados.has(m.id)) sobran.push({ modeloId: m.id, ref: m.ref, sobran: tiene });
-        }
-        return { nuevas, sobran };
-      }
-      function colocarEnListaDif(puntos) {
-        return puntos.map((p, i) => ({ ...p, x: 0.05 + 0.1 * (i % 10), y: Math.min(0.95, 0.08 + 0.12 * Math.floor(i / 10)) }));
-      }
-      function normalizarPuntosDif(lista) {
-        const vistos = /* @__PURE__ */ new Set();
-        const salida = [];
-        for (const p of Array.isArray(lista) ? lista.slice(0, 400) : []) {
-          if (!p || typeof p !== "object") continue;
-          const n = normalizarPuntoDif(p, salida.length);
-          if (vistos.has(n.id)) continue;
-          vistos.add(n.id);
-          salida.push(n);
-        }
-        return salida;
-      }
-      var ETIQUETA_DIF = /^(DIF|DF|DL|DR|D|RJ|RE|RR|RT|RA|RI|RET|EXT|IMP|R)[-_. ]?(\d{1,3}[A-Z]?)$/i;
-      var RETORNO_DIF = /^(RJ|RE|RR|RT|RA|RI|RET|EXT|R)$/i;
-      var CAUDAL_DIF = /(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:[.,]\d+)?)\s*m\s*(?:3|³)\s*\/\s*h/i;
-      var CAUDAL_Q_DIF = /\bQ\s*[=:]\s*(\d+(?:[.,]\d+)?)/i;
-      var RADIO_DIF = 0.06;
-      var CODIGO_CAD_DIF = /^(DR|DL|DF|DIF|RR|RJ|RT|RA|RI|RET|EXT|IMP|RE)_(\d{1,2})_([0-9A-Z]{3,5})$/i;
-      var RETORNO_CAD_DIF = /^(RR|RJ|RT|RA|RI|RET|EXT)$/i;
-      var OTRO_SISTEMA_DIF = /\bVI-N\d+|\bELECT-/i;
-      var RADIO_OTRO_DIF = 0.09;
-      var RADIO_EXTERIOR_DIF = 0.12;
-      var CORTE_DIF = /(^|[_\s])(section|secci[oó]n|corte)([_\s]|\d|$)/i;
-      var CORTE_IZQ_DIF = 0.065;
-      var CORTE_DER_DIF = 0.1;
-      var CORTE_ALTO_DIF = 0.22;
-      function recuentoTablaDif(textos) {
-        const lista = (Array.isArray(textos) ? textos : []).map((t) => ({ x: Number(t && t.x), y: Number(t && t.y), t: String(t && t.texto || "").trim() })).filter((t) => Number.isFinite(t.x) && Number.isFinite(t.y) && t.t);
-        const enteros = lista.filter((t) => /^\d{1,3}$/.test(t.t));
-        const filas = [];
-        for (const c of lista) {
-          if (!CODIGO_CAD_DIF.test(c.t)) continue;
-          const n = enteros.filter((e) => e.x > c.x && e.x - c.x < 0.5 && Math.abs(e.y - c.y) < 4e-3).sort((p, q) => p.x - q.x)[0];
-          if (n) filas.push({ codigo: c.t.toUpperCase(), x: c.x, xn: n.x, n: Number(n.t) });
-        }
-        const salida = {};
-        for (const f of filas) {
-          const columna = filas.filter((g) => Math.abs(g.x - f.x) < 4e-3 && Math.abs(g.xn - f.xn) < 4e-3);
-          if (new Set(columna.map((g) => g.codigo)).size >= 2 && salida[f.codigo] === void 0) salida[f.codigo] = f.n;
-        }
-        return salida;
-      }
-      function numeroCaudalDif(t) {
-        const m = CAUDAL_DIF.exec(t) || CAUDAL_Q_DIF.exec(t);
-        if (!m) return null;
-        const crudo = m[1].replace(/\s/g, "");
-        const n = /^\d{1,3}(\.\d{3})+$/.test(crudo) ? Number(crudo.replace(/\./g, "")) : Number(crudo.replace(",", "."));
-        return Number.isFinite(n) && n > 0 && n < 1e5 ? n : null;
-      }
-      function reconocerBocasDif(textos, { modelos: modelos2 = [], existentes = [], recuento = null, excluir = [], sinTabla = false } = {}) {
-        const avisos = [];
-        const descartadas = [];
-        const exteriores = [];
-        const otros = [];
-        const cortes = [];
-        const fuera = new Set((excluir || []).map((r) => String(r).toUpperCase()));
-        const tabla = sinTabla ? {} : { ...recuentoTablaDif(textos), ...recuento || {} };
-        const porRef = new Map((modelos2 || []).map((m) => [String(m.ref || "").replace(/[\s_.-]/g, "").toUpperCase(), m]));
-        const etiquetas = [];
-        const caudales = [];
-        for (const t of Array.isArray(textos) ? textos : []) {
-          const x = Number(t && t.x);
-          const y = Number(t && t.y);
-          if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 1 || y < 0 || y > 1) continue;
-          const texto = String(t.texto || "").trim();
-          if (!texto) continue;
-          const q = numeroCaudalDif(texto);
-          if (q !== null) caudales.push({ x, y, q, usado: false });
-          if (OTRO_SISTEMA_DIF.test(texto)) otros.push({ x, y });
-          if (CORTE_DIF.test(texto)) cortes.push({ x, y });
-          const trozos = texto.split(/[\s;,()[\]]+/).filter(Boolean);
-          for (let i = 0; i < trozos.length; i++) {
-            const cad = CODIGO_CAD_DIF.exec(trozos[i]);
-            if (cad) {
-              const pref = cad[1].toUpperCase();
-              const codigo = trozos[i].toUpperCase();
-              if (pref === "RE") {
-                exteriores.push({ x, y });
-                break;
-              }
-              const modelo = porRef.get(codigo.replace(/[\s_.-]/g, "")) || null;
-              etiquetas.push({ x, y, ref: codigo, modelo, retorno: modelo ? tipoDif(modelo.tipo).circuito === "retorno" : RETORNO_CAD_DIF.test(pref), q, lineal: pref === "DL", cad: true });
-              break;
-            }
-            const hit = [trozos[i], trozos[i + 1] ? `${trozos[i]} ${trozos[i + 1]}` : null].filter(Boolean).map((limpio) => {
-              const modelo = porRef.get(limpio.replace(/[\s_.-]/g, "").toUpperCase()) || null;
-              const m = ETIQUETA_DIF.exec(limpio);
-              return modelo || m ? { limpio, modelo, m } : null;
-            }).find(Boolean);
-            if (!hit) continue;
-            const retorno = hit.modelo ? tipoDif(hit.modelo.tipo).circuito === "retorno" : RETORNO_DIF.test(hit.m[1]);
-            etiquetas.push({ x, y, ref: hit.limpio, modelo: hit.modelo, retorno, q });
-            break;
-          }
-        }
-        const enCorte = (e) => e.cad && cortes.some((c) => e.x >= c.x - CORTE_IZQ_DIF && e.x <= c.x + CORTE_DER_DIF && e.y < c.y && c.y - e.y <= CORTE_ALTO_DIF);
-        for (const e of etiquetas.filter(enCorte)) descartadas.push({ ref: e.ref, x: e.x, y: e.y, motivo: "r\xF3tulo de un corte (secci\xF3n), no del plano" });
-        etiquetas.splice(0, etiquetas.length, ...etiquetas.filter((e) => !enCorte(e)));
-        const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-        const pares = [];
-        etiquetas.forEach((e, i) => {
-          if (e.q === null) caudales.forEach((c, j) => {
-            const d = dist(e, c);
-            if (d <= RADIO_DIF) pares.push({ i, j, d });
-          });
-        });
-        pares.sort((a, b) => a.d - b.d);
-        const conCaudal = /* @__PURE__ */ new Set();
-        for (const p of pares) {
-          if (conCaudal.has(p.i) || caudales[p.j].usado) continue;
-          etiquetas[p.i].q = caudales[p.j].q;
-          caudales[p.j].usado = true;
-          conCaudal.add(p.i);
-          const e = etiquetas[p.i];
-          const c = caudales[p.j];
-          e.px = Math.min(1, Math.max(0, e.x + (e.x - c.x) * 0.8));
-          e.py = Math.min(1, Math.max(0, e.y + (e.y - c.y) * 0.8));
-        }
-        const aparte = (e) => e.cad && e.retorno && (fuera.has(e.ref) || otros.some((o) => dist(e, o) <= RADIO_OTRO_DIF) || exteriores.some((o) => dist(e, o) <= RADIO_EXTERIOR_DIF));
-        for (const e of etiquetas.filter(aparte)) descartadas.push({ ref: e.ref, x: e.x, y: e.y, motivo: "parece de otro sistema (cuarto o reja exterior al lado)" });
-        etiquetas.splice(0, etiquetas.length, ...etiquetas.filter((e) => !aparte(e)));
-        const lineales = {};
-        for (const e of etiquetas.filter((x) => x.lineal)) (lineales[e.ref] = lineales[e.ref] || []).push(e);
-        for (const [codigo, rotulos2] of Object.entries(lineales)) {
-          const total = tabla[codigo];
-          if (!Number.isInteger(total) || total <= rotulos2.length) {
-            avisos.push(`${codigo}: ${rotulos2.length} r\xF3tulos de difusor lineal y no se ha le\xEDdo la tabla de selecci\xF3n; cada r\xF3tulo suele se\xF1alar varias unidades, cu\xE9ntalas en el plano.`);
-            continue;
-          }
-          const extra = total - rotulos2.length;
-          for (let k = 0; k < extra; k++) {
-            const base = rotulos2[k % rotulos2.length];
-            const p = juntoADif(base.x, base.y, 1 + Math.floor(k / rotulos2.length));
-            etiquetas.push({ ...base, px: p.x, py: p.y, q: base.q, qDe: base, aprox: true });
-          }
-          avisos.push(`${codigo}: la tabla cuenta ${total} unidades lineales y el plano solo rotula ${rotulos2.length}; se han creado ${total} (las ${extra} a\xF1adidas, junto a su r\xF3tulo): col\xF3calas en su sitio.`);
-        }
-        const rotulados = {};
-        for (const e of etiquetas) if (!e.lineal && e.cad) rotulados[e.ref] = (rotulados[e.ref] || 0) + 1;
-        for (const [codigo, n] of Object.entries(rotulados)) {
-          if (Number.isInteger(tabla[codigo]) && tabla[codigo] !== n) avisos.push(`${codigo}: la tabla cuenta ${tabla[codigo]} y el plano rotula ${n}; revisa que est\xE9n todas.`);
-        }
-        etiquetas.sort((a, b) => Math.abs(a.y - b.y) > 0.02 ? a.y - b.y : a.x - b.x);
-        const todas = [...existentes || []];
-        const bocas = [];
-        const rotulos = etiquetas.map((e) => ({ ref: e.ref, x: e.x, y: e.y, cad: Boolean(e.cad), lineal: Boolean(e.lineal), aprox: Boolean(e.aprox) }));
-        for (const e of etiquetas) {
-          const circuito = e.retorno ? "retorno" : "impulsion";
-          const base = e.modelo ? { ...camposModeloDif(e.modelo), modeloId: e.modelo.id } : { tipo: circuito === "retorno" ? "rejillaRet" : TIPO_DEFECTO_DIF };
-          const p = normalizarPuntoDif({
-            ...base,
-            nombre: siguienteNombreDif(todas, circuito),
-            x: e.px ?? e.x,
-            y: e.py ?? e.y,
-            caudalDiseno: e.q !== null ? e.q : e.modelo ? e.modelo.caudalProyecto : null,
-            nota: `Del plano: ${e.ref}${e.lineal ? " (difusor lineal)" : ""}${e.aprox ? " \xB7 posici\xF3n aproximada: unidad de la tabla sin r\xF3tulo propio" : ""}`
-          }, todas.length);
-          todas.push(p);
-          bocas.push(p);
-        }
-        return { bocas, rotulos, sinCaudal: bocas.filter((b) => b.caudalDiseno === null).length, leidos: (textos || []).length, avisos, descartadas, recuento: tabla };
-      }
-      var PASO_JUNTO_DIF = 0.012;
-      function juntoADif(x, y, k = 1) {
-        const sx = x > 0.9 ? -1 : 1;
-        const sy = y > 0.9 ? -1 : 1;
-        const lim = (v) => Math.max(0, Math.min(1, v));
-        return { x: lim(x + sx * PASO_JUNTO_DIF * k), y: lim(y + sy * PASO_JUNTO_DIF * k) };
-      }
-      function zonasCorteDif(textos) {
-        const salida = [];
-        for (const t of Array.isArray(textos) ? textos : []) {
-          const x = Number(t && t.x);
-          const y = Number(t && t.y);
-          if (!Number.isFinite(x) || !Number.isFinite(y) || !CORTE_DIF.test(String(t && t.texto || ""))) continue;
-          salida.push({ x0: x - CORTE_IZQ_DIF, x1: x + CORTE_DER_DIF, y0: y - CORTE_ALTO_DIF, y1: y });
-        }
-        return salida;
-      }
-      function tipoBocaDif(id) {
-        const t = TIPOS_DIF[id];
-        if (!t) return null;
-        if (t.tipoBoca) return t.tipoBoca;
-        const tabla = t.tabla ? TABLAS_DIF[t.tabla] : null;
-        if (tabla && tabla.tipoBoca) return tabla.tipoBoca;
-        const m = String(t.modelo || "");
-        if (/^XGM|^WG|^TR2/.test(m)) return t.circuito === "retorno" ? "rejilla de retorno / extracci\xF3n" : "rejilla de impulsi\xF3n";
-        if (/^VDW/.test(m)) return "difusor rotacional de techo";
-        if (/^PL/.test(m)) return "difusor lineal de ranuras";
-        return t.propio || t.ejemplo ? "gen\xE9rico / a mano" : "otro";
-      }
-      function origenTablaDif(tablaId) {
-        const t = TABLAS_DIF[tablaId];
-        return t ? t.origen || "fabricante" : null;
-      }
-      function fichaAkDif(tipoId) {
-        const t = TIPOS_DIF[tipoId];
-        const tabla = t && t.tabla ? TABLAS_DIF[t.tabla] : null;
-        if (!tabla) return null;
-        return {
-          marca: t.marca,
-          modelo: t.modelo,
-          variante: t.variante,
-          tipoBoca: tipoBocaDif(tipoId),
-          magnitud: tabla.magnitud,
-          origen: tabla.origen || "fabricante",
-          metodo: tabla.metodo || "No indicado en la ficha del fabricante.",
-          correccion: tabla.correccion || null,
-          fuente: fuenteTablaDif(t.tabla),
-          url: tabla.url || null,
-          nota: tabla.nota || null
-        };
-      }
-      function recuentoCatalogoDif() {
-        const porMarca = {};
-        const porTipoBoca = {};
-        const porMarcaTipo = {};
-        for (const [id, t] of visiblesDif()) {
-          if (t.ejemplo || t.propio) continue;
-          const tabla = t.tabla ? TABLAS_DIF[t.tabla] : null;
-          const n = tamanosDif(id).filter((x) => typeof x.area === "number" && x.area > 0).length;
-          const m = porMarca[t.marca] = porMarca[t.marca] || { tipos: 0, tamanosConValor: 0 };
-          m.tipos += 1;
-          m.tamanosConValor += n;
-          const tb = tipoBocaDif(id);
-          const b = porTipoBoca[tb] = porTipoBoca[tb] || { tipos: 0, tamanosConValor: 0 };
-          b.tipos += 1;
-          b.tamanosConValor += n;
-          const k = `${t.marca} \xB7 ${tb}`;
-          const mt = porMarcaTipo[k] = porMarcaTipo[k] || { tipos: 0, tamanosConValor: 0, tablas: /* @__PURE__ */ new Set() };
-          mt.tipos += 1;
-          mt.tamanosConValor += n;
-          if (tabla) mt.tablas.add(t.tabla);
-        }
-        for (const k of Object.keys(porMarcaTipo)) porMarcaTipo[k] = { tipos: porMarcaTipo[k].tipos, tamanosConValor: porMarcaTipo[k].tamanosConValor, tablas: porMarcaTipo[k].tablas.size };
-        return { porMarca, porTipoBoca, porMarcaTipo };
-      }
-      var sinAcentosDif = (v) => String(v === null || v === void 0 ? "" : v).normalize("NFD").replace(/[̀-ͯ]/g, "");
-      var claveMarcaDif = (v) => sinAcentosDif(v).toLowerCase().replace(/[^a-z0-9]/g, "");
-      function codigosModeloDif(modelo) {
-        const base = String(modelo || "").replace(/\(.*$/, "");
-        return base.split(/[\/,]/).map((x) => x.trim().toUpperCase().replace(/\s+/g, "")).filter(Boolean);
-      }
-      function buscarAkDif({ texto = "", marca = "", modelo = "", circuito = null } = {}) {
-        const todo = sinAcentosDif(`${marca} ${modelo} ${texto}`).toUpperCase();
-        if (!todo.trim()) return null;
-        const compacto = claveMarcaDif(todo);
-        const palabras = new Set(todo.split(/[^A-Z0-9\-]+/).filter(Boolean));
-        for (const w of [...palabras]) if (w.includes("-")) {
-          for (const parte of w.split("-")) if (parte) palabras.add(parte);
-        }
-        if (!circuito) circuito = /IMPULS|SUMINISTRO|SUPPLY/.test(todo) ? "impulsion" : /RETORNO|EXTRAC|RETURN|EXTRACT/.test(todo) ? "retorno" : null;
-        const medidas = [...todo.matchAll(/(\d{2,4})\s*[X×]\s*(\d{1,4})/g)].map((m) => [Number(m[1]), Number(m[2])]);
-        const numeros = [...todo.matchAll(/(?:Ø|DIAM(?:ETRO)?\.?|NS|DN|LN|L=)?\s*(\d{2,4})(?!\d)/g)].map((m) => Number(m[1]));
-        const candidatos = [];
-        for (const [id, t] of visiblesDif()) {
-          if (t.ejemplo || t.propio || !t.tabla) continue;
-          if (!compacto.includes(claveMarcaDif(t.marca))) continue;
-          const cods = codigosModeloDif(t.modelo);
-          if (!cods.some((c) => palabras.has(c) || c.length > 3 && todo.replace(/\s+/g, "").includes(c))) continue;
-          candidatos.push(id);
-        }
-        const largo = (id) => Math.max(...codigosModeloDif(TIPOS_DIF[id].modelo).filter((c) => palabras.has(c) || todo.replace(/\s+/g, "").includes(c)).map((c) => c.length), 0);
-        const maxLargo = Math.max(0, ...candidatos.map(largo));
-        let finalistas = candidatos.filter((id) => largo(id) === maxLargo);
-        if (circuito) {
-          const f = finalistas.filter((id) => TIPOS_DIF[id].circuito === circuito);
-          if (f.length) finalistas = f;
-        }
-        const conSufijo = finalistas.filter((id) => {
-          const v = sinAcentosDif(TIPOS_DIF[id].variante).toUpperCase();
-          const m = v.match(/\b[A-Z0-9]+-([QR])\b/);
-          return m && (palabras.has(`${codigosModeloDif(TIPOS_DIF[id].modelo)[0]}-${m[1]}`) || palabras.has(m[1]));
-        });
-        if (conSufijo.length) finalistas = conSufijo;
-        const resueltos = [];
-        for (const id of finalistas) {
-          const tam = tamanosDif(id).filter((x) => typeof x.area === "number" && x.area > 0);
-          const aciertos = tam.filter((x) => {
-            if (x.largo && x.alto) return medidas.some(([a, b]) => a === x.largo && b === x.alto);
-            const k = claveTamanoDif(x.tamano);
-            if (medidas.some(([a, b]) => claveTamanoDif(`${a} \xD7 ${b}`) === k)) return true;
-            return !k.includes("\xD7") && numeros.includes(Number(k));
-          });
-          if (aciertos.length === 1) resueltos.push({ id, tam: aciertos[0] });
-        }
-        const unicos = [];
-        for (const r of resueltos) if (!unicos.some((u) => TIPOS_DIF[u.id].tabla === TIPOS_DIF[r.id].tabla && u.tam.clave === r.tam.clave)) unicos.push(r);
-        if (unicos.length === 1) {
-          const { id, tam } = unicos[0];
-          return { tipo: id, tamano: { clave: tam.clave, largo: tam.largo, alto: tam.alto, tamano: tam.tamano }, ak: tam.area, ficha: fichaAkDif(id) };
-        }
-        if (unicos.length > 1) return { ambiguo: unicos.map((x) => x.id) };
-        return null;
-      }
-      function avisoCaudalDudosoDif(nota) {
-        const m = /caudal de proyecto[^·]*dudoso[^·]*/i.exec(String(nota || ""));
-        return m ? m[0].trim() : null;
-      }
-      (function exportar(API) {
-        if (typeof module !== "undefined" && module.exports) module.exports = API;
-        if (typeof window !== "undefined") window.DIFUSORES = API;
-      })({
-        MODOS: MODOS_DIF,
-        TIPOS: TIPOS_DIF,
-        TIPO_DEFECTO: TIPO_DEFECTO_DIF,
-        FACTORES_K: FACTORES_K_DIF,
-        factoresKPunto: factoresKPuntoDif,
-        akPorMetro: akPorMetroDif,
-        TOLERANCIA_DISCREPANCIA_AK: TOLERANCIA_DISCREPANCIA_AK_DIF,
-        NOTA_EJEMPLO: NOTA_EJEMPLO_DIF,
-        TOLERANCIA_DEFECTO: TOLERANCIA_DEFECTO_DIF,
-        TOLERANCIA_BOCA_DEFECTO: TOLERANCIA_BOCA_DEFECTO_DIF,
-        num: numDif,
-        leerVelocidades: leerVelocidadesDif,
-        tipo: tipoDif,
-        normalizarPunto: normalizarPuntoDif,
-        normalizarPuntos: normalizarPuntosDif,
-        estaQuitada: estaQuitadaDif,
-        activas: activasDif,
-        TABLAS: TABLAS_DIF,
-        FUENTE_TABLAS: FUENTE_TABLAS_DIF,
-        akTabla: akTablaDif,
-        ageoTabla: ageoTablaDif,
-        fuenteTabla: fuenteTablaDif,
-        valorTabla: valorTablaDif,
-        marcas: marcasDif,
-        modelos: modelosDif,
-        variantes: variantesDif,
-        tamanos: tamanosDif,
-        claveTamanoPunto: claveTamanoPuntoDif,
-        aplicarAkPorGrupo: aplicarAkPorGrupoDif,
-        gruposAk: gruposAkDif,
-        MARCA_EJEMPLO: MARCA_EJEMPLO_DIF,
-        factor: factorDif,
-        caudal: caudalDif,
-        desviacion: desviacionDif,
-        tolerancias: toleranciasDif,
-        EQUIPOS_MEDIDA: EQUIPOS_MEDIDA_DIF,
-        equipoMedida: equipoMedidaDif,
-        sinAk: sinAkDif,
-        equipoPropuesto: equipoPropuestoDif,
-        caudalSinAk: caudalSinAkDif,
-        AVISO_SIN_AK: AVISO_SIN_AK_DIF,
-        LECTURAS: LECTURAS_DIF,
-        lectura: lecturaDif,
-        evaluarPunto: evaluarPuntoDif,
-        rotuloSentido: rotuloSentidoDif,
-        resumen: resumenDif,
-        siguienteNombre: siguienteNombreDif,
-        normalizarModeloProyecto: normalizarModeloProyectoDif,
-        normalizarModelosProyecto: normalizarModelosProyectoDif,
-        evaluarModelo: evaluarModeloDif,
-        normalizarAsignacion: normalizarAsignacionDif,
-        aplicarModelos: aplicarModelosDif,
-        generarBocas: generarBocasDif,
-        colocarEnLista: colocarEnListaDif,
-        reconocerBocas: reconocerBocasDif,
-        recuentoTabla: recuentoTablaDif,
-        caudalDeTexto: numeroCaudalDif,
-        zonasCorte: zonasCorteDif,
-        juntoA: juntoADif,
-        CODIGO_CAD: CODIGO_CAD_DIF,
-        tipoBoca: tipoBocaDif,
-        origenTabla: origenTablaDif,
-        fichaAk: fichaAkDif,
-        recuentoCatalogo: recuentoCatalogoDif,
-        buscarAk: buscarAkDif,
-        avisoCaudalDudoso: avisoCaudalDudosoDif,
-        bocaCompleta: bocaCompletaDif,
-        textoTemperaturas: textoTemperaturasDif
-      });
-    }
-  });
-
   // shared/commissioning/trasladarPlano.js
   var require_trasladarPlano = __commonJS({
     "shared/commissioning/trasladarPlano.js"(exports, module) {
@@ -52142,6 +53417,12 @@ ${a.observacion.texto}` : a.observacion.texto;
           const nombre = c.clave === IP.CLAVE ? IP.NOMBRE : c.clave === IP.CLAVE_TERCEROS ? IP.NOMBRE_TERCEROS : c.clave === IP.CLAVE_RESUELTA ? IP.NOMBRE_RESUELTA : NOMBRE[estado];
           return { estado, clave: c.clave, hex, nombre, corto: CORTO[estado], distintivo: c.distintivo, incidencia: c.incidencia, terceros: Boolean(c.terceros), resuelta: c.resuelta };
         }
+        function estadoDelEquipo(f, e = {}, { montaje = null, tomaDe = /* @__PURE__ */ new Map(), cert = null } = {}) {
+          const hecho = e.color === "verde" && e.completo !== false;
+          const ids = Array.isArray(e.miembros) && e.miembros.length ? e.miembros.map((m) => m.id) : [f.id];
+          const tomaHecha = !hecho && CB.tomaHechaConjunto(ids, tomaDe);
+          return CB.estadoBloque(montaje || f, { cxHecho: hecho, tomaHecha, cxEmpezado: e.color === "azul" || e.color === "verde" && !hecho, cert });
+        }
         function cuentas(lista = []) {
           return { bloques: CB.recuentoBloques(lista, estadoDe), conIncidencia: IP.recuento(lista), incTerceros: IP.recuentoTerceros(lista), incResuelta: IP.recuentoResueltas(lista) };
         }
@@ -52160,7 +53441,7 @@ ${a.observacion.texto}` : a.observacion.texto;
           const a = CB.RELLENO_BLOQUE;
           return ESTADOS.map((x) => `.pesPunto:where(.${x.id}){border-color:${contornoDe(x)};background:${x.hex};border-width:1.5px;border-style:${x.trazo ? "dashed" : "solid"}}.pesBloque:where(.${x.id}){stroke:${contornoDe(x)};fill:${x.hex};fill-opacity:${a}${x.trazo ? `;stroke-dasharray:${x.trazo}` : ""}}.pesSimbolo:where(.${x.id}){color:${contornoDe(x)}}.pesRacimoTira:where(.${x.id}){fill:${x.hex}}`).join("");
         }
-        const API = { ESTADOS, ORDEN, NOMBRE, CORTO, esEstado, estadoDe, colorEquipo, cuentas, leyenda, cssPlanoModelo };
+        const API = { ESTADOS, ORDEN, NOMBRE, CORTO, esEstado, estadoDe, estadoDelEquipo, colorEquipo, cuentas, leyenda, cssPlanoModelo };
         if (enNode) module.exports = API;
         if (typeof window !== "undefined") window.ESTADO_EQUIPO_PLANO = API;
       })();
@@ -53224,6 +54505,216 @@ ${a.observacion.texto}` : a.observacion.texto;
         return { seguros, propuestos, sin };
       }
       module.exports = { casar, clavesModelo, tagDeMarca, tagDeEquipo, comparaModelo, MOTIVO };
+    }
+  });
+
+  // shared/commissioning/valoresProyecto.js
+  var require_valoresProyecto = __commonJS({
+    "shared/commissioning/valoresProyecto.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var num = (v) => {
+        if (v === null || v === void 0 || v === "") return null;
+        const n = typeof v === "number" ? v : Number(String(v).trim().replace(",", "."));
+        return Number.isFinite(n) ? n : null;
+      };
+      var ORIGEN_NO_PROYECTO = /* @__PURE__ */ new Set(["fichaTecnica", "placa", "prueba", "fotoIncidencia", "balanceo"]);
+      var ALTA_DE_PROYECTO = /* @__PURE__ */ new Set(["listado", "plano", "planoPrevisto", "ifc", "proyecto", "presupuesto", "mediciones"]);
+      var esAire = (p) => /m[³3]\/h|l\/s/i.test(p.unidad || "") && /caudal|aportacion|extraccion/i.test(p.codigo) && !/agua|circuito|bateria/i.test(p.codigo);
+      var esRetorno = (c) => /retorno|extraccion/i.test(c);
+      var esExterior = (c) => /exterior/i.test(c);
+      var TEMPERATURA_DE_SALA = [
+        [/^t_entrada_frio$|^t_retorno_sala_frio$|^t_retorno_sala$/, "t_sala_verano"],
+        [/^t_entrada_calor$|^t_retorno_sala_calor$/, "t_sala_invierno"]
+      ];
+      var CAUDAL_IMPULSION_DATOS = ["caudal_impulsion", "caudal_aire_impulsion", "caudal", "caudal_aire", "caudal_nominal"];
+      var CAUDAL_RETORNO_DATOS = ["caudal_retorno", "caudal_aire_retorno"];
+      function puntosDe(plantilla, tipo) {
+        const out = [];
+        for (const s of plantilla && plantilla.secciones || []) {
+          if (tipo && s.tipo !== tipo) continue;
+          for (const p of s.puntos || []) out.push(p);
+        }
+        return out;
+      }
+      function tipoAlta(equipo) {
+        if (!equipo) return null;
+        if (equipo.origenAlta) return String(equipo.origenAlta);
+        try {
+          const f = typeof equipo.fuenteAlta === "string" ? JSON.parse(equipo.fuenteAlta) : equipo.fuenteAlta;
+          return f && f.tipo ? String(f.tipo) : null;
+        } catch {
+          return null;
+        }
+      }
+      function deDatos(valores, etiquetas, codigo, altaDeProyecto = true) {
+        const v = valores[codigo];
+        if (!v || typeof v !== "object" || ORIGEN_NO_PROYECTO.has(v.o)) return null;
+        if (v.o === "equipo" && !altaDeProyecto && /caudal|potencia/i.test(codigo)) return null;
+        const n = num(v.v);
+        if (n === null || n <= 0 && !/^t_/.test(codigo)) return null;
+        return { valor: n, fuente: `Datos de la hoja \xB7 ${etiquetas[codigo] || codigo}` };
+      }
+      function textoFuenteProyecto(f) {
+        if (!f) return "";
+        let o = f;
+        if (typeof f === "string") {
+          try {
+            o = JSON.parse(f);
+          } catch {
+            return f.slice(0, 120);
+          }
+        }
+        if (!o || typeof o !== "object") return String(o || "").slice(0, 120);
+        return String(o.nombre || o.documento || o.doc || o.tipo || "").slice(0, 120);
+      }
+      function deEquipo(equipo, campo, nombre) {
+        const n = equipo ? num(equipo[campo]) : null;
+        if (n === null || n <= 0) return null;
+        const doc = textoFuenteProyecto(equipo.fuenteProyecto) ? ` (${textoFuenteProyecto(equipo.fuenteProyecto)})` : "";
+        return { valor: n, fuente: `Tabla de equipos \xB7 ${nombre}${doc}` };
+      }
+      var esUnico = (c) => !/impulsion|aportacion|retorno|extraccion/i.test(c);
+      function proyectoDeHoja(plantilla, datos = {}, equipo = null, extra = null) {
+        const valores = datos && datos.valores || {};
+        const etiquetas = {};
+        const codigosDatos = /* @__PURE__ */ new Set();
+        for (const p of puntosDe(plantilla, "datos")) {
+          etiquetas[p.codigo] = p.etiqueta;
+          codigosDatos.add(p.codigo);
+        }
+        const out = {};
+        const sinFuente = [];
+        const altaDeProyecto = ALTA_DE_PROYECTO.has(tipoAlta(equipo)) || Boolean(equipo && equipo.fuenteProyecto);
+        const ventilador = extra && extra.caudal || {};
+        for (const p of puntosDe(plantilla, "parametros")) {
+          if (p.proyecto === false || p.sinReferencia || p.calculado) continue;
+          const v = valores[p.codigo];
+          if (v && num(v.p) !== null) continue;
+          let r = null;
+          if (esAire(p) && !esExterior(p.codigo)) {
+            const ret = esRetorno(p.codigo);
+            const enDatos = (ret ? CAUDAL_RETORNO_DATOS : CAUDAL_IMPULSION_DATOS).filter((c) => codigosDatos.has(c));
+            for (const c of enDatos) {
+              r = deDatos(valores, etiquetas, c, altaDeProyecto);
+              if (r) break;
+            }
+            if (!r && ret) r = deEquipo(equipo, "caudalDisenoRet", "caudal de dise\xF1o de retorno");
+            if (!r && !ret) r = deEquipo(equipo, "caudalDisenoImp", "caudal de dise\xF1o de impulsi\xF3n");
+            if (!r && esUnico(p.codigo)) r = deEquipo(equipo, "caudalDisenoRet", "caudal de dise\xF1o de extracci\xF3n");
+            if (!r && !ret && altaDeProyecto) r = deEquipo(equipo, "caudalNominal", "caudal nominal");
+            if (!r) {
+              const c = esUnico(p.codigo) ? ventilador.unico || ventilador.impulsion || ventilador.retorno : ventilador[ret ? "retorno" : "impulsion"];
+              if (c && !c.parcial && num(c.valor) > 0) r = { valor: num(c.valor), fuente: c.fuente };
+            }
+            if (r && /l\/s/i.test(p.unidad || "")) r = null;
+          } else if (/°C/.test(p.unidad || "")) {
+            const regla = TEMPERATURA_DE_SALA.find(([rx]) => rx.test(p.codigo));
+            if (regla && codigosDatos.has(regla[1])) r = deDatos(valores, etiquetas, regla[1]);
+          }
+          if (r) out[p.codigo] = r;
+          else sinFuente.push({ codigo: p.codigo, etiqueta: p.etiqueta, unidad: p.unidad || "" });
+        }
+        return { valores: out, sinFuente };
+      }
+      var DATO_DE_PROYECTO = /^(caudal|potencia|t_sala_|presion_disponible|presion_proyecto)/;
+      var UNIDAD_DE_PROYECTO = /m[³3]\/h|l\/s|kW|W$|°C|Pa/;
+      function datosDeProyecto(plantilla, datos = {}, equipo = null) {
+        const valores = datos && datos.valores || {};
+        const altaDeProyecto = ALTA_DE_PROYECTO.has(tipoAlta(equipo)) || Boolean(equipo && equipo.fuenteProyecto);
+        const out = [];
+        for (const p of puntosDe(plantilla, "datos")) {
+          if (!DATO_DE_PROYECTO.test(p.codigo) || !UNIDAD_DE_PROYECTO.test(p.unidad || "")) continue;
+          const etiquetas = { [p.codigo]: p.etiqueta };
+          const r = deDatos(valores, etiquetas, p.codigo, altaDeProyecto);
+          if (r) out.push({ codigo: p.codigo, etiqueta: p.etiqueta || p.codigo, unidad: p.unidad || "", valor: r.valor, fuente: r.fuente, dato: true });
+        }
+        return out;
+      }
+      function caudalDeRejas(puntos = [], dato = null, sentido = null) {
+        const DIF = require_difusores();
+        const out = { impulsion: null, retorno: null, unico: null };
+        const ficticia = typeof DIF.esFicticia === "function" ? DIF.esFicticia : (p) => p.ficticia === true || /^rejaFinConducto/.test(String(p.tipo || ""));
+        const reales = DIF.activas(Array.isArray(puntos) ? puntos : []).filter((p) => !ficticia(p) && !p.sinAtribuir);
+        for (const id of ["impulsion", "retorno"]) {
+          const suyas = reales.filter((p) => (sentido || DIF.normalizarPunto(p).circuito || (DIF.tipo(p.tipo) || {}).circuito) === id);
+          if (!suyas.length) continue;
+          const con = suyas.filter((p) => num(p.caudalDiseno) > 0);
+          if (!con.length) {
+            out[id] = { valor: null, fuente: null, parcial: true, rejas: suyas.length, conCaudal: 0 };
+            continue;
+          }
+          const suma = Math.round(con.reduce((a, p) => a + num(p.caudalDiseno), 0));
+          const parcial = con.length < suyas.length;
+          out[id] = {
+            valor: suma,
+            parcial,
+            rejas: suyas.length,
+            conCaudal: con.length,
+            fuente: parcial ? `Suma del proyecto de ${con.length} de ${suyas.length} rejas del plano (PARCIAL: faltan ${suyas.length - con.length})` : `Suma del proyecto de sus ${suyas.length} rejas del plano`
+          };
+        }
+        const deTabla = dato && num(dato.caudalEquipo) > 0 ? { valor: num(dato.caudalEquipo), fuente: `${dato.fuente} \xB7 tabla de ventiladores`, parcial: false } : null;
+        if (deTabla) {
+          const id = dato.circuito || sentido || "impulsion";
+          out[id] = deTabla;
+        }
+        const s = sentido ? out[sentido] : null;
+        out.unico = s && s.valor ? s : [out.impulsion, out.retorno].find((x) => x && x.valor && !x.parcial) || [out.impulsion, out.retorno].find((x) => x && x.valor) || null;
+        return out;
+      }
+      function valoresDeEquipo(plantilla, ev, equipo = null, extra = null) {
+        const base = ev && Array.isArray(ev.secciones) ? ev : plantilla && Array.isArray(plantilla.secciones) ? { secciones: plantilla.secciones, datos: { valores: {} }, firmas: [] } : null;
+        if (!base) return [];
+        const firmada = Array.isArray(base.firmas) && base.firmas.length > 0;
+        const extraHoja = firmada ? {} : proyectoDeHoja(plantilla || base, base.datos || {}, equipo, extra).valores;
+        const out = [];
+        for (const s of base.secciones) {
+          if (s.tipo !== "parametros") continue;
+          for (const p of s.puntos || []) {
+            const n = num(p.p);
+            const x = extraHoja[p.codigo];
+            if (n === null && !x) {
+              const c = !firmada && esAire(p) && extra && extra.caudal ? esUnico(p.codigo) ? extra.caudal.unico : extra.caudal[esRetorno(p.codigo) ? "retorno" : "impulsion"] : null;
+              if (c && c.parcial && num(c.valor) > 0) out.push({ codigo: p.codigo, etiqueta: p.etiqueta || p.codigo, unidad: p.unidad || "", valor: num(c.valor), fuente: c.fuente, parcial: true });
+              continue;
+            }
+            out.push({
+              codigo: p.codigo,
+              etiqueta: p.etiqueta || p.codigo,
+              unidad: p.unidad || "",
+              valor: n !== null ? n : x.valor,
+              fuente: n !== null ? p.fuenteProyecto || "Escrito en la hoja" : x.fuente
+            });
+          }
+        }
+        const ya = new Set(out.map((x) => x.codigo));
+        for (const d of datosDeProyecto(plantilla || base, base.datos || {}, equipo)) if (!ya.has(d.codigo)) out.push(d);
+        return out;
+      }
+      function caudalDelEquipo(equipo, extra = null, sentido = null) {
+        if (!equipo) return [];
+        const doc = textoFuenteProyecto(equipo.fuenteProyecto);
+        const deFila = (campo, nombre) => num(equipo[campo]) > 0 ? { valor: num(equipo[campo]), fuente: `Tabla de equipos \xB7 ${nombre}${doc ? ` (${doc})` : ""}` } : null;
+        const ven = extra && extra.caudal || {};
+        const out = [];
+        const lados = sentido ? [sentido] : ["impulsion", "retorno"];
+        for (const id of lados) {
+          let r = id === "retorno" ? deFila("caudalDisenoRet", "caudal de dise\xF1o de retorno") : deFila("caudalDisenoImp", "caudal de dise\xF1o de impulsi\xF3n");
+          if (!r && sentido) r = deFila(id === "retorno" ? "caudalDisenoImp" : "caudalDisenoRet", "caudal de dise\xF1o");
+          if (!r && id !== "retorno" && esAltaDeProyecto(equipo)) r = deFila("caudalNominal", "caudal nominal");
+          if (!r && sentido === "retorno" && esAltaDeProyecto(equipo)) r = deFila("caudalNominal", "caudal nominal");
+          if (!r && ven[id] && num(ven[id].valor) > 0) r = { valor: num(ven[id].valor), fuente: ven[id].fuente, parcial: Boolean(ven[id].parcial) };
+          if (!r) continue;
+          const etiqueta = sentido ? "Caudal de proyecto" : `Caudal de proyecto (${id === "retorno" ? "retorno" : "impulsi\xF3n"})`;
+          out.push({ codigo: `caudal_proyecto_${id}`, etiqueta, unidad: "m\xB3/h", ...r, ...r.parcial ? { parcial: true } : {} });
+        }
+        return out;
+      }
+      var esAltaDeProyecto = (equipo) => ALTA_DE_PROYECTO.has(tipoAlta(equipo)) || Boolean(equipo && equipo.fuenteProyecto);
+      var API = { esAltaDeProyecto, caudalDelEquipo, proyectoDeHoja, valoresDeEquipo, datosDeProyecto, caudalDeRejas, textoFuenteProyecto, ORIGEN_NO_PROYECTO, ALTA_DE_PROYECTO };
+      if (typeof module !== "undefined" && module.exports) module.exports = API;
+      if (typeof window !== "undefined") window.VALORES_PROYECTO = API;
     }
   });
 
@@ -54931,7 +56422,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
           const cuadroFirma = (rol, rotulo) => {
             const f = firma(rol);
             if (soloJefe) return `<td><div class="rolFirma">${rotulo}</div>${f ? `${trazoFh(f)}<div class="firmante">${escFh(f.nombre)}</div>` : '<div class="hueco">Nombre y firma</div>'}</td>`;
-            return `<td><div class="rolFirma">${rotulo}</div>${f ? `${trazoFh(f)}<div class="firmante">${escFh(f.nombre)}</div><div class="fechaFirma">Firmado el ${fechaFh(f.fecha)}</div>` : '<div class="hueco">Nombre, firma y fecha</div>'}</td>`;
+            return `<td><div class="rolFirma">${rotulo}</div>${f ? `<div class="selloCx">${trazoFh(f)}<div class="selloCxTexto"><div class="firmante">Firmado por ${escFh(f.nombre)}</div><div class="rolSello">${rotulo}</div><div class="fechaFirma">Firmado el ${fechaFh(f.fecha)}</div></div></div>` : '<div class="hueco">Nombre, firma y fecha</div>'}</td>`;
           };
           const resultado = `${!blanco && ev.datosPrueba ? '<p class="pendiente">DATOS DE PRUEBA: esta ficha no vale como documento.</p>' : ""}${ev.resultado ? `<div class="resultadoFicha">Resultado: ${celdaResultado(ev.resultado)}${firmada ? "" : " (sin firmar)"}</div>` : ""}`;
           return `<article class="hojaPM${blanco ? " enBlanco" : ""}">
@@ -84169,6 +85660,279 @@ ${subtitulo}`, c[5]] : c.slice())]);
     }
   });
 
+  // shared/firma/documentos.js
+  var require_documentos2 = __commonJS({
+    "shared/firma/documentos.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const JEFES_OBRA = ["jefeObra", "jefeProduccion", "jefeProyectos", "jefeDepartamento", "administrador"];
+        const DOCUMENTOS = [
+          {
+            id: "certCliente",
+            nombre: "Certificaci\xF3n al cliente",
+            modulo: "certificaciones",
+            donde: "shared/obra/hojaCertificacion.js",
+            casillas: [
+              { id: "contratista", rotulo: "El contratista", roles: [...JEFES_OBRA, "contractSupport"] },
+              { id: "df", rotulo: "La Direcci\xF3n Facultativa", roles: ["direccionFacultativa"], externa: true },
+              { id: "propiedad", rotulo: "La Propiedad", roles: ["propiedadObra", "clienteObra"], externa: true }
+            ]
+          },
+          {
+            id: "certSubcontrata",
+            nombre: "Certificaci\xF3n a la subcontrata (industriales)",
+            modulo: "certificaciones",
+            donde: "electron/ipc/canales.js certInd:pdf",
+            casillas: [
+              { id: "jefeObra", rotulo: "Jefe de obra", roles: JEFES_OBRA },
+              { id: "subcontrata", rotulo: "La subcontrata", roles: ["subcontrata"], externa: true }
+            ]
+          },
+          {
+            id: "commissioning",
+            nombre: "Commissioning: PM, checklist y balanceo de cada equipo",
+            modulo: "commissioning",
+            donde: "electron/data/firmasEquipo.js",
+            casillas: [
+              { id: "jefeObra", rotulo: "T\xE9cnico responsable", roles: [...JEFES_OBRA, "jefeCommissioning", "jefeMantenimiento", "encargadoObra"] },
+              { id: "cliente", rotulo: "Cliente / DF / DEO", roles: ["direccionFacultativa", "propiedadObra", "clienteObra"], externa: true },
+              { id: "mantenimiento", rotulo: "Mantenimiento", roles: ["mantenimientoPropiedad"], externa: true }
+            ]
+          },
+          {
+            id: "estanqueidad",
+            nombre: "Prueba de estanqueidad",
+            modulo: "pruebasEstanqueidad",
+            donde: "shared/commissioning/fichaHtml.js",
+            casillas: [{ id: "jefeObra", rotulo: "Jefe de obra", roles: [...JEFES_OBRA, "encargadoObra"] }]
+          },
+          {
+            id: "reparacion",
+            nombre: "Reparaci\xF3n de un equipo",
+            modulo: "incidencias",
+            donde: "electron/data/firmasReparacion.js",
+            casillas: [
+              { id: "jefeObra", rotulo: "T\xE9cnico responsable", roles: [...JEFES_OBRA, "jefeMantenimiento", "encargadoMantenimiento", "operarioMantenimiento", "encargadoObra"] },
+              { id: "cliente", rotulo: "Cliente", roles: ["propiedadObra", "clienteObra"], externa: true }
+            ]
+          },
+          {
+            id: "parteHoras",
+            nombre: "Parte de horas de reparaciones",
+            modulo: "incidencias",
+            donde: "shared/incidencias/parteDeHoras.js",
+            casillas: [
+              { id: "jefeObra", rotulo: "Jefe de obra", roles: JEFES_OBRA },
+              { id: "cliente", rotulo: "Cliente", roles: ["propiedadObra", "clienteObra"], externa: true }
+            ]
+          },
+          {
+            id: "ppi",
+            nombre: "PPI (puntos de inspecci\xF3n)",
+            modulo: "ppi",
+            donde: "shared/ppi/plantilla.js",
+            casillas: [
+              { id: "jefeObra", rotulo: "Jefe de obra", roles: JEFES_OBRA },
+              { id: "jefeGrupo", rotulo: "Jefe de grupo", roles: ["jefeGrupo"] },
+              { id: "encargado", rotulo: "Encargado", roles: ["encargadoObra"] }
+            ]
+          },
+          {
+            id: "acta",
+            nombre: "Actas (obra, entrega, reuni\xF3n)",
+            modulo: "actas",
+            donde: "shared/maquetaActa.js",
+            casillas: [
+              { id: "contratista", rotulo: "Por la empresa", roles: [...JEFES_OBRA, "gerente"] },
+              { id: "otraParte", rotulo: "La otra parte", roles: ["direccionFacultativa", "propiedadObra", "clienteObra", "subcontrata"], externa: true }
+            ]
+          },
+          {
+            id: "entregaDF",
+            nombre: "Entrega a la DF (informe de commissioning)",
+            modulo: "commissioning",
+            donde: "shared/commissioning/informeDF.js",
+            casillas: [
+              { id: "instaladora", rotulo: "Empresa instaladora", roles: [...JEFES_OBRA, "jefeCommissioning"] },
+              { id: "pm", rotulo: "Project management", roles: [], externa: true },
+              { id: "df", rotulo: "Direcci\xF3n facultativa", roles: ["direccionFacultativa"], externa: true }
+            ]
+          },
+          {
+            id: "legalizacion",
+            nombre: "Impresos de legalizaci\xF3n (organismo)",
+            modulo: "legalizaciones",
+            donde: "electron/data/legalizaciones.js",
+            casillas: [{ id: "instalador", rotulo: "El instalador", roles: JEFES_OBRA }]
+          }
+        ];
+        const POR_ID = Object.fromEntries(DOCUMENTOS.map((d) => [d.id, d]));
+        const documentoFirma = (id) => POR_ID[id] || null;
+        function casillaDe(rol, docId) {
+          const d = documentoFirma(docId);
+          if (!d || !rol) return null;
+          return d.casillas.find((c) => c.roles.includes(rol)) || null;
+        }
+        const puedeFirmar = (rol, docId) => Boolean(casillaDe(rol, docId));
+        function tabla() {
+          return DOCUMENTOS.map((d) => ({
+            documento: d.nombre,
+            casillas: d.casillas.map((c) => `${c.rotulo}: ${c.roles.length ? c.roles.join(", ") : "\u2014"}${c.externa ? " (externa)" : ""}`)
+          }));
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.FIRMA_DOCUMENTOS = API;
+        })({ DOCUMENTOS, documento: documentoFirma, casillaDe, puedeFirmar, tabla });
+      })();
+    }
+  });
+
+  // shared/firma/sello.js
+  var require_sello = __commonJS({
+    "shared/firma/sello.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function() {
+        const escSello = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        const dosSello = (n) => String(n).padStart(2, "0");
+        function fechaHora(valor) {
+          const dia = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(valor || ""));
+          if (dia) return `${dia[3]}/${dia[2]}/${dia[1]}`;
+          const d = valor instanceof Date ? valor : new Date(valor || Date.now());
+          if (Number.isNaN(d.getTime())) return "";
+          return `${dosSello(d.getDate())}/${dosSello(d.getMonth() + 1)}/${d.getFullYear()} ${dosSello(d.getHours())}:${dosSello(d.getMinutes())}`;
+        }
+        function textoSello({ nombre, rol, fecha, empresa } = {}) {
+          const partes = [nombre ? `Firmado por ${String(nombre).trim()}` : "Firmado", rol, fechaHora(fecha), empresa].map((x) => String(x || "").trim()).filter(Boolean);
+          return partes.join(" \xB7 ");
+        }
+        const esImagen = (s) => /^data:image\/(png|jpe?g);base64,[A-Za-z0-9+/=]+$/.test(String(s || ""));
+        const CSS_SELLO = `
+.selloFirma { display: flex; align-items: center; gap: 8px; border: 1px solid #2f8f83; border-radius: 4px; padding: 4px 8px;
+  background: #f3faf8; min-height: 52px; page-break-inside: avoid; break-inside: avoid; max-width: 100%; box-sizing: border-box; }
+.selloFirma img { height: 46px; max-width: 48%; object-fit: contain; }
+.selloFirma .selloTexto { font-size: 8pt; line-height: 1.3; color: #17484a; }
+.selloFirma .selloTexto b { display: block; color: #0e6b62; }
+.selloFirma .selloTexto span { display: block; }
+.selloHueco { border: 1px dashed #8fb8b3; border-radius: 4px; min-height: 52px; padding: 4px 8px; font-size: 8pt; color: #4d6f70;
+  display: flex; align-items: flex-end; box-sizing: border-box; }`;
+        function selloHtml(f = {}, { rotulo = "" } = {}) {
+          if (!f || !esImagen(f.imagen)) return huecoHtml(rotulo);
+          return `<div class="selloFirma" data-sello="1">
+    <img src="${escSello(f.imagen)}" alt="Firma de ${escSello(f.nombre)}">
+    <div class="selloTexto">${rotulo ? `<span>${escSello(rotulo)}</span>` : ""}<b>Firmado por ${escSello(String(f.nombre || "").trim())}</b>${f.rol ? `<span>${escSello(f.rol)}</span>` : ""}<span>${escSello(fechaHora(f.fecha))}</span>${f.empresa ? `<span>${escSello(f.empresa)}</span>` : ""}</div>
+  </div>`;
+        }
+        function huecoHtml(rotulo = "") {
+          return `<div class="selloHueco" data-sello="0">${escSello(rotulo || "Pendiente de firma")} \xB7 pendiente de firma</div>`;
+        }
+        function fondoATransparente(rgba, { umbral = 235, suave = 200 } = {}) {
+          let n = 0;
+          for (let i = 0; i < rgba.length; i += 4) {
+            const m = Math.min(rgba[i], rgba[i + 1], rgba[i + 2]);
+            if (m >= umbral) {
+              if (rgba[i + 3]) n += 1;
+              rgba[i + 3] = 0;
+              continue;
+            }
+            if (m > suave) {
+              const a = Math.round(rgba[i + 3] * (umbral - m) / (umbral - suave));
+              if (a !== rgba[i + 3]) {
+                rgba[i + 3] = a;
+                n += 1;
+              }
+            }
+          }
+          return n;
+        }
+        (function exportar(API) {
+          if (typeof module !== "undefined" && module.exports) module.exports = API;
+          if (typeof window !== "undefined") window.FIRMA_SELLO = API;
+        })({ fechaHora, textoSello, selloHtml, huecoHtml, esImagen, fondoATransparente, CSS_SELLO });
+      })();
+    }
+  });
+
+  // electron/data/firmaPersona.js
+  var require_firmaPersona = __commonJS({
+    "electron/data/firmaPersona.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var ROLES = require_roles();
+      var DOCS = require_documentos2();
+      var { esImagen } = require_sello();
+      var MAX_IMAGEN = 400 * 1024;
+      var llano = (s) => String(s == null ? "" : s).trim();
+      function suNombre(repo, sesion) {
+        let p = null;
+        try {
+          p = sesion && sesion.personaId && repo.db ? repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(sesion.personaId) : null;
+        } catch {
+        }
+        return llano(p && p.nombre || sesion && sesion.nombre);
+      }
+      function filaPropia(repo, sesion) {
+        if (!sesion || !sesion.personaId) return null;
+        const filas = repo.listar("firmasPersona", sesion, { condicion: "personaId = ?", params: [sesion.personaId], orden: "modificadoEn DESC" });
+        return filas[0] || null;
+      }
+      function miFirma(repo, sesion) {
+        if (!sesion || !sesion.personaId) return { ok: false, error: "Entra con tu usuario para tener firma." };
+        const f = filaPropia(repo, sesion);
+        return {
+          ok: true,
+          nombre: suNombre(repo, sesion),
+          firma: f ? { nombre: f.nombre, imagen: f.imagen, origen: f.origen, modificadoEn: f.modificadoEn } : null
+        };
+      }
+      function guardarMiFirma(repo, sesion, { imagen, origen, nombre } = {}) {
+        if (!sesion || !sesion.personaId) return { ok: false, error: "Entra con tu usuario para guardar tu firma." };
+        const img = llano(imagen);
+        if (!esImagen(img)) return { ok: false, error: "No llega la firma: dib\xFAjala o sube una imagen." };
+        if (img.length > MAX_IMAGEN) return { ok: false, error: "La firma es demasiado grande (m\xE1x. 400 KB)." };
+        const n = (llano(nombre) || suNombre(repo, sesion)).slice(0, 80);
+        if (!n) return { ok: false, error: "Falta tu nombre." };
+        const o = origen === "imagen" ? "imagen" : "trazo";
+        const previa = filaPropia(repo, sesion);
+        if (previa) repo.modificar("firmasPersona", sesion, previa.id, { nombre: n, imagen: img, origen: o });
+        else repo.crear("firmasPersona", sesion, { personaId: sesion.personaId, nombre: n, imagen: img, origen: o });
+        return miFirma(repo, sesion);
+      }
+      function quitarMiFirma(repo, sesion) {
+        if (!sesion || !sesion.personaId) return { ok: false, error: "Entra con tu usuario." };
+        const filas = repo.listar("firmasPersona", sesion, { condicion: "personaId = ?", params: [sesion.personaId] });
+        for (const f of filas) repo.borrar("firmasPersona", sesion, f.id);
+        return miFirma(repo, sesion);
+      }
+      function firmaDePersona(db, personaId) {
+        if (!db || !personaId) return null;
+        try {
+          const f = db.prepare("SELECT nombre, imagen FROM firmasPersona WHERE personaId = ? ORDER BY modificadoEn DESC LIMIT 1").get(personaId);
+          return f && esImagen(f.imagen) ? { nombre: f.nombre, imagen: f.imagen } : null;
+        } catch {
+          return null;
+        }
+      }
+      function selloPara(repo, sesion, docId, { fecha, empresa } = {}) {
+        if (!sesion || !sesion.personaId) return null;
+        const casilla = DOCS.casillaDe(sesion.rol, docId);
+        if (!casilla) return null;
+        const d = DOCS.documento(docId);
+        if (!casilla.externa && d.modulo && ROLES.rol(sesion.rol) && !ROLES.puede(sesion.rol, d.modulo, "editar") && !ROLES.puede(sesion.rol, d.modulo, "crear")) return null;
+        const f = filaPropia(repo, sesion);
+        if (!f || !esImagen(f.imagen)) return { casilla: casilla.id, sinFirma: true };
+        const r = ROLES.rol(sesion.rol);
+        return {
+          casilla: casilla.id,
+          sello: { imagen: f.imagen, nombre: f.nombre || suNombre(repo, sesion), rol: r && r.nombre || sesion.rol, fecha: fecha || (/* @__PURE__ */ new Date()).toISOString(), empresa: llano(empresa) }
+        };
+      }
+      module.exports = { miFirma, guardarMiFirma, quitarMiFirma, firmaDePersona, selloPara, MAX_IMAGEN };
+    }
+  });
+
   // electron/data/firmasEquipo.js
   var require_firmasEquipo = __commonJS({
     "electron/data/firmasEquipo.js"(exports, module) {
@@ -84618,6 +86382,8 @@ ${subtitulo}`, c[5]] : c.slice())]);
         }
         const suNombre = llano(p && p.nombre);
         if (!suNombre) return null;
+        const mia = require_firmaPersona().firmaDePersona(repo.db, id);
+        if (mia) return { nombre: suNombre, imagen: mia.imagen };
         const filas = repo.db.prepare(`SELECT id, nombre, imagen, trazoPor FROM firmasEquipo
     WHERE rol = 'jefeObra' AND (trazoPor = ? OR trazoPor IS NULL OR trazoPor = '')
     ORDER BY COALESCE(trazoEn, '') DESC, modificadoEn DESC`).all(id);
@@ -87588,7 +89354,7 @@ ${subtitulo}`, c[5]] : c.slice())]);
           return { ok: true, punto: D.normalizarPunto({ ...punto, ...c, ...sitio, nombre, origen: "manual" }) };
         }
         function tieneLecturas(p = {}) {
-          return D.num(p.velocidad) !== null || D.num(p.caudalMedido) !== null || D.num(p.tFrio) !== null || D.num(p.tCalor) !== null || D.num(p.temperatura) !== null || Boolean(String(p.lecturas || "").trim()) || Boolean(String(p.lecturasCaudal || "").trim());
+          return D.tieneMedida(p);
         }
         function quitar(puntos = [], puntoId, { confirmar = false, autor = null, fecha = null } = {}) {
           const p = puntos.find((x) => x && x.id === puntoId);
@@ -88414,16 +90180,28 @@ ${subtitulo}`, c[5]] : c.slice())]);
         } catch {
           ficha = {};
         }
-        const una = (propio, deHoja, deFicha, nominal) => {
+        const una = (propio, deHoja, deFicha, nominal2) => {
           if (D.num(propio) !== null) return { valor: D.num(propio), origen: "equipo" };
           if (D.num(deHoja) !== null) return { valor: D.num(deHoja), origen: "hojaBalanceo" };
           if (D.num(deFicha) !== null) return { valor: D.num(deFicha), origen: "fichaBalanceo" };
-          if (D.num(nominal) !== null) return { valor: D.num(nominal), origen: "nominal" };
+          if (D.num(nominal2) !== null) return { valor: D.num(nominal2), origen: "nominal" };
           return { valor: null, origen: null };
         };
+        const VP = require_valoresProyecto();
+        const nominal = VP.esAltaDeProyecto(equipo) ? equipo.caudalNominal : null;
+        let tabla = {};
+        try {
+          const c = repo.db.prepare("SELECT caudalesRejasProyecto FROM configCommissioning WHERE obraId = ?").get(equipo.obraId);
+          const dato = c ? require_caudalesRejasProyecto().datoDe(c.caudalesRejasProyecto, equipo.tag) : null;
+          if (dato && D.num(dato.caudalEquipo) > 0) tabla = { [dato.circuito || sentidoPorTag(equipo) || "impulsion"]: D.num(dato.caudalEquipo) };
+        } catch {
+          tabla = {};
+        }
+        const conTabla = (r, q) => r.valor === null && D.num(q) !== null ? { valor: D.num(q), origen: "tablaPlano" } : r;
+        const imp = conTabla(una(equipo.caudalDisenoImp, proyecto.caudalImpulsion, ficha.impulsion, null), tabla.impulsion);
         return {
-          impulsion: una(equipo.caudalDisenoImp, proyecto.caudalImpulsion, ficha.impulsion, equipo.caudalNominal),
-          retorno: una(equipo.caudalDisenoRet, proyecto.caudalRetorno, ficha.retorno, null)
+          impulsion: imp.valor !== null ? imp : una(null, null, null, nominal),
+          retorno: conTabla(una(equipo.caudalDisenoRet, proyecto.caudalRetorno, ficha.retorno, null), tabla.retorno)
         };
       }
       function difusoresEquipo(repo, sesion, equipoId) {
@@ -100395,7 +102173,7 @@ ${linea}` : linea;
         const svg = m && m.esLogo ? m.svg : logo;
         return svg ? `<div class="logoHoja" data-marca="${m ? m.clave : ""}">${svg}</div>` : '<div class="logoHoja logoTexto">Vidaire Cx</div>';
       }
-      function documentoHtml({ obra = {}, proyecto = "", cliente = "", certificacion = {}, filas = [], totales = {}, fases = [], fecha = "", regimenIva = null, logo = "", retenciones = null, trazabilidad = null } = {}) {
+      function documentoHtml({ obra = {}, proyecto = "", cliente = "", certificacion = {}, filas = [], totales = {}, fases = [], fecha = "", regimenIva = null, logo = "", retenciones = null, trazabilidad = null, firmas = null } = {}) {
         const todos = agruparPorCapitulo(filas);
         const posCap = new Map(todos.map((g, i) => [g.clave, i + 1]));
         const posPar = /* @__PURE__ */ new Map();
@@ -100484,11 +102262,7 @@ ${linea}` : linea;
       ${retencionesHtml(retenciones, certificacion)}
       ${fases.length > 1 ? `<table class="cierreHoja"><thead><tr><th>Fase</th><th class="n">Contrato</th><th class="n">Este mes</th><th class="n">A origen</th><th class="n">%</th></tr></thead>
         <tbody>${fases.map((f) => `<tr><td>${escHoja(f.nombre)}</td><td class="n">${eurHoja(f.contrato)}</td><td class="n">${eurHoja(f.periodo)}</td><td class="n">${eurHoja(f.origen)}</td><td class="n">${pctTxt(f.pctOrigen)}</td></tr>`).join("")}</tbody></table>` : ""}
-      <div class="firmas">
-        <div class="firma"><span>El contratista</span></div>
-        <div class="firma"><span>La Direcci\xF3n Facultativa</span></div>
-        <div class="firma"><span>La Propiedad</span></div>
-      </div>
+      ${firmasHoja(firmas)}
     </section>
     ${trazabilidadHtml(trazabilidad, certificacion)}`;
       }
@@ -100535,10 +102309,22 @@ ${linea}` : linea;
       <p class="huellaHoja">Huella del contenido (SHA-256): <strong>${escHoja(t.huella)}</strong>${t.estado === "borrador" ? " \xB7 BORRADOR: puede cambiar" : ""}</p>
     </section>`;
       }
+      var CASILLAS_CERT = [["contratista", "El contratista"], ["df", "La Direcci\xF3n Facultativa"], ["propiedad", "La Propiedad"]];
+      function firmasHoja(firmas) {
+        if (!firmas) return `<div class="firmas">
+        ${CASILLAS_CERT.map(([, r]) => `<div class="firma"><span>${r}</span></div>`).join("\n        ")}
+      </div>`;
+        const S = typeof window !== "undefined" && window.FIRMA_SELLO || require_sello();
+        return `<style>${S.CSS_SELLO} .documentoHojaCert .firma.conSello { display: block; height: auto; min-height: 26mm; border: 0; padding: 0; }
+    .documentoHojaCert .firma.conSello .selloFirma, .documentoHojaCert .firma.conSello .selloHueco { min-height: 26mm; }</style>
+      <div class="firmas">
+        ${CASILLAS_CERT.map(([k, r]) => `<div class="firma conSello">${firmas[k] ? S.selloHtml(firmas[k], { rotulo: r }) : S.huecoHtml(r)}</div>`).join("\n        ")}
+      </div>`;
+      }
       (function exportar(API) {
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         if (typeof window !== "undefined") window.HOJA_CERT = API;
-      })({ agruparPorCapitulo, totalPorFase, totalesDeFilas, filtrarFilas, historico, hojasExcelHistorico, tsvHistorico, documentoHtml, nombreMes, lineasTotales, fechaEnLetra, retencionesHtml, trazabilidadHtml });
+      })({ agruparPorCapitulo, totalPorFase, totalesDeFilas, filtrarFilas, historico, hojasExcelHistorico, tsvHistorico, documentoHtml, nombreMes, lineasTotales, fechaEnLetra, retencionesHtml, trazabilidadHtml, firmasHoja, CASILLAS_CERT });
     }
   });
 
@@ -119927,267 +121713,6 @@ ${texto}`;
     }
   });
 
-  // shared/commissioning/vidaEquipo.js
-  var require_vidaEquipo = __commonJS({
-    "shared/commissioning/vidaEquipo.js"(exports, module) {
-      "use strict";
-      var import_buffer_global10 = __toESM(require_buffer_global());
-      var G = typeof __require !== "undefined" ? require_garantia() : window.GARANTIA_CX;
-      var ROLES = typeof __require !== "undefined" ? require_roles() : window.ROLES;
-      var FPM = () => typeof __require === "function" ? require_fechaPM() : window.FECHA_PM;
-      var DIA = 864e5;
-      var diasEntre = (desde, hasta) => Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / DIA);
-      var hoyLocal = () => ((a) => new Date(a.getTime() - a.getTimezoneOffset() * 6e4).toISOString().slice(0, 10))(/* @__PURE__ */ new Date());
-      var fecha = (iso) => iso ? G.fechaVisible(iso) : null;
-      var aniosTexto = (n) => n ? `${String(n).replace(".", ",")} ${Number(n) === 1 ? "a\xF1o" : "a\xF1os"}` : null;
-      function puestaEnMarcha(u) {
-        return FPM().puestaEnMarcha(u);
-      }
-      function garantia(u, linea, hoy = hoyLocal()) {
-        const enConjunto = linea && Array.isArray(linea.miembros) && linea.miembros.length > 1;
-        const base = enConjunto ? {
-          fechaEnvioDF: linea.fechaEnvioDF || null,
-          garantiaAnios: linea.miembros.map((m) => Number(m.garantiaAnios) || 0).reduce((x, y) => Math.max(x, y), 0) || null,
-          diasUso: linea.diasUso ?? null,
-          diasUsoFecha: linea.diasUsoFecha || null
-        } : { fechaEnvioDF: u && u.fechaEnvioDF || null, garantiaAnios: u && u.garantiaAnios, diasUso: u ? u.diasUso ?? null : null, diasUsoFecha: u && u.diasUsoFecha || null };
-        const g = G.garantiaDe(base, hoy);
-        const duracion = aniosTexto(g.anios);
-        const sal = {
-          desde: g.inicio,
-          hasta: g.fin,
-          desdeTexto: fecha(g.inicio),
-          hastaTexto: fecha(g.fin),
-          anios: g.anios,
-          duracion,
-          quedanDias: null,
-          conjunto: enConjunto ? linea.tag || null : null,
-          /* Los días de uso antes de la entrega a DF (30-oct): aparte, no mueven la garantía. */
-          usoAntesEntrega: g.usoAntesEntrega ?? null,
-          textoUso: g.textoUso || null
-        };
-        if (g.estado === "sinEmpezar") return { ...sal, estado: "sinEntregaDF", tono: "gris", resumen: "Pendiente de entrega a DF" };
-        if (g.estado === "sinAnios") return { ...sal, estado: "sinDuracion", tono: "gris", resumen: "Duraci\xF3n sin dato" };
-        const quedan = diasEntre(hoy, g.fin);
-        if (g.estado === "vencida") return { ...sal, estado: "caducada", tono: "gris", quedanDias: quedan, resumen: `Caducada hace ${-quedan} ${-quedan === 1 ? "d\xEDa" : "d\xEDas"}` };
-        return { ...sal, estado: "vigente", tono: "bien", quedanDias: quedan, resumen: `Vigente \xB7 quedan ${quedan} ${quedan === 1 ? "d\xEDa" : "d\xEDas"}` };
-      }
-      var veCertificacion = (rol, { entregable = false } = {}) => !entregable && Boolean(ROLES && ROLES.puede(rol, "certificaciones", "ver"));
-      var norm = (t) => ` ${String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim()} `;
-      var casable = (t) => {
-        const n = norm(t).trim();
-        return n.length >= 4 && /\d/.test(n) ? n : null;
-      };
-      var textosDeLista = /* @__PURE__ */ new WeakMap();
-      var textosDe = (lista) => {
-        const ya = textosDeLista.get(lista);
-        if (ya && ya.length === lista.length) return ya;
-        const t = lista.map((p) => norm(p ? `${p.codigo || ""} ${p.resumen || ""} ${p.descripcion || ""}` : ""));
-        t.porPalabra = /* @__PURE__ */ new Map();
-        t.forEach((x, i) => {
-          for (const w of new Set(x.trim().split(" "))) {
-            if (!t.porPalabra.has(w)) t.porPalabra.set(w, []);
-            t.porPalabra.get(w).push(i);
-          }
-        });
-        textosDeLista.set(lista, t);
-        return t;
-      };
-      function partidaDe(u, partidas) {
-        const lista = partidas || [];
-        let textos = null;
-        for (const [por, valor] of [["tag", u && u.tag], ["modelo", u && u.modelo]]) {
-          const c = casable(valor);
-          if (!c) continue;
-          textos ||= textosDe(lista);
-          const aguja = ` ${c} `;
-          let candidatas = null;
-          for (const w of new Set(c.split(" "))) {
-            const l = textos.porPalabra.get(w) || [];
-            if (!candidatas || l.length < candidatas.length) candidatas = l;
-            if (!l.length) break;
-          }
-          const hit = (candidatas || []).filter((i) => textos[i].includes(aguja)).map((i) => lista[i]);
-          if (hit.length === 1) return { partida: hit[0], por, varias: [] };
-          if (hit.length > 1) return { partida: null, por, varias: hit };
-        }
-        return { partida: null, por: null, varias: [] };
-      }
-      var redondo = (n) => Math.round(Number(n) * 1e3) / 1e3;
-      var cifra = (n) => String(redondo(n)).replace(".", ",");
-      function certificadoPorPartida(lineas) {
-        const out = {};
-        for (const l of lineas || []) {
-          if (!l || l.certificacionEstado === "borrador") continue;
-          const a = out[l.lineaId] || (out[l.lineaId] = { cantidad: 0, ultima: null });
-          a.cantidad = redondo(a.cantidad + (Number(l.cantidad) || 0));
-          if (!a.ultima || Number(l.certificacionNumero) > a.ultima.numero) a.ultima = { numero: Number(l.certificacionNumero), estado: l.certificacionEstado, periodo: l.periodo || null };
-        }
-        return out;
-      }
-      var STOCK = /\b(STOCK|ESTOCAJE|NOT INSTALLED|NO INSTALAD[OA]S?)\b/;
-      var numPlanta = (p) => {
-        const m = /^N\s*(\d{1,2})\b/i.exec(String(p || "").trim());
-        return m ? Number(m[1]) : null;
-      };
-      function tramoDe(texto) {
-        const t = String(texto || "");
-        let m = /\bN(\d{2})\s*[–—-]\s*N?(\d{2})\b/.exec(t);
-        if (m) return [Number(m[1]), Number(m[2])];
-        m = /\bN(\d{2})\s+y\s+superiores\b/i.exec(t);
-        return m ? [Number(m[1]), 99] : null;
-      }
-      var capitulosDe = /* @__PURE__ */ new WeakMap();
-      function antecesores(codigo, capitulos) {
-        if (!capitulos) return [];
-        let idx = capitulosDe.get(capitulos);
-        if (!idx) {
-          idx = new Map(capitulos.map((c) => [String(c.codigo), c]));
-          capitulosDe.set(capitulos, idx);
-        }
-        const partes = String(codigo || "").split(".");
-        const out = [];
-        for (let i = 1; i < partes.length; i += 1) {
-          const c = idx.get(partes.slice(0, i).join("."));
-          if (c) out.push(c);
-        }
-        return out;
-      }
-      function resolverVarias(u, varias, { porPartida = {}, capitulos = null } = {}) {
-        const hecho = (p) => (porPartida[p.lineaId] || {}).cantidad || 0;
-        let cand = varias.filter((p) => (Number(p.cantidad) || 0) > 0 || hecho(p) > 0).filter((p) => !antecesores(p.codigo, capitulos).some((c) => STOCK.test(norm(c.resumen))));
-        const n = numPlanta(u && u.planta);
-        if (n !== null && capitulos) {
-          const conTramo = cand.map((p) => ({ p, tramos: antecesores(p.codigo, capitulos).map((c) => tramoDe(c.resumen)).filter(Boolean) }));
-          if (conTramo.some((x) => x.tramos.length)) cand = conTramo.filter((x) => x.tramos.some(([a, b]) => n >= a && n <= b)).map((x) => x.p);
-        }
-        const textos = new Set(cand.map((p) => norm(p.resumen).trim()));
-        return cand.length && textos.size === 1 ? cand : null;
-      }
-      function certificacion(u, datos) {
-        const { partidas = [], porPartida = {}, capitulos = null } = datos || {};
-        const { partida, por, varias } = partidaDe(u, partidas);
-        const grupo = !partida && varias.length ? resolverVarias(u, varias, { porPartida, capitulos }) : null;
-        if (grupo) {
-          const total2 = grupo.reduce((s, p3) => s + (Number(p3.cantidad) || 0), 0);
-          let cant = 0;
-          let ultima = null;
-          for (const p3 of grupo) {
-            const h = porPartida[p3.lineaId];
-            if (!h) continue;
-            cant += h.cantidad;
-            if (h.ultima && (!ultima || h.ultima.numero > ultima.numero)) ultima = h.ultima;
-          }
-          cant = redondo(cant);
-          const unidad = grupo[0].unidad || null;
-          const codigos = grupo.map((p3) => p3.codigo || "");
-          const pct2 = total2 > 0 ? Math.round(cant / total2 * 1e3) / 10 : null;
-          const p2 = { codigo: codigos.length > 1 ? `${codigos[0]} +${codigos.length - 1}` : codigos[0], codigos, resumen: grupo[0].resumen || "", por };
-          const base2 = { partida: p2, cantidad: cant, total: redondo(total2), unidad, pct: pct2, ultima };
-          return conEstado(base2, unidad ? ` ${unidad}` : "", codigos.length > 1 ? ` \xB7 ${codigos.length} partidas` : "");
-        }
-        if (!partida) {
-          if (varias.length) return { estado: "variasPartidas", tono: "gris", resumen: `Su ${por === "tag" ? "TAG" : "modelo"} sale en ${varias.length} partidas: ${varias.slice(0, 3).map((p2) => p2.codigo).join(", ")}${varias.length > 3 ? "\u2026" : ""}`, partida: null };
-          return { estado: "sinPartida", tono: "gris", resumen: "Sin partida del Costs Plan con su TAG o su modelo", partida: null };
-        }
-        const total = Number(partida.cantidad) || 0;
-        const hecho = porPartida[partida.lineaId] || { cantidad: 0, ultima: null };
-        const pct = total > 0 ? Math.round(hecho.cantidad / total * 1e3) / 10 : null;
-        const p = { codigo: partida.codigo || "", resumen: partida.resumen || "", por };
-        const ud = partida.unidad ? ` ${partida.unidad}` : "";
-        const base = { partida: p, cantidad: hecho.cantidad, total, unidad: partida.unidad || null, pct, ultima: hecho.ultima };
-        return conEstado(base, ud, "");
-      }
-      function conEstado(base, ud, de) {
-        const { cantidad: cant, total, pct } = base;
-        if (!cant) return { ...base, estado: "sinCertificar", tono: "gris", resumen: `Sin certificar${de}` };
-        if (!(total > 0)) return { ...base, estado: "certificada", tono: "bien", resumen: `Certificada: ${cifra(cant)}${ud} (partida sin cantidad de contrato)${de}` };
-        if (cant >= total - 1e-9) return { ...base, estado: "certificada", tono: "bien", resumen: `Certificada (${cifra(cant)} de ${cifra(total)}${ud})${de}` };
-        return { ...base, estado: "parcial", tono: "info", resumen: `Certificada en parte: ${cifra(cant)} de ${cifra(total)}${ud}${pct !== null ? ` (${String(pct).replace(".", ",")} %)` : ""}${de}` };
-      }
-      function fichaVida(u, linea, { rol, hoy, datosCertificacion = null, entregable = false } = {}) {
-        const out = { puestaMarcha: puestaEnMarcha(u), garantia: garantia(u, linea, hoy || hoyLocal()) };
-        if (veCertificacion(rol, { entregable }) && datosCertificacion) out.certificacion = certificacion(u, datosCertificacion);
-        return out;
-      }
-      var ESTADO_CERT_TXT = { borrador: "borrador", emitida: "emitida", aprobada: "aprobada" };
-      function bloquesFicha(vida) {
-        if (!vida) return [];
-        const v = (texto, tono = null) => ({ texto: texto || null, tono: texto ? tono : null });
-        const pm = vida.puestaMarcha;
-        const g = vida.garantia;
-        const out = [];
-        if (pm) {
-          out.push({ id: "puestaMarcha", titulo: "Puesta en marcha", filas: [
-            ["Fecha", pm.fechaTexto ? v(pm.fechaTexto) : v("Sin toma de datos", "gris")],
-            ["Estado", v(pm.etiqueta, pm.tono)]
-          ] });
-        }
-        if (g) {
-          out.push({ id: "garantia", titulo: "Garant\xEDa", filas: [
-            ["Desde", g.desdeTexto ? v(`${g.desdeTexto} (entrega a DF${g.conjunto ? " del conjunto" : ""})`) : v("Pendiente de entrega a DF", "gris")],
-            ["Hasta", g.hastaTexto ? v(g.hastaTexto) : v(null)],
-            ["Duraci\xF3n", g.duracion ? v(g.duracion) : v("Duraci\xF3n sin dato", "gris")],
-            ["D\xEDas de uso", g.textoUso ? v(g.textoUso, "info") : v("Sin dato", "gris")],
-            ...g.estado === "vigente" || g.estado === "caducada" ? [["Estado", v(g.resumen, g.tono)]] : []
-          ] });
-        }
-        const c = vida.certificacion;
-        if (c) {
-          const filas = [];
-          if (c.partida) filas.push(["Partida", v(`${c.partida.codigo}${c.partida.resumen ? ` \xB7 ${c.partida.resumen.slice(0, 70)}` : ""}`)]);
-          filas.push(["Estado", v(c.resumen, c.tono)]);
-          if (c.ultima) filas.push(["\xDAltima", v(`Certificaci\xF3n n\xBA ${c.ultima.numero} (${ESTADO_CERT_TXT[c.ultima.estado] || c.ultima.estado})${c.ultima.periodo ? ` \xB7 ${c.ultima.periodo}` : ""}`)]);
-          out.push({ id: "certificacion", titulo: "Certificaci\xF3n", filas });
-        }
-        return out;
-      }
-      var NOMBRE_CIRCUITO = { impulsion: "Impulsi\xF3n", retorno: "Retorno" };
-      var cifraBal = (n, dec = 0) => Number(n).toLocaleString("es-ES", { minimumFractionDigits: dec, maximumFractionDigits: dec });
-      var pctBal = (d) => `${d > 0 ? "+" : ""}${cifraBal(d * 100, 1)} %`;
-      function bloqueBalanceo(resumen) {
-        const circuitos = resumen && resumen.circuitos;
-        if (!circuitos) return null;
-        const v = (texto, tono = null) => ({ texto: texto || null, tono: texto ? tono : null });
-        const tol = resumen.tolerancias || {};
-        const filas = [];
-        for (const id of ["impulsion", "retorno"]) {
-          const c = circuitos[id];
-          if (!c || !c.puntos) continue;
-          const nombre = NOMBRE_CIRCUITO[id];
-          filas.push([`${nombre} \xB7 bocas`, v(`${c.medidos} de ${c.puntos} medidas${c.faltan ? ` \xB7 faltan ${c.faltan}` : ""}`, c.faltan ? "gris" : "bien")]);
-          const ref = c.disenoReferencia;
-          if (c.suma !== null && c.suma !== void 0) {
-            filas.push([`${nombre} \xB7 caudal`, v(`${cifraBal(c.suma)} m\xB3/h medidos${ref !== null && ref !== void 0 ? ` frente a ${cifraBal(ref)} de proyecto` : ""}`)]);
-          } else if (c.sinAk) {
-            filas.push([`${nombre} \xB7 caudal`, v(`${c.sinAk} ${c.sinAk === 1 ? "boca" : "bocas"} sin factor Ak: sin caudal`, "gris")]);
-          }
-          let juicio;
-          if (c.estado === "dentro") juicio = v(`Dentro de tolerancia${c.desviacion !== null && c.desviacion !== void 0 ? ` (${pctBal(c.desviacion)})` : ""}`, "bien");
-          else if (c.estado === "alto" || c.estado === "bajo") juicio = v(`Fuera de tolerancia: ${c.estado === "alto" ? "alto" : "bajo"}${c.desviacion !== null && c.desviacion !== void 0 ? ` (${pctBal(c.desviacion)})` : ""}`, "mal");
-          else if (c.estado === "sinDiseno") juicio = v("Sin caudal de proyecto con el que comparar", "gris");
-          else juicio = v("Total sin juzgar hasta medir todas las bocas", "gris");
-          filas.push([`${nombre} \xB7 total`, juicio]);
-          if (c.dentro || c.fuera) {
-            filas.push([`${nombre} \xB7 por boca`, v(`${c.dentro} dentro \xB7 ${c.fuera} fuera${tol.boca ? ` de \xB1${cifraBal(tol.boca * 100)} %` : ""}`)]);
-          }
-        }
-        return filas.length ? { id: "balanceo", titulo: "Balanceo de caudales", filas } : null;
-      }
-      function codigosCasables(equipos) {
-        const out = /* @__PURE__ */ new Set();
-        for (const u of equipos || []) for (const v of [u && u.tag, u && u.modelo]) {
-          const c = casable(v);
-          if (c) out.add(c);
-        }
-        return [...out];
-      }
-      var API = { codigosCasables, puestaEnMarcha, garantia, veCertificacion, partidaDe, certificadoPorPartida, certificacion, fichaVida, bloquesFicha, bloqueBalanceo };
-      if (typeof module !== "undefined" && module.exports) module.exports = API;
-      if (typeof window !== "undefined") window.VIDA_EQUIPO = API;
-    }
-  });
-
   // shared/commissioning/equiposPresupuesto.js
   var require_equiposPresupuesto = __commonJS({
     "shared/commissioning/equiposPresupuesto.js"(exports, module) {
@@ -126604,6 +128129,10 @@ ${fallos.join("\r\n")}\r
         const r = require_marcaCambios().recordar(repo, sesion, `estadoEntregaDF|${obraId}`, () => estadoEntregaDFSinRecordar(repo, sesion, obraId));
         return r ? structuredClone(r) : r;
       }
+      function listoDesdeDF(l) {
+        const f = Object.values(l && l.fichas || {}).map((x) => String(x && x.fecha || "").slice(0, 10)).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x)).sort();
+        return f.length ? f[f.length - 1] : null;
+      }
       function estadoEntregaDFSinRecordar(repo, sesion, obraId) {
         const d = datosPaqueteDF(repo, sesion, obraId, { soloVer: true });
         if (!d || !d.ok) return d || { ok: false, error: "No se puede leer el estado de la entrega." };
@@ -126614,7 +128143,15 @@ ${fallos.join("\r\n")}\r
         };
         return {
           ok: true,
-          lineas: d.lineas.map((l) => ({ id: l.id, tipo: l.tipoEntrega, estado: l.estado === "entregado" ? "completo" : "retenido", motivos: l.motivos || [], estanqueidad: estanq(l.estanqueidad) }))
+          lineas: d.lineas.map((l) => ({
+            id: l.id,
+            tipo: l.tipoEntrega,
+            estado: l.estado === "entregado" ? "completo" : "retenido",
+            motivos: l.motivos || [],
+            estanqueidad: estanq(l.estanqueidad),
+            /* Desde cuándo está listo (26-nov, JC: el listado se llena solo): la última toma de datos de sus hojas. */
+            ...l.estado === "entregado" ? { listoDesde: listoDesdeDF(l) } : {}
+          }))
         };
       }
       function alcanceEntregaDF(repo, sesion, obraId) {
@@ -127463,11 +129000,21 @@ ${fallos.join("\r\n")}\r
           LG: /^\d{3}[A-Z0-9]{6,12}$/,
           SAMSUNG: /^[0-9A-Z]{13,16}$/,
           TOSHIBA: /^[0-9A-Z]{7,12}$/,
-          CARRIER: /^(?:\d{9}[A-Z]|[A-Z]\d{10})$/
+          CARRIER: /^(?:\d{9}[A-Z]|[A-Z]\d{10})$/,
+          /* Soler & Palau (26-nov, placas de los ventiladores de NCN): 10 cifras, sin etiqueta. */
+          SOLERPALAU: /^\d{10}$/
         };
+        const FORMATO_CRUDO = /* @__PURE__ */ new Set(["SOLERPALAU"]);
+        const ALIAS_MARCA = [
+          [/\bSOLER\b|\bPALAU\b|\bS\s*&\s*P\b|\(S\s*[&.]\s*P\)/i, "SOLERPALAU"]
+        ];
+        const VERSION_REGLAS = "2026-11-26";
         const llano = (v) => String(v ?? "").trim();
         const normal = (v) => llano(v).toUpperCase().replace(/[\s\-_/.]/g, "");
-        const marcaDe = (m) => Object.keys(FORMATO_MARCA).find((k) => normal(m).includes(k)) || null;
+        const marcaDe = (m) => {
+          const a = ALIAS_MARCA.find(([r]) => r.test(llano(m)));
+          return a ? a[1] : Object.keys(FORMATO_MARCA).find((k) => normal(m).includes(k)) || null;
+        };
         const UNIDAD = /^(?:K?W|V|HZ|A|BAR|MPA|KG|KPA|PA|DB|M3\/H|L\/S|PH|IPX?\d+)$/i;
         const RENGLON_ELECTRICO = /POWER|VOLT|SOURCE|SUPPLY|ALIMENTACI|\bHZ\b|\d\s*V\b|\bV\s*\d|CURRENT|INPUT|\bKW\b/i;
         function pareceSerie(token, { modelo } = {}) {
@@ -127498,7 +129045,7 @@ ${fallos.join("\r\n")}\r
           const lineas = (Array.isArray(texto) ? texto : String(texto ?? "").split(/\r?\n/)).map(llano).filter(Boolean);
           const marca = marcaDe(opciones.marca) || marcaDe(lineas.slice(0, 4).join(" "));
           const formato = marca ? FORMATO_MARCA[marca] : null;
-          const delFormato = (v) => Boolean(formato && formato.test(normal(v)));
+          const delFormato = (v) => Boolean(formato && formato.test(FORMATO_CRUDO.has(marca) ? llano(v) : normal(v)));
           const hallados = [];
           lineas.forEach((l, i) => {
             ETIQUETA.lastIndex = 0;
@@ -127540,11 +129087,23 @@ ${fallos.join("\r\n")}\r
             };
           }
           if (formato) {
-            const sueltos = [...new Set(lineas.filter((l) => !RENGLON_ELECTRICO.test(l)).flatMap(trozos).map((t) => t.replace(/^[:#]+|[:;,.]+$/g, "")).filter((t) => pareceSerie(t, opciones) && delFormato(t)))];
+            const buscar = (ls) => [...new Set(ls.flatMap((l) => unirPartidos(trozos(l).map((t) => t.replace(/^[:#]+|[:;,.]+$/g, "")), delFormato)).filter((t) => pareceSerie(t, opciones) && delFormato(t) && !TENSIONES.test(t)))];
+            let sueltos = buscar(lineas.filter((l) => !RENGLON_ELECTRICO.test(l)));
+            if (!sueltos.length && FORMATO_CRUDO.has(marca)) sueltos = buscar(lineas);
             if (sueltos.length === 1) return { valor: sueltos[0], confianza: "baja", candidatos: sueltos, motivo: "Sin etiqueta: por el formato de la marca" };
             if (sueltos.length > 1) return { valor: null, confianza: null, candidatos: sueltos, motivo: "Sin etiqueta y con varios n\xFAmeros posibles" };
           }
           return { valor: null, confianza: null, candidatos: [], motivo: "No se ve ning\xFAn n\xBA de serie en la foto" };
+        }
+        const TENSIONES = /^(?:(?:1[12]0|2[234]0|3[89]0|4[01][05]|400|415|440|460|480|690)){2,3}$/;
+        function unirPartidos(ts, delFormato) {
+          const salida = [];
+          ts.forEach((t, i) => {
+            salida.push(t);
+            const s = ts[i + 1];
+            if (s && /^\d{2,}$/.test(t) && /^\d{2,}$/.test(s) && !delFormato(t) && !delFormato(s) && delFormato(`${t}${s}`)) salida.push(`${t}${s}`);
+          });
+          return salida;
         }
         function modeloDistinto(lineas, modelo) {
           const m = normal(modelo);
@@ -127557,15 +129116,18 @@ ${fallos.join("\r\n")}\r
           /MODEL|МОДЕЛЬ/i,
           /SERIAL|S\/N|SERIE|СЕРИЙН|СЕРІЙН|MFG/i,
           /REFRIGERANT|R410A|R32\b|R-?407C|R-?134A|ХЛАДАГЕНТ/i,
-          /POWER\s*SOURCE|POWER\s*SUPPLY|ALIMENTACI|\d\s*HZ\b/i,
+          /POWER\s*SOURCE|POWER\s*SUPPLY|ALIMENTACI|\d\s*HZ\b|\bHZ\b/i,
           /\bK?W\b|KW/i,
           /MPA|BAR\b/i,
           /\bIPX?\d/i,
-          /\bKG\b/i
+          /\bKG\b/i,
+          /* 26-nov: las placas de los ventiladores (S&P) no dicen MODEL ni SERIAL: dicen la marca y dónde se fabricó. */
+          /MADE\s*IN|FABRICADO\s*EN|HECHO\s*EN/i
         ];
         function pareceplaca(texto) {
           const t = (Array.isArray(texto) ? texto : String(texto ?? "").split(/\r?\n/)).join(" ");
-          return SE\u00D1ALES_PLACA.filter((r) => r.test(t)).length >= 3;
+          const marca = ALIAS_MARCA.some(([r]) => r.test(t));
+          return SE\u00D1ALES_PLACA.filter((r) => r.test(t)).length + (marca ? 1 : 0) >= 3;
         }
         function estadoSerie(v) {
           const s = llano(v);
@@ -127579,6 +129141,30 @@ ${fallos.join("\r\n")}\r
           if (!placa) return lectura.confianza === "baja" ? "nada" : "proponer";
           if (est === "vacio" && lectura.confianza === "alta") return "aplicar";
           return "proponer";
+        }
+        const lecturaCaducada = (nota) => Boolean(nota && (nota.estado === "nada" || nota.estado === "sinLectura") && nota.reglas !== VERSION_REGLAS);
+        function renglonesDeTrozos(lista = []) {
+          const ts = (Array.isArray(lista) ? lista : []).filter((t) => t && llano(t.t)).map((t) => ({ t: llano(t.t), x: +t.x || 0, y: +t.y || 0, h: +t.h || 0.01 })).sort((a, b) => a.y + a.h / 2 - (b.y + b.h / 2));
+          const filas = [];
+          for (const t of ts) {
+            const centro = t.y + t.h / 2;
+            let fila = null;
+            for (let i = filas.length - 1; i >= Math.max(0, filas.length - 3); i -= 1) {
+              const f = filas[i];
+              const solape = Math.min(f.y + f.h, t.y + t.h) - Math.max(f.y, t.y);
+              if (solape > 0.5 * Math.min(f.h, t.h) || centro >= f.y && centro <= f.y + f.h) {
+                fila = f;
+                break;
+              }
+            }
+            if (fila) {
+              fila.celdas.push(t);
+              const abajo = Math.max(fila.y + fila.h, t.y + t.h);
+              fila.y = Math.min(fila.y, t.y);
+              fila.h = abajo - fila.y;
+            } else filas.push({ y: t.y, h: t.h, celdas: [t] });
+          }
+          return filas.map((f) => f.celdas.sort((a, b) => a.x - b.x).map((c) => c.t).join(" "));
         }
         function leerEstado(v) {
           if (!v) return null;
@@ -127628,7 +129214,7 @@ ${fallos.join("\r\n")}\r
             placa: ps.some((p) => pareceplaca(p))
           };
         }
-        const API = { extraerNumeroSerie, pareceSerie, pareceplaca, estadoSerie, esFotoPlaca, decidir, leerEstado, combinarLecturas, leerPasadas, FORMATO_MARCA };
+        const API = { extraerNumeroSerie, pareceSerie, pareceplaca, estadoSerie, esFotoPlaca, decidir, leerEstado, combinarLecturas, leerPasadas, lecturaCaducada, renglonesDeTrozos, FORMATO_MARCA, VERSION_REGLAS };
         if (typeof module !== "undefined" && module.exports) module.exports = API;
         else globalThis.PLACA_SERIE = API;
       })();
@@ -127744,9 +129330,7 @@ ${fallos.join("\r\n")}\r
       async function textoMac(ruta) {
         if (true) return null;
         const O = require_ocr();
-        const A = require_albaranes();
-        const filas = A.filasDeTrozos(await O.trozosMac(ruta));
-        return filas.map((f) => f.texto);
+        return PS.renglonesDeTrozos(await O.trozosMac(ruta));
       }
       function claseDeFoto(pie) {
         if (PS.esFotoPlaca(pie)) return "placa";
@@ -127755,14 +129339,15 @@ ${fallos.join("\r\n")}\r
       function prepararTabla(db) {
         db.exec(`CREATE TABLE IF NOT EXISTS _lecturasPlaca (
     fotoId TEXT PRIMARY KEY, equipoId TEXT, estado TEXT NOT NULL, valor TEXT, texto TEXT, en TEXT NOT NULL)`);
+        if (!db.prepare("PRAGMA table_info(_lecturasPlaca)").all().some((c) => c.name === "reglas")) db.exec("ALTER TABLE _lecturasPlaca ADD COLUMN reglas TEXT");
       }
       function pendientes(db, { obraId = null } = {}) {
         prepararTabla(db);
         const filas = db.prepare(`
     SELECT f.id, f.obraId, f.equipoId, f.ruta, f.pie, f.creadoEn, e.tag, e.marca, e.modelo, e.numSerie
       FROM fotosEquipo f JOIN equiposObra e ON e.id = f.equipoId
-     WHERE f.id NOT IN (SELECT fotoId FROM _lecturasPlaca) ${obraId ? "AND f.obraId = ?" : ""}
-     ORDER BY f.creadoEn`).all(...obraId ? [obraId] : []);
+     WHERE f.id NOT IN (SELECT fotoId FROM _lecturasPlaca WHERE NOT (estado = 'sinLectura' AND IFNULL(reglas, '') <> ?)) ${obraId ? "AND f.obraId = ?" : ""}
+     ORDER BY f.creadoEn`).all(PS.VERSION_REGLAS, ...obraId ? [obraId] : []);
         const leidas = leidasEn(db);
         return filas.filter((f) => claseDeFoto(f.pie) && PS.estadoSerie(f.numSerie) !== "tiene" && !yaLeida(leidas.get(f.equipoId), f));
       }
@@ -127771,7 +129356,7 @@ ${fallos.join("\r\n")}\r
         for (const e of db.prepare("SELECT id, seriePlaca FROM equiposObra WHERE seriePlaca IS NOT NULL AND seriePlaca <> ''").all()) m.set(e.id, PS.leerEstado(e.seriePlaca));
         return m;
       }
-      var yaLeida = (nota, f) => Boolean(nota && (nota.fotoId === f.id || Array.isArray(nota.leidas) && nota.leidas.includes(f.id) || nota.en && String(f.creadoEn || "") <= String(nota.en)));
+      var yaLeida = (nota, f) => Boolean(nota && !PS.lecturaCaducada(nota) && (nota.fotoId === f.id || Array.isArray(nota.leidas) && nota.leidas.includes(f.id) || !nota.reglas && nota.en && String(f.creadoEn || "") <= String(nota.en)));
       var fallos = /* @__PURE__ */ new Map();
       async function leerPendientes(repo, { leer = textoMac, obraId = null, registro = () => {
       } } = {}) {
@@ -127815,10 +129400,12 @@ ${fallos.join("\r\n")}\r
           const w = fpm().ponerNumSerie(repo, ses, eq.id, lectura.valor);
           estado = w.ok ? "aplicada" : "propuesta";
         } else if (que === "proponer") estado = "propuesta";
-        const antes = PS.leerEstado(eq.seriePlaca);
+        const guardada = PS.leerEstado(eq.seriePlaca);
+        const antes = PS.lecturaCaducada(guardada) ? null : guardada;
         const pisa = estado !== "sinLectura" || !antes || antes.estado === "sinLectura";
         const leidas = [...new Set([...antes && antes.leidas || [], foto.id].filter(Boolean))].slice(-20);
-        const nueva = pisa && (estado !== "sinLectura" || placa) ? { estado, ...nota, leidas, en: (/* @__PURE__ */ new Date()).toISOString(), ...ses.personaId ? { por: ses.nombre || null } : {} } : antes ? { ...antes, leidas } : { estado: "nada", leidas, en: (/* @__PURE__ */ new Date()).toISOString() };
+        const reglas = PS.VERSION_REGLAS;
+        const nueva = pisa && (estado !== "sinLectura" || placa) ? { estado, ...nota, leidas, reglas, en: (/* @__PURE__ */ new Date()).toISOString(), ...ses.personaId ? { por: ses.nombre || null } : {} } : antes ? { ...antes, leidas, reglas } : { estado: "nada", leidas, reglas, en: (/* @__PURE__ */ new Date()).toISOString() };
         if (nueva) repo.modificar("equiposObra", ses, eq.id, { seriePlaca: JSON.stringify(nueva) });
         apuntarLeida(repo.db, foto, { estado, valor: nota.valor }, pasadas.map((p) => Array.isArray(p) ? p.join("\n") : String(p || "")).join("\n----\n"));
         return { estado, ...nota };
@@ -127826,7 +129413,7 @@ ${fallos.join("\r\n")}\r
       function apuntarLeida(db, foto, { estado, valor }, texto) {
         if (!foto || !foto.id) return;
         prepararTabla(db);
-        db.prepare("INSERT OR REPLACE INTO _lecturasPlaca (fotoId, equipoId, estado, valor, texto, en) VALUES (?, ?, ?, ?, ?, ?)").run(foto.id, foto.equipoId, estado, valor || null, String(texto || "").slice(0, 8e3), (/* @__PURE__ */ new Date()).toISOString());
+        db.prepare("INSERT OR REPLACE INTO _lecturasPlaca (fotoId, equipoId, estado, valor, texto, en, reglas) VALUES (?, ?, ?, ?, ?, ?, ?)").run(foto.id, foto.equipoId, estado, valor || null, String(texto || "").slice(0, 8e3), (/* @__PURE__ */ new Date()).toISOString(), PS.VERSION_REGLAS);
       }
       function lecturaDelCliente(repo, ses, { equipoId, fotoId, pasadas } = {}) {
         const eq = repo.leer("equiposObra", ses, llano(equipoId));
@@ -131032,7 +132619,6 @@ ${fallos.join("\r\n")}\r
         return { t, filasEq, est };
       }
       function reglaBloque(repo, ses, obraId, { certDe = /* @__PURE__ */ new Map(), datosCert = null } = {}) {
-        const CB = require_colorBloque();
         const montaje = (() => {
           try {
             return new Map(repo.db.prepare("SELECT id, estado, fechaInstalacion, instalacionVerificadaEn FROM equiposObra WHERE obraId = ?").all(obraId).map((x) => [x.id, x]));
@@ -131048,18 +132634,19 @@ ${fallos.join("\r\n")}\r
             return /* @__PURE__ */ new Map();
           }
         })();
+        const certMovil = VE.veCertificacion(ses.rol) && !(certBloque && certBloque.partidas && certBloque.partidas.length) ? require_certificacionAlMovil().leer(repo.db, obraId) : null;
+        const EEP = require_estadoEquipoPlano();
         const bloqueDe = (f, e) => {
           let cert = certDe.get(f.id) || null;
-          if (!cert && certBloque) {
+          if (!cert && certMovil) cert = certMovil.get(f.id) || null;
+          else if (!cert && certBloque) {
             try {
               cert = VE.certificacion(f, certBloque);
             } catch {
               cert = null;
             }
           }
-          const ids = Array.isArray(e.miembros) && e.miembros.length ? e.miembros.map((m) => m.id) : [f.id];
-          const tomaHecha = e.color !== "verde" && CB.tomaHechaConjunto(ids, tomaDe);
-          return CB.estadoBloque(montaje.get(f.id) || f, { cxHecho: e.color === "verde", tomaHecha, cxEmpezado: e.color === "azul", cert });
+          return EEP.estadoDelEquipo(f, e, { montaje: montaje.get(f.id) || null, tomaDe, cert });
         };
         return bloqueDe;
       }
@@ -131424,6 +133011,12 @@ ${fallos.join("\r\n")}\r
         if (!d) return [];
         const vistas = /* @__PURE__ */ new Set();
         const fuera = [];
+        let extra = null;
+        try {
+          extra = require_fichasPM().extraProyecto(repo, d.equipo);
+        } catch {
+          extra = null;
+        }
         for (const p of [...d.partes || [], ...d.conservadas || []]) {
           if (!p.plantilla || !p.clave) continue;
           const k = `${p.clave}|${p.plantilla}`;
@@ -131446,6 +133039,10 @@ ${fallos.join("\r\n")}\r
             /* 20-nov: guardada antes en otra unidad del conjunto; se lee, no cuenta (hojasEquipoPanel.js › conservadas). */
             conservada: Boolean(p.conservada),
             pestana: PESTANA_DE_CLASE[p.clase] || "puesta",
+            /* 25-nov-2026 (JC: «para cada equipo sus valores de proyecto»): los de su tabla de parámetros, con su fuente
+               (shared/commissioning/valoresProyecto.js). El panel los junta en «Valores de proyecto». */
+            /* 25-nov tarde: también sin hoja empezada (de la plantilla en blanco) y con el caudal de sus rejas. */
+            proyecto: !p.conservada ? require_valoresProyecto().valoresDeEquipo(p.plantillaDef || null, ev, d.equipo || null, extra) : [],
             /* 20-nov (JC): la versión de la toma (v2 tras un NO APTO) y las anteriores, para el historial plegado. */
             versionToma: p.versionToma || 1,
             versiones: Array.isArray(p.versiones) ? p.versiones : [],
@@ -131461,6 +133058,16 @@ ${fallos.join("\r\n")}\r
           const fila = { ...base, ...hb, hoja: true };
           if (i >= 0) fuera[i] = fila;
           else fuera.push(fila);
+        }
+        try {
+          const conProyecto = fuera.filter((t) => Array.isArray(t.proyecto));
+          const yaCaudal = conProyecto.some((t) => t.proyecto.some((v) => /m[³3]\/h/.test(v.unidad || "")));
+          if (conProyecto.length && !yaCaudal) {
+            const VP2 = require_valoresProyecto();
+            const sentido = require_plantillasCliente().sentidoPorTag(d.equipo) || (/^EX/i.test(String(d.equipo && d.equipo.tag || "").trim()) ? "retorno" : null);
+            conProyecto[0].proyecto = [...VP2.caudalDelEquipo(d.equipo, extra, sentido), ...conProyecto[0].proyecto];
+          }
+        } catch {
         }
         return fuera;
       }
@@ -136733,6 +138340,711 @@ ${reglas}`;
     }
   });
 
+  // shared/compras/condicionesEmpresa.js
+  var require_condicionesEmpresa = __commonJS({
+    "shared/compras/condicionesEmpresa.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      (function condicionesEmpresaModulo() {
+        const ROLES_RELAJAN = ["administrador", "gerente", "jefeDepartamento", "jefeProyectos"];
+        const TIPOS = {
+          dias: { unidad: "d\xEDas" },
+          meses: { unidad: "meses" },
+          pct: { unidad: "%" },
+          euros: { unidad: "\u20AC" },
+          si: { unidad: "" },
+          opcion: { unidad: "" },
+          lista: { unidad: "" }
+        };
+        const REGLAS = ["max", "min", "igual", "si", "enOpciones", "todos"];
+        const NIVELES = ["obligatoria", "recomendable"];
+        const OPCIONES_PAGO = [
+          { id: "transferencia", texto: "Transferencia" },
+          { id: "confirming", texto: "Confirming" },
+          { id: "pagare", texto: "Pagar\xE9" },
+          { id: "recibo", texto: "Recibo domiciliado" },
+          { id: "contado", texto: "Contado" }
+        ];
+        const DOCUMENTOS_FINALES = [
+          { id: "fichas", texto: "Fichas t\xE9cnicas" },
+          { id: "ce", texto: "Certificados CE / DoP" },
+          { id: "manuales", texto: "Manuales" },
+          { id: "asBuilt", texto: "Planos as-built" }
+        ];
+        const CATALOGO = [
+          { clave: "formaPago", titulo: "Forma de pago", tipo: "opcion", regla: "enOpciones", valor: ["transferencia", "confirming"], tolerancia: 0, nivel: "recomendable" },
+          { clave: "plazoPago", titulo: "Plazo de pago", tipo: "dias", regla: "igual", valor: 60, tolerancia: 0, nivel: "obligatoria" },
+          { clave: "retencion", titulo: "Retenci\xF3n de garant\xEDa", tipo: "pct", regla: "min", valor: 5, tolerancia: 0, nivel: "obligatoria" },
+          { clave: "garantiaObra", titulo: "Plazo de garant\xEDa de los trabajos", tipo: "meses", regla: "min", valor: 12, tolerancia: 0, nivel: "recomendable" },
+          { clave: "aval", titulo: "Aval", tipo: "si", regla: "si", valor: true, tolerancia: 0, nivel: "recomendable" },
+          { clave: "penalizaciones", titulo: "Penalizaciones por retraso", tipo: "si", regla: "si", valor: true, tolerancia: 0, nivel: "recomendable" },
+          { clave: "seguroRC", titulo: "Seguro de responsabilidad civil", tipo: "euros", regla: "min", valor: 6e5, tolerancia: 0, nivel: "obligatoria" },
+          { clave: "prlCae", titulo: "PRL y documentaci\xF3n CAE", tipo: "si", regla: "si", valor: true, tolerancia: 0, nivel: "obligatoria" },
+          { clave: "validez", titulo: "Validez de la oferta", tipo: "dias", regla: "min", valor: 60, tolerancia: 0, nivel: "obligatoria" },
+          { clave: "ivaAparte", titulo: "Precios sin IVA (IVA aparte)", tipo: "si", regla: "si", valor: true, tolerancia: 0, nivel: "recomendable" },
+          { clave: "portes", titulo: "Portes incluidos", tipo: "si", regla: "si", valor: true, tolerancia: 0, nivel: "recomendable" },
+          { clave: "plazoEntrega", titulo: "Plazo de entrega", tipo: "dias", regla: "max", valor: 30, tolerancia: 0, nivel: "recomendable" },
+          { clave: "preciosCerrados", titulo: "Precios cerrados (sin revisi\xF3n)", tipo: "si", regla: "si", valor: true, tolerancia: 0, nivel: "recomendable" },
+          { clave: "garantiaEquipos", titulo: "Garant\xEDa de los equipos", tipo: "meses", regla: "min", valor: 24, tolerancia: 0, nivel: "recomendable" },
+          { clave: "documentacionFinal", titulo: "Documentaci\xF3n final", tipo: "lista", regla: "todos", valor: ["fichas", "ce", "manuales", "asBuilt"], tolerancia: 0, nivel: "obligatoria" }
+        ];
+        const POR_CLAVE = new Map(CATALOGO.map((c) => [c.clave, c]));
+        const copia = (o) => JSON.parse(JSON.stringify(o));
+        const num = (v) => {
+          if (v === null || v === void 0 || v === "") return null;
+          const n = typeof v === "number" ? v : Number(String(v).replace(/\./g, "").replace(",", "."));
+          return Number.isFinite(n) ? n : null;
+        };
+        const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+        const miles = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        function limpiarClausula(c) {
+          if (!c || typeof c !== "object") return null;
+          const base = POR_CLAVE.get(c.clave);
+          if (!base) return null;
+          const out = { ...copia(base), activa: c.activa !== false };
+          if (NIVELES.includes(c.nivel)) out.nivel = c.nivel;
+          if (["max", "min", "igual"].includes(base.regla) && ["max", "min", "igual"].includes(c.regla)) out.regla = c.regla;
+          if (["dias", "meses", "pct", "euros"].includes(base.tipo)) {
+            const v = num(c.valor);
+            if (v !== null && v >= 0) out.valor = v;
+            const t = num(c.tolerancia);
+            out.tolerancia = t !== null && t >= 0 ? t : 0;
+          } else if (base.tipo === "opcion" || base.tipo === "lista") {
+            const validos = (base.tipo === "opcion" ? OPCIONES_PAGO : DOCUMENTOS_FINALES).map((x) => x.id);
+            if (Array.isArray(c.valor)) {
+              const v = c.valor.filter((x) => validos.includes(x));
+              if (v.length) out.valor = [...new Set(v)];
+            }
+            out.tolerancia = 0;
+          } else {
+            out.valor = true;
+            out.tolerancia = 0;
+          }
+          return out;
+        }
+        function limpiarCatalogo(lista) {
+          const dadas = new Map((Array.isArray(lista) ? lista : []).filter((c) => c && c.clave).map((c) => [c.clave, c]));
+          return CATALOGO.map((b) => limpiarClausula(dadas.has(b.clave) ? dadas.get(b.clave) : b));
+        }
+        function cambiosProyecto(empresa, proyecto) {
+          const E = new Map(limpiarCatalogo(empresa).map((c) => [c.clave, c]));
+          const salida = [];
+          for (const p of limpiarCatalogo(proyecto)) {
+            const e = E.get(p.clave);
+            if (!e) continue;
+            const relaja = [];
+            const endurece = [];
+            if (e.activa && !p.activa) relaja.push("se quita");
+            if (!e.activa && p.activa) endurece.push("se a\xF1ade");
+            if (e.nivel === "obligatoria" && p.nivel === "recomendable") relaja.push("pasa a recomendable");
+            if (e.nivel === "recomendable" && p.nivel === "obligatoria") endurece.push("pasa a obligatoria");
+            if (p.tolerancia > e.tolerancia) relaja.push("m\xE1s tolerancia");
+            if (p.tolerancia < e.tolerancia) endurece.push("menos tolerancia");
+            if (p.regla !== e.regla) relaja.push("cambia la regla");
+            else if (typeof e.valor === "number" && p.valor !== e.valor) {
+              if (e.regla === "max") (p.valor > e.valor ? relaja : endurece).push(`${textoValor(e, e.valor)} \u2192 ${textoValor(p, p.valor)}`);
+              else if (e.regla === "min") (p.valor < e.valor ? relaja : endurece).push(`${textoValor(e, e.valor)} \u2192 ${textoValor(p, p.valor)}`);
+              else relaja.push(`${textoValor(e, e.valor)} \u2192 ${textoValor(p, p.valor)}`);
+            } else if (Array.isArray(e.valor)) {
+              if (e.regla === "enOpciones") {
+                if (p.valor.some((x) => !e.valor.includes(x))) relaja.push("admite m\xE1s formas de pago");
+                if (e.valor.some((x) => !p.valor.includes(x))) endurece.push("admite menos formas de pago");
+              } else {
+                if (e.valor.some((x) => !p.valor.includes(x))) relaja.push("pide menos documentos");
+                if (p.valor.some((x) => !e.valor.includes(x))) endurece.push("pide m\xE1s documentos");
+              }
+            }
+            if (relaja.length) salida.push({ clave: p.clave, titulo: p.titulo, cambio: "relaja", porque: relaja.join(", ") });
+            else if (endurece.length) salida.push({ clave: p.clave, titulo: p.titulo, cambio: "endurece", porque: endurece.join(", ") });
+          }
+          return salida;
+        }
+        const puedeRelajar = (rol) => ROLES_RELAJAN.includes(rol);
+        function textoValor(c, v) {
+          if (v === null || v === void 0) return "no indicado";
+          switch (c.tipo) {
+            case "dias":
+              return `${v} d\xEDas`;
+            case "meses":
+              return `${v} meses`;
+            case "pct":
+              return `${String(v).replace(".", ",")} %`;
+            case "euros":
+              return `${miles(v)} \u20AC`;
+            case "si":
+              return v === true ? "s\xED" : v === false ? "no" : String(v);
+            case "opcion":
+              return (Array.isArray(v) ? v : [v]).map((x) => (OPCIONES_PAGO.find((o) => o.id === x) || { texto: x }).texto).join(" o ");
+            case "lista":
+              return (Array.isArray(v) ? v : [v]).map((x) => (DOCUMENTOS_FINALES.find((o) => o.id === x) || { texto: x }).texto).join(", ");
+            default:
+              return String(v);
+          }
+        }
+        function textoExige(c) {
+          const tol = c.tolerancia ? ` (\xB1 ${textoValor(c, c.tolerancia)})` : "";
+          switch (c.regla) {
+            case "max":
+              return `como mucho ${textoValor(c, c.valor)}${tol}`;
+            case "min":
+              return `al menos ${textoValor(c, c.valor)}${tol}`;
+            case "igual":
+              return `${textoValor(c, c.valor)}${tol}`;
+            case "si":
+              return "s\xED";
+            case "enOpciones":
+              return textoValor(c, c.valor);
+            case "todos":
+              return textoValor(c, c.valor);
+            default:
+              return "";
+          }
+        }
+        const NIEGA = /\b(no\s+(se\s+)?(incluye|incluido|incluidos|incluidas|acepta|aceptan|aceptamos|aporta|aportamos|admite|admiten)|excluid[oa]s?|sin\s|quedan?\s+excluid|no\s+aplica)/;
+        const DETECTORES = {
+          formaPago(t) {
+            if (!/(pago|pagar|abono|factura)/.test(t)) return void 0;
+            if (/confirming/.test(t)) return "confirming";
+            if (/pagare/.test(t)) return "pagare";
+            if (/transferencia/.test(t)) return "transferencia";
+            if (/recibo|domicilia/.test(t)) return "recibo";
+            if (/contado|al contado|pronto pago/.test(t)) return "contado";
+            return void 0;
+          },
+          plazoPago(t) {
+            if (!/(pago|pagar|confirming|pagare|vencimiento|transferencia|f\.?\s?f\.?|fecha (de )?factura)/.test(t)) return void 0;
+            if (/(validez|valida|entrega|garantia)/.test(t) && !/pago/.test(t)) return void 0;
+            const m = t.match(/(\d{1,3})\s*(dias|d\.)/);
+            if (m) return Number(m[1]);
+            if (/al contado|pago contado|a la recepcion/.test(t)) return 0;
+            return void 0;
+          },
+          retencion(t) {
+            if (!/retenci/.test(t)) return void 0;
+            if (/sin retenci|no se acepta(n)? retenci|no (se )?admite(n)? retenci/.test(t)) return 0;
+            const m = t.match(/(\d{1,2}(?:[.,]\d+)?)\s*%/);
+            return m ? Number(m[1].replace(",", ".")) : void 0;
+          },
+          garantiaObra(t) {
+            if (!/garantia/.test(t) || /equipo|fabricante|compresor|maquina/.test(t)) return void 0;
+            const m = t.match(/(\d{1,3})\s*(meses|mes|anos|ano)\b/);
+            if (!m) return void 0;
+            return /ano/.test(m[2]) ? Number(m[1]) * 12 : Number(m[1]);
+          },
+          aval(t) {
+            if (!/\baval/.test(t)) return void 0;
+            return NIEGA.test(t) ? false : true;
+          },
+          penalizaciones(t) {
+            if (!/penaliza/.test(t)) return void 0;
+            return NIEGA.test(t) ? false : true;
+          },
+          seguroRC(t, original) {
+            if (!/(responsabilidad civil|seguro (de )?r\.?c\b|poliza (de )?r\.?c\b|\br\.c\.)/.test(t)) return void 0;
+            if (NIEGA.test(t) && !/\d/.test(t)) return 0;
+            const o = original || t;
+            const re = /(\d{1,3}(?:[.\s]\d{3})+|\d+(?:[.,]\d+)?)\s*(m€|millones|mill\.?|€|eur\b|euros)/gi;
+            let m;
+            while (m = re.exec(o)) {
+              let n = Number(m[1].replace(/[.\s]/g, "").replace(",", "."));
+              if (/^(m€|millones|mill)/i.test(m[2])) n *= 1e6;
+              if (Number.isFinite(n)) return n;
+            }
+            return "sinImporte";
+          },
+          prlCae(t) {
+            if (!/(\bcae\b|coordinacion de actividades|\bprl\b|prevencion de riesgos)/.test(t)) return void 0;
+            return NIEGA.test(t) ? false : true;
+          },
+          validez(t) {
+            if (!/(validez|valida (durante|por|hasta)|oferta valida)/.test(t)) return void 0;
+            const m = t.match(/(\d{1,3})\s*(dias|meses|mes)\b/);
+            if (!m) return void 0;
+            return /mes/.test(m[2]) ? Number(m[1]) * 30 : Number(m[1]);
+          },
+          ivaAparte(t) {
+            if (!/\biva\b/.test(t)) return void 0;
+            if (/iva incluido|incluido (el )?iva|con iva/.test(t) && !/no incluido/.test(t)) return false;
+            if (/(iva (no incluido|excluido|aparte)|\+\s*iva|sin iva|no incluyen? (el )?iva|iva no esta incluido)/.test(t)) return true;
+            return void 0;
+          },
+          portes(t) {
+            if (!/porte/.test(t)) return void 0;
+            if (/portes? (no incluidos?|excluidos?|debidos?|a (su|vuestro|cargo))/.test(t) || NIEGA.test(t)) return false;
+            if (/portes? (incluidos?|pagados?)/.test(t)) return true;
+            return void 0;
+          },
+          plazoEntrega(t) {
+            if (!/(plazo de entrega|entrega en|plazo de suministro|entrega:)/.test(t)) return void 0;
+            const m = t.match(/(\d{1,3})\s*(dias|semanas|semana)\b/);
+            if (!m) return void 0;
+            return /semana/.test(m[2]) ? Number(m[1]) * 7 : Number(m[1]);
+          },
+          preciosCerrados(t) {
+            if (/(precios? cerrados?|precio fijo|sin revision de precios|no sujetos? a revision)/.test(t)) return true;
+            if (/(revision de precios|sujetos? a revision|actualizacion de precios|precios? revisables?)/.test(t)) return false;
+            return void 0;
+          },
+          garantiaEquipos(t) {
+            if (!/garantia/.test(t) || !/equipo|fabricante|compresor|maquina/.test(t)) return void 0;
+            const m = t.match(/(\d{1,3})\s*(meses|mes|anos|ano)\b/);
+            if (!m) return void 0;
+            return /ano/.test(m[2]) ? Number(m[1]) * 12 : Number(m[1]);
+          },
+          documentacionFinal(t) {
+            const hay = [];
+            if (/fichas? tecnicas?/.test(t)) hay.push("fichas");
+            if (/(\bce\b|marcado ce|\bdop\b|declaracion de (conformidad|prestaciones))/.test(t)) hay.push("ce");
+            if (/manual(es)?/.test(t)) hay.push("manuales");
+            if (/(as[\s-]?built|planos? (finales|final de obra|de lo ejecutado))/.test(t)) hay.push("asBuilt");
+            if (!hay.length) return void 0;
+            if (/(documentacion|entrega|incluye|aporta)/.test(t) && NIEGA.test(t)) return { niega: hay };
+            return hay;
+          }
+        };
+        function frases_(t) {
+          return String(t).split(new RegExp("(?<=[.;])\\s+(?=[A-Z\xC1\xC9\xCD\xD3\xDA\xD1\xBF(])")).map((x) => x.trim()).filter(Boolean);
+        }
+        function lineasDe(entrada) {
+          const salida = [];
+          if (!entrada) return salida;
+          if (Array.isArray(entrada.paginas) && entrada.paginas.length) {
+            entrada.paginas.forEach((p, i) => {
+              for (const l of p && p.lineas || []) {
+                const t = typeof l === "string" ? l : l && l.texto;
+                if (t && String(t).trim()) salida.push({ pagina: i + 1, texto: String(t).trim() });
+              }
+            });
+          } else if (entrada.texto) {
+            String(entrada.texto).split("\f").forEach((pag, i) => {
+              for (const t of pag.split(/\r?\n/)) if (t.trim()) salida.push({ pagina: i + 1, texto: t.trim() });
+            });
+          }
+          return salida;
+        }
+        function extraer(entrada = {}) {
+          const leidas = {};
+          const poner = (clave, valor, fuente) => {
+            if (valor === void 0 || valor === null) return;
+            const previa = leidas[clave];
+            if (clave === "documentacionFinal") {
+              if (valor && valor.niega) return;
+              const junta = [.../* @__PURE__ */ new Set([...previa && Array.isArray(previa.valor) ? previa.valor : [], ...valor])];
+              leidas[clave] = { ...previa || fuente, valor: junta };
+              return;
+            }
+            if (previa) return;
+            leidas[clave] = { valor, ...fuente };
+          };
+          const campos = entrada.campos || {};
+          const vd = num(campos.validezDias);
+          if (vd !== null) poner("validez", vd, { pagina: null, fragmento: `Validez: ${vd} d\xEDas`, origen: "Datos de la oferta" });
+          const pe = num(campos.plazoEntregaDias);
+          if (pe !== null) poner("plazoEntrega", pe, { pagina: null, fragmento: `Plazo de entrega: ${pe} d\xEDas`, origen: "Datos de la oferta" });
+          const trozos = [];
+          for (const [k, etiqueta] of [["condicionesPago", "Condiciones de pago"], ["observaciones", "Observaciones"]]) {
+            if (campos[k]) {
+              for (const t of String(campos[k]).split(/\r?\n|;\s*/)) if (t.trim()) trozos.push({ pagina: null, texto: t.trim(), origen: etiqueta });
+            }
+          }
+          const origen = entrada.origen || "Documento de la oferta";
+          for (const l of lineasDe(entrada)) trozos.push({ ...l, origen });
+          const frases = [];
+          for (const t of trozos) for (const f of frases_(t.texto)) frases.push({ ...t, texto: f });
+          trozos.length = 0;
+          trozos.push(...frases);
+          for (let i = 0; i < trozos.length; i++) {
+            const a = trozos[i];
+            const b = trozos[i + 1] && trozos[i + 1].pagina === a.pagina && trozos[i + 1].origen === a.origen ? trozos[i + 1] : null;
+            for (const [clave, detectar] of Object.entries(DETECTORES)) {
+              let v = detectar(norm(a.texto), a.texto);
+              let frag = a.texto;
+              if ((v === void 0 || v === "sinImporte") && b && detectar(norm(b.texto), b.texto) === void 0) {
+                const junto = `${a.texto} ${b.texto}`;
+                const v2 = detectar(norm(junto), junto);
+                if (v2 !== void 0 && v2 !== "sinImporte") {
+                  v = v2;
+                  frag = junto;
+                }
+              }
+              if (v === void 0) continue;
+              poner(clave, v, { pagina: a.pagina, fragmento: frag.slice(0, 240), origen: a.origen });
+            }
+          }
+          return leidas;
+        }
+        function juzgar(c, leida) {
+          const v = leida ? leida.valor : void 0;
+          if (v === void 0 || v === null) return "noIndicado";
+          if (v === "sinImporte") return "incumple";
+          const tol = Number(c.tolerancia) || 0;
+          switch (c.regla) {
+            case "max":
+              return v <= c.valor + tol ? "cumple" : "incumple";
+            case "min":
+              return v >= c.valor - tol ? "cumple" : "incumple";
+            case "igual":
+              return Math.abs(v - c.valor) <= tol ? "cumple" : "incumple";
+            case "si":
+              return v === true ? "cumple" : "incumple";
+            case "enOpciones":
+              return c.valor.includes(v) ? "cumple" : "incumple";
+            case "todos":
+              return c.valor.every((x) => Array.isArray(v) && v.includes(x)) ? "cumple" : "incumple";
+            default:
+              return "noIndicado";
+          }
+        }
+        function textoDice(c, leida) {
+          if (!leida || leida.valor === void 0 || leida.valor === null) return "no indicado";
+          if (leida.valor === "sinImporte") return "menciona el seguro, sin importe";
+          if (c.regla === "todos") {
+            const faltan = c.valor.filter((x) => !leida.valor.includes(x));
+            return faltan.length ? `${textoValor(c, leida.valor)} (falta: ${textoValor(c, faltan)})` : textoValor(c, leida.valor);
+          }
+          return textoValor(c, leida.valor);
+        }
+        function revisar(condiciones, leidas = {}) {
+          const clausulas = [];
+          for (const c of limpiarCatalogo(condiciones)) {
+            if (!c.activa) continue;
+            const l = leidas[c.clave];
+            const estado = juzgar(c, l);
+            const alarma = estado !== "cumple" ? c.nivel === "obligatoria" ? "rojo" : "ambar" : null;
+            clausulas.push({
+              clave: c.clave,
+              titulo: c.titulo,
+              nivel: c.nivel,
+              estado,
+              exige: textoExige(c),
+              dice: textoDice(c, l),
+              fuente: l ? { pagina: l.pagina ?? null, fragmento: l.fragmento || "", origen: l.origen || "" } : null,
+              alarma
+            });
+          }
+          const alarmas = clausulas.filter((x) => x.alarma);
+          const obligatoriasQueFallan = alarmas.filter((x) => x.alarma === "rojo").length;
+          const recomendablesQueFallan = alarmas.length - obligatoriasQueFallan;
+          return {
+            semaforo: obligatoriasQueFallan ? "rojo" : recomendablesQueFallan ? "ambar" : "verde",
+            obligatoriasQueFallan,
+            recomendablesQueFallan,
+            clausulas,
+            alarmas
+          };
+        }
+        function textoAlarma(a) {
+          const donde = a.fuente ? a.fuente.pagina ? ` (p\xE1g. ${a.fuente.pagina}: \xAB${a.fuente.fragmento}\xBB)` : a.fuente.fragmento ? ` (\xAB${a.fuente.fragmento}\xBB)` : "" : "";
+          return `${a.titulo}: la empresa exige ${a.exige}; la oferta dice ${a.dice}${donde}.`;
+        }
+        function resumen(rev) {
+          if (!rev) return "Sin revisar";
+          if (rev.semaforo === "verde") return "Cumple las condiciones";
+          const partes = [];
+          if (rev.obligatoriasQueFallan) partes.push(`${rev.obligatoriasQueFallan} obligatoria${rev.obligatoriasQueFallan === 1 ? "" : "s"}`);
+          if (rev.recomendablesQueFallan) partes.push(`${rev.recomendablesQueFallan} recomendable${rev.recomendablesQueFallan === 1 ? "" : "s"}`);
+          return `No cumple: ${partes.join(" y ")}`;
+        }
+        const API = {
+          CATALOGO,
+          TIPOS,
+          REGLAS,
+          NIVELES,
+          OPCIONES_PAGO,
+          DOCUMENTOS_FINALES,
+          ROLES_RELAJAN,
+          limpiarClausula,
+          limpiarCatalogo,
+          cambiosProyecto,
+          puedeRelajar,
+          textoValor,
+          textoExige,
+          extraer,
+          lineasDe,
+          revisar,
+          textoAlarma,
+          resumen
+        };
+        if (typeof module !== "undefined" && module.exports) module.exports = API;
+        if (typeof window !== "undefined") window.CONDICIONES_EMPRESA = API;
+      })();
+    }
+  });
+
+  // electron/data/condicionesOfertas.js
+  var require_condicionesOfertas = __commonJS({
+    "electron/data/condicionesOfertas.js"(exports, module) {
+      "use strict";
+      var import_buffer_global10 = __toESM(require_buffer_global());
+      var CE = require_condicionesEmpresa();
+      var { puede } = require_roles();
+      var ID_EMPRESA = "condicionesEmpresa";
+      var idProyecto = (proyectoId) => `condicionesProyecto:${proyectoId}`;
+      var CLAVE_AVISO = (ofertaId) => `condicionesOferta:${ofertaId}`;
+      var ahora = () => (/* @__PURE__ */ new Date()).toISOString();
+      var leerJson = (t, def = null) => {
+        if (!t) return def;
+        if (typeof t === "object") return t;
+        try {
+          return JSON.parse(t);
+        } catch {
+          return def;
+        }
+      };
+      function empresaDe(repo) {
+        if (repo && repo.empresaId) return String(repo.empresaId);
+        const p = typeof globalThis !== "undefined" && globalThis.PERFIL_EDICION;
+        const id = p && (p.empresaId || p.empresa && p.empresa.id);
+        return id ? String(id) : "propia";
+      }
+      function catalogoDelPerfil() {
+        const p = typeof globalThis !== "undefined" && globalThis.PERFIL_EDICION;
+        const lista = p && p.compras && Array.isArray(p.compras.condiciones) ? p.compras.condiciones : null;
+        return lista ? CE.limpiarCatalogo(lista) : null;
+      }
+      function filaPlantilla(repo, id) {
+        return repo.db.prepare("SELECT id, datos, modificadoPor, modificadoEn FROM plantillasCompras WHERE id = ?").get(id) || null;
+      }
+      function datosDeEstaEmpresa(repo, fila) {
+        if (!fila) return null;
+        const d = leerJson(fila.datos, null);
+        if (!d || typeof d !== "object") return null;
+        if (String(d.empresaId || "") !== empresaDe(repo)) return null;
+        return d;
+      }
+      function escribirPlantilla(repo, sesion, id, datos) {
+        const texto = JSON.stringify({ ...datos, empresaId: empresaDe(repo) });
+        const ya = filaPlantilla(repo, id);
+        const t = ahora();
+        if (ya) repo.db.prepare("UPDATE plantillasCompras SET datos = ?, modificadoPor = ?, modificadoEn = ? WHERE id = ?").run(texto, sesion && sesion.personaId || null, t, id);
+        else repo.db.prepare("INSERT INTO plantillasCompras (id, datos, modificadoPor, creadoEn, modificadoEn) VALUES (?, ?, ?, ?, ?)").run(id, texto, sesion && sesion.personaId || null, t, t);
+      }
+      function catalogoEmpresa(repo, sesion) {
+        const f = filaPlantilla(repo, ID_EMPRESA);
+        const d = datosDeEstaEmpresa(repo, f);
+        const perfil = d ? null : catalogoDelPerfil();
+        return {
+          empresaId: empresaDe(repo),
+          clausulas: d ? CE.limpiarCatalogo(d.clausulas) : perfil || CE.limpiarCatalogo(CE.CATALOGO),
+          propio: Boolean(d),
+          definido: Boolean(d || perfil),
+          modificadoEn: d && f ? f.modificadoEn : null
+        };
+      }
+      function guardarCatalogoEmpresa(repo, sesion, clausulas) {
+        if (!sesion || !CE.puedeRelajar(sesion.rol)) {
+          return { error: "Las condiciones de la empresa las cambia la direcci\xF3n (administrador, gerente, jefe de departamento o de proyectos)." };
+        }
+        escribirPlantilla(repo, sesion, ID_EMPRESA, { clausulas: CE.limpiarCatalogo(clausulas) });
+        return { ok: true, ...catalogoEmpresa(repo, sesion) };
+      }
+      function condicionesProyecto(repo, sesion, proyectoId) {
+        const empresa = catalogoEmpresa(repo, sesion);
+        if (!proyectoId) return { proyectoId: null, clausulas: empresa.clausulas, cambios: [], relajadas: [], empresa: empresa.clausulas, vigentes: empresa.definido };
+        let d = datosDeEstaEmpresa(repo, filaPlantilla(repo, idProyecto(proyectoId)));
+        if (!d && !empresa.definido) {
+          return { proyectoId, clausulas: empresa.clausulas, cambios: [], relajadas: [], empresa: empresa.clausulas, vigentes: false };
+        }
+        if (!d) {
+          d = { clausulas: empresa.clausulas, copiadoEn: ahora(), relajadas: [] };
+          try {
+            escribirPlantilla(repo, sesion, idProyecto(proyectoId), d);
+          } catch {
+          }
+        }
+        const clausulas = CE.limpiarCatalogo(d.clausulas);
+        return {
+          proyectoId,
+          clausulas,
+          empresa: empresa.clausulas,
+          vigentes: true,
+          cambios: CE.cambiosProyecto(empresa.clausulas, clausulas),
+          relajadas: Array.isArray(d.relajadas) ? d.relajadas : []
+        };
+      }
+      function copiarAlProyecto(repo, sesion, proyectoId) {
+        try {
+          condicionesProyecto(repo, sesion, proyectoId);
+        } catch {
+        }
+      }
+      function guardarCondicionesProyecto(repo, sesion, proyectoId, clausulas) {
+        if (!proyectoId || !repo.leer("proyectos", sesion, proyectoId)) return { error: "Ese proyecto no existe, o no es de los que t\xFA ves." };
+        if (!(puede(sesion.rol, "compras", "editar") || puede(sesion.rol, "compras", "aprobar"))) {
+          return { error: "Tu rol no puede cambiar las condiciones de compra del proyecto." };
+        }
+        const actual = condicionesProyecto(repo, sesion, proyectoId);
+        const nuevas = CE.limpiarCatalogo(clausulas);
+        const antes = new Set(CE.cambiosProyecto(actual.empresa, actual.clausulas).filter((c) => c.cambio === "relaja").map((c) => c.clave));
+        const relaja = CE.cambiosProyecto(actual.empresa, nuevas).filter((c) => c.cambio === "relaja" && !antes.has(c.clave));
+        if (relaja.length && !CE.puedeRelajar(sesion.rol)) {
+          return {
+            error: `El proyecto puede endurecer las condiciones de la empresa, pero no relajarlas: ${relaja.map((c) => `${c.titulo} (${c.porque})`).join("; ")}. Lo hace la direcci\xF3n.`,
+            relaja
+          };
+        }
+        const relajadas = actual.relajadas.concat(relaja.map((c) => ({ clave: c.clave, porque: c.porque, por: sesion.personaId || null, rol: sesion.rol, fecha: ahora() })));
+        escribirPlantilla(repo, sesion, idProyecto(proyectoId), { clausulas: nuevas, relajadas });
+        return { ok: true, ...condicionesProyecto(repo, sesion, proyectoId) };
+      }
+      function destinoDeLaPeticion(repo, peticionId) {
+        const pet = repo.db.prepare("SELECT presupuestoId, obraId FROM peticionesOferta WHERE id = ?").get(peticionId) || {};
+        const pres = pet.presupuestoId ? repo.db.prepare("SELECT proyectoId, obraIdVinculada, obraId FROM presupuestos WHERE id = ?").get(pet.presupuestoId) : null;
+        const obraId = pet.obraId || pres && (pres.obraIdVinculada || pres.obraId) || null;
+        const COLS = "SELECT id, proyectoId, jefeObraId, jefesObraIds FROM obras";
+        let obra = obraId ? repo.db.prepare(`${COLS} WHERE id = ?`).get(obraId) : null;
+        if (!obra && pet.presupuestoId) obra = repo.db.prepare(`${COLS} WHERE presupuestoId = ? LIMIT 1`).get(pet.presupuestoId) || null;
+        const proyectoId = pres && pres.proyectoId || obra && obra.proyectoId || null;
+        return { proyectoId, obra };
+      }
+      function camposDeLaOferta(o) {
+        return { validezDias: o.validezDias, plazoEntregaDias: o.plazoEntregaDias, condicionesPago: o.condicionesPago, observaciones: o.observaciones };
+      }
+      function leidasGuardadas(repo, oferta) {
+        const d = leerJson(oferta && oferta.condicionesLeidas, null);
+        if (!d || String(d.empresaId || "") !== empresaDe(repo)) return null;
+        return d;
+      }
+      function revisionDe(repo, sesion, oferta) {
+        if (!oferta) return null;
+        const { proyectoId } = destinoDeLaPeticion(repo, oferta.peticionId);
+        const cond = condicionesProyecto(repo, sesion, proyectoId);
+        if (!cond.vigentes) return null;
+        const g = leidasGuardadas(repo, oferta);
+        const delDocumento = g && g.delDocumento || {};
+        const deCampos = CE.extraer({ campos: camposDeLaOferta(oferta) });
+        const leidas = { ...deCampos, ...delDocumento };
+        for (const k of ["validez", "plazoEntrega"]) if (deCampos[k]) leidas[k] = deCampos[k];
+        const rev = CE.revisar(cond.clausulas, leidas);
+        rev.documento = g && g.documento ? g.documento : null;
+        rev.resumen = CE.resumen(rev);
+        return rev;
+      }
+      function destinatarios(repo, obra, proyectoId) {
+        const ids = /* @__PURE__ */ new Set();
+        if (obra) {
+          if (obra.jefeObraId) ids.add(obra.jefeObraId);
+          for (const x of leerJson(obra.jefesObraIds, []) || []) ids.add(x);
+        }
+        if (proyectoId) {
+          const p = repo.db.prepare("SELECT jefeObraId FROM proyectos WHERE id = ?").get(proyectoId);
+          if (p && p.jefeObraId) ids.add(p.jefeObraId);
+        }
+        for (const p of repo.db.prepare("SELECT id, rol FROM personas WHERE activo = 1").all()) {
+          if (puede(p.rol, "compras", "aprobar")) ids.add(p.id);
+        }
+        const activos = new Set(repo.db.prepare("SELECT id FROM personas WHERE activo = 1").all().map((p) => p.id));
+        return [...ids].filter((id) => activos.has(id));
+      }
+      function revisarOferta(repo, sesion, ofertaId, documento = null) {
+        const oferta = repo.leer("ofertasProveedor", sesion, ofertaId);
+        if (!oferta) return { error: "Esa oferta no existe, o no es de las que t\xFA ves." };
+        const previa = leidasGuardadas(repo, oferta) || {};
+        let delDocumento = previa.delDocumento || {};
+        let doc = previa.documento || null;
+        if (documento && (documento.paginas || documento.texto)) {
+          delDocumento = CE.extraer({ paginas: documento.paginas, texto: documento.texto, origen: documento.origen || "PDF de la oferta" });
+          doc = { nombre: documento.nombre || null, paginas: Array.isArray(documento.paginas) ? documento.paginas.length : null, leidoEn: ahora() };
+        }
+        const { obra, proyectoId } = destinoDeLaPeticion(repo, oferta.peticionId);
+        const guardar = { empresaId: empresaDe(repo), delDocumento, documento: doc, revisadoEn: ahora(), avisados: previa.avisados || [] };
+        repo.db.prepare("UPDATE ofertasProveedor SET condicionesLeidas = ? WHERE id = ?").run(JSON.stringify(guardar), ofertaId);
+        const rev = revisionDe(repo, sesion, { ...oferta, condicionesLeidas: JSON.stringify(guardar) });
+        if (!rev) return { sinCondiciones: true, semaforo: null, alarmas: [], clausulas: [], resumen: "La empresa no tiene condiciones fijadas" };
+        if (rev.alarmas.length) {
+          guardar.avisados = [.../* @__PURE__ */ new Set([...guardar.avisados, ...destinatarios(repo, obra, proyectoId)])];
+          repo.db.prepare("UPDATE ofertasProveedor SET condicionesLeidas = ? WHERE id = ?").run(JSON.stringify(guardar), ofertaId);
+          repo.db.prepare("DELETE FROM avisosLeidos WHERE clave = ?").run(CLAVE_AVISO(ofertaId));
+        }
+        rev.avisados = guardar.avisados;
+        return rev;
+      }
+      function avisosCondiciones(repo, sesion) {
+        if (!sesion || !sesion.personaId) return [];
+        let ofertas = [];
+        try {
+          ofertas = repo.listar("ofertasProveedor", sesion, { condicion: "condicionesLeidas IS NOT NULL AND estado <> 'descartada'" });
+        } catch {
+          ofertas = [];
+        }
+        const vistos = new Set(repo.db.prepare("SELECT clave FROM avisosLeidos WHERE personaId = ? AND clave LIKE 'condicionesOferta:%'").all(sesion.personaId).map((r) => r.clave));
+        const nombres = new Map(repo.db.prepare("SELECT id, nombre FROM proveedores").all().map((p) => [p.id, p.nombre]));
+        const salida = [];
+        for (const o of ofertas) {
+          const g = leidasGuardadas(repo, o);
+          if (!g || !(g.avisados || []).includes(sesion.personaId) || vistos.has(CLAVE_AVISO(o.id))) continue;
+          const rev = revisionDe(repo, sesion, o);
+          if (!rev || !rev.alarmas.length) continue;
+          const pet = repo.db.prepare("SELECT grupo, presupuestoId FROM peticionesOferta WHERE id = ?").get(o.peticionId) || {};
+          salida.push({
+            ofertaId: o.id,
+            peticionId: o.peticionId,
+            presupuestoId: pet.presupuestoId || null,
+            grupo: pet.grupo || "",
+            proveedor: nombres.get(o.proveedorId) || o.proveedorId,
+            semaforo: rev.semaforo,
+            resumen: rev.resumen,
+            alarmas: rev.alarmas.map((a) => ({ ...a, texto: CE.textoAlarma(a) }))
+          });
+        }
+        return salida.sort((a, b) => a.semaforo === b.semaforo ? 0 : a.semaforo === "rojo" ? -1 : 1);
+      }
+      function marcarAvisoVisto(repo, sesion, ofertaId) {
+        if (!sesion || !sesion.personaId || !ofertaId) return { error: "Falta la persona o la oferta." };
+        repo.db.prepare(`INSERT INTO avisosLeidos (personaId, clave, hasta) VALUES (?, ?, ?)
+    ON CONFLICT(personaId, clave) DO UPDATE SET hasta = excluded.hasta`).run(sesion.personaId, CLAVE_AVISO(ofertaId), ahora());
+        return { ok: true };
+      }
+      function comprobarParaAdjudicar(repo, sesion, ofertaId, justificacion) {
+        const oferta = repo.leer("ofertasProveedor", sesion, ofertaId);
+        if (!oferta) return null;
+        const rev = revisionDe(repo, sesion, oferta);
+        if (!rev || !rev.obligatoriasQueFallan) return { revision: rev, justificacion: null };
+        const rojas = rev.alarmas.filter((a) => a.alarma === "rojo");
+        const texto = String(justificacion || "").trim();
+        if (!texto) {
+          return {
+            error: `Esta oferta no cumple ${rojas.length === 1 ? "una condici\xF3n obligatoria" : `${rojas.length} condiciones obligatorias`} de la empresa: ${rojas.map((a) => CE.textoAlarma(a)).join(" ")} Para adjudicarla hace falta una justificaci\xF3n firmada por la direcci\xF3n.`,
+            condiciones: rojas.map((a) => ({ ...a, texto: CE.textoAlarma(a) })),
+            pideJustificacion: true
+          };
+        }
+        if (!CE.puedeRelajar(sesion.rol)) {
+          return {
+            error: "La justificaci\xF3n para adjudicar con una condici\xF3n obligatoria sin cumplir la firma la direcci\xF3n (administrador, gerente, jefe de departamento o de proyectos).",
+            condiciones: rojas.map((a) => ({ ...a, texto: CE.textoAlarma(a) }))
+          };
+        }
+        const p = sesion.personaId ? repo.db.prepare("SELECT nombre FROM personas WHERE id = ?").get(sesion.personaId) : null;
+        return {
+          revision: rev,
+          justificacion: {
+            texto,
+            personaId: sesion.personaId || null,
+            nombre: p && p.nombre || null,
+            rol: sesion.rol,
+            fecha: ahora(),
+            incumplidas: rojas.map((a) => ({ clave: a.clave, titulo: a.titulo, exige: a.exige, dice: a.dice }))
+          }
+        };
+      }
+      module.exports = {
+        empresaDe,
+        catalogoEmpresa,
+        guardarCatalogoEmpresa,
+        condicionesProyecto,
+        copiarAlProyecto,
+        guardarCondicionesProyecto,
+        revisarOferta,
+        revisionDe,
+        avisosCondiciones,
+        marcarAvisoVisto,
+        comprobarParaAdjudicar,
+        destinoDeLaPeticion
+      };
+    }
+  });
+
   // electron/data/repositorioPrecios.js
   var require_repositorioPrecios2 = __commonJS({
     "electron/data/repositorioPrecios.js"(exports, module) {
@@ -136844,6 +139156,7 @@ ${reglas}`;
       var condicionesPet = require_condicionesPeticion();
       var { puede } = require_roles();
       var repositorioPrecios = require_repositorioPrecios();
+      var condicionesOfertas = require_condicionesOfertas();
       var { armarArbol } = require_presupuestos();
       function deFilaPeticion(f) {
         if (!f) return null;
@@ -137067,6 +139380,11 @@ ${reglas}`;
           } catch {
             guardada.avisosPrecio = [];
           }
+          try {
+            guardada.condiciones = condicionesOfertas.revisarOferta(repo, sesion, guardada.id, datos.documentoLeido || null);
+          } catch {
+            guardada.condiciones = null;
+          }
         }
         return guardada;
       }
@@ -137175,7 +139493,7 @@ ${reglas}`;
         const ofertas = peticion ? ofertasDe(repo, sesion, peticion.id) : [];
         if (peticion && peticion.modalidad === "horas") {
           const h = aHoras.comparar(paquete, ofertas, { cuadrilla: peticion.cuadrilla });
-          return {
+          return conCondiciones(repo, sesion, {
             ...h,
             /* Los nombres que la pantalla y adjudicar() esperan de cualquier comparativo. */
             presupuestado: h.planificado,
@@ -137183,7 +139501,7 @@ ${reglas}`;
             peticion,
             adjudicacion: adjudicacionDe(repo, sesion, peticion.id),
             ofertas
-          };
+          }, ofertas);
         }
         const { cumplimientoIndustriales } = require_personal2();
         const c = comparativo.comparar(
@@ -137206,6 +139524,26 @@ ${reglas}`;
           }
         );
         c.ofertas = ofertas;
+        return conCondiciones(repo, sesion, c, ofertas);
+      }
+      function conCondiciones(repo, sesion, c, ofertas) {
+        for (const col of c.columnas || []) {
+          const o = col.ofertaId ? repo.leer("ofertasProveedor", sesion, col.ofertaId) : null;
+          let rev = null;
+          try {
+            rev = o ? condicionesOfertas.revisionDe(repo, sesion, o) : null;
+          } catch {
+            rev = null;
+          }
+          col.condiciones = rev ? {
+            semaforo: rev.semaforo,
+            resumen: rev.resumen,
+            obligatoriasQueFallan: rev.obligatoriasQueFallan,
+            recomendablesQueFallan: rev.recomendablesQueFallan,
+            clausulas: rev.clausulas,
+            documento: rev.documento
+          } : null;
+        }
         return c;
       }
       function deFilaAdjudicacion(f) {
@@ -137235,7 +139573,7 @@ ${reglas}`;
         });
         return filas.length ? deFilaAdjudicacion(filas[0]) : null;
       }
-      function adjudicar(repo, sesion, { presupuestoId, grupo, proveedorId, motivo, importe } = {}) {
+      function adjudicar(repo, sesion, { presupuestoId, grupo, proveedorId, motivo, importe, justificacionCondiciones } = {}) {
         if (!puede(sesion.rol, "compras", "aprobar")) {
           return {
             error: "Su rol puede pedir ofertas y compararlas, pero no adjudicar. Adjudicar compromete el dinero de la obra y es del departamento de Proyectos."
@@ -137245,7 +139583,7 @@ ${reglas}`;
         const c = comparativoDe(repo, sesion, presupuestoId, grupo);
         if (c.error) return c;
         if (!c.peticion) return { error: "Ese paquete no tiene ninguna petici\xF3n de oferta abierta." };
-        if (c.modalidad === "horas") return adjudicarAHoras(repo, sesion, c, { grupo, proveedorId, motivo, importe });
+        if (c.modalidad === "horas") return adjudicarAHoras(repo, sesion, c, { grupo, proveedorId, motivo, importe, justificacionCondiciones });
         const columna = c.columnas.find((x) => x.proveedorId === proveedorId);
         if (!columna && (c.ofertas || []).some((o) => o.proveedorId === proveedorId && o.estado === "descartada")) {
           return { error: "Esa oferta est\xE1 descartada: se readmite antes de adjudic\xE1rsela." };
@@ -137280,6 +139618,8 @@ ${reglas}`;
             }
           };
         }
+        const cond = condicionesOfertas.comprobarParaAdjudicar(repo, sesion, columna.ofertaId, justificacionCondiciones);
+        if (cond && cond.error) return cond;
         const traza = comparativo.trazaAdjudicacion({
           paquete: { codigo: grupo },
           comparativo: c,
@@ -137287,6 +139627,7 @@ ${reglas}`;
           personaId: sesion.personaId,
           motivo: limpio || null
         });
+        if (traza && cond) traza.condiciones = trazaCondiciones(cond);
         const registro = cuadroComparativo.registroAdjudicacion(c.cuadro, proveedorId);
         if (traza && registro) {
           traza.registro = {
@@ -137323,7 +139664,15 @@ ${reglas}`;
         repo.modificar("peticionesOferta", sesion, c.peticion.id, { estado: "adjudicada" }, decidir);
         return adjudicacionDe(repo, sesion, c.peticion.id);
       }
-      function adjudicarAHoras(repo, sesion, c, { grupo, proveedorId, motivo, importe }) {
+      function trazaCondiciones(cond) {
+        const r = cond.revision;
+        return {
+          semaforo: r ? r.semaforo : null,
+          clausulas: r ? r.clausulas.map((x) => ({ clave: x.clave, titulo: x.titulo, nivel: x.nivel, estado: x.estado, exige: x.exige, dice: x.dice, fuente: x.fuente })) : [],
+          justificacion: cond.justificacion || null
+        };
+      }
+      function adjudicarAHoras(repo, sesion, c, { grupo, proveedorId, motivo, importe, justificacionCondiciones }) {
         const columna = c.columnas.find((x) => x.proveedorId === proveedorId);
         if (!columna) {
           const proveedor = repo.leer("proveedores", sesion, proveedorId);
@@ -137345,7 +139694,10 @@ ${reglas}`;
             masBarato: c.mejor
           };
         }
+        const cond = condicionesOfertas.comprobarParaAdjudicar(repo, sesion, columna.ofertaId, justificacionCondiciones);
+        if (cond && cond.error) return cond;
         const traza = aHoras.trazaAdjudicacion({ paquete: { codigo: grupo }, comparativo: c, proveedorId, personaId: sesion.personaId, motivo: limpio || null });
+        if (traza && cond) traza.condiciones = trazaCondiciones(cond);
         const tarifa = aHoras.tarifaDeTraza(traza);
         if (tarifa.precioHora === null) return { error: `As\xED no hay tarifa con la que calcular el coste: ${tarifa.motivo}.` };
         traza.importeSegunHoras = !(Number(importe) > 0) && !(columna.horasCompletas && columna.totalOfertado !== null);
@@ -164314,7 +166666,7 @@ Estado: ${ESTADO}`);
         let bocas = 0;
         for (const p of db.prepare("SELECT puntos FROM planosDifusores WHERE obraId = ?").all(id)) {
           const l = leerJson(p.puntos, []);
-          if (Array.isArray(l)) bocas += l.length;
+          if (Array.isArray(l)) bocas += require_difusores().activas(l).length;
         }
         c.bocasPlano = bocas;
         try {
@@ -168989,6 +171341,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
       var fs = require_fs();
       var path = require_path();
       var F = require_fichas();
+      var VP = require_valoresProyecto();
       var CJ = require_conjuntos();
       var CXC = require_control();
       var RC = require_rejillaChecklist();
@@ -169577,7 +171930,9 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const fam = F.familiaDe(r.dueno, catalogo.FAMILIAS);
           def = F.seccionesDeFamilia(F.conTituloDeFamilia(def, fam), fam);
         } else def = F.seccionesDeFamilia(def, null);
-        const ev = F.evaluar(def, datos, { config: cfg, firmas, instrumentos: cat.instrumentos });
+        const proyecto = !instantanea && !firmas.length ? VP.proyectoDeHoja(def, datos, r.dueno, extraProyecto(repo, r.dueno)) : null;
+        const ev = F.evaluar(def, datos, { config: cfg, firmas, instrumentos: cat.instrumentos, proyecto: proyecto && proyecto.valores });
+        if (proyecto) ev.proyectoSinFuente = proyecto.sinFuente;
         const vigente = cat.vigentes.get(def.codigo);
         const bloqueo = require_incidencias().bloqueoParaTomar(repo, obraId, [...new Set([...(r.afectados || []).map((x) => x.id), r.dueno && r.dueno.id].filter(Boolean))], { soloMirar: true });
         const presionPendiente = def.clase === "estanqRefrigerante" && !firmas.length ? ERP.presionPendiente(ev.datos, { apunte: leerJson(cfg && cfg.lecturasEstanq, {})[clave], bloqueo: bloqueo ? bloqueo.incidencia : null }) : null;
@@ -169942,6 +172297,26 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         return LOTE.get(clave);
       };
       var quien = (sesion) => `${sesion && sesion.personaId || ""}|${sesion && sesion.rol || ""}`;
+      function extraProyecto(repo, equipo) {
+        if (!equipo || !equipo.id || !repo || !repo.db) return null;
+        try {
+          const CRP = require_caudalesRejasProyecto();
+          const c = equipo.obraId ? repo.db.prepare("SELECT caudalesRejasProyecto FROM configCommissioning WHERE obraId = ?").get(equipo.obraId) : null;
+          const dato = c ? CRP.datoDe(c.caudalesRejasProyecto, equipo.tag) : null;
+          const puntos = [];
+          for (const pl of repo.db.prepare("SELECT puntos FROM planosDifusores WHERE equipoId = ?").all(equipo.id)) {
+            try {
+              puntos.push(...JSON.parse(pl.puntos || "[]") || []);
+            } catch {
+            }
+          }
+          if (!dato && !puntos.length) return null;
+          const r = VP.caudalDeRejas(puntos, dato, catalogo.sentidoPorTag(equipo));
+          return r.impulsion || r.retorno ? { caudal: r } : null;
+        } catch {
+          return null;
+        }
+      }
       function dossier(repo, sesion, equipoId) {
         return delLote(`dossier|${quien(sesion)}|${equipoId}`, () => dossierLeido(repo, sesion, equipoId));
       }
@@ -170111,7 +172486,8 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           const def = catalogoDe(repo, sesion).vigentes.get(opciones.plantillaComo);
           if (!def) return { ok: false, error: `No existe la plantilla ${opciones.plantillaComo}.` };
           const defF = F.seccionesDeFamilia(def, f.equipo ? F.familiaDe(f.equipo, catalogo.FAMILIAS) : null);
-          f = { ...f, plantilla: defF, evaluacion: F.evaluar(defF, f.evaluacion.datos, { config: configDe(repo, sesion, obraId), firmas: [], instrumentos: [] }) };
+          const pObra = f.soloLectura || (f.evaluacion.firmas || []).length ? null : VP.proyectoDeHoja(defF, f.evaluacion.datos, f.equipo, extraProyecto(repo, f.equipo)).valores;
+          f = { ...f, plantilla: defF, evaluacion: F.evaluar(defF, f.evaluacion.datos, { config: configDe(repo, sesion, obraId), firmas: [], instrumentos: [], proyecto: pObra }) };
         }
         if (!sinMedidos) f = { ...f, evaluacion: { ...f.evaluacion, firmasConformidad: firmasDeConformidad(repo, sesion, { ...f, obraId, clave: ref.clave || f.clave }) } };
         const obra = repo.leer("obras", sesion, obraId);
@@ -171247,6 +173623,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         firmarConjunto,
         lineaDe,
         dossier,
+        extraProyecto,
         estanqueidadConDatos,
         CARPETA_ESTANQ_DF,
         DURACION_ESTANDAR,
@@ -176411,7 +178788,42 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         new vm.Script(fs.readFileSync(path.join(raiz, f), "utf8"), { filename: f }).runInContext(contexto);
         return ventana.DEMO_COMPRAS;
       }
-      function sembrarSiVacia(db, { completar = false } = {}) {
+      var TABLAS_MAESTRAS = ["personas", "clientes", "proveedores", "proyectos", "presupuestos", "obras"];
+      function prefijarSiembra(db, prefijo) {
+        if (!prefijo) return { prefijados: 0 };
+        const tablas = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all().map((t) => t.name);
+        const ids = /* @__PURE__ */ new Set();
+        for (const t of TABLAS_MAESTRAS) {
+          if (!tablas.includes(t)) continue;
+          for (const { id } of db.prepare(`SELECT id FROM "${t}"`).all()) if (typeof id === "string" && !id.startsWith(prefijo)) ids.add(id);
+        }
+        if (!ids.size) return { prefijados: 0 };
+        const lista = [...ids];
+        const marcas = lista.map(() => "?").join(",");
+        const fk = db.prepare("PRAGMA foreign_keys").get();
+        db.exec("PRAGMA foreign_keys = OFF");
+        try {
+          db.exec("BEGIN");
+          const guardianes = db.prepare("SELECT name, sql FROM sqlite_master WHERE type = 'trigger' AND sql LIKE '%RAISE%'").all();
+          for (const g of guardianes) db.exec(`DROP TRIGGER "${g.name}"`);
+          for (const t of tablas) {
+            const cols = db.prepare(`PRAGMA table_info("${t}")`).all().map((c) => c.name).filter((c) => c === "id" && TABLAS_MAESTRAS.includes(t) || /(Id|Por)$/.test(c));
+            for (const c of cols) db.prepare(`UPDATE "${t}" SET "${c}" = ? || "${c}" WHERE "${c}" IN (${marcas})`).run(prefijo, ...lista);
+          }
+          for (const g of guardianes) db.exec(g.sql);
+          db.exec("COMMIT");
+        } catch (e) {
+          try {
+            db.exec("ROLLBACK");
+          } catch {
+          }
+          throw e;
+        } finally {
+          if (fk && Object.values(fk)[0]) db.exec("PRAGMA foreign_keys = ON");
+        }
+        return { prefijados: lista.length };
+      }
+      function sembrarSiVacia(db, { completar = false, prefijo = "" } = {}) {
         const hay = db.prepare("SELECT COUNT(*) AS n FROM personas").get();
         if (hay && hay.n > 0 && !completar) return { sembrado: false };
         const yaBase = !!(hay && hay.n > 0);
@@ -176572,6 +178984,18 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
           ["documentacionRecibida", "Proyecto de ejecuci\xF3n"],
           ["plazoEjecucionMeses", "14"]
         ]) if (!db.prepare("SELECT 1 FROM hojaAlcance WHERE proyectoId = ? AND campo = ?").get(proyectoId, campo)) insAlcance.run(nuevoId(), proyectoId, campo, valor, "ana", ahora, ahora);
+        if (prefijo && !yaBase) {
+          prefijarSiembra(db, prefijo);
+          return {
+            sembrado: true,
+            prefijo,
+            proyectoId: prefijo + proyectoId,
+            presupuestoId: prefijo + presupuestoId,
+            proyectos: OTROS.length + 1,
+            personas: PERSONAS.length,
+            proveedores: PROVEEDORES.length
+          };
+        }
         return {
           sembrado: true,
           proyectoId,
@@ -176742,7 +179166,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
         }
         return { completado: true, obras: db.prepare("SELECT COUNT(*) AS n FROM obras").get().n, flujoDeshecho: aMedias.length, ...r };
       }
-      module.exports = { sembrarSiVacia, completarEjemplos, presupuestoDeEjemplo };
+      module.exports = { sembrarSiVacia, completarEjemplos, presupuestoDeEjemplo, prefijarSiembra };
     }
   });
 
@@ -176915,7 +179339,7 @@ table.firmas { width: 100%; margin-top: 24pt; } table.firmas td { width: 50%; ve
   });
 
   // electron/data/documentos.js
-  var require_documentos2 = __commonJS({
+  var require_documentos3 = __commonJS({
     "electron/data/documentos.js"(exports, module) {
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
@@ -178110,7 +180534,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             userData = require_electronFalso().app.getPath("userData");
           } catch {
           }
-          const a = await require_documentos2().archivo(repo, ses, r.doc.documentoId, { carpetaApp: userData });
+          const a = await require_documentos3().archivo(repo, ses, r.doc.documentoId, { carpetaApp: userData });
           if (!a.ok || !a.ruta) return [404, { ok: false, error: a && a.error || "No est\xE1 ese documento." }];
           try {
             return { bytes: fs.readFileSync(a.ruta), tipo: a.mime || TIPO_DE_EXT[path.extname(a.ruta).toLowerCase()] || "application/octet-stream" };
@@ -185766,6 +188190,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       var DIF = require_difusores2();
       var REC = require_ifcRecogidos();
       var CRP = require_caudalesRejasProyecto();
+      var DIFC = require_difusores();
       var leidas = /* @__PURE__ */ new Map();
       async function clasificacionDe(ruta) {
         const st = fs.statSync(ruta);
@@ -185784,13 +188209,13 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       }
       async function prepararRejas(args = {}) {
         const prep = await prepararRejasDelModelo(args);
-        if (!prep || !prep.ok || !(prep.plantas || []).some((pl) => (pl.puntos || []).some((p) => p && p.ficticia))) return prep;
-        if (!tieneBocasRealesGuardadas(args.repo, args.ses, args.equipoId)) return prep;
+        if (!prep || !prep.ok || !(prep.plantas || []).some((pl) => (pl.puntos || []).some((p) => DIFC.esFicticia(p)))) return prep;
         const plantas = prep.plantas.map((pl) => {
-          const puntos = (pl.puntos || []).filter((p) => !(p && p.ficticia));
+          const puntos = (pl.puntos || []).filter((p) => !DIFC.esFicticia(p));
           return { ...pl, puntos, ficticias: 0 };
         }).filter((pl) => pl.puntos.length);
-        return { ...prep, plantas, conBocasDelModelo: true, conBocasReales: true };
+        const reales = tieneBocasRealesGuardadas(args.repo, args.ses, args.equipoId);
+        return { ...prep, plantas, sinFicticias: true, ...reales ? { conBocasDelModelo: true, conBocasReales: true } : {} };
       }
       function tieneBocasRealesGuardadas(repo, ses, equipoId) {
         for (const pl of repo.listar("planosDifusores", ses, { condicion: "equipoId = ?", params: [equipoId] })) {
@@ -185800,7 +188225,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           } catch {
             continue;
           }
-          if (Array.isArray(puntos) && puntos.some((p) => p && p.ficticia !== true && !/FinConducto/.test(String(p.tipo || "")) && !p.quitada)) return true;
+          if (Array.isArray(puntos) && puntos.some((p) => p && !DIFC.esFicticia(p) && !DIFC.estaQuitada(p))) return true;
         }
         return false;
       }
@@ -185954,7 +188379,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             continue;
           }
           if (!Array.isArray(puntos)) continue;
-          const sobran = puntos.filter((p) => p && p.ficticia === true && !p.quitada && !vigentes.has(p.id));
+          const sobran = puntos.filter((p) => DIFC.esFicticia(p) && !DIFC.estaQuitada(p) && !vigentes.has(p.id));
           if (!sobran.length) continue;
           const fuera = new Set(sobran.filter((p) => !BM.tieneLecturas(p)).map((p) => p.id));
           for (const p of sobran) if (!fuera.has(p.id)) salida.medidas.push({ planoId: pl.id, nombre: p.nombre });
@@ -185997,7 +188422,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             continue;
           }
           if (!prep.plantas.length) {
-            faltan.push({ id: e.id, tag: e.tag, planta, motivo: `Sus redes (${prep.codigo}) no tienen rejas ni extremos de conducto libres en el modelo.` });
+            faltan.push({ id: e.id, tag: e.tag, planta, motivo: `Sus redes (${prep.codigo}) no tienen rejas ni difusores en el modelo (sin rejas ficticias desde el 25-nov).`, ficticiasQuitadas: limpia.quitadas });
             continue;
           }
           const planos = [];
@@ -186160,7 +188585,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
             } catch {
               bocas = [];
             }
-            bocas = (Array.isArray(bocas) ? bocas : []).filter((b) => !(b && b.quitada));
+            bocas = require_difusores().activas(bocas);
             if (pd.ancho && pd.alto) lamina = { ancho: pd.ancho, alto: pd.alto };
           }
         }
@@ -186369,7 +188794,7 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
               puntos = JSON.parse(p.puntos || "[]");
             } catch {
             }
-            puntos = (Array.isArray(puntos) ? puntos : []).filter((x) => !(x && x.quitada));
+            puntos = MDIF.activas(puntos);
             const b = bocas.get(p.equipoId) || { bocas: 0, medidas: 0 };
             b.bocas += puntos.length;
             b.medidas += puntos.filter((x) => MDIF.num(x.velocidad) !== null || MDIF.num(x.caudalMedido) !== null).length;
@@ -216605,20 +219030,46 @@ ${a}`.trim();
         const t = llano(texto).replace(/[^a-z]+/g, " ").trim();
         return t === z.sigla.toLowerCase() || t === llano(z.nombre);
       };
-      function entender(pregunta) {
-        const q = llano(pregunta);
+      var RE_ZIP = /\b(zip|zips|comprimido)\b/;
+      var RE_ENTREGA = /\b(entrega|paquete|dossier)\b/;
+      var RE_CON_TODO = /\b(complet[ao]s?|entera|indice|carpetas?|documentos?|documentacion|todo)\b/;
+      var RE_TIPO_EQUIPO = /\b(splits?|vrf|fan ?coils?|utas?|ventiladores?|extractores?|crac|crah|enfriadoras?|bombas?|cassettes?|conductos?|cortinas?|recuperadores?|climatizadoras?|equipos?)\b/;
+      var RE_PREGUNTA_CUENTA = /\b(cuant[oa]s|como (va|la llevamos|vamos)|esta (ya )?(mandad|enviad|list|complet)\w*|que (conjuntos|equipos|splits) (hay|faltan|estan))\b|\?/;
+      var RE_SEGUIMIENTO = /^(lo que (quiero|digo|pido)|no[, ]|si[, ]|vale[, ]|y (el|la|los|las|lo|con)\b|pero\b|eso\b|con todo|todo\b|el zip|en zip)/;
+      function entender(pregunta, { previa = null } = {}) {
+        const q = llano(pregunta).trim();
         if (!q) return null;
         const zona = zonaDicha(pregunta);
-        const tipo = /gardentona/.test(q) ? "VRF Gardentona" : /\bvrf\b.*\bn ?20\b|\bn ?20\b.*\bvrf\b/.test(q) ? "VRF N20" : /\bsplits?\b/.test(q) ? "Splits" : "";
+        const tipoDicho = /gardentona/.test(q) ? "VRF Gardentona" : /\bvrf\b.*\bn ?20\b|\bn ?20\b.*\bvrf\b/.test(q) ? "VRF N20" : /\bsplits?\b/.test(q) ? "Splits" : "";
+        const tipo = tipoDicho || previa && previa.tipo || "";
         const conjuntos = /\bconjuntos?\b/.test(q);
-        const armar = RE_PAQUETE.test(q) && /\b(prepar|genera|monta|arma|saca|haz)\w*/.test(q);
+        const zip = RE_ZIP.test(q);
+        const armar = RE_PAQUETE.test(q) && /\b(prepar|genera|monta|arma|saca|haz)\w*/.test(q) || zip;
         const porQue = /\bpor ?que\b/.test(q) && /\b(retenid\w*|no entra\w*|no (esta|estan) complet\w*|incomplet\w*)\b/.test(q);
-        if ((conjuntos || RE_DF.test(q) || porQue) && RE_FALTAN.test(q) && !armar) return { que: "faltan", tipo, ...zona ? { zona } : {} };
-        if (zona && !armar && /\b(entregad\w*|entrega|listos?|complet\w*|retenid\w*)\b/.test(q)) return { que: "faltan", tipo, zona };
-        if (conjuntos && /\bcuant[oa]s\b|\bnumero de\b|\btotal\b/.test(q) && !armar) return { que: "faltan", tipo, ...zona ? { zona } : {} };
-        if (RE_DF.test(q) && RE_PAQUETE.test(q) && !armar && /\b(dame|pasame|enlaces?|descarga\w*|bajar\w*|quiero)\b/.test(q)) return { que: "dar", tipo };
+        if ((conjuntos || RE_DF.test(q) || porQue) && RE_FALTAN.test(q) && !armar) return { que: "faltan", tipo: tipoDicho, ...zona ? { zona } : {} };
+        if (zona && !armar && /\b(entregad\w*|entrega|listos?|complet\w*|retenid\w*)\b/.test(q)) return { que: "faltan", tipo: tipoDicho, zona };
+        if (conjuntos && /\bcuant[oa]s\b|\bnumero de\b|\btotal\b/.test(q) && !armar) return { que: "faltan", tipo: tipoDicho, ...zona ? { zona } : {} };
+        if (RE_DF.test(q) && RE_PAQUETE.test(q) && !armar && !tipoDicho && /\b(dame|pasame|enlaces?|descarga\w*|bajar\w*|quiero)\b/.test(q)) return { que: "dar", tipo };
         if (RE_DF.test(q) && RE_PAQUETE.test(q) && (RE_PREPARAR.test(q) || /^entrega/.test(q))) return { que: "preparar", tipo };
+        const conTodo = RE_CON_TODO.test(q) || RE_TIPO_EQUIPO.test(q) || Boolean(tipoDicho);
+        if (zip && (RE_ENTREGA.test(q) || conTodo || previa && previa.que)) return { que: "preparar", tipo };
+        if (RE_ENTREGA.test(q) && conTodo && RE_PREPARAR.test(q) && !RE_FALTAN.test(q)) return { que: "preparar", tipo };
+        if (previa && previa.que && (RE_SEGUIMIENTO.test(q) || conTodo && q.split(" ").length <= 14) && !RE_FALTAN.test(q)) {
+          return { que: previa.que === "dudar" ? zip || RE_CON_TODO.test(q) ? "preparar" : "dudar" : previa.que, tipo };
+        }
+        if (RE_ENTREGA.test(q) && conTodo && !RE_PREGUNTA_CUENTA.test(q) && !RE_FALTAN.test(q)) return { que: "dudar", tipo };
         return null;
+      }
+      var PREVIAS = /* @__PURE__ */ new Map();
+      var VIDA_PREVIA = 15 * 60 * 1e3;
+      function previaDe(yo) {
+        const k = yo && (yo.id || yo.email);
+        const p = k ? PREVIAS.get(k) : null;
+        return p && Date.now() - p.t < VIDA_PREVIA ? p : null;
+      }
+      function apuntarPrevia(yo, q) {
+        const k = yo && (yo.id || yo.email);
+        if (k && q) PREVIAS.set(k, { que: q.que, tipo: q.tipo || "", t: Date.now() });
       }
       function obraDe(repo, yo, pregunta, obraId) {
         const q = ` ${llano(pregunta).replace(/[^a-z0-9]+/g, " ")} `;
@@ -216713,8 +219164,9 @@ ${ejemplos}${mas}${sinEmpezar}`,
       }
       var mb = (b) => `${(b / 1048576).toLocaleString("es-ES", { maximumFractionDigits: 1 })} MB`;
       async function responder(repo, yo, { pregunta, obraId } = {}, opciones = {}) {
-        const q = entender(pregunta);
+        const q = entender(pregunta, { previa: previaDe(yo) });
         if (!q || !repo) return null;
+        apuntarPrevia(yo, q);
         const id = obraDe(repo, yo, pregunta, obraId);
         if (!id) return fila(pregunta, { respuesta: "Elige primero la obra arriba a la izquierda (o dime cu\xE1l: \xABprepara la entrega a la DF de NCN\xBB)." });
         let obra = null;
@@ -216761,6 +219213,19 @@ Ojo: ${n(sinZona)} conjunto${sinZona === 1 ? "" : "s"} de la obra no tiene${sinZ
 Alcance de la entrega de esta obra: **${d.alcanceObra.texto}**; cuento solo lo que entra en \xE9l.` : "";
           return fila(pregunta, { respuesta: `${f.texto}${al}`, acciones: [retenidos], herramienta: "entregaDF" });
         }
+        if (q.que === "dudar") {
+          const de = q.tipo ? ` de los ${q.tipo.toLowerCase()}` : "";
+          const zipF = `Dame el ZIP de la entrega a la DF${de}`;
+          const listaF = `Qu\xE9 conjuntos${de} faltan para la DF y por qu\xE9`;
+          return fila(pregunta, {
+            respuesta: `\xBFQu\xE9 quieres${de ? `${de}` : ""}?
+- **El ZIP de la entrega a la DF**: \xEDndice, carpetas por planta y conjunto, y la documentaci\xF3n de cada equipo.
+- **C\xF3mo va la entrega**: cu\xE1ntos conjuntos est\xE1n listos y qu\xE9 le falta a cada uno.`,
+            acciones: [{ tipo: "preguntar", frase: zipF, texto: "El ZIP de la entrega" }, { tipo: "preguntar", frase: listaF, texto: "C\xF3mo va la entrega" }, ir],
+            enviar: [{ enviar: zipF, texto: "El ZIP de la entrega" }, { enviar: listaF, texto: "C\xF3mo va la entrega" }],
+            herramienta: "entregaDF"
+          });
+        }
         if (!puede(yo.rol, "commissioning", "exportar")) return fila(pregunta, { respuesta: "Tu rol puede ver el commissioning, pero no prepara la entrega a la DF (eso es de quien exporta: jefe de obra o commissioning)." });
         if (!opciones.prepararEntregaDF) return fila(pregunta, { respuesta: "Desde aqu\xED no puedo preparar el ZIP: hazlo con el bot\xF3n \xABEntrega DF\xBB de Commissioning.", acciones: [ir] });
         const nube = opciones.prepararEntregaDF.nube || null;
@@ -216790,6 +219255,22 @@ Alcance de la entrega de esta obra: **${d.alcanceObra.texto}**; cuento solo lo q
               return respuestaEnlaces(pregunta, { obra: ahora ? ahora.obra : obra, partes: firmadas, fecha: ya.fecha, ahora, deLaNube: true });
             }
             if (error) return fila(pregunta, { respuesta: `La entrega del ${fechaEs(ya.fecha)} est\xE1 en la nube, pero no he podido firmar sus enlaces: ${error}`, acciones: [ir], herramienta: "entregaDF" });
+          }
+        }
+        if (!q.tipo) {
+          try {
+            const d0 = datos.datosPaqueteDF(repo, yo, id, { soloVer: true });
+            const raiz = (t) => llano(t).split(/[^a-z0-9]+/).filter((p) => p.length > 2)[0] || "";
+            const pq = ` ${soloLetras(pregunta)} `;
+            const dicho = d0 && d0.ok ? (d0.tipos || []).map((t) => t.tipo).find((t) => {
+              const rz = raiz(t).replace(/(es|s)$/, "");
+              return rz.length > 2 && new RegExp(` ${rz}(es|s)? `).test(pq);
+            }) : null;
+            if (dicho) {
+              q.tipo = dicho;
+              apuntarPrevia(yo, q);
+            }
+          } catch {
           }
         }
         let r = null;
@@ -216862,7 +219343,7 @@ ${r.rotos.slice(0, MAX_CHAT).map((x) => `- ${x}`).join("\n")}` : "";
           `He preparado la entrega a la DF de **${obra.nombre}**${tipo ? ` (${tipo})` : ""}: ${partes.length > 1 ? `**${n(partes.length)} partes** de 45 MB como m\xE1ximo (por planta y sin partir ning\xFAn conjunto)` : `**${partes[0] ? partes[0].nombre : ""}**`}, ${a.archivos ? `${n(Object.keys(a.archivos).length)} archivos, ` : ""}${mb(bytes)} en total.`,
           alcanceDicho,
           `- Conjuntos completos: **${n(completos)} de ${n(total)}**${total - completos ? ` (retenidos ${n(total - completos)}; preg\xFAntame \xABqu\xE9 conjuntos faltan y por qu\xE9\xBB)` : ""}.`,
-          partes.length > 1 ? "- **Cada parte se abre sola**: lleva su 00_ABRIR_INDICE.html, su Indice.pdf, su LEEME, los planos de sus conjuntos y la ficha t\xE9cnica, el manual y el CE de sus equipos. Todos sus enlaces son a ficheros de la misma parte (siguen valiendo aunque se mueva la carpeta)." : "- Dentro: 00_ABRIR_INDICE.html (se abre sin la app, descomprimido), LEEME.txt y una carpeta por planta; dentro, una por conjunto (TAG y sala).",
+          partes.length > 1 ? "- **Cada parte se abre sola**: lleva su 00_ABRIR_INDICE.html, su LEEME, sus conjuntos y, en 90_Fabricantes, la ficha t\xE9cnica, el manual y el CE de sus modelos. Todos sus enlaces son a ficheros de la misma parte (siguen valiendo aunque se mueva la carpeta). **Extrae todo antes de abrir.**" : "- Dentro: 00_ABRIR_INDICE.html (**extrae todo antes de abrir**), LEEME.txt, una carpeta por planta con lo de cada conjunto (TAG y sala: su PDF y la PEM del fabricante) y 90_Fabricantes/<Marca>/<Modelo>/ con la ficha t\xE9cnica, el CE y el manual una vez por modelo.",
           faltanDatos.length ? `- Equipos sin marca o modelo en la app: ${n(faltanDatos.length)} (${faltanDatos.slice(0, 6).map((x) => `${x.tag}: falta ${x.falta.join(" y ")}`).join("; ")}${faltanDatos.length > 6 ? "\u2026" : ""}): dato que falta en la app, no lo invento.` : "",
           pendFab ? `- Papeles del fabricante que no tengo: ${n(pendFab)} (en el \xEDndice salen como \xABDocumentaci\xF3n del fabricante pendiente\xBB; no retienen ning\xFAn conjunto).` : "",
           a.fallos && a.fallos.length ? `- No he podido preparar ${n(a.fallos.length)} documento${a.fallos.length === 1 ? "" : "s"} (lo dice LEEME_fallos.txt).` : "",
@@ -216898,7 +219379,7 @@ ${r.rotos.slice(0, MAX_CHAT).map((x) => `- ${x}`).join("\n")}` : "";
         const acciones = partes.map((p) => ({ tipo: "enlace", url: p.url, texto: `${prueba ? "Prueba \xB7 " : ""}Parte ${p.n} de ${p.de} \xB7 ${p.etiqueta} (${mb(p.bytes || 0)})`, caduca: p.caduca }));
         return fila(pregunta, { prueba, respuesta: lineas.join("\n"), acciones: [...acciones, ir], herramienta: "entregaDF", enlaces: partes.map((p) => ({ n: p.n, de: p.de, etiqueta: p.etiqueta, nombre: p.nombre, bytes: p.bytes, conjuntos: p.conjuntos, url: p.url, caduca: p.caduca, sha256: p.sha256 })) });
       }
-      module.exports = { ES_PRUEBA, entender, responder, obraDe, textoFaltan, causaDe, conjuntoNombrado, zonaDicha, ZONAS };
+      module.exports = { ES_PRUEBA, entender, previaDe, apuntarPrevia, PREVIAS, responder, obraDe, textoFaltan, causaDe, conjuntoNombrado, zonaDicha, ZONAS };
     }
   });
 
@@ -220593,6 +223074,22 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
           const filas = c.unidades.map((u) => `<tr${u.actual ? ' class="actual" aria-current="true"' : ""}><td class="pesCjSigla">${esc(u.sigla)}</td><td><b>${esc(u.tag)}</b><small>${esc(u.nombre)}${u.donde ? ` \xB7 ${esc(u.donde)}` : ""}</small></td><td class="pesAccion">${u.actual ? '<span class="pesVacio">Esta</span>' : `<button type="button" class="botonMini" ${atributo}="${esc(u.id)}" title="Abrir ${esc(u.tag)}">Abrir</button>`}</td></tr>`).join("");
           return `<section class="pesConjunto" data-pes-conjunto role="group" aria-label="Conjunto ${esc(c.nombre)}"><p class="pesConjuntoTit">Conjunto <b>${esc(c.nombre)}</b> \xB7 ${c.unidades.length} unidades</p><table class="pesTablaFicha conAccion"><tbody>${filas}</tbody></table><small class="pesConjuntoNota">Hojas de Cx, estanqueidad e incidencias: las del conjunto.</small></section>`;
         }
+        const numPes = (n) => typeof n === "number" ? n.toLocaleString("es-ES", { maximumFractionDigits: 2 }) : String(n);
+        function proyectoHtml(d) {
+          const ts = d.pesada && Array.isArray(d.pesada.tomas) ? d.pesada.tomas : null;
+          if (!ts) return "";
+          const vistos = /* @__PURE__ */ new Set();
+          const filas = [];
+          for (const t of ts) for (const v of t && t.proyecto || []) {
+            const k = `${v.etiqueta}|${v.unidad}`;
+            if (vistos.has(k)) continue;
+            vistos.add(k);
+            filas.push(v);
+          }
+          const cuerpo = filas.length ? `<table class="pesTablaFicha"><tbody>${filas.map((v) => `<tr title="${esc(v.fuente || "")}"><th>${esc(v.etiqueta)}</th><td>${esc(`${numPes(v.valor)}${v.unidad ? ` ${v.unidad}` : ""}`)}${v.parcial ? ' <span class="pesNota">(parcial)</span>' : ""}</td></tr>`).join("")}</tbody></table>` : `<p class="pesNota">${VACIO} Sin valores de proyecto en la obra para este equipo.</p>`;
+          const dato = filas.length ? filas.slice(0, 2).map((v) => `${numPes(v.valor)}${v.unidad ? ` ${v.unidad}` : ""}`).join(" \xB7 ") : "Sin datos";
+          return plegado("Valores de proyecto", cuerpo, dato, "data-pes-proyecto");
+        }
         function html(d = {}) {
           const est = d.estado || {};
           const botones = (d.botones || []).filter(Boolean).map((b) => `<button type="button" class="botonMini" ${b.dato}>${esc(b.texto)}</button>`).join("");
@@ -220605,6 +223102,7 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
       ${botones ? `<div class="pesFichaPie pesAcciones">${botones}</div>` : ""}
       ${documentosHtml(d)}
       ${tomasHtml(d)}
+      ${proyectoHtml(d)}
       ${vidaHtml(d)}
       ${estados.length ? plegado("Estado", tabla(estados), estados.map((f) => `${f[0]}: ${f[1]}`).join(" \xB7 ")) : ""}
       ${identificacion.length ? plegado("Identificaci\xF3n", tabla(identificacion), identificacion.filter((f) => f[0] === "Conjunto" || f[0] === "Pedido" || f[0] === "Familia").map((f) => f[1]).filter(Boolean).join(" \xB7 ")) : ""}
@@ -220612,7 +223110,7 @@ ${r.avisos.map((a) => `- ${a}`).join("\n")}`;
       ${d.red ? plegado("Su red", d.red, "", "data-pes-sured") : ""}
       ${(d.notas || []).filter(Boolean).map((t) => `<p class="pesNota">${esc(t)}</p>`).join("")}`;
         }
-        return { html, conjuntoAlPulsar, conjuntoHtml, nombreConjunto, incidenciasHtml, documentosHtml, documentosDe, filasDocumentos, filasDocumentosEquipo, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA };
+        return { html, proyectoHtml, conjuntoAlPulsar, conjuntoHtml, nombreConjunto, incidenciasHtml, documentosHtml, documentosDe, filasDocumentos, filasDocumentosEquipo, rotuloConjunto, papelDe, abrirVisor, ESTADO_TOMA };
       });
     }
   });
@@ -233007,9 +235505,10 @@ No he podido con: ${fallos.join("; ")}.` : ""),
       modificadoPor = excluded.modificadoPor, modificadoEn = excluded.modificadoEn`).run(clave, nombre, JSON.stringify(tramos), firmado, sesion.personaId || null, ahora, ahora);
         return { ok: true, clave, tramos, firmado: Boolean(firmado), porDefecto: false };
       }
-      function porMarcaEnOtrasObras(repo, familiaEquipo, obraId) {
-        if (!familiaEquipo) return [];
-        return VC.volumenPorMarca(recoger(repo.db).movs, { familia: VC.idFamiliaEquipo(familiaEquipo), excluirObraId: obraId || null });
+      function porMarcaEnOtrasObras(repo, familiaEquipo, obraId, sesion) {
+        if (!familiaEquipo || !sesion || !sesion.rol) return [];
+        const filas = VC.volumenPorMarca(visibles(repo, sesion).movs, { familia: VC.idFamiliaEquipo(familiaEquipo), excluirObraId: obraId || null });
+        return verDinero(sesion) ? filas : VC.sinDinero(filas);
       }
       function lineas(repo, sesion) {
         if (!sesion || !puede(sesion.rol, "pedidos", "ver")) return null;
@@ -233044,9 +235543,9 @@ No he podido con: ${fallos.join("; ")}.` : ""),
       var PC = require_propuestaCambio();
       var modelo = require_modelo();
       var VC = require_volumenCompras();
-      var volumenPorMarca = (repo, familia, obraId) => {
+      var volumenPorMarca = (repo, familia, obraId, sesion) => {
         try {
-          return require_volumenCompras2().porMarcaEnOtrasObras(repo, familia, obraId);
+          return require_volumenCompras2().porMarcaEnOtrasObras(repo, familia, obraId, sesion);
         } catch {
           return [];
         }
@@ -233211,7 +235710,7 @@ No he podido con: ${fallos.join("; ")}.` : ""),
           return c ? c.coste : null;
         };
         const dinero = veDinero(sesion);
-        const porMarca = volumenPorMarca(repo, partida.familia, obraId);
+        const porMarca = volumenPorMarca(repo, partida.familia, obraId, sesion);
         const volumenDe = (f) => VC.marcaComun(porMarca, f.fabricante);
         const cant = Number(partida.cantidad) || 0;
         const importeDe = (c) => c && c.coste != null && cant > 0 ? modelo.euros(c.coste * cant) : null;
@@ -245783,6 +248282,7 @@ Lo que escribe algo (pedir ofertas, adjudicar, crear el presupuesto) te lo propo
           creadoPor: sesion.personaId
         });
         generarHojaAlcance(repo.db, sesion, repo.leer("proyectos", sesion, id));
+        require_condicionesOfertas().copiarAlProyecto(repo, sesion, id);
         return deFila(repo.leer("proyectos", sesion, id));
       }
       function generarHojaAlcance(db, sesion, proyecto) {
@@ -246232,6 +248732,7 @@ No se crea nada hasta que pulses **Confirmar**.`,
       var IPRES = require_iarvisPresupuesto();
       var RPREC = require_repositorioPrecios();
       var DATOS_PRECIOS = require_repositorioPrecios2();
+      var CE = require_condicionesEmpresa();
       var uuid = () => globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `l-${Date.now()}-${Math.random().toString(16).slice(2)}`;
       var fila = (pregunta, extra) => ({ id: uuid(), pregunta, estado: "respondida", local: true, creado: (/* @__PURE__ */ new Date()).toISOString(), acciones: [], ...extra });
       var norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -246286,7 +248787,15 @@ Dime \xABcomparativo de <grupo>\xBB y te cuento las ofertas.`, acciones: [{ tipo
         }
         const cols = c && c.columnas || [];
         if (!cols.length) return fila(pregunta, { respuesta: `**${p.nombre}**: petici\xF3n abierta, sin ofertas todav\xEDa. Cuando entren, las comparo.`, acciones });
-        const lineas = cols.slice(0, 5).map((x, i) => `${i + 1}. **${x.proveedor}** \u2014 cubre ${Math.round(x.cobertura)} %${sinDinero ? "" : ` \xB7 ${eur(x.totalComparable)} comparable`}`);
+        const SEM = { verde: "cumple las condiciones", ambar: "falla una recomendable", rojo: "NO cumple una condici\xF3n obligatoria" };
+        const cond = (x) => x.condiciones ? ` \xB7 ${SEM[x.condiciones.semaforo]}` : "";
+        const lineas = cols.slice(0, 5).map((x, i) => `${i + 1}. **${x.proveedor}** \u2014 cubre ${Math.round(x.cobertura)} %${sinDinero ? "" : ` \xB7 ${eur(x.totalComparable)} comparable`}${cond(x)}`);
+        const alarmas = cols.slice(0, 5).filter((x) => x.condiciones && x.condiciones.semaforo === "rojo").map((x) => `- **${x.proveedor}**: ${x.condiciones.clausulas.filter((a) => a.alarma === "rojo").map((a) => CE.textoAlarma(a)).join(" ")}`);
+        const textoAlarmas = alarmas.length ? `
+
+Condiciones de la empresa que no se cumplen:
+${alarmas.join("\n")}
+Adjudicar as\xED necesita una justificaci\xF3n firmada por la direcci\xF3n.` : "";
         const adj = c.adjudicacion ? `
 
 Ya adjudicado a **${(cols.find((x) => x.proveedorId === c.adjudicacion.proveedorId) || {}).proveedor || "un industrial"}**.` : "";
@@ -246294,7 +248803,7 @@ Ya adjudicado a **${(cols.find((x) => x.proveedorId === c.adjudicacion.proveedor
           acciones.unshift({ tipo: "hacer", hacer: "compraAdjudicar", presupuestoId: pres.id, grupo: p.codigo, proveedorId: cols[0].proveedorId, texto: `Adjudicar a ${cols[0].proveedor}` });
         }
         return fila(pregunta, { respuesta: `Comparativo de **${p.nombre}** (de menor a mayor total comparable):
-${lineas.join("\n")}${adj}${!c.adjudicacion && puedeAdjudicar ? "\n\nSi quieres adjudicarlo, pulsa el bot\xF3n: no se hace nada hasta que confirmes." : ""}`, acciones });
+${lineas.join("\n")}${textoAlarmas}${adj}${!c.adjudicacion && puedeAdjudicar ? "\n\nSi quieres adjudicarlo, pulsa el bot\xF3n: no se hace nada hasta que confirmes." : ""}`, acciones });
       }
       async function responder(repo, yo, d = {}) {
         const pregunta = String(d.pregunta || "").slice(0, 4e3);
@@ -246344,7 +248853,7 @@ ${lineas.join("\n")}${adj}${!c.adjudicacion && puedeAdjudicar ? "\n\nSi quieres 
           const t = norm(e.texto);
           const pedido = e.masBarato ? cols[0] : cols.find((x) => norm(x.proveedor).length >= 3 && t.includes(norm(x.proveedor)));
           if (!pedido) return paqueteFila(pregunta, yo, pres, p, c, sinDinero, puedePedir, puedeAdjudicar);
-          return fila(pregunta, { respuesta: `Voy a adjudicar **${p.nombre}** a **${pedido.proveedor}**${pedido === cols[0] ? ", el de menor total comparable" : " (no es el m\xE1s barato: te pedir\xE9 el motivo)"}. Esto compromete la compra; no se hace hasta que confirmes.`, acciones: [{ tipo: "hacer", hacer: "compraAdjudicar", presupuestoId: pres.id, grupo: p.codigo, proveedorId: pedido.proveedorId, texto: `Confirmar: adjudicar a ${pedido.proveedor}` }] });
+          return fila(pregunta, { respuesta: `Voy a adjudicar **${p.nombre}** a **${pedido.proveedor}**${pedido === cols[0] ? ", el de menor total comparable" : " (no es el m\xE1s barato: te pedir\xE9 el motivo)"}${pedido.condiciones && pedido.condiciones.semaforo === "rojo" ? `. Ojo: ${pedido.condiciones.resumen}; sin justificaci\xF3n firmada no se adjudica` : ""}. Esto compromete la compra; no se hace hasta que confirmes.`, acciones: [{ tipo: "hacer", hacer: "compraAdjudicar", presupuestoId: pres.id, grupo: p.codigo, proveedorId: pedido.proveedorId, texto: `Confirmar: adjudicar a ${pedido.proveedor}` }] });
         }
         return paqueteFila(pregunta, yo, pres, p, c, sinDinero, puedePedir, puedeAdjudicar);
       }
@@ -246392,7 +248901,7 @@ ${explicacion}`, acciones: [{ tipo: "ir", destino: "compras", texto: "Abrir Comp
         }
         if (a.hacer === "compraAdjudicar") {
           if (!H.permitida(yo.rol, "compras.adjudicar")) return fila(pregunta, { respuesta: "Adjudicar compromete el dinero de la obra y es de Proyectos: tu puesto no puede." });
-          const r = compras.adjudicar(repo, yo, { presupuestoId: pres.id, grupo, proveedorId: String(a.proveedorId || ""), motivo: a.motivo ? String(a.motivo).slice(0, 500) : void 0 });
+          const r = compras.adjudicar(repo, yo, { presupuestoId: pres.id, grupo, proveedorId: String(a.proveedorId || ""), motivo: a.motivo ? String(a.motivo).slice(0, 500) : void 0, justificacionCondiciones: a.justificacion ? String(a.justificacion).slice(0, 1e3) : void 0 });
           if (r && r.error) return fila(pregunta, { respuesta: `No lo he adjudicado: ${r.error}
 
 Escribe el motivo en el chat (o adjud\xEDcalo en Compras) y lo repito.`, acciones: [{ tipo: "ir", destino: "compras", texto: "Abrir Compras" }] });
@@ -249127,6 +251636,10 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
         "POST api/albaran": [["pedidos", "crear"]],
         "GET api/personal": [["partes", "ver"]],
         /* La firma guardada de quien tiene la sesión: la puede pedir cualquiera que firme algo (29-oct). */
+        /* 26-nov: Ajustes › Mi firma, la de quien lleva el teléfono (todos los roles con bloc). */
+        "GET api/miFirma": [["notas", "ver"]],
+        "POST api/miFirma": [["notas", "crear"]],
+        "POST api/miFirma/quitar": [["notas", "borrar"]],
         "GET api/firma/guardada": [["commissioning", "editar"], ["incidencias", "editar"], ["ordenesMant", "editar"], ["qhse", "editar"], ["ncr", "crear"], ["pruebasEstanqueidad", "crear"], ["partesIncidencia", "crear"], ["pedidos", "crear"]],
         /* Fichar con la tarjeta QR lo hace también el operario (el suyo); fichar a
            mano y dar de alta a alguien, el encargado o el jefe de obra (editar). */
@@ -249300,6 +251813,10 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
             return r;
           },
           /* ── El personal: la foto de la tarjeta del operario, y lo de hoy. */
+          /* ── Mi firma (26-nov): la guardada de la persona de la sesión, solo la suya. */
+          "GET api/miFirma": ({ ses }) => require_firmaPersona().miFirma(repo, ses),
+          "POST api/miFirma": ({ ses, json }) => require_firmaPersona().guardarMiFirma(repo, ses, json() || {}),
+          "POST api/miFirma/quitar": ({ ses }) => require_firmaPersona().quitarMiFirma(repo, ses),
           "GET api/firma/guardada": ({ ses }) => {
             const g = require_firmasEquipo().firmaPropia(repo, ses);
             return { ok: true, firma: g ? { nombre: g.nombre, imagen: g.imagen } : null };
@@ -249512,8 +252029,9 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
       function pluginNativo(C = globalThis.Capacitor) {
         if (!C || typeof C.isNativePlatform !== "function" || !C.isNativePlatform()) return null;
         if (typeof C.isPluginAvailable === "function" && !C.isPluginAvailable("LectorAlbaran")) return null;
+        if (globalThis.CX_LECTOR_NATIVO) return globalThis.CX_LECTOR_NATIVO;
         try {
-          return C.registerPlugin ? C.registerPlugin("LectorAlbaran") : C.Plugins && C.Plugins.LectorAlbaran || null;
+          return globalThis.CX_LECTOR_NATIVO = C.registerPlugin ? C.registerPlugin("LectorAlbaran") : C.Plugins && C.Plugins.LectorAlbaran || null;
         } catch {
           return null;
         }

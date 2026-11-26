@@ -1310,6 +1310,17 @@ main#app.densa details.grupo-lista[open] > summary + ul.lista-ios:not(.numerada)
   border: 1px solid var(--rejilla); border-radius: 6px; background: var(--panel); }
 .marca-boca.elegida .simbolo-boca { filter: drop-shadow(0 0 3px var(--acento)); }
 .marca-boca.elegida .rotulo-boca { background: var(--acento); outline: 2px solid var(--vd-lienzo); }
+/* EL PLANO GRANDE EN EL TELÉFONO (25-nov-2026, JC con VE-S2.13.1: «Necesitaría que ese mapa se viese más grandecito»).
+   El marco ocupa ~58 % del alto de la pantalla, a todo el ancho y sin tarjeta que lo encoja; el lienzo se centra y
+   abre encuadrado en las bocas (commissioning.js · encuadrar). Acercado, un dedo en horizontal mueve el plano y en
+   vertical, si el plano ya no baja, la página (pan-y): sin doble scroll. iPad, web y escritorio, como estaban. */
+@media (max-width: 699px) {
+  #app .plano-bocas[data-plano-fig]:not(.red-cx):not(.grande) { width: auto; max-width: none; margin-left: -12px; margin-right: -12px;
+    border-left: 0; border-right: 0; border-radius: 0; box-shadow: none; }
+  .plano-bocas[data-plano-fig]:not(.red-cx):not(.grande) .plano-marco { height: clamp(320px, 58vh, 640px); height: clamp(320px, 58svh, 640px);
+    background: var(--vd-lienzo); }
+  .plano-bocas[data-plano-fig]:not(.red-cx):not(.grande) .plano-marco.con-zoom { touch-action: pan-y; }
+}
 
 /* Impulsión | Retorno arriba del balanceo, con lo medido de cada uno. */
 main#app .circuito-bal { margin: 8px 0 6px; }

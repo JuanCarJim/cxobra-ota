@@ -975,6 +975,7 @@
       ${e.miembros && e.miembros.length > 1 ? '' : (rol ? `<div class="sub">${rol}</div>` : '')}
       ${falta ? `<div class="falta">${falta}</div>` : ''}
       ${documentosEquipoHtml(e)}
+      ${proyectoEquipoHtml(e)}
       ${window.PLANO_FOTOS ? window.PLANO_FOTOS.hueco(e) : ''}
       ${p.plano && e.x === null ? '<div class="sub tenue">No está en el plano.</div>' : ''}
       ${vidaHtml(e)}
@@ -997,6 +998,13 @@
     if (!e.fichaLista && e.documentos === undefined) return '';
     const h = P.documentosHtml({ pesada: { documentos: e.documentos || [] } });
     return `<div class="pe-docs">${h}</div>`;
+  }
+  /* Los valores de proyecto del equipo, plegados con su fuente (25-nov-2026, JC: «todos los valores de proyecto en Cx de
+     todos los equipos»): la misma pieza que el escritorio (panelEquipoPlano.proyectoHtml, de tomasDelEquipo › proyecto). */
+  function proyectoEquipoHtml(e) {
+    const P = PEP();
+    if (!P || !P.proyectoHtml || !Array.isArray(e.tomas)) return '';
+    return `<div class="pe-docs">${P.proyectoHtml({ pesada: { tomas: e.tomas } })}</div>`;
   }
   function abrirDocEquipo(i) {
     const P = PEP(); const e = equipoElegido();
