@@ -11920,7 +11920,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261127.0609" : "0";
+      var VERSION = true ? "20261127.1405" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
@@ -12081,11 +12081,16 @@ globalThis.CX_VARIANTE="cxobra";
           return { estado: "fallo", error: String(err && err.message || err) };
         }
       }
+      function queHacerZonaSegura({ medida, guardada, yaRecargada, vertical }) {
+        if (!vertical) return "nada";
+        if (medida > 0) return "guardar";
+        return guardada > 0 && !yaRecargada ? "recargar" : "nada";
+      }
       function info() {
         const e = leer();
         return { version: VERSION, runtime: CONFIG.runtime, canal: CANAL, url: URL_OTA, lista: e.lista ? e.lista.version : null, rotas: e.rotas || [] };
       }
-      module.exports = { VERSION, CONFIG, masNueva, hayQueBajar, alAbrir, alArrancar, aplicarLista, arrancoBien, buscar, info };
+      module.exports = { VERSION, CONFIG, masNueva, hayQueBajar, alAbrir, alArrancar, aplicarLista, arrancoBien, buscar, info, queHacerZonaSegura };
     }
   });
 
@@ -34207,6 +34212,9 @@ ${obsO}` : obsO).slice(0, 4e3);
         /* 18-nov (planificación concreta editable a mano): los capítulos del plan en orden y la gente de un día concreto de una tarea. */
         ["planesConcretos", "capitulos", "TEXT"],
         ["planConcretoTareas", "personasDia", "TEXT"],
+        /* 27-nov (JC: «poder marcar algo como ya terminado»): cuándo y quién marcó hecha la tarea o el hito. */
+        ["planConcretoTareas", "hechaEn", "TEXT"],
+        ["planConcretoTareas", "hechaPor", "TEXT"],
         /* 13-nov (licencias por unidad de negocio): de qué unidad es cada persona; sin ella, ve todo lo de su rol. */
         ["personas", "unidadNegocioId", "TEXT"],
         /* 19-nov (lo que saca Iarvis, con el formato de quien lo pide): la marca de la licencia (JSON: empresa, logo PNG
@@ -188408,7 +188416,26 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           return (capa === "difusores" || capa === "rejillas") && s >= 0 && suyas.has(mat.sis[s]);
         });
       }
-      module.exports = { tieneBocasDelModelo, dibujoDeRejas, AK_REJA, crearLectorClasificacion, juntarClasificaciones, redesDeMaquina, redesDeMarca, circuitoDeTipoDeRed, extremosLibres, encajePorGuid, puntosDeRejas, seccionDe, areaDe, distanciaAPoligono, TIPO_REJA };
+      var matLeidos = /* @__PURE__ */ new WeakMap();
+      function piezasDeRedes({ plano, redes = [] } = {}) {
+        let mat = plano && typeof plano === "object" ? matLeidos.get(plano) : null;
+        if (!mat) {
+          mat = materialesDe(plano);
+          if (mat && plano && typeof plano === "object") matLeidos.set(plano, mat);
+        }
+        if (!mat || !mat.sis || !mat.si || !mat.it) return { piezas: 0, bocas: 0 };
+        const suyas = new Set(redes.map((r) => r.red));
+        let piezas = 0, bocas = 0;
+        mat.it.forEach((v, i) => {
+          const s = mat.si[i];
+          if (!(s >= 0) || !suyas.has(mat.sis[s])) return;
+          piezas += 1;
+          const capa = mat.capas[v[0]];
+          if (capa === "difusores" || capa === "rejillas") bocas += 1;
+        });
+        return { piezas, bocas };
+      }
+      module.exports = { piezasDeRedes, tieneBocasDelModelo, dibujoDeRejas, AK_REJA, crearLectorClasificacion, juntarClasificaciones, redesDeMaquina, redesDeMarca, circuitoDeTipoDeRed, extremosLibres, encajePorGuid, puntosDeRejas, seccionDe, areaDe, distanciaAPoligono, TIPO_REJA };
     }
   });
 
@@ -188443,12 +188470,16 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
       }
       async function prepararRejas(args = {}) {
         const prep = await prepararRejasDelModelo(args);
-        if (!prep || !prep.ok || !(prep.plantas || []).some((pl) => (pl.puntos || []).some((p) => DIFC.esFicticia(p)))) return prep;
-        const plantas = prep.plantas.map((pl) => {
+        if (!prep || !prep.ok) return prep;
+        let plantas = (prep.plantas || []).map((pl) => {
           const puntos = (pl.puntos || []).filter((p) => !DIFC.esFicticia(p));
           return { ...pl, puntos, ficticias: 0 };
         }).filter((pl) => pl.puntos.length);
         const reales = tieneBocasRealesGuardadas(args.repo, args.ses, args.equipoId);
+        if (reales) {
+          const suyos = new Set(args.repo.listar("planosDifusores", args.ses, { condicion: "equipoId = ?", params: [args.equipoId] }).map((pl) => pl.nombre));
+          plantas = plantas.filter((pl) => suyos.has(pl.nombre));
+        }
         return { ...prep, plantas, sinFicticias: true, ...reales ? { conBocasDelModelo: true, conBocasReales: true } : {} };
       }
       function tieneBocasRealesGuardadas(repo, ses, equipoId) {
@@ -188479,23 +188510,11 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         const rd = RF.redesDeMaquina(clasif, fila.guid);
         if (!rd.ok) return porMarca(rd.motivo);
         if (!rd.redes.length) return { ok: false, codigo: rd.codigo, motivo: `El modelo no tiene conductos de impulsi\xF3n ni de retorno con el c\xF3digo ${rd.codigo}.` };
-        const calc = PI.calcular(repo, ses, obraId);
+        const calc = calcPlanos || PI.calcular(repo, ses, obraId);
         if (!calc.ok) return { ok: false, motivo: calc.error || "Sin planos del modelo." };
         const suyo = calc.planos.find((p) => (p.marcas || []).some((m) => m.g === fila.guid || m.e === equipoId));
         const edificio = suyo ? suyo.edificio : (/_(B\d+)_/.exec(fila.fichero) || [])[1] || null;
-        const plantas = [];
-        const delEdificio = calc.planos.filter((p) => p.edificio === edificio);
-        if (delEdificio.some((plano) => RF.tieneBocasDelModelo({ plano, redes: rd.redes }))) {
-          return { ok: true, codigo: rd.codigo, redes: rd.redes.map((r) => ({ red: r.red, circuito: r.circuito })), edificio, plantas, conBocasDelModelo: true };
-        }
-        for (const plano of delEdificio) {
-          const rejas = RF.extremosLibres({ plano, redes: rd.redes });
-          if (!rejas.length) continue;
-          const dib = RF.dibujoDeRejas({ plano, redes: rd.redes, rejas, guid: fila.guid, etiqueta: equipo.tag });
-          if (!dib) continue;
-          plantas.push({ clave: `${plano.edificio} ${plano.nombre}`, nombre: `Rejas fin de conducto \xB7 ${plano.edificio} ${plano.nombre}`.slice(0, 80), ...dib });
-        }
-        return { ok: true, codigo: rd.codigo, redes: rd.redes.map((r) => ({ red: r.red, circuito: r.circuito })), edificio, plantas };
+        return planoDesdeRedes({ calc, equipo, edificio, redes: rd.redes, codigo: rd.codigo, guid: fila.guid, planoMarca: suyo || null });
       }
       function marcaPorRotulo(planos, equipo) {
         const n = (t) => String(t || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -188513,7 +188532,6 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         return conSerie.length === 1 ? conSerie[0] : null;
       }
       function prepararDesdeMarca({ repo, ses, obraId, equipo, calc: calcDado = null }) {
-        const PB = require_planoBalanceoIfc();
         const { marcaDeMaquina } = require_planoBalanceoIfc2();
         const calc = calcDado || PI.calcular(repo, ses, obraId);
         if (!calc.ok) return { ok: false, motivo: calc.error || "Sin planos del modelo." };
@@ -188522,19 +188540,17 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
         const { plano, marca } = hallada;
         const rd = RF.redesDeMarca(marca);
         if (!rd.ok) return { ok: false, motivo: `${equipo.tag}: ${rd.motivo}` };
-        const suyas = new Set(rd.redes.map((r) => r.red));
-        const piezasEn = (p) => {
-          const mat = p.mat && typeof p.mat === "object" ? p.mat : null;
-          if (!mat || !mat.si) return 0;
-          let n = 0;
-          for (const x of mat.si) if (x >= 0 && suyas.has(mat.sis[x])) n += 1;
-          return n;
-        };
-        const candidatas = calc.planos.filter((p) => p.edificio === plano.edificio).map((p) => [piezasEn(p), p]).sort((a, b) => b[0] - a[0]);
-        const elegida = candidatas.length && candidatas[0][0] > 0 ? candidatas[0][1] : plano;
-        const dib = PB.dibujar({ plano: elegida, redes: rd.redes, guid: elegida === plano ? marca.g : null, etiqueta: equipo.tag });
-        if (!dib) return { ok: false, codigo: rd.codigo, motivo: `${equipo.tag}: el plano por edificio no trae las piezas de sus redes (${rd.codigo}).` };
-        const reales = dib.terminales.map((t) => ({
+        return planoDesdeRedes({ calc, equipo, edificio: plano.edificio, redes: rd.redes, codigo: rd.codigo, guid: marca.g, planoMarca: plano, porMarca: true });
+      }
+      function planoDesdeRedes({ calc, equipo, edificio, redes, codigo, guid = null, planoMarca = null, porMarca = false }) {
+        const PB = require_planoBalanceoIfc();
+        const base = { ok: true, codigo, redes: redes.map((r) => ({ red: r.red, circuito: r.circuito })), edificio, porMarca, sinFicticias: true };
+        const candidatas = calc.planos.filter((p) => p.edificio === edificio).map((p) => ({ p, ...RF.piezasDeRedes({ plano: p, redes }) })).filter((c) => c.piezas > 0).sort((a, b) => b.bocas - a.bocas || b.piezas - a.piezas);
+        const elegida = candidatas.length ? candidatas[0].p : planoMarca;
+        if (!elegida) return { ...base, plantas: [] };
+        const dib = PB.dibujar({ plano: elegida, redes, guid: elegida === planoMarca ? guid : null, etiqueta: equipo.tag });
+        if (!dib) return { ok: false, codigo, motivo: `${equipo.tag}: el plano por edificio no trae las piezas de sus redes (${codigo}).` };
+        const puntos = dib.terminales.map((t) => ({
           id: `ifc-${String(t.red || "").split(" \xB7 ")[0]}-${Math.round(t.x * 1e4)}-${Math.round(t.y * 1e4)}`.replace(/[^A-Za-z0-9-]/g, ""),
           nombre: t.nombre,
           x: t.x,
@@ -188547,18 +188563,12 @@ var w=parseFloat(l.style.width)||100;w=Math.max(100,Math.min(800,w*(b.dataset.z>
           red: t.red,
           caudalDiseno: null
         }));
-        const { k, x0, y0 } = dib.escala;
-        const libres = reales.length ? [] : RF.extremosLibres({ plano: elegida, redes: rd.redes });
-        const fin = RF.puntosDeRejas(libres, { encaje: { sx: k, sy: k, tx: -x0 * k, ty: -y0 * k }, ancho: dib.ancho, alto: dib.alto, existentes: reales });
-        const puntos = [...reales, ...fin];
         const clave = `${elegida.edificio} ${elegida.nombre}`;
         return {
-          ok: true,
-          codigo: rd.codigo,
-          redes: rd.redes.map((r) => ({ red: r.red, circuito: r.circuito })),
+          ...base,
           edificio: elegida.edificio,
-          porMarca: true,
-          plantas: puntos.length ? [{ clave, nombre: `Balanceo IFC \xB7 ${equipo.tag} \xB7 ${clave}`.slice(0, 80), svg: dib.svg, ancho: dib.ancho, alto: dib.alto, puntos, reales: reales.length, ficticias: fin.length }] : []
+          conBocasDelModelo: puntos.length > 0,
+          plantas: puntos.length ? [{ clave, nombre: `Balanceo IFC \xB7 ${equipo.tag} \xB7 ${clave}`.slice(0, 80), svg: dib.svg, ancho: dib.ancho, alto: dib.alto, puntos, reales: puntos.length, ficticias: 0 }] : []
         };
       }
       async function guardarRejas({ repo, ses, obraId, equipoId, clave, imagen, dir, rutas = null, caudales = {}, calcPlanos = null } = {}) {
@@ -253250,6 +253260,29 @@ Lo otro no: ${negativa.charAt(0).toLowerCase()}${negativa.slice(1)}` };
     };
     if (aviso) aviso.remove();
     ota.arrancoBien();
+    setTimeout(() => {
+      const C = globalThis.Capacitor;
+      if (!C || !C.getPlatform || C.getPlatform() !== "ios" || document.visibilityState !== "visible") return;
+      const sonda = document.createElement("div");
+      sonda.style.cssText = "position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top)";
+      document.body.appendChild(sonda);
+      const medida = parseFloat(getComputedStyle(sonda).paddingTop) || 0;
+      sonda.remove();
+      let yaRecargada = false;
+      try {
+        yaRecargada = Boolean(sessionStorage.getItem("cxobra.zonaSeguraRecargada"));
+      } catch {
+      }
+      const que = ota.queHacerZonaSegura({ medida, guardada: Number(leerLS("cxobra.zonaSegura")) || 0, yaRecargada, vertical: innerHeight > innerWidth });
+      if (que === "guardar") ponerLS("cxobra.zonaSegura", String(medida));
+      if (que === "recargar") {
+        try {
+          sessionStorage.setItem("cxobra.zonaSeguraRecargada", "1");
+        } catch {
+        }
+        location.reload();
+      }
+    }, 1500);
     globalThis.cxObra.ota = { info: ota.info, buscar: ota.buscar };
     globalThis.cxObra.sync = {
       activa: conNube,

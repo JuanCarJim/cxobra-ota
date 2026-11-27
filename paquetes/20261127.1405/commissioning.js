@@ -2864,12 +2864,10 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
   function textoMedidos(x) {
     const sin = x.bocasSinMedir || [];
     if (x.clase === 'balanceo' && sin.length) {
-      const nombre = (b) => `${b.circuito === 'retorno' ? 'retorno' : 'impulsión'}${b.terminal ? ` (${b.terminal})` : ''}`;
       const totales = sin.every((b) => b.totalEquipo);
-      const lista = sin.map(nombre).join(' y ');
       return totales
-        ? `Falta el caudal medido total de la UTA: ${lista}. Va aparte de las bocas del plano`
-        : `Falta el caudal medido de ${sin.length === 1 ? 'la fila' : `${sin.length} filas`}: ${lista}`;
+        ? 'Falta el caudal medido total de la UTA. Va aparte de las bocas del plano'
+        : `Falta el caudal medido de ${sin.length === 1 ? '1 boca' : `${sin.length} bocas`}`;
     }
     return x.medidos && x.medidos.obligatorios ? `${x.medidos.rellenos} de ${x.medidos.obligatorios} datos` : null;
   }

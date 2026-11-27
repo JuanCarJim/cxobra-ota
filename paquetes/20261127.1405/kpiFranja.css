@@ -138,6 +138,8 @@
   font-size: 10.5px; font-weight: 500; line-height: 1.2; letter-spacing: 0; text-transform: none;
   color: var(--textoTenue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* 27-nov (JC): en el inicio del móvil el rótulo se lee entero, a dos líneas («incidencias abiertas», «pruebas pendientes»). */
+#app .ini-kpis > .ini-kpi > span { white-space: normal; }
 /* La cifra, 17 px tabular. */
 #app :is(.kpi-cx b, .resumen-fila > * > b, .ini-kpi > b) {
   order: 1; display: block; margin: 0; font-size: 17px !important; font-weight: 600; line-height: 1.15; letter-spacing: -0.01em;
