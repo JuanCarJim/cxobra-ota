@@ -8661,7 +8661,8 @@ globalThis.CX_VARIANTE="cxobra";
         inventario: { modulo: "pedidos", etiqueta: "Inventario" },
         /* 18-nov (JC): el cruce a tres vías (factura, pedido, albarán), el almacén central con traspasos y las devoluciones con abono.
            Se abre desde Inventario (pestaña «Cruce y almacén») y desde el buscador: Compras ya tiene siete. */
-        cruceCompras: { modulo: "pedidos", etiqueta: "Cruce y almac\xE9n" },
+        /* 27-nov (JC): el operario no ve ni mueve el cruce ni el almacén central (solo registra albaranes). */
+        cruceCompras: { modulo: "pedidos", etiqueta: "Cruce y almac\xE9n", solo: "veCruceCompras" },
         /* 23-nov (JC): margen por proveedor y subcontrata frente a la venta: es dinero, el encargado no lo ve. */
         estudioProveedor: { modulo: "costsPlan", etiqueta: "Estudio por proveedor" },
         /* 19-nov (JC): lo más comprado y € por fabricante, proveedor y familia; va con la licencia de Compras (pedidos).
@@ -8699,6 +8700,10 @@ globalThis.CX_VARIANTE="cxobra";
       var veQueHaceLaApp = (idRol) => idRol === "administrador";
       var VEN_AHORRO_APP = /* @__PURE__ */ new Set(["administrador"]);
       var veAhorroApp = (idRol) => VEN_AHORRO_APP.has(idRol);
+      var SIN_CRUCE_COMPRAS = Object.freeze(["operario"]);
+      function veCruceCompras(idRol) {
+        return puede(idRol, "pedidos", "ver") && !SIN_CRUCE_COMPRAS.includes(idRol);
+      }
       var DEPARTAMENTOS_DIRECTOR = [
         { id: "obras", nombre: "Obras y Producci\xF3n", necesita: "obras", vistas: [
           ["resumen", "Resumen"],
@@ -8777,6 +8782,7 @@ globalThis.CX_VARIANTE="cxobra";
           if (!contratoPermite(contrato, m)) return false;
           if (a && a.solo === "veAhorroApp" && !veAhorroApp(idRol)) return false;
           if (a && a.solo === "veQueHaceLaApp" && !veQueHaceLaApp(idRol)) return false;
+          if (a && a.solo === "veCruceCompras" && !veCruceCompras(idRol)) return false;
           if (a && a.tambienCon && (visibles.includes(a.tambienCon) || ((porId.get(idRol) || { permisos: {} }).permisos[a.tambienCon] || []).includes("ver"))) return true;
           return visibles.includes(a ? a.modulo : m);
         };
@@ -8887,6 +8893,8 @@ globalThis.CX_VARIANTE="cxobra";
         contratoFijado,
         rol,
         puede,
+        veCruceCompras,
+        SIN_CRUCE_COMPRAS,
         MARCAS_EQUIPO,
         puedeMarcarEquipo,
         tablasDeMarcas,
@@ -11912,7 +11920,7 @@ globalThis.CX_VARIANTE="cxobra";
       "use strict";
       var import_buffer_global10 = __toESM(require_buffer_global());
       var CONFIG = require_ota();
-      var VERSION = true ? "20261126.2248" : "0";
+      var VERSION = true ? "20261127.0808" : "0";
       var URL_OTA = "" ? "" : CONFIG.url;
       var CANAL = "produccion" ? "produccion" : CONFIG.canal;
       var CLAVE = "cxobra.ota";
