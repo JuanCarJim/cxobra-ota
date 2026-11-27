@@ -3007,7 +3007,7 @@ ${window.CX_PLANO_EQUIPOS && !lateral && !bajoCabecera ? '<button class="enlace"
    */
   const filasDocsDe = (f) => {
     const P = window.PANEL_EQUIPO_PLANO;
-    return P && P.filasDocumentosEquipo && Array.isArray(f.documentos) ? P.filasDocumentosEquipo(f.documentos) : null;
+    return P && P.filasDocumentosEquipo && Array.isArray(f.documentos) ? P.filasDocumentosEquipo(f.documentos, f) : null;
   };
   function htmlFilaDocumentos(f) {
     const filas = filasDocsDe(f);
